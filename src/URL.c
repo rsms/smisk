@@ -99,20 +99,20 @@ static const unsigned char urlchr_table[256] =
 
 
 static int smisk_htoi(char *s) {
-	int value;
-	int c;
+  int value;
+  int c;
 
-	c = ((unsigned char *)s)[0];
-	if (isupper(c))
-		c = tolower(c);
-	value = (c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10) * 16;
+  c = ((unsigned char *)s)[0];
+  if (isupper(c))
+    c = tolower(c);
+  value = (c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10) * 16;
 
-	c = ((unsigned char *)s)[1];
-	if (isupper(c))
-		c = tolower(c);
-	value += c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10;
+  c = ((unsigned char *)s)[1];
+  if (isupper(c))
+    c = tolower(c);
+  value += c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10;
 
-	return (value);
+  return (value);
 }
 
 
@@ -170,25 +170,25 @@ char *smisk_url_encode(const char *s, int full) {
 
 // returns (new) length of str
 size_t smisk_url_decode(char *str, size_t len) {
-	char *dest = str;
-	char *data = str;
+  char *dest = str;
+  char *data = str;
 
-	while (len--) {
-		if (*data == '+') {
-			*dest = ' ';
-		}
-		else if (*data == '%' && len >= 2 && isxdigit((int) *(data + 1)) && isxdigit((int) *(data + 2))) {
-			*dest = (char) X2DIGITS_TO_NUM(*(data + 1), *(data + 2));
-			data += 2;
-			len -= 2;
-		} else {
-			*dest = *data;
-		}
-		data++;
-		dest++;
-	}
-	*dest = '\0';
-	return dest - str;
+  while (len--) {
+    if (*data == '+') {
+      *dest = ' ';
+    }
+    else if (*data == '%' && len >= 2 && isxdigit((int) *(data + 1)) && isxdigit((int) *(data + 2))) {
+      *dest = (char) X2DIGITS_TO_NUM(*(data + 1), *(data + 2));
+      data += 2;
+      len -= 2;
+    } else {
+      *dest = *data;
+    }
+    data++;
+    dest++;
+  }
+  *dest = '\0';
+  return dest - str;
 }
 
 
