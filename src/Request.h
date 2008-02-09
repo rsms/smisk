@@ -46,7 +46,7 @@ typedef struct {
   PyObject      *get; // lazy dict
   PyObject      *post; // lazy dict
   PyObject      *files; // lazy dict
-  PyObject      *cookie; // lazy object
+  PyObject      *cookie; // lazy dict
   
   // Public C
   FCGX_ParamArray envp;

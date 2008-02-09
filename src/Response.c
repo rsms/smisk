@@ -361,7 +361,7 @@ PyObject* smisk_Response_setCookie(smisk_Response* self, PyObject* args, PyObjec
   }
   
   
-  // Mandator fields
+  // Mandatory fields
   
   name = smisk_url_encode(name, 1);
   value = smisk_url_encode(value, 1);
