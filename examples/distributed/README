@@ -4,8 +4,7 @@ process.py
   This comprises the web application.
   You can run it without arguments like this:
   ./process.py
-  Or give it a port and optionally a hostname to bind to, from where it
-  accepts connections:
+  Or give it a port and optionally a hostname to bind to:
   ./process.py 127.0.0.1:5000
   (This process is programmed to die after 4 requests in order to test
   fail-over and load balancing. You can disable this by editing the self-
