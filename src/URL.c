@@ -419,7 +419,7 @@ static int _parse(smisk_URL* self, const char *s, size_t len) { // bool URL::set
 
 
 int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs) {
-  DLog("ENTER smisk_URL_init");
+  log_debug("ENTER smisk_URL_init");
   PyObject* str;
   Py_ssize_t str_len;
   
@@ -453,7 +453,7 @@ int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs) {
 }
 
 void smisk_URL_dealloc(smisk_URL* self) {
-  DLog("ENTER smisk_URL_dealloc");
+  log_debug("ENTER smisk_URL_dealloc");
   Py_DECREF(self->scheme);
   Py_DECREF(self->user);
   Py_DECREF(self->password);

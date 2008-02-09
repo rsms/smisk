@@ -27,7 +27,7 @@ THE SOFTWARE.
 
 int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs)
 {
-  DLog("ENTER smisk_Request_init");
+  log_debug("ENTER smisk_Request_init");
   
   // Set env to None
   self->env = Py_None;
@@ -43,7 +43,7 @@ int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs)
   // Construct a new Stream for in
   self->input = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
   if (self->input == NULL) {
-    DLog("self->input == NULL");
+    log_debug("self->input == NULL");
     Py_DECREF(self);
     return -1;
   }
@@ -51,7 +51,7 @@ int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs)
   // Construct a new Stream for err
   self->err = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
   if (self->err == NULL) {
-    DLog("self->err == NULL");
+    log_debug("self->err == NULL");
     Py_DECREF(self);
     return -1;
   }
@@ -79,7 +79,7 @@ int smisk_Request_reset (smisk_Request* self) {
 }
 
 void smisk_Request_dealloc(smisk_Request* self) {
-  DLog("ENTER smisk_Request_dealloc");
+  log_debug("ENTER smisk_Request_dealloc");
   
   Py_XDECREF(self->input);
   Py_XDECREF(self->err);
@@ -129,7 +129,7 @@ PyObject* smisk_Request_log_error(smisk_Request* self, PyObject* args) {
 
 
 PyObject* smisk_Request_get_env(smisk_Request* self) {
-  //DLog("ENTER smisk_Request_get_env");
+  //log_debug("ENTER smisk_Request_get_env");
   
   // Lazy initializer
   if(self->env == Py_None || !self->env) {
@@ -137,7 +137,7 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
     // Alloc new dict
     self->env = PyDict_New();
     if(self->env == NULL) {
-      DLog("self->env == NULL");
+      log_debug("self->env == NULL");
       return NULL;
     }
     
@@ -154,26 +154,26 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
         char *value = strchr(*envp, '=');
         
         if(!value) {
-          DLog("Strange item in ENV (missing '=')");
+          log_debug("Strange item in ENV (missing '=')");
           continue;
         }
         
         k = (PyStringObject *)PyString_FromStringAndSize(*envp, value-*envp);
         if(k == NULL) {
-          DLog("ERROR: Failed to create string");
+          log_debug("ERROR: Failed to create string");
           break;
         }
         
         v = (PyStringObject *)PyString_FromString(++value);
         if(v == NULL) {
-          DLog("ERROR: Failed to create string");
+          log_debug("ERROR: Failed to create string");
           Py_DECREF(k);
           break;
         }
         
         if( PyDict_SetItem( (PyObject *)self->env, (PyObject *)k, (PyObject *)v) )
         {
-          DLog("PyDict_SetItem() != 0");
+          log_debug("PyDict_SetItem() != 0");
           return NULL;
         }
         
@@ -207,7 +207,7 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
   
   if(self->url == NULL) {
     if (!(self->url = (smisk_URL*)PyObject_Call((PyObject*)&smisk_URLType, NULL, NULL))) {
-      DLog("self->url == NULL");
+      log_debug("self->url == NULL");
       return NULL;
     }
     

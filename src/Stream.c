@@ -33,7 +33,7 @@ THE SOFTWARE.
 
 int smisk_Stream_init(smisk_Stream* self, PyObject* args, PyObject* kwargs)
 {
-  //DLog("ENTER smisk_Stream_init");
+  //log_debug("ENTER smisk_Stream_init");
   self->stream = NULL;
   self->readbuf = NULL;
   self->readbuf_size = 0;
@@ -138,7 +138,7 @@ PyDoc_STRVAR(smisk_Stream_read_DOC,
   ":rtype: string");
 PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args)
 {
-  //DLog("ENTER smisk_Stream_read");
+  //log_debug("ENTER smisk_Stream_read");
   PyObject* str;
   Py_ssize_t length;
   int rc;
@@ -222,7 +222,7 @@ PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args)
     
     // Size down the string to the correct length
     if(_PyString_Resize(&str, buflength) == -1) {
-      DLog("_PyString_Resize(%p, %ld) == -1", str, buflength);
+      log_debug("_PyString_Resize(%p, %ld) == -1", str, buflength);
       return NULL;
     }
   }
@@ -278,7 +278,7 @@ PyDoc_STRVAR(smisk_Stream_write_DOC,
   ":raises smisk.IOError:");
 PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args)
 {  
-  //DLog("ENTER smisk_Stream_write");
+  //log_debug("ENTER smisk_Stream_write");
 
   PyObject* str;
   Py_ssize_t length;

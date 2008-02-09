@@ -94,7 +94,7 @@ PyObject* smisk_bind(PyObject *self, PyObject *args) {
   // Bind/listen
   fd = FCGX_OpenSocket(PyString_AS_STRING(path), backlog);
   if(fd < 0) {
-    DLog("ERROR: FCGX_OpenSocket(\"%s\", %d) returned %d. errno: %d", 
+    log_debug("ERROR: FCGX_OpenSocket(\"%s\", %d) returned %d. errno: %d", 
       PyString_AS_STRING(path), backlog, fd, errno);
     return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "bind() failed");
   }

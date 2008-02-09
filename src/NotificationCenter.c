@@ -33,7 +33,7 @@ PyObject* smisk_NotificationCenter_postc( smisk_NotificationCenter* self,
   PyObject* observer;
   
   if((notificationList = PyDict_GetItem(self->observers, PyTuple_GET_ITEM(args, 0))) == NULL) {
-    DLog("No observers for notification '%s'", PyString_AS_STRING(PyTuple_GET_ITEM(args, 0)));
+    log_debug("No observers for notification '%s'", PyString_AS_STRING(PyTuple_GET_ITEM(args, 0)));
     Py_RETURN_NONE;
   }
   
@@ -41,11 +41,11 @@ PyObject* smisk_NotificationCenter_postc( smisk_NotificationCenter* self,
   
   for(i=0;i<listSize;i++) {
     if((observer = PyList_GetItem(notificationList, i)) == NULL) {
-      DLog("list index error");
+      log_debug("list index error");
       return NULL;
     }
     if(PyObject_Call(observer, args, NULL) == NULL) {
-      DLog("error in observer during posting of notification");
+      log_debug("error in observer during posting of notification");
       return NULL;
     }
   }
@@ -60,7 +60,7 @@ PyObject* smisk_NotificationCenter_default_instance = NULL;
 
 PyObject* smisk_NotificationCenter_default(PyObject* cls)
 {
-  DLog("ENTER smisk_NotificationCenter_default");
+  log_debug("ENTER smisk_NotificationCenter_default");
   if(!smisk_NotificationCenter_default_instance) {
     smisk_NotificationCenter_default_instance = PyObject_Call((PyObject*)&smisk_NotificationCenterType, NULL, NULL);
   }
@@ -73,13 +73,13 @@ PyObject* smisk_NotificationCenter_default(PyObject* cls)
 
 int smisk_NotificationCenter_init(smisk_NotificationCenter* self, PyObject* args, PyObject* kwargs)
 {
-  DLog("ENTER smisk_NotificationCenter_init");
+  log_debug("ENTER smisk_NotificationCenter_init");
   
   // Construct a new observers dict
   self->observers = PyDict_New();
   if (self->observers == NULL)
   {
-    DLog("self->observers == NULL");
+    log_debug("self->observers == NULL");
     Py_DECREF(self);
     return -1;
   }
@@ -90,7 +90,7 @@ int smisk_NotificationCenter_init(smisk_NotificationCenter* self, PyObject* args
 
 void smisk_NotificationCenter_dealloc(smisk_NotificationCenter* self)
 {
-  DLog("ENTER smisk_NotificationCenter_dealloc");
+  log_debug("ENTER smisk_NotificationCenter_dealloc");
   Py_DECREF(self->observers);
 }
 
@@ -105,7 +105,7 @@ PyDoc_STRVAR(smisk_NotificationCenter_subscribe_DOC,
   ":rtype: None");
 PyObject* smisk_NotificationCenter_subscribe(smisk_NotificationCenter* self, PyObject* args)
 {
-  DLog("ENTER smisk_NotificationCenter_subscribe");
+  log_debug("ENTER smisk_NotificationCenter_subscribe");
   
   int rc;
   PyObject* observer;         // PyObject
@@ -137,12 +137,12 @@ PyObject* smisk_NotificationCenter_subscribe(smisk_NotificationCenter* self, PyO
   // Need to create new list for observers[notification]?
   if((rc = PyDict_Contains(self->observers, notification)) != 1) {
     if(rc == -1) {
-      DLog("PyDict_Contains(self->observers, notification) == -1");
+      log_debug("PyDict_Contains(self->observers, notification) == -1");
       return NULL;
     }
     notificationList = PyList_New(0);
     if(notificationList == NULL) {
-      DLog("(notificationList = PyList_New()) == NULL");
+      log_debug("(notificationList = PyList_New()) == NULL");
       return NULL;
     }
     rc = PyDict_SetItem(self->observers, notification, notificationList);
@@ -150,14 +150,14 @@ PyObject* smisk_NotificationCenter_subscribe(smisk_NotificationCenter* self, PyO
   else {
     notificationList = PyDict_GetItem(self->observers, notification);
     if(notificationList == NULL) {
-      DLog("(notificationList = PyDict_GetItem(self->observers, notification)) == NULL");
+      log_debug("(notificationList = PyDict_GetItem(self->observers, notification)) == NULL");
       return NULL;
     }
   }
   
   // Add observer
   if(PyList_Append(notificationList, observer) == -1) {
-    DLog("PyList_Append(notificationList, observer) == -1");
+    log_debug("PyList_Append(notificationList, observer) == -1");
     return NULL;
   }
   
@@ -171,7 +171,7 @@ PyDoc_STRVAR(smisk_NotificationCenter_unsubscribe_DOC,
   ":rtype: None");
 PyObject* smisk_NotificationCenter_unsubscribe(smisk_NotificationCenter* self, PyObject* args)
 {
-  DLog("ENTER smisk_NotificationCenter_unsubscribe");
+  log_debug("ENTER smisk_NotificationCenter_unsubscribe");
   Py_RETURN_NONE;
 }
 
@@ -182,7 +182,7 @@ PyDoc_STRVAR(smisk_NotificationCenter_post_DOC,
   ":rtype: None");
 PyObject* smisk_NotificationCenter_post(smisk_NotificationCenter* self, PyObject* args)
 {
-  DLog("ENTER smisk_NotificationCenter_post");
+  log_debug("ENTER smisk_NotificationCenter_post");
   
   PyObject* notification; // PyStringObject
   

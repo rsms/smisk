@@ -38,35 +38,35 @@ PyObject* format_exc(void)
   PyErr_Fetch(&type, &value, &tb);
   PyErr_Clear();
   if(type == NULL) {
-    DLog("No error occured. type == NULL");
+    log_debug("No error occured. type == NULL");
     Py_RETURN_NONE;
   }
   
   if( (traceback = PyImport_ImportModule("traceback")) == NULL ) {
-    DLog("PyImport_ImportModule('traceback') == NULL");
+    log_debug("PyImport_ImportModule('traceback') == NULL");
     return NULL;
   }
   
   if( (format_exception = PyObject_GetAttrString(traceback, "format_exception")) == NULL ) {
-    DLog("PyObject_GetAttrString(traceback, 'format_exception') == NULL");
+    log_debug("PyObject_GetAttrString(traceback, 'format_exception') == NULL");
     Py_DECREF(traceback);
     return NULL;
   }
   
   if(value == NULL) {
-    DLog("value == NULL");
+    log_debug("value == NULL");
     value = Py_None;
     Py_INCREF(value);
   }
   
   if(tb == NULL) {
-    DLog("tb == NULL");
+    log_debug("tb == NULL");
     tb = Py_None;
     Py_INCREF(tb);
   }
   
   if( (lines = PyObject_CallFunctionObjArgs(format_exception, type, value, tb, NULL)) == NULL ) {
-    DLog("PyObject_CallFunctionObjArgs(format_exception...) == NULL");
+    log_debug("PyObject_CallFunctionObjArgs(format_exception...) == NULL");
     Py_DECREF(format_exception);
     Py_DECREF(traceback);
     return NULL;
@@ -80,7 +80,7 @@ PyObject* format_exc(void)
   for(;i<lines_len;i++) {
     PyString_ConcatAndDel(&msg, PyList_GET_ITEM(lines, i));
     if(msg == NULL) {
-      DLog("msg == NULL");
+      log_debug("msg == NULL");
       Py_DECREF(lines);
       return NULL;
     }

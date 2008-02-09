@@ -56,7 +56,7 @@ int smisk_Response_reset (smisk_Response* self) {
   Py_XDECREF(self->headers);
   self->headers = PyList_New(0);
   if (self->headers == NULL) {
-    DLog("self->headers == NULL");
+    log_debug("self->headers == NULL");
     return -1;
   }
   
@@ -66,7 +66,7 @@ int smisk_Response_reset (smisk_Response* self) {
 
 // Called by Application.run() after a successful call to service()
 void smisk_Response_finish(smisk_Response* self) {
-  //DLog("ENTER smisk_Response_finish");
+  //log_debug("ENTER smisk_Response_finish");
   if(!self->has_begun) {
     smisk_Response_begin(self, NULL);
   }
@@ -77,7 +77,7 @@ void smisk_Response_finish(smisk_Response* self) {
 /**************** instance methods *******************/
 
 int smisk_Response_init(smisk_Response* self, PyObject* args, PyObject* kwargs) {
-  DLog("ENTER smisk_Response_init");
+  log_debug("ENTER smisk_Response_init");
   
   self->headers = NULL;
   self->app = NULL;
@@ -90,7 +90,7 @@ int smisk_Response_init(smisk_Response* self, PyObject* args, PyObject* kwargs) 
   // Construct a new Stream for out
   self->out = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
   if (self->out == NULL) {
-    DLog("self->out == NULL");
+    log_debug("self->out == NULL");
     Py_DECREF(self);
     return -1;
   }
@@ -99,7 +99,7 @@ int smisk_Response_init(smisk_Response* self, PyObject* args, PyObject* kwargs) 
 }
 
 void smisk_Response_dealloc(smisk_Response* self) {
-  DLog("ENTER smisk_Response_dealloc");
+  log_debug("ENTER smisk_Response_dealloc");
   Py_XDECREF(self->out);
   Py_XDECREF(self->headers);
 }
@@ -168,7 +168,7 @@ PyDoc_STRVAR(smisk_Response_begin_DOC,
   "\n"
   ":rtype: None");
 PyObject* smisk_Response_begin(smisk_Response* self, PyObject* noargs) {
-  //DLog("ENTER smisk_Response_begin");
+  //log_debug("ENTER smisk_Response_begin");
   int rc;
   Py_ssize_t num_headers, i;
   

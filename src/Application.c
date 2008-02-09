@@ -39,7 +39,7 @@ THE SOFTWARE.
 int smisk_Application_trapped_signal = 0;
 
 void smisk_Application_sighandler_close_fcgi(int sig) {
-  DLog("Caught signal %d", sig);
+  log_debug("Caught signal %d", sig);
   smisk_Application_trapped_signal = sig;
   FCGX_ShutdownPending();
 }
@@ -48,7 +48,7 @@ void smisk_Application_sighandler_close_fcgi(int sig) {
 /************************* instance methods *****************************/
 
 int smisk_Application_init(smisk_Application* self, PyObject* args, PyObject* kwargs) {
-  DLog("ENTER smisk_Application_init");
+  log_debug("ENTER smisk_Application_init");
   
   // Construct a new Request item
   if(self->requestClass == NULL) {
@@ -56,7 +56,7 @@ int smisk_Application_init(smisk_Application* self, PyObject* args, PyObject* kw
    }
   self->request = (smisk_Request*)PyObject_Call((PyObject*)self->requestClass, NULL, NULL);
   if (self->request == NULL) {
-    DLog("self->request == NULL");
+    log_debug("self->request == NULL");
     Py_DECREF(self);
     return -1;
   }
@@ -67,7 +67,7 @@ int smisk_Application_init(smisk_Application* self, PyObject* args, PyObject* kw
    }
   self->response = (smisk_Response*)PyObject_Call((PyObject*)self->responseClass, NULL, NULL);
   if (self->response == NULL) {
-    DLog("self->response == NULL");
+    log_debug("self->response == NULL");
     Py_DECREF(self);
     return -1;
   }
@@ -81,7 +81,7 @@ int smisk_Application_init(smisk_Application* self, PyObject* args, PyObject* kw
 
 
 void smisk_Application_dealloc(smisk_Application* self) {
-  DLog("ENTER smisk_Application_dealloc");
+  log_debug("ENTER smisk_Application_dealloc");
   Py_DECREF(self->request);
 }
 
@@ -91,7 +91,7 @@ PyDoc_STRVAR(smisk_Application_run_DOC,
   "\n"
   ":rtype: None");
 PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
-  DLog("ENTER smisk_Application_run");
+  log_debug("ENTER smisk_Application_run");
   
   if(!POST_NOTIFICATION1(kApplicationWillStartNotification, self)) {
     return NULL;
@@ -146,11 +146,11 @@ PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
         smisk_Response_finish(self->response);
       }
       else if(!smisk_Application_trapped_signal) {
-         DLog("PyObject_CallMethod(self, service) FAILED");
+         log_debug("PyObject_CallMethod(self, service) FAILED");
       }
     }
     else {
-       DLog("Failed to reset request and/or response");
+       log_debug("Failed to reset request and/or response");
     }
     
     // Exception raised?
@@ -190,12 +190,12 @@ PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
   
   // Now, raise the signal again if that was the reason for exiting the run loop
   if(smisk_Application_trapped_signal) {
-    DLog("raising signal %d again", smisk_Application_trapped_signal);
+    log_debug("raising signal %d again", smisk_Application_trapped_signal);
     raise(smisk_Application_trapped_signal);
     smisk_Application_trapped_signal = 0;
   }
   
-  DLog("EXIT smisk_Application_run");
+  log_debug("EXIT smisk_Application_run");
   if(ret == Py_None) {
     Py_INCREF(ret);
   }
@@ -208,7 +208,7 @@ PyDoc_STRVAR(smisk_Application_service_DOC,
   "\n"
   ":rtype: None");
 PyObject* smisk_Application_service(smisk_Application* self, PyObject* args) {
-  DLog("ENTER smisk_Application_service");
+  log_debug("ENTER smisk_Application_service");
   
   FCGX_FPrintF(self->response->out->stream,
      "Content-type: text/html\r\n"
@@ -226,7 +226,7 @@ PyDoc_STRVAR(smisk_Application_error_DOC,
   "\n"
   ":rtype: None");
 PyObject* smisk_Application_error(smisk_Application* self, PyObject* args) {
-  DLog("ENTER smisk_Application_error");
+  log_debug("ENTER smisk_Application_error");
   
   int rc;
   PyObject *msg, *exc_str;
