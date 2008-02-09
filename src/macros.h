@@ -36,14 +36,14 @@ THE SOFTWARE.
 
 
 // Log to stderr
-#define log_error(fmt, ...) fprintf(stderr, __FILE__ ":%d: " fmt "\n", __LINE__, ##__VA_ARGS__)
+#define ELog(fmt, ...) fprintf(stderr, __FILE__ ":%d: " fmt "\n", __LINE__, ##__VA_ARGS__)
 
 // Log to stderr, but only in debug builds
 #ifdef DEBUG
-  #define log_debug(fmt, ...) fprintf(stderr, "DEBUG " __FILE__ ":%d: " fmt "\n", __LINE__, ##__VA_ARGS__)
+  #define DLog(fmt, ...) fprintf(stderr, __FILE__ ":%d: " fmt "\n", __LINE__, ##__VA_ARGS__)
   #define IFDEBUG(x) x
 #else
-  #define log_debug(fmt, ...)
+  #define DLog(fmt, ...)
   #define IFDEBUG(x)
 #endif
 
