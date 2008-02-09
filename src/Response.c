@@ -415,9 +415,6 @@ PyObject* smisk_Response_setCookie(smisk_Response* self, PyObject* args, PyObjec
 }
 
 
-//string $name  [, string $value  [, int $expire  [, string $path  [, string $domain  [, bool $secure  [, bool $httponly  ]]]]]]
-
-
 /**************** type configuration *******************/
 
 PyDoc_STRVAR(smisk_Response_DOC,
