@@ -1,7 +1,0 @@
-Demonstrates how to use remote processes, or slaves.
-
-1. Start a process
-   $ ./process.py
-
-2. Start the web server (in another shell)
-   $ lighttpd -Df lighttpd.conf

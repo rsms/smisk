@@ -1,2 +1,0 @@
-The simplest FastCGI application ever.
-It always responds with "Hello World" and is not threaded.
