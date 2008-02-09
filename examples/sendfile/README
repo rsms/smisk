@@ -1,0 +1,5 @@
+Demonstrates the most efficient way to send a file to the user from within a
+python script using the fcgi extension.
+
+Currently this only works on lighttpd because of work in progress with the
+implementation of fcgi.Request.sendfile() in src/Request.c.

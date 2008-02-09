@@ -1,0 +1,30 @@
+
+The quick way:
+  
+  python setup.py build
+  sudo python setup.py install
+  python setup.py docs #<- optional
+  cd examples/basic
+  lighttpd -Df lighttpd.conf
+
+
+Building and installing:
+
+  Run setup.py with the build command:
+    $ python setup.py build
+  
+  Then install the fcgi.so library:
+    $ sudo python setup.py install
+  
+
+Generating documentation:
+
+  ...simply by running:
+    $ python setup.py docs
+  This command will generate API documentation
+  in HTML format and put it in doc/api/.
+  
+  You need to install the extension before generating
+  documentation.
+
+

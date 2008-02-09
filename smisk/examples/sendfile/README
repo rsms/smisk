@@ -1,0 +1,4 @@
+This simple demo shows how to send files in an effective way.
+
+Run it like this:
+lighttpd -Df lighttpd.conf

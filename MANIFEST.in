@@ -1,0 +1,10 @@
+include LICENSE
+include README
+include INSTALL
+graft doc
+recursive-include examples *.conf *.py README
+recursive-include src *.c *.h
+
+prune doc/api
+exclude doc/*.psd
+global-exclude .DS_Store *.log

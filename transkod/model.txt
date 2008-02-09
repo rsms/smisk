@@ -1,0 +1,17 @@
+module smisk
+ class Application
+  func None run
+  func None service smisk.Transaction
+  func None exit
+ 
+ class Transaction
+  ivar smisk.Stream input
+  ivar smisk.Stream out
+  ivar smisk.Stream err
+   s
+    	class
+    	 gh2
+  func None commit
+ 
+module a
+ func int hej a b
