@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	<head>
+		<title>Input demo</title>
+		<script type="text/javascript">
+			function send(f) {
+				f.action = document.getElementById('url').value;
+				if(f.id == "f4")
+					f.action += "?get1=value1&get2=value2&get3=value3&get3=value4"
+				f.submit();
+			}
+			window.onload = function(evt) {
+				document.getElementById('url').value = "http://"+document.location.host+":"+document.location.port+"/receive"
+			}
+		</script>
+	</head>
+	<body>
+		<b>Target URL:</b>
+		<input type="text" id="url" style="width:400px" value="http://localhost:8080/" />
+		<hr />
+		<h3>GET</h3>
+		<form method="get" id="f3" action="http://localhost:8080/">
+			get1: <input type="text" name="get1" value="value1" /><br />
+			get2: <input type="text" name="get2" value="value2" /><br />
+			get3: <input type="text" name="get3" value="value3" /><br />
+			get3: <input type="text" name="get3" value="value4" /><br />
+			<input type="button" value="Submit" onclick="send(document.getElementById('f3'))" />
+		</form>
+		<hr />
+		<h3>POST</h3>
+		<form method="post" id="f2" action="http://localhost:8080/">
+			post1: <input type="text" name="post1" value="value1" /><br />
+			post2: <input type="text" name="post2" value="value2" /><br />
+			post3: <input type="text" name="post3" value="value3" /><br />
+			post3: <input type="text" name="post3" value="value4" /><br />
+			<input type="button" value="Submit" onclick="send(document.getElementById('f2'))" />
+		</form>
+		<hr />
+		<h3>Cookie</h3>
+		<form method="get" id="cookie" action="http://localhost:8080/">
+			value: <input type="text" name="set_cookie" value="whatever" />
+			<input type="button" value="Set cookie" onclick="send(document.getElementById('cookie'))" />
+			<br />
+			<small>You need to request <a href="/receive">/receive</a> a second time to see smisk read 
+			  the cookie which should have been sent by your browser</small>
+		</form>
+		<hr />
+		<h3>Upload</h3>
+		<form method="post" id="f1" enctype="multipart/form-data" action="http://localhost:8080/">
+			<input type="file" name="file1" /><br />
+			<input type="file" name="file2" /><br />
+			<input type="file" name="file3" /><br />
+			<input type="button" value="Submit" onclick="send(document.getElementById('f1'))" />
+		</form>
+		<hr />
+		<h3>GET + POST + Upload</h3>
+		<form method="post" id="f4" enctype="multipart/form-data" action="http://localhost:8080/">
+			file1: <input type="file" name="file1" /><br />
+			file2: <input type="file" name="file2" /><br /><br />
+			
+			post1: <input type="text" name="post1" value="value1" /><br />
+			post2: <input type="text" name="post2" value="value2" /><br />
+			post2: <input type="text" name="post2" value="value3" /><br />
+			post2: <input type="text" name="post2" value="value4" /><br />
+			<input type="button" value="Submit" onclick="send(document.getElementById('f4'))" />
+		</form>
+	</body>
+</html>

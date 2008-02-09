@@ -39,12 +39,16 @@ typedef struct {
   PyObject* encode;
 } smisk_URL;
 
+// C API only
+size_t smisk_url_decode (char *str, size_t len); // returns (new) length of str
+char *smisk_url_encode (const char *s, int full); // returns a newly allocated string
+
 // Type setup
 extern PyTypeObject smisk_URLType;
-int smisk_URL_register_types(void);
+int smisk_URL_register_types (void);
 
 // Methods
-int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs);
-void smisk_URL_dealloc(smisk_URL* self);
+int smisk_URL_init (smisk_URL* self, PyObject* args, PyObject* kwargs);
+void smisk_URL_dealloc (smisk_URL* self);
 
 #endif

@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 #include "module.h"
+#include "utils.h"
 #include "Request.h"
 #include <structmember.h>
 #include <fastcgi.h>
@@ -32,8 +33,12 @@ int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs)
   self->env = Py_None;
   Py_INCREF(self->env);
   
-  // Set _url to NULL
+  // Nullify lazy instances
   self->url = NULL;
+  self->get = NULL;
+  self->post = NULL;
+  self->files = NULL;
+  self->cookie = NULL;
   
   // Construct a new Stream for in
   self->input = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
@@ -62,16 +67,18 @@ int smisk_Request_reset (smisk_Request* self) {
     self->env = NULL;
   }
   
-  if(self->url && ((PyObject *)self->url != Py_None)) {
-    Py_DECREF(self->url);
-    self->url = NULL;
-  }
+#define USET(n) if(self->n) { Py_DECREF(self->n); self->n = NULL; }
+  USET(url);
+  USET(get);
+  USET(post);
+  USET(files);
+  USET(cookie);
+#undef USET
   
   return 0;
 }
 
-void smisk_Request_dealloc(smisk_Request* self)
-{
+void smisk_Request_dealloc(smisk_Request* self) {
   DLog("ENTER smisk_Request_dealloc");
   
   Py_XDECREF(self->input);
@@ -279,6 +286,49 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
 }
 
 
+PyObject* smisk_Request_get_get(smisk_Request* self) {
+  smisk_URL *url;
+  
+  if(self->get == NULL) {
+    if((self->get = PyDict_New()) == NULL) {
+      return NULL;
+    }
+    url = (smisk_URL *)smisk_Request_get_url(self);
+    if(url->query && (url->query != Py_None) && (PyString_GET_SIZE(url->query) > 0)) {
+      if(parse_input_data(PyString_AS_STRING(url->query), "&", 0, self->get) != 0) {
+        Py_DECREF(url);
+        return NULL;
+      }
+    }
+    Py_DECREF(url);
+    Py_INCREF(self->get); // our own reference
+  }
+  Py_INCREF(self->get); // callers reference
+  return self->get;
+}
+
+
+PyObject* smisk_Request_get_cookie(smisk_Request* self) {
+  char *http_cookie;
+  
+  if(self->cookie == NULL) {
+    if((self->cookie = PyDict_New()) == NULL) {
+      return NULL;
+    }
+    
+    if(http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp)) {
+      if(parse_input_data(http_cookie, ";", 1, self->cookie) != 0) {
+        return NULL;
+      }
+    }
+    
+    Py_INCREF(self->cookie); // our own reference
+  }
+  Py_INCREF(self->cookie); // callers reference
+  return self->cookie;
+}
+
+
 /********** type configuration **********/
 
 PyDoc_STRVAR(smisk_Request_DOC,
@@ -302,9 +352,12 @@ static PyMethodDef smisk_Request_methods[] =
 
 // Properties
 static PyGetSetDef smisk_Request_getset[] = {
-    {"env", (getter)smisk_Request_get_env, (setter)0},
-    {"url", (getter)smisk_Request_get_url, (setter)0},
-    {NULL}
+  {"env", (getter)smisk_Request_get_env,  (setter)0},
+  {"url", (getter)smisk_Request_get_url,  (setter)0},
+  {"get", (getter)smisk_Request_get_get,  (setter)0},
+  {"cookie", (getter)smisk_Request_get_cookie,  (setter)0},
+  //{"post", (getter)smisk_Request_get_post, (setter)0},
+  {NULL}
 };
 
 // Class members

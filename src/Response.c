@@ -79,7 +79,6 @@ void smisk_Response_finish(smisk_Response* self) {
 int smisk_Response_init(smisk_Response* self, PyObject* args, PyObject* kwargs) {
   DLog("ENTER smisk_Response_init");
   
-  self->has_begun = 0;
   self->headers = NULL;
   self->app = NULL;
   
@@ -248,16 +247,175 @@ PyObject* smisk_Response_write(smisk_Response* self, PyObject* str) {
 }
 
 
-PyDoc_STRVAR(smisk_Response_has_begun_DOC,
+PyDoc_STRVAR(smisk_Response_hasBegun_DOC,
   "Check if output (http headers) has been sent to the client.\n"
   "\n"
   ":returns: True if begin() has been called and output has started.\n"
   ":rtype:   bool");
-PyObject* smisk_Response_has_begun(smisk_Response* self, PyObject* str) {
+PyObject* smisk_Response_hasBegun(smisk_Response* self, PyObject* str) {
   PyObject* b = self->has_begun ? Py_True : Py_False;
   Py_INCREF(b);
   return b;
 }
+
+
+PyDoc_STRVAR(smisk_Response_setCookie_DOC,
+  "Send a cookie.\n"
+  "\n"
+  "Note:\n"
+  "  Setting a cookie will cause the response not to be cached by proxies and peer "
+  "  browsers, as required by `RFC 2109 <http://www.faqs.org/rfcs/rfc2109.html>`__.\n"
+  "\n"
+  "See also:\n"
+  "  `RFC 2109 <http://www.faqs.org/rfcs/rfc2109.html>`__ - *HTTP State Management Mechanism*\n"
+  "\n"
+  ":type  name:    string\n"
+  ":param name:    Required. The name of the state information (\"cookie\"). names "
+  "                that begin with $ are reserved for other uses and must not be used "
+  "                by applications.\n"
+  "\n"
+  ":type  value:   string\n"
+  ":param value:   The `value` is opaque to the user agent and may be anything the"
+  "                origin server chooses to send, possibly in a server-selected "
+  "                printable ASCII encoding. \"Opaque\" implies that the content is of "
+  "                interest and relevance only to the origin server. The content "
+  "                may, in fact, be readable by anyone that examines the Set-Cookie "
+  "                header.\n"
+  "\n"
+  ":type  comment: string\n"
+  ":param comment: Optional. Because cookies can contain private information about a "
+  "                user, the Cookie attribute allows an origin server to document its "
+  "                intended use of a cookie. The user can inspect the information to "
+  "                decide whether to initiate or continue a session with this cookie.\n"
+  "\n"
+  ":type  domain:  string\n"
+  ":param domain:  Optional. The Domain attribute specifies the domain for which the "
+  "                cookie is valid. An explicitly specified domain must always start "
+  "                with a dot.\n"
+  "\n"
+  ":type  path:    string\n"
+  ":param path:    Optional. The Path attribute specifies the subset of URLs to "
+  "                which this cookie applies.\n"
+  "\n"
+  ":type  secure:  bool\n"
+  ":param secure:  Optional. The Secure attribute (with no value) directs the user "
+  "                agent to use only (unspecified) secure means to contact the origin "
+  "                server whenever it sends back this cookie.\n"
+  "\n"
+  "                The user agent (possibly under the user's control) may determine "
+  "                what level of security it considers appropriate for \"secure\" "
+  "                cookies. The Secure attribute should be considered security "
+  "                advice from the server to the user agent, indicating that it is in "
+  "                the session's interest to protect the cookie contents.\n"
+  "\n"
+  ":type  version: int\n"
+  ":param version: Optional. The Version attribute, a decimal integer, identifies to "
+  "                which version of the state management specification the cookie "
+  "                conforms. For the `RFC 2109 <http://www.faqs.org/rfcs/rfc2109.html>`__ "
+  "                specification, Version=1 applies. If not specified, this will be "
+  "                set to ``1``.\n"
+  "\n"
+  ":type  max_age: int\n"
+  ":param max_age: The value of the Max-Age attribute is delta-seconds, the lifetime "
+  "                of the cookie in seconds, a decimal non-negative integer. To handle "
+  "                cached cookies correctly, a client SHOULD calculate the age of the "
+  "                cookie according to the age calculation rules in the HTTP/1.1 "
+  "                specification [`RFC 2616 <http://www.faqs.org/rfcs/rfc2616.html>`__]. "
+  "                When the age is greater than delta-seconds seconds, the client SHOULD "
+  "                discard the cookie. A value of zero means the cookie SHOULD be "
+  "                discarded immediately.\n"
+  "\n"
+  ":type  http_only: bool\n"
+  ":param http_only: When True the cookie will be made accessible only through the "
+  "                HTTP protocol. This means that the cookie won't be accessible by "
+  "                scripting languages, such as JavaScript. This setting can effectly "
+  "                help to reduce identity theft through XSS attacks (although it is "
+  "                not supported by all browsers).\n"
+  "\n"
+  ":rtype:         None");
+PyObject* smisk_Response_setCookie(smisk_Response* self, PyObject* args, PyObject *kwargs) {
+  static char *kwlist[] = {"name", "value", /* required */
+                           "comment", "domain", "path",
+                           "secure", "version", "max_age", "http_only", NULL};
+  
+  char *name = NULL,
+       *value = NULL,
+       *comment = NULL,
+       *domain = NULL,
+       *path = NULL;
+  
+  int  secure = 0,
+       version = 1,
+       max_age = -1,
+       http_only = 0;
+  
+  PyObject *s;
+  
+  if(self->has_begun) {
+    return PyErr_Format(PyExc_EnvironmentError, "Cookies can not be set when output has already begun.");
+  }
+  
+  if(!PyArg_ParseTupleAndKeywords(args, kwargs, "ss|zzziiii", kwlist,
+      &name, &value, &comment, &domain, &path, &secure, &version, &max_age, &http_only)) {
+    return NULL;
+  }
+  
+  
+  // Mandator fields
+  
+  name = smisk_url_encode(name, 1);
+  value = smisk_url_encode(value, 1);
+  s = PyString_FromFormat("Set-Cookie: %s=%s;Version=%d", name, value, version);
+  free(name); // smisk_url_encode
+  free(value); // smisk_url_encode
+  
+  
+  // Optional fields
+  
+  if(comment) {
+    comment = smisk_url_encode(comment, 1);
+    PyString_ConcatAndDel(&s, PyString_FromFormat(";Comment=%s", comment));
+    free(comment);
+  }
+  
+  if(domain) {
+    domain = smisk_url_encode(domain, 1);
+    PyString_ConcatAndDel(&s, PyString_FromFormat(";Domain=%s", domain));
+    free(domain);
+  }
+  
+  if(path) {
+    path = smisk_url_encode(path, 1);
+    PyString_ConcatAndDel(&s, PyString_FromFormat(";Path=%s", path));
+    free(path);
+  }
+  
+  if(max_age > -1) {
+    PyString_ConcatAndDel(&s, PyString_FromFormat(";Max-Age=%d", max_age));
+  } else {
+    PyString_ConcatAndDel(&s, PyString_FromString(";Discard"));
+  }
+  
+  if(secure) {
+    PyString_ConcatAndDel(&s, PyString_FromString(";Secure"));
+  }
+  
+  if(http_only) {
+    // More info: http://msdn2.microsoft.com/en-us/library/ms533046(VS.85).aspx
+    PyString_ConcatAndDel(&s, PyString_FromString(";HttpOnly"));
+  }
+  
+  // Append the set-cookie header
+  if(PyList_Append(self->headers, s) != 0) {
+    return NULL;
+  }
+  //fprintf(stderr, "%s\n", PyString_AS_STRING(s));
+  
+  Py_RETURN_NONE;
+}
+
+
+//string $name  [, string $value  [, int $expire  [, string $path  [, string $domain  [, bool $secure  [, bool $httponly  ]]]]]]
 
 
 /**************** type configuration *******************/
@@ -276,7 +434,8 @@ static PyMethodDef smisk_Response_methods[] =
   {"sendfile", (PyCFunction)smisk_Response_sendfile, METH_VARARGS, smisk_Response_sendfile_DOC},
   {"begin",    (PyCFunction)smisk_Response_begin,    METH_NOARGS,  smisk_Response_begin_DOC},
   {"write",    (PyCFunction)smisk_Response_write,    METH_O,       smisk_Response_write_DOC},
-  {"has_begun",(PyCFunction)smisk_Response_has_begun, METH_NOARGS, smisk_Response_has_begun_DOC},
+  {"hasBegun", (PyCFunction)smisk_Response_hasBegun, METH_NOARGS,  smisk_Response_hasBegun_DOC},
+  {"setCookie",(PyCFunction)smisk_Response_setCookie, METH_VARARGS|METH_KEYWORDS, smisk_Response_setCookie_DOC},
   {NULL}
 };
 

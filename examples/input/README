@@ -1,0 +1,5 @@
+Demonstrates user input handling, like query string parsing, POSTing,
+Cookies, sessions, etc.
+
+Run it like this:
+lighttpd -Df lighttpd.conf

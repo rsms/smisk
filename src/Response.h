@@ -32,8 +32,8 @@ typedef struct {
   
   // Public Python & C
   smisk_Stream* out;
-  PyObject*    headers; // PyListObject
-  PyObject*    status;  // PyStringObject
+  PyObject*    headers; // list
+  PyObject*    status;  // string
   
   // Private
   int has_begun;

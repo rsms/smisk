@@ -25,8 +25,14 @@ THE SOFTWARE.
 // Returns PyStringObject (borrowed reference)
 PyObject* format_exc (void);
 
+// Like strdup but with fixed length
+char *strndup (const char *s, size_t len);
+
 // Return ISO timestamp YYYY-MM-DD HH:MM:SS
 // @return newly allocated string. You must free the resulting string yourself.
 char *timestr (struct tm *time_or_null);
+
+// Parse input data (query string, post url-encoded, cookie, etc). Returns 0 on success.
+int parse_input_data (char *s, const char *separator, int is_cookie_data, PyObject *dict);
 
 #endif

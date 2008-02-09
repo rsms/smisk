@@ -41,8 +41,12 @@ typedef struct {
   // Public Python & C
   smisk_Stream  *input;
   smisk_Stream  *err;
-  PyObject      *env; // PyDictObject (lazy)
-  smisk_URL     *url; // PyDictObject (lazy)
+  PyObject      *env; // lazy dict
+  smisk_URL     *url; // lazy smisk.URL
+  PyObject      *get; // lazy dict
+  PyObject      *post; // lazy dict
+  PyObject      *files; // lazy dict
+  PyObject      *cookie; // lazy object
   
   // Public C
   FCGX_ParamArray envp;

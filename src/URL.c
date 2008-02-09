@@ -98,11 +98,28 @@ static const unsigned char urlchr_table[256] =
 #undef RU
 
 
+static int smisk_htoi(char *s) {
+	int value;
+	int c;
+
+	c = ((unsigned char *)s)[0];
+	if (isupper(c))
+		c = tolower(c);
+	value = (c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10) * 16;
+
+	c = ((unsigned char *)s)[1];
+	if (isupper(c))
+		c = tolower(c);
+	value += c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10;
+
+	return (value);
+}
+
 
 /* The core of url_escape_* functions.  Escapes the characters that
    match the provided mask in urlchr_table.*/
 
-static void _url_encode (const char *s, char *newstr, Py_ssize_t newlen, unsigned char mask) {
+static void _url_encode (const char *s, char *newstr, unsigned char mask) {
   const char *p1;
   char *p2;
   
@@ -122,9 +139,58 @@ static void _url_encode (const char *s, char *newstr, Py_ssize_t newlen, unsigne
     }
   }
   
-  assert (p2 - newstr == *newlen);
   *p2 = '\0';
 }
+
+
+char *smisk_url_encode(const char *s, int full) {
+  const char *p1;
+  char *new_s;
+  unsigned char mask = full ? urlchr_reserved|urlchr_unsafe : urlchr_unsafe;
+  size_t len = strlen(s);
+  size_t new_len = len;
+  
+  for (p1 = s; *p1; p1++) {
+    if (urlchr_test(*p1, mask)) {
+      new_len += 2;
+    }
+  }
+  
+  if(new_len == len) {
+    return strdup(s);
+  }
+  else {
+    new_s = (char *)malloc(new_len);
+  }
+  
+  _url_encode(s, new_s, mask);
+  return new_s;
+}
+
+
+// returns (new) length of str
+size_t smisk_url_decode(char *str, size_t len) {
+	char *dest = str;
+	char *data = str;
+
+	while (len--) {
+		if (*data == '+') {
+			*dest = ' ';
+		}
+		else if (*data == '%' && len >= 2 && isxdigit((int) *(data + 1)) && isxdigit((int) *(data + 2))) {
+			*dest = (char) X2DIGITS_TO_NUM(*(data + 1), *(data + 2));
+			data += 2;
+			len -= 2;
+		} else {
+			*dest = *data;
+		}
+		data++;
+		dest++;
+	}
+	*dest = '\0';
+	return dest - str;
+}
+
 
 static PyObject* encode_or_escape(PyObject* self, PyObject* str, unsigned char mask) {
   char *orgstr, *newstr;
@@ -167,7 +233,7 @@ static PyObject* encode_or_escape(PyObject* self, PyObject* str, unsigned char m
   
   // Do the actual encoding
   newstr = PyString_AS_STRING(newstr_py);
-  _url_encode(orgstr, newstr, newlen, mask);
+  _url_encode(orgstr, newstr, mask);
   
   // Return new string
   Py_INCREF(newstr_py);
@@ -453,7 +519,7 @@ PyObject* smisk_URL_decode(PyObject* self, PyObject* str) {
   register PyStringObject *newstr_py;
   
   if((orgstr = PyString_AsString(str)) == NULL) {
-    return NULL; // TypeError was raised
+    return NULL; // TypeError raised
   }
   
   orglen = PyString_GET_SIZE(str);
@@ -472,40 +538,14 @@ PyObject* smisk_URL_decode(PyObject* self, PyObject* str) {
   }
   
   newstr = PyString_AS_STRING(newstr_py);
-  char *t = newstr;
-  char *h = orgstr;
-
-  for (; *h; h++, t++) {
-    if (*h != '%') {
-      copychar:
-        *t = *h;
-    }
-    else {
-      char c;
-      /* Do nothing if '%' is not followed by two hex digits. */
-      if (!h[1] || !h[2] || !(isxdigit (h[1]) && isxdigit (h[2]))) {
-        goto copychar;
-      }
-      c = X2DIGITS_TO_NUM(h[1], h[2]);
-      /* Don't unescape %00 because there is no way to insert it
-         into a C string without effectively truncating it. */
-      if (c == '\0') {
-        goto copychar;
-      }
-      *t = c;
-      h += 2;
-      newlen -= 2;
-    }
-  }
+  newlen = smisk_url_decode(newstr, orglen);
   
   if(orglen == newlen) {
     // Did not need decoding
-    Py_DECREF(newstr_py); // Should free it
+    Py_DECREF(newstr_py);
     Py_INCREF(str);
     return str;
   }
-  
-  *t = '\0';
   
   // Warning: This may be a problem in future Python versions as it's internal
   newstr_py->ob_size = newlen;
