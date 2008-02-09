@@ -9,7 +9,7 @@ process.py
   (This process is programmed to die after 4 requests in order to test
   fail-over and load balancing. You can disable this by editing the self-
   explaining instance variable called "die_after_num_requests" in
-  process.py do have the value -1.)
+  process.py to have the value -1.)
 
 lighttpd.conf
   After you have started one process on port 5000, this configuration will
