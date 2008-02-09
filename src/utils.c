@@ -92,13 +92,13 @@ PyObject* format_exc(void)
 
 
 char *strndup(const char *s, size_t len) {
-	char *p;
-	if((p = (char *)malloc(len+1)) == NULL) {
-		return p;
-	}
-	memcpy(p, s, len);
-	p[len] = 0;
-	return p;
+  char *p;
+  if((p = (char *)malloc(len+1)) == NULL) {
+    return p;
+  }
+  memcpy(p, s, len);
+  p[len] = 0;
+  return p;
 }
 
 
@@ -119,41 +119,41 @@ char *timestr(struct tm *time_or_null) {
 int parse_input_data(char *s, const char *separator, int is_cookie_data, PyObject *dict) {
   char *res = NULL, *key, *val, *strtok_ctx = NULL;
   int free_buffer = 0, status = 0;
-	
+  
   res = strdup(s);
   free_buffer = 1;
   
   key = strtok_r(res, separator, &strtok_ctx);
   
   while (key) {
-		val = strchr(key, '=');
-		
-		if (is_cookie_data) {
-			// Remove leading spaces from cookie names, needed for multi-cookie 
-			// header where ; can be followed by a space
-			while (isspace(*key)) {
-				key++;
-			}
-			if (key == val || *key == '\0') {
-				goto next_cookie;
-			}
-		}
-		
+    val = strchr(key, '=');
+    
+    if (is_cookie_data) {
+      // Remove leading spaces from cookie names, needed for multi-cookie 
+      // header where ; can be followed by a space
+      while (isspace(*key)) {
+        key++;
+      }
+      if (key == val || *key == '\0') {
+        goto next_cookie;
+      }
+    }
+    
     PyObject *py_key, *py_val;
     
-		smisk_url_decode(key, strlen(key));
-		
-		if (val) { // have a value
-			*val++ = '\0';
-			int val_len = smisk_url_decode(val, strlen(val));
-			py_val = PyString_FromStringAndSize(val, val_len);
-		} else {
+    smisk_url_decode(key, strlen(key));
+    
+    if (val) { // have a value
+      *val++ = '\0';
+      int val_len = smisk_url_decode(val, strlen(val));
+      py_val = PyString_FromStringAndSize(val, val_len);
+    } else {
       py_val = Py_None;
-		}
-		// save
+    }
+    // save
     py_key = PyString_FromString(key);
-		if(PyDict_Contains(dict, py_key)) {
-		  // multi-value
+    if(PyDict_Contains(dict, py_key)) {
+      // multi-value
       PyObject *existing_val = PyDict_GetItem(dict, py_key);
       if(PyList_CheckExact(existing_val)) {
         // just append
@@ -163,7 +163,7 @@ int parse_input_data(char *s, const char *separator, int is_cookie_data, PyObjec
         }
       }
       else {
-		    // convert to list
+        // convert to list
         PyObject *new_val = PyList_New(2);
         PyList_SET_ITEM(new_val, 0, existing_val);
         PyList_SET_ITEM(new_val, 1, py_val);
@@ -172,22 +172,22 @@ int parse_input_data(char *s, const char *separator, int is_cookie_data, PyObjec
           break;
         }
       }
-		}
-		else { // key is unique as far as we know
-		  if(PyDict_SetItem(dict, py_key, py_val) != 0) {
+    }
+    else { // key is unique as far as we know
+      if(PyDict_SetItem(dict, py_key, py_val) != 0) {
         status = -1;
         break;
-		  }
-		}
-		
+      }
+    }
+    
 next_cookie:
-		key = strtok_r(NULL, separator, &strtok_ctx);
-	} // end while(var)
+    key = strtok_r(NULL, separator, &strtok_ctx);
+  } // end while(var)
 
-	if (free_buffer) {
-		free(res);
-	}
-	
+  if (free_buffer) {
+    free(res);
+  }
+  
   return status;
 }
 
