@@ -1,0 +1,8 @@
+include LICENSE
+graft doc
+graft examples
+graft src
+
+prune doc/api
+exclude doc/*.psd
+global-exclude .DS_Store *.log
