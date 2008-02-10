@@ -135,7 +135,7 @@ PyObject* smisk_listening(PyObject *self, PyObject *args) {
     if(((struct sockaddr_in *)addr)->sin_addr.s_addr != (in_addr_t)0) {
       saddr = (char *)inet_ntoa(((struct sockaddr_in *)addr)->sin_addr);
     }
-    s = PyString_FromFormat("%s:%u",
+    s = PyString_FromFormat("%s:%d",
       saddr, 
       htons(((struct sockaddr_in *)addr)->sin_port) );
   }
