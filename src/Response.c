@@ -134,8 +134,13 @@ PyObject* smisk_Response_sendfile(smisk_Response* self, PyObject* args) {
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   }
   
-  char *server = "-";
-  ((self->app) && (server = FCGX_GetParam("SERVER_SOFTWARE", ((smisk_Application *)self->app)->request->envp)));
+  char *server = NULL;
+  if(self->app) {
+    server = FCGX_GetParam( "SERVER_SOFTWARE", ((smisk_Application *)self->app)->request->envp );
+  }
+  if(server == NULL) {
+    server = "unknown server software";
+  }
   
   if(strstr(server, "lighttpd/1.4")) {
     FCGX_PutStr("X-LIGHTTPD-send-file: ", 22, self->out->stream);
