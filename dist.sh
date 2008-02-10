@@ -13,44 +13,67 @@
 #       distribute for.
 #
 
+if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+  echo "usage: $0 python-binary[, python-binary[, ...]]" >&2
+  exit 1
+fi
+
 cd `dirname $0`
-if [ "$1" != "" ]; then PYTHON="$1"; else PYTHON=$(which python); fi
+
 REV=`svnversion -n`
-PACKAGE=`$PYTHON setup.py --name`
 REMOTE_HOST='trac.hunch.se'
 REMOTE_PATH='/var/lib/trac/smisk/dist/'
 DEB_REMOTE_HOST='hunch.se'
 DEB_REMOTE_PATH='/var/www/hunch.se/www/public/debian/'
 GREP=`which grep`
 
+
 # Confirm working revision is synchronized with repository
-if [ $(echo "$REV"|$GREP -E '[:SM]') ]; then
+if [ "$(echo "$REV"|$GREP -E '[:SM]')" != "" ]; then
   echo "Working revision $REV is not up-to-date. Commit and/or update first."
   exit 1
 fi
 
+
 # Clean previous built distribution packages
 rm -vf dist/*.tar.gz
+rm -vf dist/ready/*.tar.gz
+mkdir -p dist/ready
 
-# Run distutils
-$PYTHON setup.py build --force
-$PYTHON setup.py sdist --formats=gztar
-$PYTHON setup.py bdist --formats=gztar
 
-# Add python version
-PY_VER=$(echo $($PYTHON -V 2>&1)|sed 's/[^0-9\.]//g'|cut -d . -f 1,2)
-BDIST_FILE_ORG=$(echo dist/$PACKAGE-$VER???????*.tar.gz)
-BDIST_FILE=$(echo "$BDIST_FILE_ORG"|sed 's/\.tar\.gz$/-py'$PY_VER'.tar.gz/g');
-mv $BDIST_FILE_ORG $BDIST_FILE
-if [ $? -ne 0 ]; then
-  echo "Failed to mv $BDIST_FILE_ORG $BDIST_FILE" >&2
-  exit 1
-fi
+# Execute for each python environment
+for PYTHON in $@; do
+  
+  # Find package name & version if not found already.
+  # Also, create source distribution:
+  if [ "$PACKAGE" == "" ]; then
+    PACKAGE=`$PYTHON setup.py --name`
+    VER=`$PYTHON setup.py --version`
+    $PYTHON setup.py sdist --formats=gztar
+    mv -v dist/$PACKAGE-$VER.tar.gz dist/ready/
+  fi
 
-# Upload & update "latest"-links
-VER=`$PYTHON setup.py --version`
-echo "Uploading dist/$PACKAGE-$VER*.tar.gz..."
-scp -q dist/$PACKAGE-$VER*.tar.gz $REMOTE_HOST:$REMOTE_PATH
+  # Run distutils
+  $PYTHON setup.py build --force
+  $PYTHON setup.py bdist --formats=gztar
+
+  # Add python version
+  PY_VER=$(echo $($PYTHON -V 2>&1)|sed 's/[^0-9\.]//g'|cut -d . -f 1,2)
+  BDIST_FILE_ORG=$(echo dist/$PACKAGE-$VER???????*.tar.gz)
+  BDIST_FILE=$(echo "$BDIST_FILE_ORG"|sed 's/\.tar\.gz$/-py'$PY_VER'.tar.gz/g');
+  mv -v $BDIST_FILE_ORG $BDIST_FILE
+  if [ $? -ne 0 ]; then
+    echo "Failed to mv $BDIST_FILE_ORG $BDIST_FILE" >&2
+    exit 1
+  fi
+  mv -v $BDIST_FILE dist/ready/
+  
+done # end of each python env
+
+
+# Upload & update links on server
+echo "Uploading $(/bin/ls dist/ready/$PACKAGE-$VER*.tar.gz) to $REMOTE_HOST"
+scp -q dist/ready/$PACKAGE-$VER*.tar.gz $REMOTE_HOST:$REMOTE_PATH
 ssh $REMOTE_HOST "cd $REMOTE_PATH;\
 for f in $PACKAGE-$VER*.tar.gz;do \
 	if [ -f \"\$f\" ]; then\
@@ -59,8 +82,9 @@ for f in $PACKAGE-$VER*.tar.gz;do \
 	fi;\
 done"
 
-# If we're on Debian, do the Debian-disco:
-if [ -f /etc/apt/sources.list ]; then
+
+# If we're on Debian and has package builder, do the Debian-disco:
+if [ $(uname -s) == "Linux" ] && [ -x /usr/bin/dpkg-buildpackage ]; then
   dpkg-buildpackage -rfakeroot
   scp -q ../python-${PACKAGE}_${VER}-*.* $DEB_REMOTE_HOST:$DEB_REMOTE_PATH
 fi
