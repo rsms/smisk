@@ -26,7 +26,7 @@ try:
 except:
   pass
 
-include_dirs = ['/opt/local/include', '/usr/local/include', '/usr/include']
+include_dirs = ['/opt/local/include', '/usr/local/include', '/usr/include', '/usr/include/python2.5']
 library_dirs = ['/opt/local/lib', '/usr/local/lib', '/usr/lib']
 libraries = ['fcgi'] # to link with
 runtime_library_dirs = []
