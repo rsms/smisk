@@ -28,7 +28,7 @@ except:
   pass
 
 include_dirs = ['/usr/include/python%s' % py_version, # debian and others
-                '/opt/local/include', # bsd ports, mac ports, etc
+                '/opt/local/include/python%s' % py_version, # bsd ports, mac ports, etc
                 '/usr/local/include', # general
                 '/usr/include']       # general
 
