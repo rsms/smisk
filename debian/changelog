@@ -1,3 +1,9 @@
+python-smisk (0.1r44-2) unstable; urgency=low
+
+  * Cleaner debian structure. No change of program code.
+
+ -- Rasmus Andersson <rasmus@flajm.se> Mon, 11 Feb 2008 00:46:37 +0100
+
 python-smisk (0.1r32-1) unstable; urgency=low
 
   * Initial debianization
