@@ -68,7 +68,7 @@ setup (name = "smisk",
   author = 'Rasmus Andersson',
   author_email = 'rasmus@flajm.se',
   license = 'MIT',
-  url = 'http://trac.hunch.se/pyfcgi',
+  url = 'http://trac.hunch.se/smisk',
   
   ext_modules = [Extension( name='smisk',
     sources=sources,
