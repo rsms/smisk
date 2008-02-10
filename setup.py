@@ -17,6 +17,7 @@ sources = ['src/module.c',
            'src/atoin.c']
 
 os.chdir(os.path.join('.', os.path.dirname(__file__)))
+py_version = ".".join([str(s) for s in sys.version_info[0:2]]) # "M.m"
 
 # get revision
 try:
@@ -26,9 +27,17 @@ try:
 except:
   pass
 
-include_dirs = ['/opt/local/include', '/usr/local/include', '/usr/include', '/usr/include/python2.5']
-library_dirs = ['/opt/local/lib', '/usr/local/lib', '/usr/lib']
+include_dirs = ['/usr/include/python%s' % py_version, # debian and others
+                '/opt/local/include', # bsd ports, mac ports, etc
+                '/usr/local/include', # general
+                '/usr/include']       # general
+
+library_dirs = ['/opt/local/lib',
+                '/usr/local/lib',
+                '/usr/lib']
+
 libraries = ['fcgi'] # to link with
+
 runtime_library_dirs = []
 extra_objects = []
 
