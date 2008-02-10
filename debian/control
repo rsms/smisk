@@ -2,7 +2,7 @@ Source: python-smisk
 Section: python
 Priority: optional
 Maintainer: Rasmus Andersson <rasmus@flajm.se>
-Build-Depends: debhelper (>= 5.0.38), libfcgi-dev (>= 2.4.0-6), python-all-dev (>= 2.4.0-1), python-central (>= 0.5.6)
+Build-Depends: debhelper (>= 5.0.38), libfcgi-dev (>= 2.4.0-6), python-all-dev (>= 2.4.4-6), python-central (>= 0.5.6)
 XS-Python-Version: all
 Standards-Version: 3.7.2
 
