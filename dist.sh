@@ -19,6 +19,8 @@ REV=`svnversion -n`
 PACKAGE=`$PYTHON setup.py --name`
 REMOTE_HOST='trac.hunch.se'
 REMOTE_PATH='/var/lib/trac/smisk/dist/'
+DEB_REMOTE_HOST='hunch.se'
+DEB_REMOTE_PATH='/var/www/hunch.se/www/public/debian/'
 GREP=`which grep`
 
 # Confirm working revision is synchronized with repository
@@ -56,3 +58,9 @@ for f in $PACKAGE-$VER*.tar.gz;do \
 		ln -sf \"\$f\" \"\$lname\";\
 	fi;\
 done"
+
+# If we're on Debian, do the Debian-disco:
+if [ -f /etc/apt/sources.list ]; then
+  dpkg-buildpackage -rfakeroot
+  scp -q ../python-${PACKAGE}_${VER}-*.* $DEB_REMOTE_HOST:$DEB_REMOTE_PATH
+fi
