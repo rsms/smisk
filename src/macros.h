@@ -36,7 +36,7 @@ THE SOFTWARE.
 
 
 // Py 2.4 compat
-#ifndef Py_ssize_t
+#if (PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION < 5)
 #define Py_ssize_t ssize_t
 #endif
 
