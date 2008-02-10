@@ -93,10 +93,6 @@ PyDoc_STRVAR(smisk_Application_run_DOC,
 PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
   log_debug("ENTER smisk_Application_run");
   
-  if(!POST_NOTIFICATION1(kApplicationWillStartNotification, self)) {
-    return NULL;
-  }
-  
   PyOS_sighandler_t orig_int_handler, orig_hup_handler, orig_term_handler;
   PyObject *ret = Py_None;
   
@@ -106,7 +102,6 @@ PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
     Py_SetProgramName(basename(PyString_AsString(PyList_GetItem(argv, 0))));
   }
   
-  
   // Initialize libfcgi
   FCGX_Request request;
   int rc = FCGX_Init();
@@ -114,7 +109,6 @@ PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
     return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to initialize libfcgi");
   }
   FCGX_InitRequest(&request, smisk_listensock_fileno, FCGI_FAIL_ACCEPT_ON_INTR);
-  
   
   // Register signal handlers
   orig_int_handler = PyOS_setsig(SIGINT, smisk_Application_sighandler_close_fcgi);
@@ -124,6 +118,10 @@ PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
   // CGI test
   if(FCGX_IsCGI() && (smisk_listensock_fileno == FCGI_LISTENSOCK_FILENO)) {
     return PyErr_Format(smisk_Error, "Application must be run in a FastCGI environment");
+  }
+  
+  if(!POST_NOTIFICATION1(kApplicationWillStartNotification, self)) {
+    return NULL;
   }
   
   // Enter accept loop
