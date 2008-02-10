@@ -1,0 +1,5 @@
+python-smisk (0.1r32-1) unstable; urgency=low
+
+  * Initial debianization
+
+ -- Rasmus Andersson <rasmus@flajm.se>  Sun, 10 Feb 2008 19:55:27 +0200
