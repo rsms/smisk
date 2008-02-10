@@ -98,24 +98,6 @@ static const unsigned char urlchr_table[256] =
 #undef RU
 
 
-static int smisk_htoi(char *s) {
-  int value;
-  int c;
-
-  c = ((unsigned char *)s)[0];
-  if (isupper(c))
-    c = tolower(c);
-  value = (c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10) * 16;
-
-  c = ((unsigned char *)s)[1];
-  if (isupper(c))
-    c = tolower(c);
-  value += c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10;
-
-  return (value);
-}
-
-
 /* The core of url_escape_* functions.  Escapes the characters that
    match the provided mask in urlchr_table.*/
 
@@ -421,7 +403,6 @@ static int _parse(smisk_URL* self, const char *s, size_t len) { // bool URL::set
 int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs) {
   log_debug("ENTER smisk_URL_init");
   PyObject* str;
-  Py_ssize_t str_len;
   
   // No arguments? (new empty url)
   if(!args || PyTuple_GET_SIZE(args) == 0) {
