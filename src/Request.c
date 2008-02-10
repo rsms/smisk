@@ -220,7 +220,7 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
     }
     
     // User
-    if(s = FCGX_GetParam("REMOTE_USER", self->envp)) {
+    if((s = FCGX_GetParam("REMOTE_USER", self->envp))) {
       Py_DECREF(self->url->user);
       Py_INCREF(self->url->user);
       self->url->user = PyString_FromString(s);
@@ -234,7 +234,7 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
       self->url->host = PyString_FromStringAndSize(s, p-s);
       self->url->port = atoi(p+1);
     }
-    else if(s2 = FCGX_GetParam("SERVER_PORT", self->envp)) {
+    else if((s2 = FCGX_GetParam("SERVER_PORT", self->envp))) {
       self->url->host = PyString_FromString(s);
       self->url->port = atoi(s2);
     }
@@ -245,9 +245,9 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
     
     // Path & querystring
     // Not in RFC, but considered standard
-    if(s = FCGX_GetParam("REQUEST_URI", self->envp)) {
+    if((s = FCGX_GetParam("REQUEST_URI", self->envp))) {
       Py_DECREF(self->url->path);
-      if(p = strchr(s, '?')) {
+      if((p = strchr(s, '?'))) {
         *p = '\0';
         self->url->path = PyString_FromString(s);
         Py_DECREF(self->url->query);
@@ -261,18 +261,18 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
     }
     // Non-REQUEST_URI compliant fallback
     else {
-      if(s = FCGX_GetParam("SCRIPT_NAME", self->envp)) {
+      if((s = FCGX_GetParam("SCRIPT_NAME", self->envp))) {
         Py_DECREF(self->url->path);
         self->url->path = PyString_FromString(s);
         Py_INCREF(self->url->path);
         // May not always give the same results as the above implementation
         // because the CGI specification does claim "This information should be
         // decoded by the server if it comes from a URL" which is a bit vauge.
-        if(s = FCGX_GetParam("PATH_INFO", self->envp)) {
+        if((s = FCGX_GetParam("PATH_INFO", self->envp))) {
           PyString_Concat(&self->url->path, PyString_FromString(s));
         }
       }
-      if(s = FCGX_GetParam("QUERY_STRING", self->envp)) {
+      if((s = FCGX_GetParam("QUERY_STRING", self->envp))) {
         Py_DECREF(self->url->query);
         self->url->query = PyString_FromString(s);
         Py_INCREF(self->url->query);
@@ -316,7 +316,7 @@ PyObject* smisk_Request_get_cookie(smisk_Request* self) {
       return NULL;
     }
     
-    if(http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp)) {
+    if((http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp))) {
       if(parse_input_data(http_cookie, ";", 1, self->cookie) != 0) {
         return NULL;
       }

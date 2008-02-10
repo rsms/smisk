@@ -135,7 +135,7 @@ PyObject* smisk_Response_sendfile(smisk_Response* self, PyObject* args) {
   }
   
   char *server = "-";
-  (self->app && (server = FCGX_GetParam("SERVER_SOFTWARE", ((smisk_Application *)self->app)->request->envp)));
+  ((self->app) && (server = FCGX_GetParam("SERVER_SOFTWARE", ((smisk_Application *)self->app)->request->envp)));
   
   if(strstr(server, "lighttpd/1.4")) {
     FCGX_PutStr("X-LIGHTTPD-send-file: ", 22, self->out->stream);

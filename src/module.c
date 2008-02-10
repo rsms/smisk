@@ -32,6 +32,7 @@ THE SOFTWARE.
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/un.h>
+#include <arpa/inet.h>
 
 // Set default listensock
 int smisk_listensock_fileno = FCGI_LISTENSOCK_FILENO;
@@ -215,3 +216,4 @@ error:
     PyErr_SetString(PyExc_ImportError, "smisk: init failed");
   }
 }
+

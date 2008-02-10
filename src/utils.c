@@ -24,6 +24,7 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <time.h>
 #include "module.h"
+#include "URL.h"
 
 
 // Returns PyStringObject (borrowed reference)
