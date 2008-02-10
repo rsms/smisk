@@ -1,4 +1,4 @@
-python-smisk (0.1r44-2) unstable; urgency=low
+python-smisk (0.1r46-2) unstable; urgency=low
 
   * Cleaner debian structure. No change of program code.
 
