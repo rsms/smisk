@@ -35,6 +35,12 @@ THE SOFTWARE.
 #define XNUM_TO_digit(x) ("0123456789abcdef"[x] + 0)
 
 
+// Py 2.4 compat
+#ifndef Py_ssize_t
+#define Py_ssize_t ssize_t
+#endif
+
+
 // Log to stderr
 #define log_error(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
