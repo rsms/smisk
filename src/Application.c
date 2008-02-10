@@ -163,7 +163,7 @@ PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
          // Call on self.error
          if(PyObject_CallMethod((PyObject *)self, "error", NULL) == NULL) {
            // Exit run loop if sending the error failed
-           ELog("Failed to send error message because of another error:");
+           log_error("Failed to send error message because of another error:");
            PyErr_Print();
            raise(SIGINT);
            break;
@@ -248,7 +248,7 @@ PyObject* smisk_Application_error(smisk_Application* self, PyObject* args) {
   
   // Log exception
   if(FCGX_PutStr(PyString_AS_STRING(exc_str), PyString_GET_SIZE(exc_str), self->request->err->stream) == -1) {
-    ELog("Error in %s.service(): %s", PyString_AS_STRING(PyObject_Str((PyObject *)self)), PyString_AS_STRING(exc_str));
+    log_error("Error in %s.service(): %s", PyString_AS_STRING(PyObject_Str((PyObject *)self)), PyString_AS_STRING(exc_str));
     return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on err stream");
   }
   
