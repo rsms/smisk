@@ -48,9 +48,9 @@ binary-indep:
 binary-arch: build install
 	dh_testdir -a
 	dh_testroot -a
-	dh_installdocs -A -a doc/usage-guide.* doc/*.css
+	#dh_installdocs -A -a doc/usage-guide.* doc/*.css
 
-	dh_installexamples -A -a doc/code/*
+	dh_installexamples -A -a examples/*
 
 	dh_pycentral -a
 	dh_installchangelogs -a
