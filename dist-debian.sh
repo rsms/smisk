@@ -24,7 +24,7 @@ for r in $(grep -E '\([0-9\.]+r[0-9]+-[0-9]+\)' debian/changelog|cut -d ' ' -f 2
     PREV_DEB_DEBV=$(echo $r|cut -d - -f 2)
   fi
 done
-if [ $PREV_DEB_REV -lt $REV ]; then
+if [ $PREV_DEB_REV -lt $(expr $REV - 1) ]; then
   LESS=$(which less)
   if [ "$LESS" == "" ]; then LESS=$(which more); fi
   if [ "$LESS" == "" ]; then LESS=$(which cat); fi
@@ -80,9 +80,17 @@ if [ $PREV_DEB_REV -lt $REV ]; then
   done
   mv debian/changelog.tmp debian/changelog
   echo 'debian/changelog updated.'
-  echo 'You should now sync changes with svn commit && svn update and run this script again.'
-  exit 0
+  if [ -d .svn ]; then
+    echo 'Committing changelog update to subversion'
+    set -v
+    svn ci -m 'Debian changelog message added' debian/changelog
+    svn up
+    unset -v
+  fi
+  ensure_clean_working_revision
 fi
+echo YAY
+exit 0
 
 
 # Build
