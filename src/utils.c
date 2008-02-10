@@ -91,17 +91,6 @@ PyObject* format_exc(void)
 }
 
 
-char *strndup(const char *s, size_t len) {
-  char *p;
-  if((p = (char *)malloc(len+1)) == NULL) {
-    return p;
-  }
-  memcpy(p, s, len);
-  p[len] = 0;
-  return p;
-}
-
-
 char *timestr(struct tm *time_or_null) {
   if(!time_or_null) {
     time_t curtime = time(NULL);
