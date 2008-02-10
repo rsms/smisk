@@ -22,10 +22,6 @@ os.chdir(os.path.join('.', os.path.dirname(__file__)))
 try:
   (child_stdin, child_stdout) = os.popen2('svnversion -n .')
   revision = child_stdout.read()
-  p = revision.rfind(':')
-  if p != -1:
-    revision = revision[p+1:]
-  revision = revision.replace('M','').replace('S','')
   version += "r" + revision
 except:
   pass
