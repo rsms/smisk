@@ -19,32 +19,31 @@ REV=`svnversion -n`
 PACKAGE=`$PYTHON setup.py --name`
 REMOTE_HOST='trac.hunch.se'
 REMOTE_PATH='/var/lib/trac/smisk/dist/'
+GREP=`which grep`
 
-
-if [ $(echo "$REV"|grep ':') ]; then
-  echo "Working revision $REV is mixed. Commit and/or update first."
-  exit 1
-elif [ $(echo "$REV"|grep 'M') ]; then
-  echo "Working revision $REV is modified. Commit and/or update first."
-  exit 1
-elif [ $(echo "$REV"|grep 'S') ]; then
-  echo "Working revision $REV is switched. Commit and/or update first."
+# Confirm working revision is synchronized with repository
+if [ $(echo "$REV"|$GREP -E '[:SM]') ]; then
+  echo "Working revision $REV is not up-to-date. Commit and/or update first."
   exit 1
 fi
 
+# Clean previous built distribution packages
+rm -vf dist/*.tar.gz
 
 # Run distutils
 $PYTHON setup.py build --force
 $PYTHON setup.py sdist --formats=gztar
 $PYTHON setup.py bdist --formats=gztar
 
-
 # Add python version
 PY_VER=$(echo $($PYTHON -V 2>&1)|sed 's/[^0-9\.]//g'|cut -d . -f 1,2)
 BDIST_FILE_ORG=$(echo dist/$PACKAGE-$VER???????*.tar.gz)
 BDIST_FILE=$(echo "$BDIST_FILE_ORG"|sed 's/\.tar\.gz$/-py'$PY_VER'.tar.gz/g');
 mv $BDIST_FILE_ORG $BDIST_FILE
-
+if [ $? -ne 0 ]; then
+  echo "Failed to mv $BDIST_FILE_ORG $BDIST_FILE" >&2
+  exit 1
+fi
 
 # Upload & update "latest"-links
 VER=`$PYTHON setup.py --version`
