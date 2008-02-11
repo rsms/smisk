@@ -82,15 +82,11 @@ if [ $PREV_DEB_REV -lt $(expr $REV - 1) ]; then
   echo 'debian/changelog updated.'
   if [ -d .svn ]; then
     echo 'Committing changelog update to subversion'
-    set -v
     svn ci -m 'Debian changelog message added' debian/changelog
     svn up
-    unset -v
   fi
   ensure_clean_working_revision
 fi
-echo YAY
-exit 0
 
 
 # Build
