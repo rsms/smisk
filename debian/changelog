@@ -1,3 +1,9 @@
+python-smisk (0.1r50-3) unstable; urgency=low
+
+  * Fixed virtual package dep.
+
+ -- Rasmus Andersson <rasmus@flajm.se> Mon, 11 Feb 2008 01:37:49 +0100
+
 python-smisk (0.1r48-2) unstable; urgency=low
 
   * Cleaner debian structure. No change of program code.
