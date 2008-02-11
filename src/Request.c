@@ -25,8 +25,80 @@ THE SOFTWARE.
 #include <structmember.h>
 #include <fastcgi.h>
 
-int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs)
-{
+static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
+  char *s;
+  int bytes_read;
+  
+  if(length == 0) {
+    return strdup("");
+  }
+  else if(length > 0) {
+    s = (char *)malloc(length+1);
+    bytes_read = FCGX_GetStr(s, length, stream);
+    s[(bytes_read < length) ? bytes_read : length] = '\0';
+    return s;
+  }
+  else { // length unknown - apply dynamic resizing
+    size_t chunk_size = 4096; // XXX arbitrary initial allocation - make configurable.
+    size_t size = chunk_size;
+    s = (char *)malloc(size);
+    
+    while(1) {
+      bytes_read = FCGX_GetStr(s, chunk_size, stream);
+      if(bytes_read < chunk_size) {
+        s[(size - chunk_size) + bytes_read] = '\0';
+        break; // EOF
+      }
+      size += chunk_size;
+      s = (char *)realloc(s, size);
+    }
+    
+    return s;
+  }
+}
+
+static int _parse_request_body(smisk_Request* self) {
+  char *content_type;
+  long content_length;
+  
+  if((self->post = PyDict_New()) == NULL) {
+    return -1;
+  }
+  Py_INCREF(self->post);
+  if((self->files = PyDict_New()) == NULL) {
+    return -1;
+  }
+  Py_INCREF(self->files);
+  
+  if((content_type = FCGX_GetParam("CONTENT_TYPE", self->envp))) {
+    // Parse content-length if available
+    char *t = FCGX_GetParam("CONTENT_LENGTH", self->envp);
+    content_length = (t != NULL) ? atol(t) : -1;
+    
+    if(strstr(content_type, "multipart/")) {
+      // XXX todo mulipart parser
+      log_error("XXX todo mulipart parser");
+    }
+    else if(strstr(content_type, "/x-www-form-urlencoded")) {
+      char *s = smisk_read_fcgxstream(self->input->stream, content_length);
+      int parse_status = parse_input_data(s, "&", 0, self->post);
+      free(s);
+      if(parse_status != 0) {
+        return -1;
+      }
+    }
+    // else, leave it
+  }
+  
+  return 0;
+}
+
+
+/* ---------------------------------------------- */
+/* Python */
+
+
+int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs) {
   log_debug("ENTER smisk_Request_init");
   
   // Set env to None
@@ -308,6 +380,28 @@ PyObject* smisk_Request_get_get(smisk_Request* self) {
 }
 
 
+PyObject* smisk_Request_get_post(smisk_Request* self) {
+  if(self->post == NULL) {
+    if(_parse_request_body(self) != 0) {
+      return NULL;
+    }
+  }
+  Py_INCREF(self->post); // callers reference
+  return self->post;
+}
+
+
+PyObject* smisk_Request_get_files(smisk_Request* self) {
+  if(self->files == NULL) {
+    if(_parse_request_body(self) != 0) {
+      return NULL;
+    }
+  }
+  Py_INCREF(self->files); // callers reference
+  return self->files;
+}
+
+
 PyObject* smisk_Request_get_cookie(smisk_Request* self) {
   char *http_cookie;
   
@@ -355,8 +449,9 @@ static PyGetSetDef smisk_Request_getset[] = {
   {"env", (getter)smisk_Request_get_env,  (setter)0},
   {"url", (getter)smisk_Request_get_url,  (setter)0},
   {"get", (getter)smisk_Request_get_get,  (setter)0},
+  {"post", (getter)smisk_Request_get_post, (setter)0},
+  {"files", (getter)smisk_Request_get_files,  (setter)0},
   {"cookie", (getter)smisk_Request_get_cookie,  (setter)0},
-  //{"post", (getter)smisk_Request_get_post, (setter)0},
   {NULL}
 };
 

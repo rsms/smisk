@@ -13,8 +13,8 @@ class MyApp(Application):
     w = self.response.write
     w("env:     %s\n" % repr(self.request.env))
     w("get:     %s\n" % repr(self.request.get))
-    #w("post:    %s\n" % repr(self.request.post))
-    #w("files:   %s\n" % repr(self.request.files))
+    w("post:    %s\n" % repr(self.request.post))
+    w("files:   %s\n" % repr(self.request.files))
     w("cookie:  %s\n" % repr(self.request.cookie))
     #w("session: %s\n" % repr(self.request.session))
   
