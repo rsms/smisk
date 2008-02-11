@@ -8,7 +8,7 @@ Standards-Version: 3.7.2
 
 Package: python-smisk
 Architecture: any
-Depends: libfcgi (>= 2.4.0-6), ${shlibs:Depends}, ${python:Depends}
+Depends: libfcgi, ${shlibs:Depends}, ${python:Depends}
 Suggests: lighttpd
 XB-Python-Version: ${python:Versions}
 Description: Simple, high-performance and scalable web service framework
