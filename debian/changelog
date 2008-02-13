@@ -1,3 +1,11 @@
+python-smisk (0.1r55-4) unstable; urgency=low
+
+  * Implemented complete POST data parsing.
+  * Added multipart stream parser.
+  * Fixed alot of faulty refcounts, means almost no leaks.
+
+ -- Rasmus Andersson <rasmus@flajm.se> Wed, 13 Feb 2008 03:08:33 +0100
+
 python-smisk (0.1r50-3) unstable; urgency=low
 
   * Fixed virtual package dep.
