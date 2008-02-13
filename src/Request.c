@@ -250,7 +250,7 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
       
       PyStringObject* k;
       PyStringObject* v;
-      char** envp = self->envp; // Need operate on new pointer or FCGX_* will crash
+      char** envp = self->envp;
       
       // Parse env into dict
       for( ; *envp != NULL; envp++) {
