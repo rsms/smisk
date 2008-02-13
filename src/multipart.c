@@ -21,6 +21,7 @@ THE SOFTWARE.
 */
 #include <stdio.h>
 #include <unistd.h>
+#include <signal.h>
 #include <ctype.h>
 #include "module.h"
 #include "utils.h"
@@ -90,7 +91,7 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
   char *fn, *e;
   FILE *f;
   ssize_t bw;
-  size_t bytes_read, bytes = 0;
+  size_t bytes = 0;
   
   // Create filename
   fn = tempnam(SMISK_FILE_UPLOAD_DIR, SMISK_FILE_UPLOAD_PREFIX);
@@ -235,8 +236,7 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
 
 // return 0 on success, !0 on error
 int smisk_multipart_parse_part(multipart_ctx_t *ctx) {
-  char *s, *s2, *p, *p2, *buf, is_file = 0;
-  int r;
+  char *p, *buf, is_file = 0;
   
   buf = ctx->buf.ptr;
   
