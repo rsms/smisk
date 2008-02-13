@@ -20,8 +20,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <fcgiapp.h>
 #include <Python.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <time.h>
 #include "module.h"
 #include "URL.h"
@@ -30,10 +32,10 @@ THE SOFTWARE.
 // Returns PyStringObject (borrowed reference)
 PyObject* format_exc(void)
 {
-  PyObject* msg;
-  PyObject* lines;
-  PyObject* traceback;
-  PyObject* format_exception;
+  PyObject* msg = NULL;
+  PyObject* lines = NULL;
+  PyObject* traceback = NULL;
+  PyObject* format_exception = NULL;
   PyObject *type = NULL, *value = NULL, *tb = NULL;
   
   PyErr_Fetch(&type, &value, &tb);
@@ -87,7 +89,6 @@ PyObject* format_exc(void)
     }
   }
   
-  Py_INCREF(msg);
   return msg;
 }
 
@@ -104,6 +105,36 @@ char *timestr(struct tm *time_or_null) {
   return buffer;
 }
 
+
+int PyDict_assoc_val_with_key(PyObject *dict, PyObject* key, PyObject *val) {
+  PyObject *existing_val, *new_val;
+  if(PyDict_Contains(dict, key)) {
+    // multi-value
+    existing_val = PyDict_GetItem(dict, key);
+    if(PyList_CheckExact(existing_val)) {
+      // just append
+      if(PyList_Append(existing_val, val) != 0) {
+        return -1;
+      }
+    }
+    else {
+      // convert to list
+      new_val = PyList_New(2);
+      PyList_SET_ITEM(new_val, 0, existing_val);
+      PyList_SET_ITEM(new_val, 1, val);
+      if(PyDict_SetItem(dict, key, new_val) != 0) {
+        return -1;
+      }
+      Py_DECREF(new_val); // we don't own it anymore
+    }
+  }
+  else { // key is unique as far as we know
+    if(PyDict_SetItem(dict, key, val) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
 
 
 int parse_input_data(char *s, const char *separator, int is_cookie_data, PyObject *dict) {
@@ -139,36 +170,16 @@ int parse_input_data(char *s, const char *separator, int is_cookie_data, PyObjec
       py_val = PyString_FromStringAndSize(val, val_len);
     } else {
       py_val = Py_None;
+      Py_INCREF(Py_None);
     }
+    
     // save
     py_key = PyString_FromString(key);
-    if(PyDict_Contains(dict, py_key)) {
-      // multi-value
-      PyObject *existing_val = PyDict_GetItem(dict, py_key);
-      if(PyList_CheckExact(existing_val)) {
-        // just append
-        if(PyList_Append(existing_val, py_val) != 0) {
-          status = -1;
-          break;
-        }
-      }
-      else {
-        // convert to list
-        PyObject *new_val = PyList_New(2);
-        PyList_SET_ITEM(new_val, 0, existing_val);
-        PyList_SET_ITEM(new_val, 1, py_val);
-        if(PyDict_SetItem(dict, py_key, new_val) != 0) {
-          status = -1;
-          break;
-        }
-      }
+    if((status = PyDict_assoc_val_with_key(dict, py_key, py_val)) != 0) {
+      break;
     }
-    else { // key is unique as far as we know
-      if(PyDict_SetItem(dict, py_key, py_val) != 0) {
-        status = -1;
-        break;
-      }
-    }
+    Py_DECREF(py_key);
+    Py_DECREF(py_val);
     
 next_cookie:
     key = strtok_r(NULL, separator, &strtok_ctx);
@@ -179,5 +190,49 @@ next_cookie:
   }
   
   return status;
+}
+
+
+size_t smisk_stream_readline(char *str, int n, FCGX_Stream *stream) {
+  int c;
+  char *p = str;
+
+  n--;
+  while (n > 0) {
+    c = FCGX_GetChar(stream);
+    if(c == EOF) {
+      if(p == str)
+        return 0;
+      else
+        break;
+    }
+    *p++ = (char) c;
+    n--;
+    if(c == '\n')
+      break;
+  }
+  *p = '\0';
+  return p-str;
+}
+
+
+void frepr_bytes(FILE *f, const char *s, size_t len) {
+  int c;
+  fprintf(f, "bytes(%lu) '", len);
+  while(len--) {
+    c = *s++;
+    if( isgraph(c) || (c == ' ') ) {
+      fputc(c, f);
+    }
+    else {
+      fprintf(f, "\\x%02x", (unsigned char)c);
+    }
+  }
+  fprintf(f, "'\n");
+}
+
+
+int file_exist(const char *fn) {
+  return ((access(fn, R_OK) == 0) ? 1 : 0);
 }
 

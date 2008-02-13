@@ -218,7 +218,6 @@ static PyObject* encode_or_escape(PyObject* self, PyObject* str, unsigned char m
   _url_encode(orgstr, newstr, mask);
   
   // Return new string
-  Py_INCREF(newstr_py);
   return newstr_py;
 }
 
@@ -385,13 +384,13 @@ static int _parse(smisk_URL* self, const char *s, size_t len) { // bool URL::set
     }
   }
   
-  Py_INCREF(self->scheme);
-  Py_INCREF(self->user);
-  Py_INCREF(self->password);
-  Py_INCREF(self->host);
-  Py_INCREF(self->path);
-  Py_INCREF(self->query);
-  Py_INCREF(self->fragment);
+  if(self->scheme == Py_None) Py_INCREF(self->scheme);
+  if(self->user == Py_None) Py_INCREF(self->user);
+  if(self->password == Py_None) Py_INCREF(self->password);
+  if(self->host == Py_None) Py_INCREF(self->host);
+  if(self->path == Py_None) Py_INCREF(self->path);
+  if(self->query == Py_None) Py_INCREF(self->query);
+  if(self->fragment == Py_None) Py_INCREF(self->fragment);
 
   free(u);
   return 1;
@@ -439,7 +438,6 @@ void smisk_URL_dealloc(smisk_URL* self) {
   Py_DECREF(self->user);
   Py_DECREF(self->password);
   Py_DECREF(self->host);
-  //Py_DECREF(self->port);
   Py_DECREF(self->path);
   Py_DECREF(self->query);
   Py_DECREF(self->fragment);
@@ -532,7 +530,6 @@ PyObject* smisk_URL_decode(PyObject* self, PyObject* str) {
   newstr_py->ob_size = newlen;
   
   // Return decoded string
-  Py_INCREF(newstr_py);
   return (PyObject *)newstr_py;
 }
 
@@ -576,7 +573,7 @@ PyObject *smisk_URL___str__(smisk_URL* self) {
     PyString_Concat(&s, PyString_FromStringAndSize("#", 1));
     PyString_Concat(&s, self->fragment);
   }
-  Py_INCREF(s);
+  
   return s;
 }
 

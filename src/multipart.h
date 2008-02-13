@@ -19,32 +19,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#ifndef SMISK_UTILS_H
-#define SMISK_UTILS_H
+#ifndef SMISK_MULTIPART_H
+#define SMISK_MULTIPART_H
+#include <Python.h>
 #include <fcgiapp.h>
 
-// Returns PyStringObject (borrowed reference)
-PyObject* format_exc (void);
 
-// Return ISO timestamp YYYY-MM-DD HH:MM:SS
-// @return newly allocated string. You must free the resulting string yourself.
-char *timestr (struct tm *time_or_null);
 
-// Associate value with key - if the key exists, the keys value is a list of values.
-int PyDict_assoc_val_with_key (PyObject *dict, PyObject* key, PyObject *val);
-
-// Parse input data (query string, post url-encoded, cookie, etc). Returns 0 on success.
-int parse_input_data (char *s, const char *separator, int is_cookie_data, PyObject *dict);
-
-// Read a line from a FCGI stream
-size_t smisk_stream_readline (char *str, int n, FCGX_Stream *stream);
-
-// Print bytes - unsafe or outside ASCII characters are printed as \xXX
-// Will print something like: bytes(4) 'm\x0dos'
-void frepr_bytes (FILE *f, const char *s, size_t len);
-
-// Quick way to find out if a file exists. May not be bullet proof, for when
-// example a file exists, but is not accessible.
-int file_exist (const char *fn);
+int smisk_multipart_parse_stream (FCGX_Stream *stream, long len, PyObject* post, PyObject *files);
 
 #endif

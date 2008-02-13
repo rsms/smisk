@@ -23,11 +23,6 @@ THE SOFTWARE.
 #include "Stream.h"
 #include <structmember.h>
 
-#define READALL_CHUNKSIZE 64
-#define READLINE_LENGTH 8192
-
-/**************** internal functions *******************/
-
 
 /**************** instance methods *******************/
 
@@ -66,7 +61,7 @@ PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* args)
   if (args && PyTuple_GET_SIZE(args) > 0) {
     PyObject* arg1 = PyTuple_GET_ITEM(args, 1);
     if(arg1 == NULL) { // None
-      length = READLINE_LENGTH;
+      length = SMISK_STREAM_READLINE_LENGTH;
     }
     else if(!PyInt_Check(arg1)) {
       PyErr_Format(PyExc_TypeError, "length argument must be an integer");
@@ -77,7 +72,7 @@ PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* args)
     }
   }
   else {
-    length = READLINE_LENGTH;
+    length = SMISK_STREAM_READLINE_LENGTH;
   }
   
   // Init string
@@ -123,7 +118,6 @@ PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* args)
     return NULL;
   }
   
-  Py_INCREF(str);
   return str;
 }
 
@@ -171,7 +165,8 @@ PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args)
     // rc is now bytes read (will never be less than 0)
     
     // Size down the string if needed
-    if(rc < length && _PyString_Resize(&str, (Py_ssize_t)rc) == -1) {
+    if(rc < length && _PyString_Resize(&str, (Py_ssize_t)rc) != 0) {
+      Py_DECREF(str);
       log_error("_PyString_Resize(%p, %d) == -1", str, rc);
       return NULL;
     }
@@ -188,7 +183,7 @@ PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args)
     char *strdat;
     
     // init vars
-    bufchunksize = bufsize = READALL_CHUNKSIZE;
+    bufchunksize = bufsize = SMISK_STREAM_READ_CHUNKSIZE;
     buflength = 0;
     rc = 0;
     
@@ -227,7 +222,6 @@ PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args)
     }
   }
   
-  Py_INCREF(str);
   return str;
 }
 
@@ -306,7 +300,7 @@ PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args)
     length = PyInt_AS_LONG(arg1);
   }
   else {
-    length = PyString_GET_SIZE/*PyString_Size*/(str);
+    length = PyString_GET_SIZE(str);
   }
   
   // Write to stream
@@ -368,10 +362,9 @@ PyObject* smisk_Stream_iter(smisk_Stream *self)
 PyObject* smisk_Stream_iternext(smisk_Stream *self)
 {
   PyObject* str = smisk_Stream_readline(self, NULL);
-  if(PyString_GET_SIZE(str) == 0)
-  {
+  if(PyString_GET_SIZE(str) == 0) {
     // End iteration
-    // TODO: Don't we need to raise a EndIteration exception here?
+    // XXX I think we need to raise a EndIteration exception here, don't we?
     Py_DECREF(str);
     return NULL;
   }

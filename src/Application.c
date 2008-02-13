@@ -136,37 +136,35 @@ PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
     self->request->err->stream   = request.err;
     self->request->envp          = request.envp;
     
-    // Reset request & response
-    if((smisk_Request_reset(self->request) == 0) && (smisk_Response_reset(self->response) == 0)) {
-      // Service request
-      if(PyObject_CallMethod((PyObject *)self, "service", NULL) != NULL) {
-        // Finish request
-        smisk_Response_finish(self->response);
-      }
-      else if(!smisk_Application_trapped_signal) {
-         log_debug("PyObject_CallMethod(self, service) FAILED");
-      }
+    
+    // Service request
+    if(PyObject_CallMethod((PyObject *)self, "service", NULL) != NULL) {
+      // Finish request
+      smisk_Response_finish(self->response);
     }
-    else {
-       log_debug("Failed to reset request and/or response");
+    else if(!smisk_Application_trapped_signal) {
+      log_error("Calling <Application@%p>.service() failed", self);
     }
     
     // Exception raised?
     if(PyErr_Occurred()) {
-       if(smisk_Application_trapped_signal) {
-          PyErr_Print();
-            break;
-       }
-       else {
-         // Call on self.error
-         if(PyObject_CallMethod((PyObject *)self, "error", NULL) == NULL) {
-           // Exit run loop if sending the error failed
-           log_error("Failed to send error message because of another error:");
-           PyErr_Print();
-           raise(SIGINT);
-           break;
-         }
-       }
+      if(smisk_Application_trapped_signal) {
+        PyErr_Print();
+        break;
+      }
+      else if(PyObject_CallMethod((PyObject *)self, "error", NULL) == NULL) {
+        // Exit run loop if sending the error failed
+        log_error("Failed to send error message because of another error:");
+        PyErr_Print();
+        raise(SIGINT);
+        break;
+      }
+    }
+    
+    // Reset request & response
+    if((smisk_Request_reset(self->request) == 0) && (smisk_Response_reset(self->response) != 0)) {
+      log_error("Failed to reset request and/or response");
+      raise(SIGINT);
     }
   }
   
@@ -211,9 +209,10 @@ PyObject* smisk_Application_service(smisk_Application* self, PyObject* args) {
   FCGX_FPrintF(self->response->out->stream,
      "Content-type: text/html\r\n"
      "\r\n"
-     "<title>FastCGI echo (fcgiapp version)</title>"
-     "<h1>FastCGI echo (fcgiapp version)</h1>\n"
-     "Process ID: %d<p>\n", getpid());
+     "<html><head><title>Smisk instance #%d</title></head><body>"
+     "<h1>Smisk instance #%d</h1>\n"
+     "No services available"
+     "</body></html>\n", getpid(), getpid());
   
   Py_RETURN_NONE;
 }

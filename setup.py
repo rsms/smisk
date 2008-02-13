@@ -14,7 +14,9 @@ sources = ['src/module.c',
            'src/NotificationCenter.c',
            'src/utils.c',
            'src/URL.c',
-           'src/atoin.c']
+           'src/atoin.c',
+           'src/cstr.c',
+           'src/multipart.c']
 
 os.chdir(os.path.join('.', os.path.dirname(__file__)))
 py_version = ".".join([str(s) for s in sys.version_info[0:2]]) # "M.m"

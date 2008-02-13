@@ -16,6 +16,7 @@ class MyApp(Application):
     w("post:    %s\n" % repr(self.request.post))
     w("files:   %s\n" % repr(self.request.files))
     w("cookie:  %s\n" % repr(self.request.cookie))
+    w("input:   %s\n" % repr(self.request.input.read()))
     #w("session: %s\n" % repr(self.request.session))
   
 

@@ -19,22 +19,27 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#ifndef SMISK_MODULE_H
-#define SMISK_MODULE_H
-#include <Python.h>
-#include "macros.h"
-#include "config.h"
+#ifndef CSTR_H
+#define CSTR_H
 
-// fcgi socket fd
-extern int smisk_listensock_fileno;
+#define CSTR_VERSION "$Id: cstr.h 7 2007-10-18 04:08:08Z rasmus $"
 
-// static objects at module-level
-extern PyObject *smisk_Error; // extends PyExc_StandardError
-extern PyObject *smisk_IOError; // extends PyExc_IOError
+#include <stddef.h>
 
-// Notifications
-extern PyObject *kApplicationWillStartNotification;
-extern PyObject *kApplicationWillExitNotification;
-extern PyObject *kApplicationDidStopNotification;
+typedef struct {
+	char* ptr;
+  unsigned int growsize;
+	size_t size;
+	size_t length;
+} cstr_t;
+
+int cstr_init (cstr_t *s, size_t capacity, unsigned int growsize); // return 0 on success, 1 on malloc failure
+void cstr_free (cstr_t *s);
+void cstr_reset (cstr_t *s);
+int cstr_resize (cstr_t *s, const size_t increment);
+int cstr_ensure_freespace (cstr_t *s, const size_t space);
+int cstr_append (cstr_t *s, const char *src, const size_t srclen);
+int cstr_appendc (cstr_t *s, const char ch);
+char cstr_popc (cstr_t *s);
 
 #endif

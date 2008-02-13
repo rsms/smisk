@@ -5,8 +5,17 @@
 		<script type="text/javascript">
 			function send(f) {
 				f.action = document.getElementById('url').value;
-				if(f.id == "f4")
-					f.action += "?get1=value1&get2=value2&get3=value3&get3=value4"
+				if(f.id == "f4") {
+				  if(document.getElementById('f4_dump').checked) {
+				    f.action += "?dump";
+				  }
+				  else {
+  					f.action += "?get1="+document.getElementById('f4_post1').value+
+  					  "&get2="+document.getElementById('f4_post2').value+
+  					  "&get3="+document.getElementById('f4_post3').value+
+  					  "&get3="+document.getElementById('f4_post3').value;
+					}
+				}
 				f.submit();
 			}
 			window.onload = function(evt) {
@@ -58,10 +67,11 @@
 			file1: <input type="file" name="file1" /><br />
 			file2: <input type="file" name="file2" /><br /><br />
 			
-			post1: <input type="text" name="post1" value="value1" /><br />
-			post2: <input type="text" name="post2" value="value2" /><br />
-			post2: <input type="text" name="post2" value="value3" /><br />
-			post2: <input type="text" name="post2" value="value4" /><br />
+			post1: <input type="text" name="post1" id="f4_post1" value="value1" /><br />
+			post2: <input type="text" name="post2" id="f4_post2" value="value2" /><br />
+			post2: <input type="text" name="post2" id="f4_post3" value="value3" /><br />
+			post2: <input type="text" name="post2" id="f4_post3" value="value4" /><br />
+			<input type="checkbox" id="f4_dump" /> dump raw input<br/>
 			<input type="button" value="Submit" onclick="send(document.getElementById('f4'))" />
 		</form>
 	</body>

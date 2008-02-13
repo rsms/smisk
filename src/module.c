@@ -144,7 +144,9 @@ PyObject* smisk_listening(PyObject *self, PyObject *args) {
     s = PyString_FromString(((struct sockaddr_un *)addr)->sun_path);
   }
   
-  Py_INCREF(s);
+  if(s == Py_None) {
+    Py_INCREF(s);
+  }
   return s;
 }
 

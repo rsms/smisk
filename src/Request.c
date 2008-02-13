@@ -21,9 +21,12 @@ THE SOFTWARE.
 */
 #include "module.h"
 #include "utils.h"
+#include "multipart.h"
 #include "Request.h"
+#include <unistd.h>
 #include <structmember.h>
 #include <fastcgi.h>
+
 
 static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
   char *s;
@@ -38,24 +41,24 @@ static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
     s[(bytes_read < length) ? bytes_read : length] = '\0';
     return s;
   }
-  else { // length unknown - apply dynamic resizing
-    size_t chunk_size = 4096; // XXX arbitrary initial allocation - make configurable.
-    size_t size = chunk_size;
+  else { // unknown length
+    size_t size = SMISK_STREAM_READ_CHUNKSIZE;
     s = (char *)malloc(size);
     
     while(1) {
-      bytes_read = FCGX_GetStr(s, chunk_size, stream);
-      if(bytes_read < chunk_size) {
-        s[(size - chunk_size) + bytes_read] = '\0';
+      bytes_read = FCGX_GetStr(s, SMISK_STREAM_READ_CHUNKSIZE, stream);
+      if(bytes_read < SMISK_STREAM_READ_CHUNKSIZE) {
+        s[(size - SMISK_STREAM_READ_CHUNKSIZE) + bytes_read] = '\0';
         break; // EOF
       }
-      size += chunk_size;
+      size += SMISK_STREAM_READ_CHUNKSIZE;
       s = (char *)realloc(s, size);
     }
     
     return s;
   }
 }
+
 
 static int _parse_request_body(smisk_Request* self) {
   char *content_type;
@@ -64,11 +67,10 @@ static int _parse_request_body(smisk_Request* self) {
   if((self->post = PyDict_New()) == NULL) {
     return -1;
   }
-  Py_INCREF(self->post);
+  
   if((self->files = PyDict_New()) == NULL) {
     return -1;
   }
-  Py_INCREF(self->files);
   
   if((content_type = FCGX_GetParam("CONTENT_TYPE", self->envp))) {
     // Parse content-length if available
@@ -76,8 +78,9 @@ static int _parse_request_body(smisk_Request* self) {
     content_length = (t != NULL) ? atol(t) : -1;
     
     if(strstr(content_type, "multipart/")) {
-      // XXX todo mulipart parser
-      log_error("XXX todo mulipart parser");
+      if(smisk_multipart_parse_stream(self->input->stream, content_length, self->post, self->files) != 0) {
+        return -1;
+      }
     }
     else if(strstr(content_type, "/x-www-form-urlencoded")) {
       char *s = smisk_read_fcgxstream(self->input->stream, content_length);
@@ -87,7 +90,7 @@ static int _parse_request_body(smisk_Request* self) {
         return -1;
       }
     }
-    // else, leave it
+    // else, leave it as raw input
   }
   
   return 0;
@@ -101,11 +104,8 @@ static int _parse_request_body(smisk_Request* self) {
 int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs) {
   log_debug("ENTER smisk_Request_init");
   
-  // Set env to None
-  self->env = Py_None;
-  Py_INCREF(self->env);
-  
   // Nullify lazy instances
+  self->env = NULL;
   self->url = NULL;
   self->get = NULL;
   self->post = NULL;
@@ -115,7 +115,6 @@ int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs) {
   // Construct a new Stream for in
   self->input = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
   if (self->input == NULL) {
-    log_debug("self->input == NULL");
     Py_DECREF(self);
     return -1;
   }
@@ -123,7 +122,6 @@ int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs) {
   // Construct a new Stream for err
   self->err = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
   if (self->err == NULL) {
-    log_debug("self->err == NULL");
     Py_DECREF(self);
     return -1;
   }
@@ -131,15 +129,41 @@ int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs) {
   return 0;
 }
 
-// Called by Application.run just after a successful accept() 
-// and just before calling service().
-int smisk_Request_reset (smisk_Request* self) {
-  if(self->env && (self->env != Py_None)) {
-    Py_DECREF(self->env);
-    self->env = NULL;
+
+
+// Called after every request has finished and called one from Request.dealloc
+void smisk_Request_cleanup (smisk_Request* self) {
+  // Delete unused uploaded files
+  if(self->files) {
+    PyObject *files = PyDict_Values(self->files);
+    size_t i, count = PyList_GET_SIZE(files);
+    for(i=0;i<count;i++) {
+      PyObject *file = PyList_GET_ITEM(files, i);
+      if(file != Py_None) {
+        PyObject *path = PyDict_GetItemString(file, "path");
+        if(path) {
+          char *fn = PyString_AsString(path);
+          if(file_exist(fn) && (unlink(fn) != 0)) {
+            log_error("Failed to unlink temporary file %s", fn);
+          }
+          IFDEBUG(else {
+            log_debug("Unlinked unused uploaded file %s", fn);
+          });
+        }
+      }
+    }
+    Py_DECREF(files);
   }
+}
+
+
+// Called by Application.run just after a successful accept() 
+// and just before calling service(). Also called when server stops.
+int smisk_Request_reset (smisk_Request* self) {
+  smisk_Request_cleanup(self);
   
 #define USET(n) if(self->n) { Py_DECREF(self->n); self->n = NULL; }
+  USET(env);
   USET(url);
   USET(get);
   USET(post);
@@ -150,12 +174,20 @@ int smisk_Request_reset (smisk_Request* self) {
   return 0;
 }
 
+
 void smisk_Request_dealloc(smisk_Request* self) {
   log_debug("ENTER smisk_Request_dealloc");
+  
+  smisk_Request_cleanup(self);
   
   Py_XDECREF(self->input);
   Py_XDECREF(self->err);
   Py_XDECREF(self->env);
+  Py_XDECREF(self->url);
+  Py_XDECREF(self->get);
+  Py_XDECREF(self->post);
+  Py_XDECREF(self->files);
+  Py_XDECREF(self->cookie);
   
   // free envp buf
   if(self->envp_buf)
@@ -204,7 +236,7 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
   //log_debug("ENTER smisk_Request_get_env");
   
   // Lazy initializer
-  if(self->env == Py_None || !self->env) {
+  if(self->env == NULL) {
     
     // Alloc new dict
     self->env = PyDict_New();
@@ -243,12 +275,12 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
           break;
         }
         
-        if( PyDict_SetItem( (PyObject *)self->env, (PyObject *)k, (PyObject *)v) )
-        {
+        if( PyDict_SetItem(self->env, (PyObject *)k, (PyObject *)v) ) {
           log_debug("PyDict_SetItem() != 0");
           return NULL;
         }
         
+        // Release ownership
         Py_DECREF(k);
         Py_DECREF(v);
       }
@@ -288,15 +320,12 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
       *p = '\0';
       Py_DECREF(self->url->scheme);
       self->url->scheme = PyString_FromString(_strtolower(s));
-      Py_INCREF(self->url->scheme);
     }
     
     // User
     if((s = FCGX_GetParam("REMOTE_USER", self->envp))) {
       Py_DECREF(self->url->user);
-      Py_INCREF(self->url->user);
       self->url->user = PyString_FromString(s);
-      Py_INCREF(self->url->user);
     }
     
     // Host & port
@@ -313,7 +342,6 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
     else {
       self->url->host = PyString_FromString(s);
     }
-    Py_INCREF(self->url->host);
     
     // Path & querystring
     // Not in RFC, but considered standard
@@ -324,19 +352,16 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
         self->url->path = PyString_FromString(s);
         Py_DECREF(self->url->query);
         self->url->query = PyString_FromString(p+1);
-        Py_INCREF(self->url->query);
       }
       else {
         self->url->path = PyString_FromString(s);
       }
-      Py_INCREF(self->url->path);
     }
     // Non-REQUEST_URI compliant fallback
     else {
       if((s = FCGX_GetParam("SCRIPT_NAME", self->envp))) {
         Py_DECREF(self->url->path);
         self->url->path = PyString_FromString(s);
-        Py_INCREF(self->url->path);
         // May not always give the same results as the above implementation
         // because the CGI specification does claim "This information should be
         // decoded by the server if it comes from a URL" which is a bit vauge.
@@ -347,13 +372,12 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
       if((s = FCGX_GetParam("QUERY_STRING", self->envp))) {
         Py_DECREF(self->url->query);
         self->url->query = PyString_FromString(s);
-        Py_INCREF(self->url->query);
       }
     }
     
-    Py_INCREF(self->url);
   }
   
+  Py_INCREF(self->url);
   return (PyObject *)self->url;
 }
 
@@ -373,9 +397,9 @@ PyObject* smisk_Request_get_get(smisk_Request* self) {
       }
     }
     Py_DECREF(url);
-    Py_INCREF(self->get); // our own reference
   }
-  Py_INCREF(self->get); // callers reference
+  
+  Py_INCREF(self->get);
   return self->get;
 }
 
@@ -415,8 +439,6 @@ PyObject* smisk_Request_get_cookie(smisk_Request* self) {
         return NULL;
       }
     }
-    
-    Py_INCREF(self->cookie); // our own reference
   }
   Py_INCREF(self->cookie); // callers reference
   return self->cookie;

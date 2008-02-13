@@ -40,6 +40,10 @@ THE SOFTWARE.
 #define Py_ssize_t ssize_t
 #endif
 
+#ifndef min
+#define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+#endif
+
 
 // Log to stderr
 #define log_error(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
@@ -56,5 +60,26 @@ THE SOFTWARE.
 #define PyErr_SET_FROM_ERRNO_OR_CUSTOM(type, custom_msg) \
   PyErr_SetFromErrnoWithFilename(type, __FILE__)
   //(errno ? PyErr_SetFromErrnoWithFilename(type, __FILE__) : PyErr_SetString(type, custom_msg))
+
+
+// STR macros
+#define STR_LTRIM_S(s) \
+  for(; *(s)==' '; (s)++);
+#define STR_LTRIM_ST(s) \
+  for(; (*(s)==' ')||(*(s) == '\t')); s++);
+#define STR_LTRIM_STRN(s) \
+  for(; (*(s)==' ')||(*(s) == '\t')||(*(s) == '\r')||(*(s) == '\n'); s++);
+
+
+// STR_EQUALS macros
+#define STR_EQUALS_2(x,y) ( ((x)[0]==(y)[0])&&((x)[1]==(y)[1]) )
+#define STR_EQUALS_3(x,y) ( ((x)[0]==(y)[0])&&((x)[1]==(y)[1])&&((x)[2]==(y)[2]) )
+#define STR_EQUALS_4(x,y) ( ((x)[0]==(y)[0])&&((x)[1]==(y)[1])&&((x)[2]==(y)[2])&&((x)[3]==(y)[3]) )
+#define STR_EQUALS_5(x,y) ( ((x)[0]==(y)[0])&&((x)[1]==(y)[1])&&((x)[2]==(y)[2])&&((x)[3]==(y)[3])&&((x)[4]==(y)[4]) )
+#define STR_EQUALS_6(x,y) ( ((x)[0]==(y)[0])&&((x)[1]==(y)[1])&&((x)[2]==(y)[2])&&((x)[3]==(y)[3])&&((x)[4]==(y)[4])&&((x)[5]==(y)[5]) )
+#define STR_EQUALS_7(x,y) ( ((x)[0]==(y)[0])&&((x)[1]==(y)[1])&&((x)[2]==(y)[2])&&((x)[3]==(y)[3])&&((x)[4]==(y)[4])&&((x)[5]==(y)[5])&&((x)[6]==(y)[6]) )
+#define STR_EQUALS_8(x,y) ( ((x)[0]==(y)[0])&&((x)[1]==(y)[1])&&((x)[2]==(y)[2])&&((x)[3]==(y)[3])&&((x)[4]==(y)[4])&&((x)[5]==(y)[5])&&((x)[6]==(y)[6])&&((x)[7]==(y)[7]) )
+#define STR_EQUALS_9(x,y) ( ((x)[0]==(y)[0])&&((x)[1]==(y)[1])&&((x)[2]==(y)[2])&&((x)[3]==(y)[3])&&((x)[4]==(y)[4])&&((x)[5]==(y)[5])&&((x)[6]==(y)[6])&&((x)[7]==(y)[7])&&((x)[8]==(y)[8]) )
+#define STR_EQUALS_10(x,y) ( ((x)[0]==(y)[0])&&((x)[1]==(y)[1])&&((x)[2]==(y)[2])&&((x)[3]==(y)[3])&&((x)[4]==(y)[4])&&((x)[5]==(y)[5])&&((x)[6]==(y)[6])&&((x)[7]==(y)[7])&&((x)[8]==(y)[8])&&((x)[9]==(y)[9]) )
 
 #endif /* define SMISK_MACROS_H */

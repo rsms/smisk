@@ -82,7 +82,7 @@ int smisk_Response_init(smisk_Response* self, PyObject* args, PyObject* kwargs) 
   self->headers = NULL;
   self->app = NULL;
   
-  if(smisk_Response_reset(self) == -1) {
+  if(smisk_Response_reset(self) != 0) {
     Py_DECREF(self);
     return -1;
   }
@@ -102,6 +102,7 @@ void smisk_Response_dealloc(smisk_Response* self) {
   log_debug("ENTER smisk_Response_dealloc");
   Py_XDECREF(self->out);
   Py_XDECREF(self->headers);
+  Py_XDECREF(self->status);
 }
 
 
@@ -414,7 +415,7 @@ PyObject* smisk_Response_setCookie(smisk_Response* self, PyObject* args, PyObjec
   if(PyList_Append(self->headers, s) != 0) {
     return NULL;
   }
-  //fprintf(stderr, "%s\n", PyString_AS_STRING(s));
+  Py_DECREF(s); // the list is the new owner
   
   Py_RETURN_NONE;
 }

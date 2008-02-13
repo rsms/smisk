@@ -142,10 +142,10 @@ PyObject* smisk_NotificationCenter_subscribe(smisk_NotificationCenter* self, PyO
     }
     notificationList = PyList_New(0);
     if(notificationList == NULL) {
-      log_debug("(notificationList = PyList_New()) == NULL");
       return NULL;
     }
     rc = PyDict_SetItem(self->observers, notification, notificationList);
+    Py_DECREF(notificationList); // not mine anymore
   }
   else {
     notificationList = PyDict_GetItem(self->observers, notification);
