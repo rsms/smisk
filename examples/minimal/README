@@ -1,0 +1,4 @@
+A very simple demo.
+
+Run it like this:
+lighttpd -Df lighttpd.conf
