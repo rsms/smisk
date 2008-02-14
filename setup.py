@@ -2,6 +2,7 @@
 # encoding: utf-8
 from distutils.core import setup, Extension
 from distutils.cmd import Command
+from distutils.command.build import build as build_cmd
 import os, sys
 
 version = "0.1"
@@ -42,10 +43,14 @@ libraries = ['fcgi'] # to link with
 
 runtime_library_dirs = []
 extra_objects = []
+define_macros = []
+undef_macros = []
+cflags = ' -Wall -fwritable-strings'
 
 #---------------------------------------
+# Commands
 
-class build_doc(Command):
+class apidocs(Command):
   description = 'Builds the documentation'
   user_options = []
   def initialize_options(self): pass
@@ -68,11 +73,24 @@ class build_doc(Command):
   
 
 
+#---------------------------------------
 # write version.h
 f = open(os.path.abspath(os.path.join(os.path.dirname(__file__), "src/version.h")), "w")
 try: f.write("#ifndef SMISK_VERSION\n#define SMISK_VERSION \"%s\"\n#endif\n" % version)
 finally: f.close()
 
+# set compiler options
+if '--debug' in sys.argv:
+  define_macros = [('SMISK_DEBUG', '1')]
+  undef_macros = ['NDEBUG']
+else:
+  cflags += ' -O3 -msse3 -mssse3 '
+
+# set c flags
+if 'CFLAGS' in os.environ: os.environ['CFLAGS'] += cflags
+else: os.environ['CFLAGS'] = cflags
+
+#---------------------------------------
 setup (name = "smisk",
   version = version,
   description = "Minimal FastCGI-based web application framework",
@@ -87,8 +105,10 @@ setup (name = "smisk",
     library_dirs=library_dirs,
     runtime_library_dirs=runtime_library_dirs,
     libraries=libraries,
-    extra_objects=extra_objects
+    extra_objects=extra_objects,
+    define_macros=define_macros,
+    undef_macros=undef_macros
   )],
   
-  cmdclass={'build_doc': build_doc, 'docs': build_doc}
+  cmdclass={'apidocs': apidocs}
 )

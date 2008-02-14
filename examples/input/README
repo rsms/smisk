@@ -2,4 +2,8 @@ Demonstrates user input handling, like query string parsing, POSTing,
 Cookies, sessions, etc.
 
 Run it like this:
-lighttpd -Df lighttpd.conf
+  lighttpd -Df lighttpd.conf
+
+You can send other kind of data using curl.
+For example:
+  curl --data-binary 'hello mister' --header 'Content-Type: text/plain' http://localhost:8080/receive

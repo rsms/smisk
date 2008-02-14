@@ -11,12 +11,14 @@ class MyApp(Application):
       self.response.setCookie('a_cookie', self.request.get['set_cookie'])
     
     w = self.response.write
-    w("env:     %s\n" % repr(self.request.env))
-    w("get:     %s\n" % repr(self.request.get))
-    w("post:    %s\n" % repr(self.request.post))
-    w("files:   %s\n" % repr(self.request.files))
-    w("cookie:  %s\n" % repr(self.request.cookie))
-    w("input:   %s\n" % repr(self.request.input.read()))
+    w("self.request.\n")
+    w(" env     %s\n" % repr(self.request.env))
+    w(" get     %s\n" % repr(self.request.get))
+    w(" post    %s\n" % repr(self.request.post))
+    w(" files   %s\n" % repr(self.request.files))
+    w(" cookie  %s\n" % repr(self.request.cookie))
+    w(" input   %s\n" % repr(self.request.input.read()))
+    w(" url     %s\n" % self.request.url)
     #w("session: %s\n" % repr(self.request.session))
   
 

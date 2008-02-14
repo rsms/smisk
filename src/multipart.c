@@ -173,13 +173,13 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
     PyDict_SetItemString(m, "path",         PyString_FromString(fn));
     PyDict_SetItemString(m, "size",         PyLong_FromUnsignedLong(bytes));
     
-    if(PyDict_assoc_val_with_key(ctx->files, py_key, m) != 0) {
+    if(PyDict_assoc_val_with_key(ctx->files, m, py_key) != 0) {
       return -1;
     }
   }
   else {
     // no value, only key
-    if(PyDict_assoc_val_with_key(ctx->files, py_key, Py_None) != 0) {
+    if(PyDict_assoc_val_with_key(ctx->files, Py_None, py_key) != 0) {
       return -1;
     }
   }
@@ -219,13 +219,13 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
   if( (len = (p - ctx->buf.ptr)) > 2 ) {
     *(p-2) = '\0'; // \r\n -> \0\n
     len -= 2; // because above line
-    if(PyDict_assoc_val_with_key(ctx->post, py_key, PyString_FromString(ctx->buf.ptr)) != 0) {
+    if(PyDict_assoc_val_with_key(ctx->post, PyString_FromString(ctx->buf.ptr), py_key) != 0) {
       return -1;
     }
   }
   else {
     // no value, only key
-    if(PyDict_assoc_val_with_key(ctx->post, py_key, Py_None) != 0) {
+    if(PyDict_assoc_val_with_key(ctx->post, Py_None, py_key) != 0) {
       return -1;
     }
   }

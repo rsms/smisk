@@ -31,7 +31,7 @@ PyObject* format_exc (void);
 char *timestr (struct tm *time_or_null);
 
 // Associate value with key - if the key exists, the keys value is a list of values.
-int PyDict_assoc_val_with_key (PyObject *dict, PyObject* key, PyObject *val);
+int PyDict_assoc_val_with_key (PyObject *dict, PyObject *val, PyObject *key);
 
 // Parse input data (query string, post url-encoded, cookie, etc). Returns 0 on success.
 int parse_input_data (char *s, const char *separator, int is_cookie_data, PyObject *dict);

@@ -253,7 +253,7 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
       char** envp = self->envp;
       
       // Parse env into dict
-      for( ; *envp != NULL; envp++) {
+      for( ; *envp; envp++) {
         
         char *value = strchr(*envp, '=');
         
@@ -281,6 +281,8 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
         }
         
         // Release ownership
+        assert_refcount(k, > 1);
+        assert_refcount(v, > 1);
         Py_DECREF(k);
         Py_DECREF(v);
       }
@@ -391,6 +393,7 @@ PyObject* smisk_Request_get_get(smisk_Request* self) {
     }
     url = (smisk_URL *)smisk_Request_get_url(self);
     if(url->query && (url->query != Py_None) && (PyString_GET_SIZE(url->query) > 0)) {
+      assert_refcount(self->get, == 1);
       if(parse_input_data(PyString_AS_STRING(url->query), "&", 0, self->get) != 0) {
         Py_DECREF(url);
         return NULL;

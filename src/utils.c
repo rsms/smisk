@@ -106,11 +106,13 @@ char *timestr(struct tm *time_or_null) {
 }
 
 
-int PyDict_assoc_val_with_key(PyObject *dict, PyObject* key, PyObject *val) {
+int PyDict_assoc_val_with_key(PyObject *dict, PyObject *val, PyObject* key) {
   PyObject *existing_val, *new_val;
+  
   if(PyDict_Contains(dict, key)) {
     // multi-value
     existing_val = PyDict_GetItem(dict, key);
+    
     if(PyList_CheckExact(existing_val)) {
       // just append
       if(PyList_Append(existing_val, val) != 0) {
@@ -122,9 +124,12 @@ int PyDict_assoc_val_with_key(PyObject *dict, PyObject* key, PyObject *val) {
       new_val = PyList_New(2);
       PyList_SET_ITEM(new_val, 0, existing_val);
       PyList_SET_ITEM(new_val, 1, val);
+      Py_INCREF(existing_val);
+      Py_INCREF(val);
       if(PyDict_SetItem(dict, key, new_val) != 0) {
         return -1;
       }
+      assert_refcount(new_val, == 2);
       Py_DECREF(new_val); // we don't own it anymore
     }
   }
@@ -133,18 +138,19 @@ int PyDict_assoc_val_with_key(PyObject *dict, PyObject* key, PyObject *val) {
       return -1;
     }
   }
+  
+  assert_refcount(val, > 1);
   return 0;
 }
 
 
 int parse_input_data(char *s, const char *separator, int is_cookie_data, PyObject *dict) {
-  char *res = NULL, *key, *val, *strtok_ctx = NULL;
-  int free_buffer = 0, status = 0;
+  char *scpy, *key, *val, *strtok_ctx = NULL;
+  int status = 0;
   
-  res = strdup(s);
-  free_buffer = 1;
-  
-  key = strtok_r(res, separator, &strtok_ctx);
+  log_debug("parse_input_data '%s'", s);
+  scpy = strdup(s);
+  key = strtok_r(scpy, separator, &strtok_ctx);
   
   while (key) {
     val = strchr(key, '=');
@@ -165,7 +171,7 @@ int parse_input_data(char *s, const char *separator, int is_cookie_data, PyObjec
     smisk_url_decode(key, strlen(key));
     
     if (val) { // have a value
-      *val++ = '\0';
+      *val++ = '\0'; // '=' -> '\0'
       int val_len = smisk_url_decode(val, strlen(val));
       py_val = PyString_FromStringAndSize(val, val_len);
     } else {
@@ -175,7 +181,7 @@ int parse_input_data(char *s, const char *separator, int is_cookie_data, PyObjec
     
     // save
     py_key = PyString_FromString(key);
-    if((status = PyDict_assoc_val_with_key(dict, py_key, py_val)) != 0) {
+    if((status = PyDict_assoc_val_with_key(dict, py_val, py_key)) != 0) {
       break;
     }
     Py_DECREF(py_key);
@@ -185,9 +191,7 @@ next_cookie:
     key = strtok_r(NULL, separator, &strtok_ctx);
   } // end while(var)
 
-  if (free_buffer) {
-    free(res);
-  }
+  free(scpy);
   
   return status;
 }

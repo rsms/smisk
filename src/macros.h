@@ -49,13 +49,19 @@ THE SOFTWARE.
 #define log_error(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
 // Log to stderr, but only in debug builds
-#ifdef DEBUG
+#ifdef SMISK_DEBUG
   #define log_debug(fmt, ...) fprintf(stderr, "DEBUG %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
   #define IFDEBUG(x) x
+  #define assert_refcount(o, count_test) \
+    if(!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld %s)", (o)->ob_refcnt, #count_test); }\
+    assert((o)->ob_refcnt count_test)
 #else
-  #define log_debug(fmt, ...)
-  #define IFDEBUG(x)
+  #define log_debug(fmt, ...) ((void)0)
+  #define assert_refcount(o, count_test) 
+  #define IFDEBUG(x) 
 #endif
+
+#define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o)->ob_refcnt)
 
 #define PyErr_SET_FROM_ERRNO_OR_CUSTOM(type, custom_msg) \
   PyErr_SetFromErrnoWithFilename(type, __FILE__)

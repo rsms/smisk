@@ -103,6 +103,7 @@ void smisk_Response_dealloc(smisk_Response* self) {
   Py_XDECREF(self->out);
   Py_XDECREF(self->headers);
   Py_XDECREF(self->status);
+  Py_XDECREF(self->app);
 }
 
 

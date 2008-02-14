@@ -53,7 +53,7 @@ int smisk_Application_init(smisk_Application* self, PyObject* args, PyObject* kw
   // Construct a new Request item
   if(self->requestClass == NULL) {
       self->requestClass = (PyTypeObject*)&smisk_RequestType;
-   }
+  }
   self->request = (smisk_Request*)PyObject_Call((PyObject*)self->requestClass, NULL, NULL);
   if (self->request == NULL) {
     log_debug("self->request == NULL");
@@ -61,17 +61,22 @@ int smisk_Application_init(smisk_Application* self, PyObject* args, PyObject* kw
     return -1;
   }
   
+  assert_refcount(self->request, ==1);
+  
   // Construct a new Response item
   if(self->responseClass == NULL) {
-      self->responseClass = (PyTypeObject*)&smisk_ResponseType;
-   }
+    self->responseClass = (PyTypeObject*)&smisk_ResponseType;
+  }
   self->response = (smisk_Response*)PyObject_Call((PyObject*)self->responseClass, NULL, NULL);
   if (self->response == NULL) {
     log_debug("self->response == NULL");
     Py_DECREF(self);
     return -1;
   }
+  assert_refcount(self->response, ==1);
   self->response->app = (PyObject *)self;
+  Py_INCREF(self->response->app);
+  assert_refcount(self, ==2);
   
   // TODO: Make get/settable
   self->includeExceptionInfoInErrors = 1;
