@@ -3,7 +3,7 @@
 from distutils.core import setup, Extension
 from distutils.cmd import Command
 from distutils.command.build import build as build_cmd
-import os, sys
+import os, sys, platform
 
 version = "0.1"
 
@@ -45,7 +45,7 @@ runtime_library_dirs = []
 extra_objects = []
 define_macros = []
 undef_macros = []
-cflags = ' -Wall -fwritable-strings'
+cflags = ' -Wall'
 
 #---------------------------------------
 # Commands
@@ -84,7 +84,11 @@ if '--debug' in sys.argv:
   define_macros = [('SMISK_DEBUG', '1')]
   undef_macros = ['NDEBUG']
 else:
-  cflags += ' -O3 -msse3 -mssse3 '
+  cflags += ' -O3'
+  if platform.machine().find('x86') != -1:
+    cflags += ' -msse3'
+    if platform.system() == 'Darwin':
+      cflags += ' -mssse3'
 
 # set c flags
 if 'CFLAGS' in os.environ: os.environ['CFLAGS'] += cflags
