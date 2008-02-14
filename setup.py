@@ -84,7 +84,6 @@ if '--debug' in sys.argv:
   define_macros = [('SMISK_DEBUG', '1')]
   undef_macros = ['NDEBUG']
 else:
-  cflags += ' -O2'
   if platform.machine().find('x86') != -1:
     cflags += ' -msse3'
     if platform.system() == 'Darwin':
