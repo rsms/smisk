@@ -1,3 +1,11 @@
+python-smisk (0.1r65-5) unstable; urgency=low
+
+  * Fixed the input data parser bug where a PyString values refcount 
+    would go too low and result in strange replacement in a multi-value
+    parameter.
+
+ -- Rasmus Andersson <rasmus@flajm.se> Fri, 15 Feb 2008 11:10:30 +0100
+
 python-smisk (0.1r55-4) unstable; urgency=low
 
   * Implemented complete POST data parsing.
