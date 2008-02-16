@@ -15,7 +15,7 @@
 
 REMOTE_HOST='trac.hunch.se'
 REMOTE_PATH='/var/lib/trac/smisk/dist/'
-REMOTE_PATH_APIDOC='/var/lib/trac/smisk/docs/api/'
+REMOTE_PATH_APIDOC='/var/lib/trac/smisk/docs/api'
 
 if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
   echo "usage: $0 python-binary[, python-binary[, ...]]" >&2
@@ -68,8 +68,8 @@ $PYTHON setup.py apidocs
 # Upload & update links on server
 echo "Uploading dist/ready/$PACKAGE-$VER*.tar.gz to $REMOTE_HOST"
 scp -qC dist/ready/$PACKAGE-$VER*.tar.gz $REMOTE_HOST:$REMOTE_PATH
-echo "Uploading doc/api/ to $REMOTE_HOST"
-scp -qCr doc/api/ $REMOTE_HOST:$REMOTE_PATH_APIDOC
+echo "Uploading doc/api to $REMOTE_HOST"
+scp -qCr doc/api $REMOTE_HOST:$REMOTE_PATH_APIDOC
 ssh $REMOTE_HOST "cd $REMOTE_PATH;\
 for f in $PACKAGE-$VER*.tar.gz;do \
 	if [ -f \"\$f\" ]; then\
