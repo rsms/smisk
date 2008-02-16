@@ -203,32 +203,32 @@ PyDoc_STRVAR(smisk_Request_log_error_DOC,
   ":type   filename: string\n"
   ":raises smisk.IOError: if something i/o failed.\n"
   ":rtype: None");
-PyObject* smisk_Request_log_error(smisk_Request* self, PyObject* args) {
-  PyObject* message;
+PyObject* smisk_Request_log_error(smisk_Request* self, PyObject* msg) {
   static const char format[] = "%s[%d] %s";
   
-  // Did we get enough arguments?
-  if(PyTuple_GET_SIZE(args) != 1) {
-    PyErr_SetString(PyExc_TypeError, "logError takes exactly 1 argument");
+  if(!self->err->stream || ((PyObject *)self->err->stream == Py_None)) {
+    PyErr_SetString(smisk_IOError, "request.err stream not initialized. Only makes sense during an active request.");
     return NULL;
   }
   
-  // Save reference to first argument and type check it
-  message = PyTuple_GET_ITEM(args, 0);
-  if(!PyString_Check(message)) {
+  if(!msg || !PyString_Check(msg)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }
   
-  if(FCGX_FPrintF( self->err->stream, format, 
-    Py_GetProgramName(), getpid(), PyString_AsString(message)) == -1)
-  {
-    fprintf(stderr, format, 
-      Py_GetProgramName(), getpid(), PyString_AsString(message));
+  if(FCGX_FPrintF(self->err->stream, format, Py_GetProgramName(), getpid(), PyString_AsString(msg)) == -1) {
+    fprintf(stderr, format, Py_GetProgramName(), getpid(), PyString_AsString(msg));
     return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on stream");
   }
   
   Py_RETURN_NONE;
+}
+
+
+PyObject* smisk_Request_is_active(smisk_Request* self) {
+  PyObject* b = self->env ? Py_True : Py_False;
+  Py_INCREF(b);
+  return b;
 }
 
 
@@ -465,7 +465,7 @@ PyDoc_STRVAR(smisk_Request_DOC,
 // Methods
 static PyMethodDef smisk_Request_methods[] =
 {
-  {"log_error", (PyCFunction)smisk_Request_log_error, METH_VARARGS, smisk_Request_log_error_DOC},
+  {"log_error", (PyCFunction)smisk_Request_log_error, METH_O, smisk_Request_log_error_DOC},
   {NULL}
 };
 
@@ -477,6 +477,7 @@ static PyGetSetDef smisk_Request_getset[] = {
   {"post", (getter)smisk_Request_get_post, (setter)0},
   {"files", (getter)smisk_Request_get_files,  (setter)0},
   {"cookie", (getter)smisk_Request_get_cookie,  (setter)0},
+  {"is_active", (getter)smisk_Request_is_active,  (setter)0},
   {NULL}
 };
 

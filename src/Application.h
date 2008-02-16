@@ -29,8 +29,8 @@ typedef struct {
   PyObject_HEAD;
   
   // Public Python
-  PyTypeObject*   requestClass;
-  PyTypeObject*   responseClass;
+  PyTypeObject*   request_class;
+  PyTypeObject*   response_class;
   smisk_Request*  request;
   smisk_Response* response;
   

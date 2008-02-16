@@ -35,8 +35,7 @@ int smisk_Stream_init(smisk_Stream* self, PyObject* args, PyObject* kwargs)
   return 0;
 }
 
-void smisk_Stream_dealloc(smisk_Stream* self)
-{
+void smisk_Stream_dealloc(smisk_Stream* self) {
 }
 
 
@@ -52,23 +51,19 @@ PyDoc_STRVAR(smisk_Stream_readline_DOC,
   ":param  length: read up to length bytes.\n"
   ":rtype: string\n"
   ":returns: the line read or None if EOF");
-PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* args)
+PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* len)
 {
   PyObject* str;
   Py_ssize_t length;
   
   // Get length
-  if (args && PyTuple_GET_SIZE(args) > 0) {
-    PyObject* arg1 = PyTuple_GET_ITEM(args, 1);
-    if(arg1 == NULL) { // None
-      length = SMISK_STREAM_READLINE_LENGTH;
-    }
-    else if(!PyInt_Check(arg1)) {
-      PyErr_Format(PyExc_TypeError, "length argument must be an integer");
+  if (len) {
+    if(!PyInt_Check(len)) {
+      PyErr_Format(PyExc_TypeError, "first argument must be an integer");
       return NULL;
     }
     else {
-      length = PyInt_AS_LONG(arg1);
+      length = PyInt_AS_LONG(len);
     }
   }
   else {
@@ -130,25 +125,20 @@ PyDoc_STRVAR(smisk_Stream_read_DOC,
   ":type   length: int\n"
   ":param  length: read up to length bytes. If not specified or negative, read until EOF.\n"
   ":rtype: string");
-PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args)
-{
+PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* len) {
   //log_debug("ENTER smisk_Stream_read");
   PyObject* str;
   Py_ssize_t length;
   int rc;
   
   // Get length
-  if (PyTuple_GET_SIZE(args) > 0) {
-    PyObject* arg1 = PyTuple_GET_ITEM(args, 1);
-    if(arg1 == NULL) { // None
-      length = -1;
-    }
-    else if(!PyInt_Check(arg1)) {
-      PyErr_Format(PyExc_TypeError, "length argument must be an integer");
+  if (len) {
+    if(!PyInt_Check(len)) {
+      PyErr_Format(PyExc_TypeError, "first argument must be an integer");
       return NULL;
     }
     else {
-      length = PyInt_AS_LONG(arg1);
+      length = PyInt_AS_LONG(len);
     }
   }
   else {
@@ -226,26 +216,15 @@ PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args)
 }
 
 
-PyDoc_STRVAR(smisk_Stream_writeByte_DOC,
+PyDoc_STRVAR(smisk_Stream_write_byte_DOC,
   "Write a byte to the stream.\n"
   "\n"
   ":param  b: The byte to write\n"
   ":type   b: int\n"
   ":rtype: None\n"
   ":raises smisk.IOError: if the byte could not be written");
-PyObject* smisk_Stream_writeByte(smisk_Stream* self, PyObject* args)
-{
-  PyObject* ch;
-  
-  // Did we get enough arguments?
-  if(PyTuple_GET_SIZE(args) == 0) {
-    PyErr_Format(PyExc_TypeError, "writeByte takes exactly 1 argument (0 given)");
-    return NULL;
-  }
-  
-  // Save reference to first argument and type check it
-  ch = PyTuple_GET_ITEM(args, 0);
-  if(!PyInt_Check(ch)) {
+PyObject* smisk_Stream_write_byte(smisk_Stream* self, PyObject* ch) {
+  if(!ch || !PyInt_Check(ch)) {
     PyErr_Format(PyExc_TypeError, "first argument must be an integer");
     return NULL;
   }
@@ -270,10 +249,7 @@ PyDoc_STRVAR(smisk_Stream_write_DOC,
   ":param  length: write length bytes from str (optional)\n"
   ":rtype: None\n"
   ":raises smisk.IOError:");
-PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args)
-{  
-  //log_debug("ENTER smisk_Stream_write");
-
+PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args) {
   PyObject* str;
   Py_ssize_t length;
   int argc;
@@ -312,8 +288,7 @@ PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args)
 }
 
 
-int smisk_Stream_perform_write(smisk_Stream* self, PyObject* str, Py_ssize_t length)
-{
+int smisk_Stream_perform_write(smisk_Stream* self, PyObject* str, Py_ssize_t length) {
   if( FCGX_PutStr(PyString_AS_STRING(str), length, self->stream) == -1 ) {
     PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on stream");
     return -1;
@@ -328,8 +303,7 @@ PyDoc_STRVAR(smisk_Stream_flush_DOC,
   "always implicitly flushes all it's streams upon finishing the request.\n"
   "\n"
   ":rtype: None");
-PyObject* smisk_Stream_flush(smisk_Stream* self)
-{
+PyObject* smisk_Stream_flush(smisk_Stream* self) {
   if(FCGX_FFlush(self->stream) == -1) {
     return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to flush stream");
   }
@@ -343,8 +317,7 @@ PyDoc_STRVAR(smisk_Stream_close_DOC,
   "object.\n"
   "\n"
   ":rtype: None");
-PyObject* smisk_Stream_close(smisk_Stream* self)
-{
+PyObject* smisk_Stream_close(smisk_Stream* self) {
   if(FCGX_FClose(self->stream) == -1) {
     return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to close stream");
   }
@@ -353,14 +326,12 @@ PyObject* smisk_Stream_close(smisk_Stream* self)
 
 
 // Iteration
-PyObject* smisk_Stream_iter(smisk_Stream *self)
-{
-    Py_INCREF(self);
-    return (PyObject*)self;
+PyObject* smisk_Stream_iter(smisk_Stream *self) {
+  Py_INCREF(self);
+  return (PyObject*)self;
 }
 
-PyObject* smisk_Stream_iternext(smisk_Stream *self)
-{
+PyObject* smisk_Stream_iternext(smisk_Stream *self) {
   PyObject* str = smisk_Stream_readline(self, NULL);
   if(PyString_GET_SIZE(str) == 0) {
     // End iteration
@@ -375,18 +346,16 @@ PyObject* smisk_Stream_iternext(smisk_Stream *self)
 /********** type configuration **********/
 
 PyDoc_STRVAR(smisk_Stream_DOC,
-  "FastCGI i/o stream");
+  "FastCGI input/output stream");
 
 static PyMethodDef smisk_Stream_methods[] =
 {
-  {"close", (PyCFunction)smisk_Stream_close, METH_NOARGS, smisk_Stream_close_DOC},
-  {"flush", (PyCFunction)smisk_Stream_flush, METH_NOARGS, smisk_Stream_flush_DOC},
-  
-  {"read", (PyCFunction)smisk_Stream_read, METH_VARARGS, smisk_Stream_read_DOC},
-  {"readline", (PyCFunction)smisk_Stream_readline, METH_VARARGS, smisk_Stream_readline_DOC},
-  
-  {"write", (PyCFunction)smisk_Stream_write, METH_VARARGS, smisk_Stream_write_DOC},
-  {"writeByte", (PyCFunction)smisk_Stream_writeByte, METH_VARARGS, smisk_Stream_writeByte_DOC},
+  {"close", (PyCFunction)smisk_Stream_close,            METH_NOARGS,  smisk_Stream_close_DOC},
+  {"flush", (PyCFunction)smisk_Stream_flush,            METH_NOARGS,  smisk_Stream_flush_DOC},
+  {"read", (PyCFunction)smisk_Stream_read,              METH_O,       smisk_Stream_read_DOC},
+  {"readline", (PyCFunction)smisk_Stream_readline,      METH_O,       smisk_Stream_readline_DOC},
+  {"write", (PyCFunction)smisk_Stream_write,            METH_VARARGS, smisk_Stream_write_DOC},
+  {"write_byte", (PyCFunction)smisk_Stream_write_byte,  METH_O,       smisk_Stream_write_byte_DOC},
   {NULL}
 };
 

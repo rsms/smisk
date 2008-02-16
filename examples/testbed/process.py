@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # encoding: utf-8
-import sys, os
-from smisk import *
+import sys, os, platform
+from smisk import Application, Request, Response
 
 class MyRequest(Request):
-  def acceptsCharsets(self):
+  def accepts_charsets(self):
     '''Return a list of charsets which the client can handle, ordered by priority and appearing order.'''
     vv = []
     for cs in self.env['HTTP_ACCEPT_CHARSET'].split(','):
@@ -29,8 +29,8 @@ class MyApp(Application):
   chunk = '.'*8000
   
   def __init__(self):
-    self.requestClass = MyRequest
-    self.responseClass = MyResponse
+    self.request_class = MyRequest
+    self.response_class = MyResponse
     Application.__init__(self)
   
   def service(self):
@@ -40,7 +40,7 @@ class MyApp(Application):
     self.response.headers = ["Content-Type: text/plain"]
     self.response.write("self.request.url = %s\n" % self.request.url)
     self.response.write("HTTP_ACCEPT_CHARSET = %s\n" % self.request.env['HTTP_ACCEPT_CHARSET'])
-    self.response.write("self.request.acceptsCharsets() = %s\n" % self.request.acceptsCharsets())
+    self.response.write("self.request.acceptsCharsets() = %s\n" % self.request.accepts_charsets())
     
     #self.response.write(self.chunk)
     
@@ -57,16 +57,11 @@ def err3(): err4()
 def err4(): err5()
 def err5(): raise IOError("Kabooom!")
 
-# test notifications
-def notification_handler(notification, *args):
-  sys.stderr.write("NOTIFICATION: %s %s\n" % (notification, repr(args)))
-
-nc = NotificationCenter.default()
-nc.subscribe(notification_handler, ApplicationWillStartNotification)
-nc.subscribe(notification_handler, ApplicationDidStopNotification)
-nc.subscribe(notification_handler, ApplicationWillExitNotification)
-
 try:
   MyApp().run()
 except KeyboardInterrupt:
   pass
+except:
+  import traceback
+  traceback.print_exc(1000, open(os.path.abspath(os.path.dirname(__file__)) + "/process-error.log", "a"))
+

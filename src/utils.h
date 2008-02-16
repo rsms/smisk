@@ -24,7 +24,7 @@ THE SOFTWARE.
 #include <fcgiapp.h>
 
 // Returns PyStringObject (borrowed reference)
-PyObject* format_exc (void);
+PyObject* format_exc ();
 
 // Return ISO timestamp YYYY-MM-DD HH:MM:SS
 // @return newly allocated string. You must free the resulting string yourself.

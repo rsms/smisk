@@ -51,32 +51,30 @@ int smisk_Application_init(smisk_Application* self, PyObject* args, PyObject* kw
   log_debug("ENTER smisk_Application_init");
   
   // Construct a new Request item
-  if(self->requestClass == NULL) {
-      self->requestClass = (PyTypeObject*)&smisk_RequestType;
+  if(self->request_class == NULL) {
+      self->request_class = (PyTypeObject*)&smisk_RequestType;
   }
-  self->request = (smisk_Request*)PyObject_Call((PyObject*)self->requestClass, NULL, NULL);
+  self->request = (smisk_Request*)PyObject_Call((PyObject*)self->request_class, NULL, NULL);
   if (self->request == NULL) {
-    log_debug("self->request == NULL");
     Py_DECREF(self);
     return -1;
   }
   
-  assert_refcount(self->request, ==1);
+  assert_refcount(self->request, == 1);
   
   // Construct a new Response item
-  if(self->responseClass == NULL) {
-    self->responseClass = (PyTypeObject*)&smisk_ResponseType;
+  if(self->response_class == NULL) {
+    self->response_class = (PyTypeObject*)&smisk_ResponseType;
   }
-  self->response = (smisk_Response*)PyObject_Call((PyObject*)self->responseClass, NULL, NULL);
+  self->response = (smisk_Response*)PyObject_Call((PyObject*)self->response_class, NULL, NULL);
   if (self->response == NULL) {
-    log_debug("self->response == NULL");
     Py_DECREF(self);
     return -1;
   }
-  assert_refcount(self->response, ==1);
+  assert_refcount(self->response, == 1);
   self->response->app = (PyObject *)self;
   Py_INCREF(self->response->app);
-  assert_refcount(self, ==2);
+  assert_refcount(self, == 2);
   
   // TODO: Make get/settable
   self->includeExceptionInfoInErrors = 1;
@@ -311,8 +309,6 @@ PyDoc_STRVAR(smisk_Application_DOC,
   ":ivar response: Response object (read-only)\n"
   ":type response: smisk.Response\n");
 
-// TODO: Application.requestClass and Application.responseClass
-
 // Methods
 static PyMethodDef smisk_Application_methods[] =
 {
@@ -326,8 +322,8 @@ static PyMethodDef smisk_Application_methods[] =
 // Properties (Members)
 static struct PyMemberDef smisk_Application_members[] =
 {
-  {"requestClass",  T_OBJECT_EX, offsetof(smisk_Application, requestClass),  0, NULL},
-  {"responseClass", T_OBJECT_EX, offsetof(smisk_Application, responseClass), 0, NULL},
+  {"request_class",  T_OBJECT_EX, offsetof(smisk_Application, request_class),  0, NULL},
+  {"response_class", T_OBJECT_EX, offsetof(smisk_Application, response_class), 0, NULL},
   {"request",  T_OBJECT_EX, offsetof(smisk_Application, request),  RO, NULL},
   {"response", T_OBJECT_EX, offsetof(smisk_Application, response), RO, NULL},
   {NULL}

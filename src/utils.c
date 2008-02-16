@@ -30,8 +30,7 @@ THE SOFTWARE.
 
 
 // Returns PyStringObject (borrowed reference)
-PyObject* format_exc(void)
-{
+PyObject* format_exc() {
   PyObject* msg = NULL;
   PyObject* lines = NULL;
   PyObject* traceback = NULL;

@@ -254,19 +254,19 @@ PyObject* smisk_Response_write(smisk_Response* self, PyObject* str) {
 }
 
 
-PyDoc_STRVAR(smisk_Response_hasBegun_DOC,
+PyDoc_STRVAR(smisk_Response_has_begun_DOC,
   "Check if output (http headers) has been sent to the client.\n"
   "\n"
   ":returns: True if begin() has been called and output has started.\n"
   ":rtype:   bool");
-PyObject* smisk_Response_hasBegun(smisk_Response* self, PyObject* str) {
+PyObject* smisk_Response_has_begun(smisk_Response* self, PyObject* str) {
   PyObject* b = self->has_begun ? Py_True : Py_False;
   Py_INCREF(b);
   return b;
 }
 
 
-PyDoc_STRVAR(smisk_Response_setCookie_DOC,
+PyDoc_STRVAR(smisk_Response_set_cookie_DOC,
   "Send a cookie.\n"
   "\n"
   "Note:\n"
@@ -340,7 +340,7 @@ PyDoc_STRVAR(smisk_Response_setCookie_DOC,
   "                not supported by all browsers).\n"
   "\n"
   ":rtype:         None");
-PyObject* smisk_Response_setCookie(smisk_Response* self, PyObject* args, PyObject *kwargs) {
+PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObject *kwargs) {
   static char *kwlist[] = {"name", "value", /* required */
                            "comment", "domain", "path",
                            "secure", "version", "max_age", "http_only", NULL};
@@ -438,8 +438,8 @@ static PyMethodDef smisk_Response_methods[] =
   {"sendfile", (PyCFunction)smisk_Response_sendfile, METH_VARARGS, smisk_Response_sendfile_DOC},
   {"begin",    (PyCFunction)smisk_Response_begin,    METH_NOARGS,  smisk_Response_begin_DOC},
   {"write",    (PyCFunction)smisk_Response_write,    METH_O,       smisk_Response_write_DOC},
-  {"hasBegun", (PyCFunction)smisk_Response_hasBegun, METH_NOARGS,  smisk_Response_hasBegun_DOC},
-  {"setCookie",(PyCFunction)smisk_Response_setCookie, METH_VARARGS|METH_KEYWORDS, smisk_Response_setCookie_DOC},
+  {"has_begun", (PyCFunction)smisk_Response_has_begun, METH_NOARGS,  smisk_Response_has_begun_DOC},
+  {"set_cookie",(PyCFunction)smisk_Response_set_cookie, METH_VARARGS|METH_KEYWORDS, smisk_Response_set_cookie_DOC},
   {NULL}
 };
 

@@ -25,9 +25,7 @@ THE SOFTWARE.
 
 
 // for internal use
-PyObject* smisk_NotificationCenter_postc( smisk_NotificationCenter* self, 
-                                         PyObject* args )
-{  
+PyObject* smisk_NotificationCenter_postc( smisk_NotificationCenter* self, PyObject* args ) {
   Py_ssize_t listSize, i;
   PyObject* notificationList;
   PyObject* observer;
@@ -56,11 +54,9 @@ PyObject* smisk_NotificationCenter_postc( smisk_NotificationCenter* self,
 
 /************************* class methods *****************************/
 
-PyObject* smisk_NotificationCenter_default_instance = NULL;
-
-PyObject* smisk_NotificationCenter_default(PyObject* cls)
-{
+PyObject* smisk_NotificationCenter_default(PyObject* cls) {
   log_debug("ENTER smisk_NotificationCenter_default");
+  static PyObject* smisk_NotificationCenter_default_instance = NULL;
   if(!smisk_NotificationCenter_default_instance) {
     smisk_NotificationCenter_default_instance = PyObject_Call((PyObject*)&smisk_NotificationCenterType, NULL, NULL);
   }
@@ -71,8 +67,7 @@ PyObject* smisk_NotificationCenter_default(PyObject* cls)
 
 /************************* instance methods *****************************/
 
-int smisk_NotificationCenter_init(smisk_NotificationCenter* self, PyObject* args, PyObject* kwargs)
-{
+int smisk_NotificationCenter_init(smisk_NotificationCenter* self, PyObject* args, PyObject* kwargs) {
   log_debug("ENTER smisk_NotificationCenter_init");
   
   // Construct a new observers dict
