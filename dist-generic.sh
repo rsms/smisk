@@ -68,8 +68,6 @@ $PYTHON setup.py apidocs
 # Upload & update links on server
 echo "Uploading dist/ready/$PACKAGE-$VER*.tar.gz to $REMOTE_HOST"
 scp -qC dist/ready/$PACKAGE-$VER*.tar.gz $REMOTE_HOST:$REMOTE_PATH
-echo "Uploading doc/api to $REMOTE_HOST"
-scp -qCr doc/api $REMOTE_HOST:$REMOTE_PATH_APIDOC
 ssh $REMOTE_HOST "cd $REMOTE_PATH;\
 for f in $PACKAGE-$VER*.tar.gz;do \
 	if [ -f \"\$f\" ]; then\
@@ -77,3 +75,5 @@ for f in $PACKAGE-$VER*.tar.gz;do \
 		ln -sf \"\$f\" \"\$lname\";\
 	fi;\
 done"
+echo "Uploading doc/api to $REMOTE_HOST"
+scp -qCr doc/api $REMOTE_HOST:$REMOTE_PATH_APIDOC
