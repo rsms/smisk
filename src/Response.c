@@ -66,9 +66,8 @@ int smisk_Response_reset (smisk_Response* self) {
 
 // Called by Application.run() after a successful call to service()
 void smisk_Response_finish(smisk_Response* self) {
-  //log_debug("ENTER smisk_Response_finish");
   if(!self->has_begun) {
-    smisk_Response_begin(self, NULL);
+    smisk_Response_begin(self);
   }
 }
 
@@ -107,32 +106,21 @@ void smisk_Response_dealloc(smisk_Response* self) {
 }
 
 
-PyDoc_STRVAR(smisk_Response_sendfile_DOC,
+PyDoc_STRVAR(smisk_Response_send_file_DOC,
   "Send a file to the client in a performance optimal way.\n"
   "\n"
-  "If sendfile functionality is not available or not supported by the host "
-  "server, this will fail silently. (Sorry for that!)\n"
+  "Please not you can *not* combine any output when responding using this method.\n"
   "\n"
-  "Currently only lighttpd is supported through <tt>X-LIGHTTPD-send-file</tt> header.\n"
-  "\n"
-  "This method must be called before any body output has been sent.\n"
-  "\n"
-  "@param  filename If this is a relative path, it's relative to the host server root.\n"
-  "@type   filename string\n"
-  "@raises smisk.IOError if something i/o failed.\n"
-  "@rtype  None");
-PyObject* smisk_Response_sendfile(smisk_Response* self, PyObject* args) {
+  ":param  filename: If this is a relative path, the host server defines the behaviour.\n"
+  ":type   filename: string\n"
+  ":raises EnvironmentError: If smisk does not know how to perform *sendfile* through "
+    "the current host server.\n"
+  ":raises `IOError`:\n"
+  ":rtype: None");
+PyObject* smisk_Response_send_file(smisk_Response* self, PyObject* filename) {
   int rc;
-  PyObject* filename;
   
-  // Did we get enough arguments?
-  if(PyTuple_GET_SIZE(args) != 1) {
-    return PyErr_Format(PyExc_TypeError, "sendfile takes exactly 1 argument");
-  }
-  
-  // Save reference to first argument and type check it
-  filename = PyTuple_GET_ITEM(args, 0);
-  if(!PyString_Check(filename)) {
+  if(!filename || !PyString_Check(filename)) {
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   }
   
@@ -147,11 +135,11 @@ PyObject* smisk_Response_sendfile(smisk_Response* self, PyObject* args) {
   if(strstr(server, "lighttpd/1.4")) {
     FCGX_PutStr("X-LIGHTTPD-send-file: ", 22, self->out->stream);
   }
-  else if(strstr(server, "lighttpd/") || strstr(server, "apache/2")) {
+  else if(strstr(server, "lighttpd/") || strstr(server, "Apache/2")) {
     FCGX_PutStr("X-Sendfile: ", 12, self->out->stream);
   }
   else {
-    return PyErr_Format(PyExc_EnvironmentError, "sendfile not supported by this server ('%s')", server);
+    return PyErr_Format(PyExc_EnvironmentError, "sendfile not supported by host server ('%s')", server);
   }
   
   FCGX_PutStr(PyString_AsString(filename), PyString_Size(filename), self->out->stream);
@@ -170,12 +158,10 @@ PyObject* smisk_Response_sendfile(smisk_Response* self, PyObject* args) {
 PyDoc_STRVAR(smisk_Response_begin_DOC,
   "Begin response - send headers.\n"
   "\n"
-  "Automatically called on before a buffer is flushed, when a\n"
-  "service() call has ended or might be explicitly called inside service()."
+  "Automatically called on by mechanisms like `write()` and `Application.run()`."
   "\n"
   ":rtype: None");
-PyObject* smisk_Response_begin(smisk_Response* self, PyObject* noargs) {
-  //log_debug("ENTER smisk_Response_begin");
+PyObject* smisk_Response_begin(smisk_Response* self) {
   int rc;
   Py_ssize_t num_headers, i;
   
@@ -216,13 +202,12 @@ PyObject* smisk_Response_begin(smisk_Response* self, PyObject* noargs) {
 PyDoc_STRVAR(smisk_Response_write_DOC,
   "Write data to the output buffer.\n"
   "\n"
-  "When output buffer is full, begin() will be called, output buffer "
-  "flushed and all following calls to write() will be the same as "
-  "out.write() (\"unbuffered\").\n"
+  "If `begin()` has not yet been called, it will be before ``write()`` "
+    "actually performs the writing to `out`."
   "\n"
   ":param    string: Data.\n"
   ":type     string: string\n"
-  ":raises   smisk.IOError: if something i/o failed.\n"
+  ":raises   `IOError`:\n"
   ":rtype:   None");
 PyObject* smisk_Response_write(smisk_Response* self, PyObject* str) {
   Py_ssize_t length;
@@ -240,7 +225,7 @@ PyObject* smisk_Response_write(smisk_Response* self, PyObject* str) {
   
   // Send HTTP headers
   if(!self->has_begun) {
-    if(smisk_Response_begin(self, NULL) == NULL) {
+    if(smisk_Response_begin(self) == NULL) {
       return NULL;
     }
   }
@@ -257,9 +242,9 @@ PyObject* smisk_Response_write(smisk_Response* self, PyObject* str) {
 PyDoc_STRVAR(smisk_Response_has_begun_DOC,
   "Check if output (http headers) has been sent to the client.\n"
   "\n"
-  ":returns: True if begin() has been called and output has started.\n"
+  ":returns: True if `begin()` has been called and output has started.\n"
   ":rtype:   bool");
-PyObject* smisk_Response_has_begun(smisk_Response* self, PyObject* str) {
+PyObject* smisk_Response_has_begun(smisk_Response* self) {
   PyObject* b = self->has_begun ? Py_True : Py_False;
   Py_INCREF(b);
   return b;
@@ -277,67 +262,58 @@ PyDoc_STRVAR(smisk_Response_set_cookie_DOC,
   "  `RFC 2109 <http://www.faqs.org/rfcs/rfc2109.html>`__ - *HTTP State Management Mechanism*\n"
   "\n"
   ":type  name:    string\n"
-  ":param name:    Required. The name of the state information (\"cookie\"). names "
-  "                that begin with $ are reserved for other uses and must not be used "
-  "                by applications.\n"
+  ":param name:    Required. The name of the state information (*cookie*). names "
+    "that begin with $ are reserved for other uses and must not be used by applications.\n"
   "\n"
   ":type  value:   string\n"
-  ":param value:   The `value` is opaque to the user agent and may be anything the"
-  "                origin server chooses to send, possibly in a server-selected "
-  "                printable ASCII encoding. \"Opaque\" implies that the content is of "
-  "                interest and relevance only to the origin server. The content "
-  "                may, in fact, be readable by anyone that examines the Set-Cookie "
-  "                header.\n"
+  ":param value:   Opaque to the user agent and may be anything the "
+    "origin server chooses to send, possibly in a server-selected printable ASCII encoding. "
+    "*Opaque* implies that the content is of interest and relevance only to the origin server. "
+    "The content may, in fact, be readable by anyone that examines the Set-Cookie header.\n"
   "\n"
   ":type  comment: string\n"
-  ":param comment: Optional. Because cookies can contain private information about a "
-  "                user, the Cookie attribute allows an origin server to document its "
-  "                intended use of a cookie. The user can inspect the information to "
-  "                decide whether to initiate or continue a session with this cookie.\n"
+  ":param comment: Optional. Because cookies can contain private information about a user, the "
+    "Cookie attribute allows an origin server to document its intended use of a cookie. The user "
+    "can inspect the information to decide whether to initiate or continue a session with this "
+    "cookie.\n"
   "\n"
   ":type  domain:  string\n"
-  ":param domain:  Optional. The Domain attribute specifies the domain for which the "
-  "                cookie is valid. An explicitly specified domain must always start "
-  "                with a dot.\n"
+  ":param domain:  Optional. The Domain attribute specifies the domain for which the cookie is "
+    "valid. An explicitly specified domain must always start with a dot.\n"
   "\n"
   ":type  path:    string\n"
-  ":param path:    Optional. The Path attribute specifies the subset of URLs to "
-  "                which this cookie applies.\n"
+  ":param path:    Optional. The Path attribute specifies the subset of URLs to which this cookie "
+    "applies.\n"
   "\n"
   ":type  secure:  bool\n"
-  ":param secure:  Optional. The Secure attribute (with no value) directs the user "
-  "                agent to use only (unspecified) secure means to contact the origin "
-  "                server whenever it sends back this cookie.\n"
-  "\n"
-  "                The user agent (possibly under the user's control) may determine "
-  "                what level of security it considers appropriate for \"secure\" "
-  "                cookies. The Secure attribute should be considered security "
-  "                advice from the server to the user agent, indicating that it is in "
-  "                the session's interest to protect the cookie contents.\n"
+  ":param secure:  Optional. The Secure attribute directs the user agent to use only (unspecified) "
+    "secure means to contact the origin server whenever it sends back this cookie.\n"
+    "\n"
+    "The user agent (possibly under the user's control) may determine what level of security it "
+    "considers appropriate for *secure* cookies. The Secure attribute should be considered security "
+    "advice from the server to the user agent, indicating that it is in the session's interest to "
+    "protect the cookie contents.\n"
   "\n"
   ":type  version: int\n"
-  ":param version: Optional. The Version attribute, a decimal integer, identifies to "
-  "                which version of the state management specification the cookie "
-  "                conforms. For the `RFC 2109 <http://www.faqs.org/rfcs/rfc2109.html>`__ "
-  "                specification, Version=1 applies. If not specified, this will be "
-  "                set to ``1``.\n"
+  ":param version: Optional. The Version attribute, a decimal integer, identifies to which version "
+    "of the state management specification the cookie conforms. For the "
+    "`RFC 2109 <http://www.faqs.org/rfcs/rfc2109.html>`__ specification, Version=1 applies. If not "
+    "specified, this will be set to ``1``.\n"
   "\n"
   ":type  max_age: int\n"
-  ":param max_age: The value of the Max-Age attribute is delta-seconds, the lifetime "
-  "                of the cookie in seconds, a decimal non-negative integer. To handle "
-  "                cached cookies correctly, a client SHOULD calculate the age of the "
-  "                cookie according to the age calculation rules in the HTTP/1.1 "
-  "                specification [`RFC 2616 <http://www.faqs.org/rfcs/rfc2616.html>`__]. "
-  "                When the age is greater than delta-seconds seconds, the client SHOULD "
-  "                discard the cookie. A value of zero means the cookie SHOULD be "
-  "                discarded immediately.\n"
+  ":param max_age: The value of the Max-Age attribute is delta-seconds, the lifetime of the cookie "
+    "in seconds, a decimal non-negative integer. To handle cached cookies correctly, a client "
+    "**should** calculate the age of the cookie according to the age calculation rules in the "
+    "`HTTP/1.1 specification <http://www.faqs.org/rfcs/rfc2616.html>`__. When the age is greater "
+    "than delta-seconds seconds, the client **should** discard the cookie. A value of zero means "
+    "the cookie **should** be discarded immediately.\n"
   "\n"
   ":type  http_only: bool\n"
-  ":param http_only: When True the cookie will be made accessible only through the "
-  "                HTTP protocol. This means that the cookie won't be accessible by "
-  "                scripting languages, such as JavaScript. This setting can effectly "
-  "                help to reduce identity theft through XSS attacks (although it is "
-  "                not supported by all browsers).\n"
+  ":param http_only: When True the cookie will be made accessible only through the HTTP protocol. "
+    "This means that the cookie won't be accessible by scripting languages, such as JavaScript. "
+    "This setting can effectly help to reduce identity theft through "
+    "`XSS attacks <http://en.wikipedia.org/wiki/Cross-site_scripting>`__ (although it is not "
+    "supported by all browsers).\n"
   "\n"
   ":rtype:         None");
 PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObject *kwargs) {
@@ -425,17 +401,12 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
 /**************** type configuration *******************/
 
 PyDoc_STRVAR(smisk_Response_DOC,
-  "A FastCGI request\n"
-  "\n"
-  ":ivar out:     Output stream.\n"
-  ":type out:     smisk.Stream\n"
-  ":ivar headers: HTTP headers.\n"
-  ":type headers: list");
+  "A HTTP response");
 
 // Methods
 static PyMethodDef smisk_Response_methods[] =
 {
-  {"sendfile", (PyCFunction)smisk_Response_sendfile, METH_VARARGS, smisk_Response_sendfile_DOC},
+  {"send_file", (PyCFunction)smisk_Response_send_file, METH_O, smisk_Response_send_file_DOC},
   {"begin",    (PyCFunction)smisk_Response_begin,    METH_NOARGS,  smisk_Response_begin_DOC},
   {"write",    (PyCFunction)smisk_Response_write,    METH_O,       smisk_Response_write_DOC},
   {"has_begun", (PyCFunction)smisk_Response_has_begun, METH_NOARGS,  smisk_Response_has_begun_DOC},
@@ -446,8 +417,8 @@ static PyMethodDef smisk_Response_methods[] =
 // Properties (Members)
 static struct PyMemberDef smisk_Response_members[] =
 {
-  {"out",          T_OBJECT_EX, offsetof(smisk_Response, out),          RO, NULL},
-  {"headers",      T_OBJECT_EX, offsetof(smisk_Response, headers),      0,  NULL},
+  {"out",          T_OBJECT_EX, offsetof(smisk_Response, out),          RO, ":type: `Stream`"},
+  {"headers",      T_OBJECT_EX, offsetof(smisk_Response, headers),      0,  ":type: list"},
   {NULL}
 };
 
@@ -495,7 +466,9 @@ PyTypeObject smisk_ResponseType = {
   0                            /* tp_free */
 };
 
-extern int smisk_Response_register_types(void)
-{
-    return PyType_Ready(&smisk_ResponseType);
+int smisk_Response_register_types(PyObject *module) {
+  if(PyType_Ready(&smisk_ResponseType) == 0) {
+    return PyModule_AddObject(module, "Response", (PyObject *)&smisk_ResponseType);
+  }
+  return -1;
 }

@@ -61,7 +61,7 @@ int smisk_Request_reset (smisk_Request* self);
 
 // Type setup
 extern PyTypeObject smisk_RequestType;
-int smisk_Request_register_types(void);
+int smisk_Request_register_types(PyObject *module);
 
 // Methods
 int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs);

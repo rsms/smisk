@@ -24,7 +24,7 @@ THE SOFTWARE.
 #include <fcgiapp.h>
 
 // Returns PyStringObject (borrowed reference)
-PyObject* format_exc ();
+PyObject* format_exc (void);
 
 // Return ISO timestamp YYYY-MM-DD HH:MM:SS
 // @return newly allocated string. You must free the resulting string yourself.
@@ -46,5 +46,11 @@ void frepr_bytes (FILE *f, const char *s, size_t len);
 // Quick way to find out if a file exists. May not be bullet proof, for when
 // example a file exists, but is not accessible.
 int file_exist (const char *fn);
+
+// Current time in microseconds
+double microtime (void);
+
+// KB, GB, etc
+char nearest_size_unit (double *bytes);
 
 #endif

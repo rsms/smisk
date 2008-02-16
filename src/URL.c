@@ -22,6 +22,7 @@ THE SOFTWARE.
 #include "module.h"
 #include "URL.h"
 #include "atoin.h"
+#include "utils.h"
 #include <structmember.h>
 
 
@@ -445,7 +446,8 @@ void smisk_URL_dealloc(smisk_URL* self) {
 
 
 PyDoc_STRVAR(smisk_URL_encode_DOC,
-  "URL-encode any unsafe or reserved characters in a given string.\n"
+  "Encode any unsafe or reserved characters in a given string for "
+    "use in URI and URL contexts.\n"
   "\n"
   "The difference between encode and escape is that this function "
     "encodes characters like / and : which are considered safe for "
@@ -459,6 +461,7 @@ PyDoc_STRVAR(smisk_URL_encode_DOC,
   "Characters being escaped: $&+,/;=?<>\"#%{}|\\^~[]`@:\n"
   "Also low and high characters (< 33 || > 126) is encoded.\n"
   "\n"
+  ":param  str:\n"
   ":type   str: string\n"
   ":rtype: string\n"
   ":raises TypeError: if str is not a string");
@@ -468,12 +471,13 @@ PyObject* smisk_URL_encode(PyObject* self, PyObject* str) {
 
 
 PyDoc_STRVAR(smisk_URL_escape_DOC,
-  "URL-escape the unsafe characters ( <>\"#%{}|\\^~[]`@:\\033) in a given "
-    "string.\n"
+  "Escape unsafe characters ( <>\"#%{}|\\^~[]`@:\\033) in a given "
+    "string for use in URI and URL contexts.\n"
   "\n"
-  "See documentation of encode() to find out what the difference between "
+  "See documentation of `encode()` to find out what the difference between "
     "escape() and encode() is.\n"
   "\n"
+  ":param  str:\n"
   ":type   str: string\n"
   ":rtype: string\n"
   ":raises TypeError: if str is not a string");
@@ -483,18 +487,18 @@ PyObject* smisk_URL_escape(PyObject* self, PyObject* str) {
 
 
 PyDoc_STRVAR(smisk_URL_decode_DOC,
-  "URL-unescape a string.\n"
+  "Restore data previously encoded by `encode()` or `escape()`.\n"
   "\n"
   "Done by transforming the sequences \"%HH\" to the character "
   "represented by the hexadecimal digits HH.\n"
   "\n"
+  ":param  str:\n"
   ":type   str: string\n"
   ":rtype: string\n"
   ":raises TypeError: if str is not a string");
 PyObject* smisk_URL_decode(PyObject* self, PyObject* str) {
-  char *orgstr, *newstr;
-  Py_ssize_t orglen;
-  Py_ssize_t newlen;
+  char *orgstr;
+  Py_ssize_t orglen, newlen;
   register PyStringObject *newstr_py;
   
   if((orgstr = PyString_AsString(str)) == NULL) {
@@ -502,22 +506,18 @@ PyObject* smisk_URL_decode(PyObject* self, PyObject* str) {
   }
   
   orglen = PyString_GET_SIZE(str);
-  
   if(orglen < 1) {
     // Empty string
     Py_INCREF(str);
     return str;
   }
   
-  newlen = orglen;
-  
   // Initialize new PyString
-  if((newstr_py = (PyStringObject *)PyString_FromStringAndSize(NULL, newlen)) == NULL) {
+  if((newstr_py = (PyStringObject *)PyString_FromStringAndSize(orgstr, orglen)) == NULL) {
     return NULL;
   }
   
-  newstr = PyString_AS_STRING(newstr_py);
-  newlen = smisk_url_decode(newstr, orglen);
+  newlen = smisk_url_decode(PyString_AS_STRING(newstr_py), orglen);
   
   if(orglen == newlen) {
     // Did not need decoding
@@ -534,8 +534,9 @@ PyObject* smisk_URL_decode(PyObject* self, PyObject* str) {
 }
 
 PyDoc_STRVAR(smisk_URL_unescape_DOC,
-  "Alias of decode().\n"
+  "Alias of `decode()`.\n"
   "\n"
+  ":param  str:\n"
   ":type   str: string\n"
   ":rtype: string\n"
   ":raises TypeError: if str is not a string");
@@ -580,16 +581,7 @@ PyObject *smisk_URL___str__(smisk_URL* self) {
 /********** type configuration **********/
 
 PyDoc_STRVAR(smisk_URL_DOC,
-  "Uniform Resource Locator\n"
-  "\n"
-  ":type scheme: string\n"
-  ":type user: string\n"
-  ":type password: string\n"
-  ":type host: string\n"
-  ":type port: integer\n"
-  ":type path: string\n"
-  ":type query: string\n"
-  ":type fragment: string\n");
+  "Uniform Resource Locator");
 
 // Methods
 static PyMethodDef smisk_URL_methods[] =
@@ -599,10 +591,6 @@ static PyMethodDef smisk_URL_methods[] =
   {"escape", (PyCFunction)smisk_URL_escape,   METH_CLASS|METH_O, smisk_URL_escape_DOC},
   {"decode", (PyCFunction)smisk_URL_decode,   METH_CLASS|METH_O, smisk_URL_decode_DOC},
   {"unescape", (PyCFunction)smisk_URL_decode, METH_CLASS|METH_O, smisk_URL_unescape_DOC},
-  
-  // instance methods
-  // -
-  
   {NULL}
 };
 
@@ -614,14 +602,14 @@ static PyGetSetDef smisk_URL_getset[] = {
 // Class Members
 static struct PyMemberDef smisk_URL_members[] =
 {
-  {"scheme",    T_OBJECT_EX, offsetof(smisk_URL, scheme),   RO, NULL},
-  {"user",      T_OBJECT_EX, offsetof(smisk_URL, user),     RO, NULL},
-  {"password",  T_OBJECT_EX, offsetof(smisk_URL, password), RO, NULL},
-  {"host",      T_OBJECT_EX, offsetof(smisk_URL, host),     RO, NULL},
-  {"port",      T_UINT,      offsetof(smisk_URL, port),     RO, NULL},
-  {"path",      T_OBJECT_EX, offsetof(smisk_URL, path),     RO, NULL},
-  {"query",     T_OBJECT_EX, offsetof(smisk_URL, query),    RO, NULL},
-  {"fragment",  T_OBJECT_EX, offsetof(smisk_URL, fragment), RO, NULL},
+  {"scheme",    T_OBJECT_EX, offsetof(smisk_URL, scheme),   RO, ":type: string"},
+  {"user",      T_OBJECT_EX, offsetof(smisk_URL, user),     RO, ":type: string"},
+  {"password",  T_OBJECT_EX, offsetof(smisk_URL, password), RO, ":type: string"},
+  {"host",      T_OBJECT_EX, offsetof(smisk_URL, host),     RO, ":type: string"},
+  {"port",      T_UINT,      offsetof(smisk_URL, port),     RO, ":type: uint"},
+  {"path",      T_OBJECT_EX, offsetof(smisk_URL, path),     RO, ":type: string"},
+  {"query",     T_OBJECT_EX, offsetof(smisk_URL, query),    RO, ":type: string"},
+  {"fragment",  T_OBJECT_EX, offsetof(smisk_URL, fragment), RO, ":type: string"},
   {NULL}
 };
 
@@ -669,6 +657,9 @@ PyTypeObject smisk_URLType = {
   0                            /* tp_free */
 };
 
-extern int smisk_URL_register_types(void) {
-  return PyType_Ready(&smisk_URLType);
+int smisk_URL_register_types(PyObject *module) {
+  if(PyType_Ready(&smisk_URLType) == 0) {
+    return PyModule_AddObject(module, "URL", (PyObject *)&smisk_URLType);
+  }
+  return -1;
 }

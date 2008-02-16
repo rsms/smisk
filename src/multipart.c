@@ -92,6 +92,7 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
   FILE *f;
   ssize_t bw;
   size_t bytes = 0;
+  IFDEBUG(double timer = microtime());
   
   // Create filename
   fn = tempnam(SMISK_FILE_UPLOAD_DIR, SMISK_FILE_UPLOAD_PREFIX);
@@ -158,6 +159,18 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
     lbuf2 = p;
     lbuf2_len = lbuf1_len;
   }
+  
+  IFDEBUG(
+    timer = microtime()-timer;
+    double adjusted_size = (double)bytes;
+    char size_unit = nearest_size_unit(&adjusted_size);
+    log_debug("Stats for part '%s': %.2f %c/sec (Parse time: %.3f sec, Size: %.1f %c)",
+      ctx->part_name,
+      adjusted_size/timer, size_unit,
+      timer,
+      adjusted_size, size_unit
+      );
+  );
   
   // Close file
   fclose(f);

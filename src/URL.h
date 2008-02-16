@@ -45,7 +45,7 @@ char *smisk_url_encode (const char *s, int full); // returns a newly allocated s
 
 // Type setup
 extern PyTypeObject smisk_URLType;
-int smisk_URL_register_types (void);
+int smisk_URL_register_types (PyObject *module);
 
 // Methods
 int smisk_URL_init (smisk_URL* self, PyObject* args, PyObject* kwargs);

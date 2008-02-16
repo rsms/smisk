@@ -51,19 +51,21 @@ PyDoc_STRVAR(smisk_Stream_readline_DOC,
   ":param  length: read up to length bytes.\n"
   ":rtype: string\n"
   ":returns: the line read or None if EOF");
-PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* len)
-{
-  PyObject* str;
+PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* args) {
+  PyObject *str, *arg1;
   Py_ssize_t length;
   
   // Get length
-  if (len) {
-    if(!PyInt_Check(len)) {
-      PyErr_Format(PyExc_TypeError, "first argument must be an integer");
+  if (args && PyTuple_GET_SIZE(args) > 0) {
+    if( (arg1 = PyTuple_GET_ITEM(args, 1)) == NULL ) {
+      length = SMISK_STREAM_READLINE_LENGTH;
+    }
+    else if(!PyInt_Check(arg1)) {
+      PyErr_Format(PyExc_TypeError, "length argument must be an integer");
       return NULL;
     }
     else {
-      length = PyInt_AS_LONG(len);
+      length = PyInt_AS_LONG(arg1);
     }
   }
   else {
@@ -125,20 +127,23 @@ PyDoc_STRVAR(smisk_Stream_read_DOC,
   ":type   length: int\n"
   ":param  length: read up to length bytes. If not specified or negative, read until EOF.\n"
   ":rtype: string");
-PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* len) {
+PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args) {
   //log_debug("ENTER smisk_Stream_read");
-  PyObject* str;
+  PyObject *str, *arg1;
   Py_ssize_t length;
   int rc;
   
   // Get length
-  if (len) {
-    if(!PyInt_Check(len)) {
-      PyErr_Format(PyExc_TypeError, "first argument must be an integer");
+  if (PyTuple_GET_SIZE(args) > 0) {
+    if( (arg1 = PyTuple_GET_ITEM(args, 1)) == NULL ) { // None
+      length = -1;
+    }
+    else if(!PyInt_Check(arg1)) {
+      PyErr_Format(PyExc_TypeError, "length argument must be an integer");
       return NULL;
     }
     else {
-      length = PyInt_AS_LONG(len);
+      length = PyInt_AS_LONG(arg1);
     }
   }
   else {
@@ -352,8 +357,8 @@ static PyMethodDef smisk_Stream_methods[] =
 {
   {"close", (PyCFunction)smisk_Stream_close,            METH_NOARGS,  smisk_Stream_close_DOC},
   {"flush", (PyCFunction)smisk_Stream_flush,            METH_NOARGS,  smisk_Stream_flush_DOC},
-  {"read", (PyCFunction)smisk_Stream_read,              METH_O,       smisk_Stream_read_DOC},
-  {"readline", (PyCFunction)smisk_Stream_readline,      METH_O,       smisk_Stream_readline_DOC},
+  {"read", (PyCFunction)smisk_Stream_read,              METH_VARARGS, smisk_Stream_read_DOC},
+  {"readline", (PyCFunction)smisk_Stream_readline,      METH_VARARGS, smisk_Stream_readline_DOC},
   {"write", (PyCFunction)smisk_Stream_write,            METH_VARARGS, smisk_Stream_write_DOC},
   {"write_byte", (PyCFunction)smisk_Stream_write_byte,  METH_O,       smisk_Stream_write_byte_DOC},
   {NULL}
@@ -406,7 +411,9 @@ PyTypeObject smisk_StreamType = {
   0                                               /* tp_free */
 };
 
-extern int smisk_Stream_register_types(void)
-{
-    return PyType_Ready(&smisk_StreamType);
+int smisk_Stream_register_types(PyObject *module) {
+  if(PyType_Ready(&smisk_StreamType) == 0) {
+    return PyModule_AddObject(module, "Stream", (PyObject *)&smisk_StreamType);
+  }
+  return -1;
 }

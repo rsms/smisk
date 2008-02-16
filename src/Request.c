@@ -196,12 +196,13 @@ void smisk_Request_dealloc(smisk_Request* self) {
 
 
 PyDoc_STRVAR(smisk_Request_log_error_DOC,
-  "Log something through self.err including process name and id.\n"
+  "Log something through `err` including process name and id.\n"
   "\n"
-  "Normally, self.err ends up in the host server error log.\n"
-  ":param  message:  Message to log\n"
-  ":type   filename: string\n"
-  ":raises smisk.IOError: if something i/o failed.\n"
+  "Normally, `err` ends up in the host server error log.\n"
+  "\n"
+  ":param  message: Message\n"
+  ":type   message: string\n"
+  ":raises `IOError`:\n"
   ":rtype: None");
 PyObject* smisk_Request_log_error(smisk_Request* self, PyObject* msg) {
   static const char format[] = "%s[%d] %s";
@@ -264,13 +265,11 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
         
         k = (PyStringObject *)PyString_FromStringAndSize(*envp, value-*envp);
         if(k == NULL) {
-          log_debug("ERROR: Failed to create string");
           break;
         }
         
         v = (PyStringObject *)PyString_FromString(++value);
         if(v == NULL) {
-          log_debug("ERROR: Failed to create string");
           Py_DECREF(k);
           break;
         }
@@ -289,7 +288,9 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
     }
     
     // Make read-only
-    //self->env = (PyDictObject*)PyDictProxy_New((PyObject*)self->env);
+    //PyObject *mutable_env = (PyObject*)self->env;
+    //self->env = (PyDictObject*)PyDictProxy_New(mutable_env);
+    //Py_DECREF(mutable_env);
   }
   
   Py_INCREF(self->env);
@@ -451,16 +452,7 @@ PyObject* smisk_Request_get_cookie(smisk_Request* self) {
 /********** type configuration **********/
 
 PyDoc_STRVAR(smisk_Request_DOC,
-  "A FastCGI request\n"
-  "\n"
-  ":ivar input:  Input stream\n"
-  ":type input:  smisk.Stream\n"
-  ":ivar err:    Error output stream\n"
-  ":type err:    smisk.Stream\n"
-  ":ivar url:    Reconstructed URL. (Lazy initialized)\n"
-  ":type url:    smisk.URL\n"
-  ":ivar env:    Request parameters, equivalent to the ``env`` in CGI. (Lazy initialized)\n"
-  ":type env:    dict");
+  "A HTTP request");
 
 // Methods
 static PyMethodDef smisk_Request_methods[] =
@@ -471,21 +463,22 @@ static PyMethodDef smisk_Request_methods[] =
 
 // Properties
 static PyGetSetDef smisk_Request_getset[] = {
-  {"env", (getter)smisk_Request_get_env,  (setter)0},
-  {"url", (getter)smisk_Request_get_url,  (setter)0},
-  {"get", (getter)smisk_Request_get_get,  (setter)0},
-  {"post", (getter)smisk_Request_get_post, (setter)0},
-  {"files", (getter)smisk_Request_get_files,  (setter)0},
-  {"cookie", (getter)smisk_Request_get_cookie,  (setter)0},
-  {"is_active", (getter)smisk_Request_is_active,  (setter)0},
+  {"env", (getter)smisk_Request_get_env,  (setter)0, ":type: dict", NULL},
+  {"url", (getter)smisk_Request_get_url,  (setter)0, ":type: `URL`\n\nReconstructed URL", NULL},
+  {"get", (getter)smisk_Request_get_get,  (setter)0, ":type: dict", NULL},
+  {"post", (getter)smisk_Request_get_post, (setter)0, ":type: dict", NULL},
+  {"files", (getter)smisk_Request_get_files,  (setter)0, ":type: dict", NULL},
+  {"cookie", (getter)smisk_Request_get_cookie,  (setter)0, ":type: dict", NULL},
+  {"is_active", (getter)smisk_Request_is_active,  (setter)0, ":type: bool\n\nIndicates if the "
+    "request is active, if we are in the middle of a *HTTP transaction*", NULL},
   {NULL}
 };
 
 // Class members
 static struct PyMemberDef smisk_Request_members[] =
 {
-  {"input", T_OBJECT_EX, offsetof(smisk_Request, input), RO, NULL},
-  {"err",   T_OBJECT_EX, offsetof(smisk_Request, err),   RO, NULL},
+  {"input", T_OBJECT_EX, offsetof(smisk_Request, input), RO, ":type: `Stream`"},
+  {"err",   T_OBJECT_EX, offsetof(smisk_Request, err),   RO, ":type: `Stream`"},
   {NULL}
 };
 
@@ -533,7 +526,9 @@ PyTypeObject smisk_RequestType = {
   0                            /* tp_free */
 };
 
-extern int smisk_Request_register_types(void)
-{
-    return PyType_Ready(&smisk_RequestType);
+int smisk_Request_register_types(PyObject *module) {
+  if(PyType_Ready(&smisk_RequestType) == 0) {
+    return PyModule_AddObject(module, "Request", (PyObject *)&smisk_RequestType);
+  }
+  return -1;
 }

@@ -53,7 +53,7 @@ THE SOFTWARE.
   #define log_debug(fmt, ...) fprintf(stderr, "DEBUG %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
   #define IFDEBUG(x) x
   #define assert_refcount(o, count_test) \
-    if(!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld %s)", (o)->ob_refcnt, #count_test); }\
+    if(!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld %s)", (long int)(o)->ob_refcnt, #count_test); }\
     assert((o)->ob_refcnt count_test)
 #else
   #define log_debug(fmt, ...) ((void)0)

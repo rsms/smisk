@@ -129,10 +129,15 @@ PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
   
   // Enter accept loop
   while (FCGX_Accept_r(&request) != -1) {
-     if(smisk_Application_trapped_signal) {
-         break;
-     }
-     
+    if(smisk_Application_trapped_signal) {
+      break;
+    }
+    log_debug("%s %s from %s:%s",
+      FCGX_GetParam("REQUEST_METHOD", request.envp),
+      FCGX_GetParam("REQUEST_URI", request.envp),
+      FCGX_GetParam("REMOTE_ADDR", request.envp),
+      FCGX_GetParam("REMOTE_PORT", request.envp) );
+    
     // Set streams (TODO: check if this really is needed)
     self->request->input->stream = request.in;
     self->response->out->stream  = request.out;
@@ -299,15 +304,9 @@ PyDoc_STRVAR(smisk_Application_DOC,
   "An application.\n"
   "\n"
   "Notifications whis is emitted by an Application:\n"
-  " * ApplicationServiceError - When an exception happens in service(). Emitted before calling on error().\n"
-  " * ApplicationWillStart - Emitted just before the application starts accept()'ing.\n"
-  " * ApplicationWillExit - The application is about to exit from a signal or by ending it's run loop.\n"
-  " * ApplicationStoppedAccepting - The application stopped accepting connections.\n"
-  "\n"
-  ":ivar request:  Request object (read-only)\n"
-  ":type request:  smisk.Request\n"
-  ":ivar response: Response object (read-only)\n"
-  ":type response: smisk.Response\n");
+  " * `ApplicationWillStartNotification` - Emitted just before the application starts accept()'ing.\n"
+  " * `ApplicationDidStopNotification` - The application stopped accepting connections.\n"
+  " * `ApplicationWillExitNotification` - The application is about to exit from a signal or by ending it's run loop.\n");
 
 // Methods
 static PyMethodDef smisk_Application_methods[] =
@@ -322,10 +321,12 @@ static PyMethodDef smisk_Application_methods[] =
 // Properties (Members)
 static struct PyMemberDef smisk_Application_members[] =
 {
-  {"request_class",  T_OBJECT_EX, offsetof(smisk_Application, request_class),  0, NULL},
-  {"response_class", T_OBJECT_EX, offsetof(smisk_Application, response_class), 0, NULL},
-  {"request",  T_OBJECT_EX, offsetof(smisk_Application, request),  RO, NULL},
-  {"response", T_OBJECT_EX, offsetof(smisk_Application, response), RO, NULL},
+  {"request_class",  T_OBJECT_EX, offsetof(smisk_Application, request_class),  0, ":type: Type\n\n"
+    "Must be set before calling `run()`"},
+  {"response_class", T_OBJECT_EX, offsetof(smisk_Application, response_class), 0, ":type: Type\n\n"
+    "Must be set before calling `run()`"},
+  {"request",  T_OBJECT_EX, offsetof(smisk_Application, request),  RO, ":type: `Request`"},
+  {"response", T_OBJECT_EX, offsetof(smisk_Application, response), RO, ":type: `Response`"},
   {NULL}
 };
 
@@ -373,6 +374,9 @@ PyTypeObject smisk_ApplicationType = {
   0              /* tp_free */
 };
 
-extern int smisk_Application_register_types(void) {
-  return PyType_Ready(&smisk_ApplicationType);
+int smisk_Application_register_types(PyObject *module) {
+  if(PyType_Ready(&smisk_ApplicationType) == 0) {
+    return PyModule_AddObject(module, "Application", (PyObject *)&smisk_ApplicationType);
+  }
+  return -1;
 }

@@ -40,7 +40,7 @@ typedef struct {
 
 // Type setup
 extern PyTypeObject smisk_ApplicationType;
-int smisk_Application_register_types(void);
+int smisk_Application_register_types(PyObject *module);
 
 // Methods
 int  smisk_Application_init    (smisk_Application* self, PyObject* args, PyObject* kwargs);

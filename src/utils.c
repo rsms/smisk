@@ -25,12 +25,13 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h>
 #include "module.h"
 #include "URL.h"
 
 
 // Returns PyStringObject (borrowed reference)
-PyObject* format_exc() {
+PyObject* format_exc(void) {
   PyObject* msg = NULL;
   PyObject* lines = NULL;
   PyObject* traceback = NULL;
@@ -237,5 +238,33 @@ void frepr_bytes(FILE *f, const char *s, size_t len) {
 
 int file_exist(const char *fn) {
   return ((access(fn, R_OK) == 0) ? 1 : 0);
+}
+
+
+double microtime(void) {
+	struct timeval tp;
+	if(gettimeofday(&tp, NULL) == 0) {
+		return ((double)tp.tv_usec / 1000000.0) + tp.tv_sec;
+	}
+	return 0.0;
+}
+
+
+char nearest_size_unit (double *bytes) {
+  if(*bytes > 1024000000.0) {
+    *bytes = *bytes/1024000000.0;
+    return 'G';
+  }
+  else if(*bytes > 1024000.0) {
+    *bytes = *bytes/1024000.0;
+    return 'M';
+  }
+  else if(*bytes > 1024.0) {
+    *bytes = *bytes/1024.0;
+    return 'K';
+  }
+  else {
+    return 'B';
+  }
 }
 

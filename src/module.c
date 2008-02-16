@@ -54,9 +54,11 @@ PyDoc_STRVAR(smisk_bind_DOC,
   "\n"
   ":param path: The Unix domain socket (named pipe for WinNT), hostname, "
     "hostname and port or just a colon followed by a port number. e.g. "
-    "\"/tmp/fastcgi/mysocket\", \"some.host:5000\", \":5000\", \"*:5000\".\n"
-  ":param backlog: The listen queue depth used in the listen() call. "
+    "\"/tmp/fastcgi/mysocket\", \"some.host:5000\", \":5000\", \"\\*:5000\".\n"
+  ":type  path: string\n"
+  ":param backlog: The listen queue depth used in the ''listen()'' call. "
     "Set to negative or zero to let the system decide (recommended).\n"
+  ":type  backlog: int\n"
   ":raises smisk.IOError: On failure.\n"
   ":rtype: None");
 PyObject* smisk_bind(PyObject *self, PyObject *args) {
@@ -168,29 +170,24 @@ PyMODINIT_FUNC initsmisk(void) {
   
   // Register types
   if (!module ||
-    (smisk_Application_register_types() != 0) ||
-    (smisk_Request_register_types() != 0) ||
-    (smisk_Response_register_types() != 0) ||
-    (smisk_Stream_register_types() != 0) ||
-    (smisk_NotificationCenter_register_types() != 0) ||
-    (smisk_URL_register_types() != 0)
+    (smisk_Application_register_types(module) != 0) ||
+    (smisk_Request_register_types(module) != 0) ||
+    (smisk_Response_register_types(module) != 0) ||
+    (smisk_Stream_register_types(module) != 0) ||
+    (smisk_NotificationCenter_register_types(module) != 0) ||
+    (smisk_URL_register_types(module) != 0)
     ) {
       goto error;
   }
   
   // Register classes in module
-  Py_INCREF(&smisk_ApplicationType);
-  PyModule_AddObject(module, "Application", (PyObject *)&smisk_ApplicationType);
-  Py_INCREF(&smisk_RequestType);
+  
   PyModule_AddObject(module, "Request", (PyObject *)&smisk_RequestType);
-  Py_INCREF(&smisk_ResponseType);
   PyModule_AddObject(module, "Response", (PyObject *)&smisk_ResponseType);
-  Py_INCREF(&smisk_StreamType);
   PyModule_AddObject(module, "Stream", (PyObject *)&smisk_StreamType);
-  Py_INCREF(&smisk_NotificationCenterType);
   PyModule_AddObject(module, "NotificationCenter", (PyObject *)&smisk_NotificationCenterType);
-  Py_INCREF(&smisk_URLType);
   PyModule_AddObject(module, "URL", (PyObject *)&smisk_URLType);
+  assert_refcount(&smisk_URLType, > 0);
   
   // Setup exceptions
   if (!(smisk_Error = PyErr_NewException("smisk.Error", PyExc_StandardError, NULL))) { goto error; }

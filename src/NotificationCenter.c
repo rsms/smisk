@@ -267,7 +267,9 @@ PyTypeObject smisk_NotificationCenterType = {
   0              /* tp_free */
 };
 
-extern int smisk_NotificationCenter_register_types(void)
-{
-  return PyType_Ready(&smisk_NotificationCenterType);
+int smisk_NotificationCenter_register_types(PyObject *module) {
+  if(PyType_Ready(&smisk_NotificationCenterType) == 0) {
+    return PyModule_AddObject(module, "NotificationCenter", (PyObject *)&smisk_NotificationCenterType);
+  }
+  return -1;
 }

@@ -35,11 +35,11 @@ typedef struct {
 
 // Type setup
 extern PyTypeObject smisk_StreamType;
-int smisk_Stream_register_types(void);
+int smisk_Stream_register_types (PyObject *module);
 
 // Methods
-int smisk_Stream_init(smisk_Stream* self, PyObject* args, PyObject* kwargs);
-void smisk_Stream_dealloc(smisk_Stream* self);
+int smisk_Stream_init (smisk_Stream* self, PyObject* args, PyObject* kwargs);
+void smisk_Stream_dealloc (smisk_Stream* self);
 
 // Internal methods
 int smisk_Stream_perform_write (smisk_Stream* self, PyObject* str, Py_ssize_t length); // returns -1 on error

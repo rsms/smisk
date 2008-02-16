@@ -30,7 +30,7 @@ typedef struct {
 
 // Type setup
 extern PyTypeObject smisk_NotificationCenterType;
-int smisk_NotificationCenter_register_types(void);
+int smisk_NotificationCenter_register_types(PyObject *module);
 
 // Class Methods
 PyObject* smisk_NotificationCenter_default (PyObject* cls);
