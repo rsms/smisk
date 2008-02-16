@@ -1,3 +1,10 @@
+python-smisk (0.1r74-6) unstable; urgency=low
+
+  * Adjusted naming convention to be consistent lower_case.
+  * Fixed content-length too-short-bug in automated 500 error responses.
+
+ -- Rasmus Andersson <rasmus@flajm.se> Sat, 16 Feb 2008 22:15:06 +0100
+
 python-smisk (0.1r65-5) unstable; urgency=low
 
   * Fixed the input data parser bug where a PyString values refcount 
