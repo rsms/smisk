@@ -1,7 +1,9 @@
 include LICENSE
 graft doc
+graft debug
 graft examples
 graft src
+graft tests
 
 prune doc/api
 exclude doc/*.psd
