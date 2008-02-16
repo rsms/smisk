@@ -15,7 +15,7 @@
 
 REMOTE_HOST='trac.hunch.se'
 REMOTE_PATH='/var/lib/trac/smisk/dist/'
-REMOTE_PATH_APIDOC='/var/lib/trac/smisk/docs/api'
+REMOTE_PATH_DOCS='/var/lib/trac/smisk/docs/'
 
 if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
   echo "usage: $0 python-binary[, python-binary[, ...]]" >&2
@@ -76,4 +76,4 @@ for f in $PACKAGE-$VER*.tar.gz;do \
 	fi;\
 done"
 echo "Uploading doc/api to $REMOTE_HOST"
-scp -qCr doc/api $REMOTE_HOST:$REMOTE_PATH_APIDOC
+scp -qCr doc/api $REMOTE_HOST:$REMOTE_PATH_DOCS
