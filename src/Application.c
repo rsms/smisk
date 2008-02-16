@@ -261,16 +261,18 @@ PyObject* smisk_Application_error(smisk_Application* self, PyObject* args) {
   
   if(!self->response->has_begun) {
     // Include headers if response has not yet been sent
+    static char *header = "<html><head><title>Internal Server Error</title></head><body>";
+    static char *footer = "</body></html>";
     rc = FCGX_FPrintF(self->response->out->stream,
        "Content-Type: text/html\r\n"
       "Status: 500 Internal Server Error\r\n"
       "Content-Length: %ld\r\n"
        "\r\n"
-       "<html><head><title>Internal Server Error</title></head><body>"
-       "%s"
-       "</body></html>",
-      PyString_GET_SIZE(msg),
-      PyString_AS_STRING(msg));
+       "%s%s%s",
+      strlen(header)+PyString_GET_SIZE(msg)+strlen(footer),
+      header,
+      PyString_AS_STRING(msg),
+      footer);
   }
   else {
     rc = FCGX_PutStr( PyString_AS_STRING(msg),

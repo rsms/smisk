@@ -463,21 +463,54 @@ static PyMethodDef smisk_Request_methods[] =
 
 // Properties
 static PyGetSetDef smisk_Request_getset[] = {
-  {"env", (getter)smisk_Request_get_env,  (setter)0, ":type: dict", NULL},
-  {"url", (getter)smisk_Request_get_url,  (setter)0, ":type: `URL`\n\nReconstructed URL", NULL},
-  {"get", (getter)smisk_Request_get_get,  (setter)0, ":type: dict", NULL},
-  {"post", (getter)smisk_Request_get_post, (setter)0, ":type: dict", NULL},
-  {"files", (getter)smisk_Request_get_files,  (setter)0, ":type: dict", NULL},
-  {"cookie", (getter)smisk_Request_get_cookie,  (setter)0, ":type: dict", NULL},
-  {"is_active", (getter)smisk_Request_is_active,  (setter)0, ":type: bool\n\nIndicates if the "
-    "request is active, if we are in the middle of a *HTTP transaction*", NULL},
+  {"env", (getter)smisk_Request_get_env,  (setter)0, ":type: dict\n\n"
+    "HTTP transaction environment.", NULL},
+  {"url", (getter)smisk_Request_get_url,  (setter)0, ":type: `URL`\n\n"
+    "Reconstructed URL.", NULL},
+  {"get", (getter)smisk_Request_get_get,  (setter)0, ":type: dict\n\n"
+    "Parameters passed in the query string part of the URL.", NULL},
+  {"post", (getter)smisk_Request_get_post, (setter)0, ":type: dict\n\n"
+    "Parameters passed in the body of a POST request.", NULL},
+  {"files", (getter)smisk_Request_get_files,  (setter)0, ":type: dict\n\n"
+    "Any files uploaded via a POST request.", NULL},
+  {"cookie", (getter)smisk_Request_get_cookie,  (setter)0, ":type: dict\n\n"
+    "Any cookies that was attached to the request.", NULL},
+  {"is_active", (getter)smisk_Request_is_active,  (setter)0, ":type: bool\n\n"
+    "Indicates if the request is active, if we are in the middle of a "
+    "*HTTP transaction*", NULL},
   {NULL}
 };
 
 // Class members
-static struct PyMemberDef smisk_Request_members[] =
-{
-  {"input", T_OBJECT_EX, offsetof(smisk_Request, input), RO, ":type: `Stream`"},
+static struct PyMemberDef smisk_Request_members[] = {
+  {"input", T_OBJECT_EX, offsetof(smisk_Request, input), RO, ":type: `Stream`\n\n"
+    "Input stream.\n"
+    "\n"
+    "If you send any data which is neither ``x-www-form-urlencoded`` nor ``multipart`` "
+    "format, you will be able to read the raw POST body from this stream.\n"
+    "\n"
+    "You could read ``x-www-form-urlencoded`` or ``multipart`` POST requests in raw "
+    "format, but you have to read from this stream before calling any of `post` or "
+    "`files`, since they will otherwise trigger the built-in parser and read all data "
+    "from the stream.\n"
+    "\n"
+    "**Example of how to parse a JSON request:**\n"
+    "\n"
+    ".. python::\n"
+    "\n"
+    " import cjson as json\n"
+    " import smisk\n"
+    " class App(smisk.Application):\n"
+    "   def service(self):\n"
+    "     if self.request.env['REQUEST_METHOD'] == 'POST':\n"
+    "       self.response.write(repr(json.decode(self.request.input.read())) + \"\\n\")\n"
+    " \n"
+    " App().run()\n"
+    "\n"
+    "You could then send a request using curl for example:\n"
+    "\n"
+    "``curl --data-binary '{\"Url\": \"http://www.example.com/image/481989943\", \"Position\": [125, \"100\"]}' http://localhost:8080/``"
+    },
   {"err",   T_OBJECT_EX, offsetof(smisk_Request, err),   RO, ":type: `Stream`"},
   {NULL}
 };
