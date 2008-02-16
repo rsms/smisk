@@ -10,7 +10,7 @@ GREP=$(which grep)
 DEFAULT_PYTHON=$(which python)
 PACKAGE=$($DEFAULT_PYTHON setup.py --name)
 VER=$($DEFAULT_PYTHON setup.py --version)
-REV=$(echo "$VER"|sed -r 's/.+r(.+)/\1/g')
+REV=$(echo "$VER"|cut -d r -f 2)
 
 
 # Confirm working revision is synchronized with repository
