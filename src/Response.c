@@ -25,8 +25,8 @@ THE SOFTWARE.
 #include <structmember.h>
 #include <fastcgi.h>
 
-/**************** internal functions *******************/
 
+#pragma mark Private C
 
 typedef struct FCGX_Stream_Data {
     unsigned char *buff;      /* buffer after alignment */
@@ -52,14 +52,8 @@ typedef struct FCGX_Stream_Data {
 // and just before calling service().
 int smisk_Response_reset (smisk_Response* self) {
   self->has_begun = 0;
-  
   Py_XDECREF(self->headers);
-  self->headers = PyList_New(0);
-  if (self->headers == NULL) {
-    log_debug("self->headers == NULL");
-    return -1;
-  }
-  
+  self->headers = NULL;
   return 0;
 }
 
@@ -72,38 +66,47 @@ void smisk_Response_finish(smisk_Response* self) {
 }
 
 
+#pragma mark -
+#pragma mark Initialization & deallocation
 
-/**************** instance methods *******************/
+
+static PyObject * smisk_Response_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+  log_debug("ENTER smisk_Response_new");
+  smisk_Response *self;
+  
+  self = (smisk_Response *)type->tp_alloc(type, 0);
+  if (self != NULL) {
+    if(smisk_Response_reset(self) != 0) {
+      Py_DECREF(self);
+      return NULL;
+    }
+  
+    // Construct a new Stream for out
+    self->out = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
+    if (self->out == NULL) {
+      Py_DECREF(self);
+      return NULL;
+    }
+  }
+  
+  return (PyObject *)self;
+}
 
 int smisk_Response_init(smisk_Response* self, PyObject* args, PyObject* kwargs) {
-  log_debug("ENTER smisk_Response_init");
-  
-  self->headers = NULL;
-  self->app = NULL;
-  
-  if(smisk_Response_reset(self) != 0) {
-    Py_DECREF(self);
-    return -1;
-  }
-  
-  // Construct a new Stream for out
-  self->out = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
-  if (self->out == NULL) {
-    log_debug("self->out == NULL");
-    Py_DECREF(self);
-    return -1;
-  }
-  
   return 0;
 }
 
 void smisk_Response_dealloc(smisk_Response* self) {
   log_debug("ENTER smisk_Response_dealloc");
+  
+  smisk_Response_reset(self);
+  
   Py_XDECREF(self->out);
-  Py_XDECREF(self->headers);
-  Py_XDECREF(self->status);
-  Py_XDECREF(self->app);
 }
+
+
+#pragma mark -
+#pragma mark Methods
 
 
 PyDoc_STRVAR(smisk_Response_send_file_DOC,
@@ -125,8 +128,8 @@ PyObject* smisk_Response_send_file(smisk_Response* self, PyObject* filename) {
   }
   
   char *server = NULL;
-  if(self->app) {
-    server = FCGX_GetParam( "SERVER_SOFTWARE", ((smisk_Application *)self->app)->request->envp );
+  if(smisk_current_app) {
+    server = FCGX_GetParam( "SERVER_SOFTWARE", smisk_current_app->request->envp );
   }
   if(server == NULL) {
     server = "unknown server software";
@@ -162,8 +165,13 @@ PyDoc_STRVAR(smisk_Response_begin_DOC,
   "\n"
   ":rtype: None");
 PyObject* smisk_Response_begin(smisk_Response* self) {
+  log_debug("ENTER smisk_Response_begin");
   int rc;
   Py_ssize_t num_headers, i;
+  
+  IFDEBUG(if(self->headers) {
+    assert_refcount(self->headers, > 0);
+  })
   
   // Headers?
   if(self->headers && PyList_Check(self->headers) && (num_headers = PyList_GET_SIZE(self->headers))) {
@@ -195,6 +203,7 @@ PyObject* smisk_Response_begin(smisk_Response* self) {
     return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on stream");
   }
   
+  log_debug("EXIT smisk_Response_begin");
   Py_RETURN_NONE;
 }
 
@@ -335,7 +344,8 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
   PyObject *s;
   
   if(self->has_begun) {
-    return PyErr_Format(PyExc_EnvironmentError, "Cookies can not be set when output has already begun.");
+    return PyErr_Format(PyExc_EnvironmentError,
+      "Cookies can not be set when output has already begun.");
   }
   
   if(!PyArg_ParseTupleAndKeywords(args, kwargs, "ss|zzziiii", kwlist,
@@ -398,14 +408,32 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
 }
 
 
-/**************** type configuration *******************/
+static PyObject* smisk_Response_get_headers(smisk_Response* self) {
+  if(self->headers == NULL) {
+    if( (self->headers = PyList_New(0)) == NULL ) {
+      return NULL;
+    }
+  }
+  
+  Py_INCREF(self->headers); // callers reference
+  return self->headers;
+}
+
+
+static int smisk_Response_set_headers(smisk_Response* self, PyObject *headers) {
+  REPLACE_OBJ(self->headers, headers, PyObject);
+  return self->headers ? 0 : -1;
+}
+
+
+#pragma mark -
+#pragma mark Type construction
 
 PyDoc_STRVAR(smisk_Response_DOC,
   "A HTTP response");
 
 // Methods
-static PyMethodDef smisk_Response_methods[] =
-{
+static PyMethodDef smisk_Response_methods[] = {
   {"send_file", (PyCFunction)smisk_Response_send_file, METH_O, smisk_Response_send_file_DOC},
   {"begin",    (PyCFunction)smisk_Response_begin,    METH_NOARGS,  smisk_Response_begin_DOC},
   {"write",    (PyCFunction)smisk_Response_write,    METH_O,       smisk_Response_write_DOC},
@@ -414,11 +442,17 @@ static PyMethodDef smisk_Response_methods[] =
   {NULL}
 };
 
-// Properties (Members)
-static struct PyMemberDef smisk_Response_members[] =
-{
-  {"out",          T_OBJECT_EX, offsetof(smisk_Response, out),          RO, ":type: `Stream`"},
-  {"headers",      T_OBJECT_EX, offsetof(smisk_Response, headers),      0,  ":type: list"},
+// Properties
+static PyGetSetDef smisk_Response_getset[] = {
+  {"headers", (getter)smisk_Response_get_headers, (setter)smisk_Response_set_headers,
+    ":type: list", NULL},
+  
+  {NULL}
+};
+
+// Members
+static struct PyMemberDef smisk_Response_members[] = {
+  {"out",     T_OBJECT_EX, offsetof(smisk_Response, out),     RO, ":type: `Stream`"},
   {NULL}
 };
 
@@ -426,7 +460,7 @@ static struct PyMemberDef smisk_Response_members[] =
 PyTypeObject smisk_ResponseType = {
   PyObject_HEAD_INIT(&PyType_Type)
   0,                         /*ob_size*/
-  "smisk.Response",             /*tp_name*/
+  "smisk.core.Response",             /*tp_name*/
   sizeof(smisk_Response),       /*tp_basicsize*/
   0,                         /*tp_itemsize*/
   (destructor)smisk_Response_dealloc,        /* tp_dealloc */
@@ -454,7 +488,7 @@ PyTypeObject smisk_ResponseType = {
   0,                         /* tp_iternext */
   smisk_Response_methods,      /* tp_methods */
   smisk_Response_members,      /* tp_members */
-  0,                         /* tp_getset */
+  smisk_Response_getset,       /* tp_getset */
   0,                           /* tp_base */
   0,                           /* tp_dict */
   0,                           /* tp_descr_get */
@@ -462,7 +496,7 @@ PyTypeObject smisk_ResponseType = {
   0,                           /* tp_dictoffset */
   (initproc)smisk_Response_init, /* tp_init */
   0,                           /* tp_alloc */
-  PyType_GenericNew,           /* tp_new */
+  smisk_Response_new,           /* tp_new */
   0                            /* tp_free */
 };
 

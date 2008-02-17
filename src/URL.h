@@ -36,7 +36,6 @@ typedef struct {
   PyObject* query;
   PyObject* fragment;
   
-  PyObject* encode;
 } smisk_URL;
 
 // C API only

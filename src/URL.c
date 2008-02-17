@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include "utils.h"
 #include <structmember.h>
 
+#pragma mark Private C
 
 /* Table of "reserved" and "unsafe" characters.  Those terms are
    rfc1738-speak, as such largely obsoleted by rfc2396 and later
@@ -397,15 +398,16 @@ static int _parse(smisk_URL* self, const char *s, size_t len) { // bool URL::set
   return 1;
 }
 
-// ------------------------------------------------------------------------
+
+#pragma mark Initialization & deallocation
 
 
-int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs) {
-  log_debug("ENTER smisk_URL_init");
-  PyObject* str;
+static PyObject * smisk_URL_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+  log_debug("ENTER smisk_URL_new");
+  smisk_URL *self;
   
-  // No arguments? (new empty url)
-  if(!args || PyTuple_GET_SIZE(args) == 0) {
+  self = (smisk_URL *)type->tp_alloc(type, 0);
+  if (self != NULL) {
     self->scheme    = Py_None; Py_INCREF(Py_None);
     self->user      = Py_None; Py_INCREF(Py_None);
     self->password  = Py_None; Py_INCREF(Py_None);
@@ -414,6 +416,18 @@ int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs) {
     self->path      = Py_None; Py_INCREF(Py_None);
     self->query     = Py_None; Py_INCREF(Py_None);
     self->fragment  = Py_None; Py_INCREF(Py_None);
+  }
+  
+  return (PyObject *)self;
+}
+
+
+int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs) {
+  log_debug("ENTER smisk_URL_init");
+  PyObject* str;
+  
+  // No arguments? (new empty url)
+  if( (args == NULL) || (PyTuple_GET_SIZE(args) == 0) ) {
     return 0;
   }
   
@@ -443,6 +457,10 @@ void smisk_URL_dealloc(smisk_URL* self) {
   Py_DECREF(self->query);
   Py_DECREF(self->fragment);
 }
+
+
+#pragma mark -
+#pragma mark Methods
 
 
 PyDoc_STRVAR(smisk_URL_encode_DOC,
@@ -578,30 +596,24 @@ PyObject *smisk_URL___str__(smisk_URL* self) {
   return s;
 }
 
-/********** type configuration **********/
+#pragma mark -
+#pragma mark Type construction
 
 PyDoc_STRVAR(smisk_URL_DOC,
   "Uniform Resource Locator");
 
 // Methods
-static PyMethodDef smisk_URL_methods[] =
-{
-  // class methods
-  {"encode", (PyCFunction)smisk_URL_encode,   METH_CLASS|METH_O, smisk_URL_encode_DOC},
-  {"escape", (PyCFunction)smisk_URL_escape,   METH_CLASS|METH_O, smisk_URL_escape_DOC},
-  {"decode", (PyCFunction)smisk_URL_decode,   METH_CLASS|METH_O, smisk_URL_decode_DOC},
-  {"unescape", (PyCFunction)smisk_URL_decode, METH_CLASS|METH_O, smisk_URL_unescape_DOC},
-  {NULL}
-};
-
-// Properties
-static PyGetSetDef smisk_URL_getset[] = {
+static PyMethodDef smisk_URL_methods[] = {
+  // Static methods
+  {"encode", (PyCFunction)smisk_URL_encode,   METH_STATIC|METH_O, smisk_URL_encode_DOC},
+  {"escape", (PyCFunction)smisk_URL_escape,   METH_STATIC|METH_O, smisk_URL_escape_DOC},
+  {"decode", (PyCFunction)smisk_URL_decode,   METH_STATIC|METH_O, smisk_URL_decode_DOC},
+  {"unescape", (PyCFunction)smisk_URL_decode, METH_STATIC|METH_O, smisk_URL_unescape_DOC},
   {NULL}
 };
 
 // Class Members
-static struct PyMemberDef smisk_URL_members[] =
-{
+static struct PyMemberDef smisk_URL_members[] = {
   {"scheme",    T_OBJECT_EX, offsetof(smisk_URL, scheme),   RO, ":type: string"},
   {"user",      T_OBJECT_EX, offsetof(smisk_URL, user),     RO, ":type: string"},
   {"password",  T_OBJECT_EX, offsetof(smisk_URL, password), RO, ":type: string"},
@@ -617,7 +629,7 @@ static struct PyMemberDef smisk_URL_members[] =
 PyTypeObject smisk_URLType = {
   PyObject_HEAD_INIT(&PyType_Type)
   0,                         /*ob_size*/
-  "smisk.URL",             /*tp_name*/
+  "smisk.core.URL",             /*tp_name*/
   sizeof(smisk_URL),       /*tp_basicsize*/
   0,                         /*tp_itemsize*/
   (destructor)smisk_URL_dealloc,        /* tp_dealloc */
@@ -643,9 +655,9 @@ PyTypeObject smisk_URLType = {
   0,                         /* tp_weaklistoffset */
   0,                         /* tp_iter */
   0,                         /* tp_iternext */
-  smisk_URL_methods,      /* tp_methods */
-  smisk_URL_members,      /* tp_members */
-  smisk_URL_getset,         /* tp_getset */
+  smisk_URL_methods,           /* tp_methods */
+  smisk_URL_members,           /* tp_members */
+  0,                           /* tp_getset */
   0,                           /* tp_base */
   0,                           /* tp_dict */
   0,                           /* tp_descr_get */
@@ -653,7 +665,7 @@ PyTypeObject smisk_URLType = {
   0,                           /* tp_dictoffset */
   (initproc)smisk_URL_init, /* tp_init */
   0,                           /* tp_alloc */
-  PyType_GenericNew,           /* tp_new */
+  smisk_URL_new,           /* tp_new */
   0                            /* tp_free */
 };
 

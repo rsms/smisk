@@ -27,6 +27,7 @@ THE SOFTWARE.
 
 // fcgi socket fd
 extern int smisk_listensock_fileno;
+extern PyObject *os_module;
 
 // static objects at module-level
 extern PyObject *smisk_Error; // extends PyExc_StandardError

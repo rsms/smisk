@@ -24,19 +24,34 @@ THE SOFTWARE.
 #include <structmember.h>
 
 
-/**************** instance methods *******************/
+#pragma mark Initialization & deallocation
 
-int smisk_Stream_init(smisk_Stream* self, PyObject* args, PyObject* kwargs)
-{
-  //log_debug("ENTER smisk_Stream_init");
-  self->stream = NULL;
-  self->readbuf = NULL;
-  self->readbuf_size = 0;
+
+static PyObject * smisk_Stream_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+  log_debug("ENTER smisk_Stream_new");
+  smisk_Stream *self;
+  
+  self = (smisk_Stream *)type->tp_alloc(type, 0);
+  if (self != NULL) {
+    self->stream = NULL;
+  }
+  
+  return (PyObject *)self;
+}
+
+
+int smisk_Stream_init(smisk_Stream* self, PyObject* args, PyObject* kwargs) {
   return 0;
 }
 
+
 void smisk_Stream_dealloc(smisk_Stream* self) {
+  log_debug("ENTER smisk_Stream_dealloc");
 }
+
+
+#pragma mark -
+#pragma mark Methods
 
 
 PyDoc_STRVAR(smisk_Stream_readline_DOC,
@@ -330,7 +345,10 @@ PyObject* smisk_Stream_close(smisk_Stream* self) {
 }
 
 
-// Iteration
+#pragma mark -
+#pragma mark Iteration
+
+
 PyObject* smisk_Stream_iter(smisk_Stream *self) {
   Py_INCREF(self);
   return (PyObject*)self;
@@ -348,13 +366,13 @@ PyObject* smisk_Stream_iternext(smisk_Stream *self) {
 }
 
 
-/********** type configuration **********/
+#pragma mark -
+#pragma mark Type construction
 
 PyDoc_STRVAR(smisk_Stream_DOC,
   "FastCGI input/output stream");
 
-static PyMethodDef smisk_Stream_methods[] =
-{
+static PyMethodDef smisk_Stream_methods[] = {
   {"close", (PyCFunction)smisk_Stream_close,            METH_NOARGS,  smisk_Stream_close_DOC},
   {"flush", (PyCFunction)smisk_Stream_flush,            METH_NOARGS,  smisk_Stream_flush_DOC},
   {"read", (PyCFunction)smisk_Stream_read,              METH_VARARGS, smisk_Stream_read_DOC},
@@ -371,7 +389,7 @@ static struct PyMemberDef smisk_Stream_members[] = {
 PyTypeObject smisk_StreamType = {
   PyObject_HEAD_INIT(NULL)
   0,                         /*ob_size*/
-  "smisk.Stream",             /*tp_name*/
+  "smisk.core.Stream",             /*tp_name*/
   sizeof(smisk_Stream),       /*tp_basicsize*/
   0,                         /*tp_itemsize*/
   (destructor)smisk_Stream_dealloc,        /* tp_dealloc */
@@ -407,7 +425,7 @@ PyTypeObject smisk_StreamType = {
   0,                                              /* tp_dictoffset */
   (initproc)smisk_Stream_init,               /* tp_init */
   0,                                              /* tp_alloc */
-  PyType_GenericNew,                              /* tp_new */
+  smisk_Stream_new,                              /* tp_new */
   0                                               /* tp_free */
 };
 

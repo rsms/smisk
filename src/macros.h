@@ -40,9 +40,17 @@ THE SOFTWARE.
 #define Py_ssize_t ssize_t
 #endif
 
+// Get minimum value
 #ifndef min
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
 #endif
+
+// Replace a PyObject while counting references
+#define REPLACE_OBJ(obj, val, type) \
+  do { type *__replace_obj = (type *)(obj); \
+  (obj) = (type *)(val); \
+  Py_XINCREF(obj); \
+  Py_XDECREF(__replace_obj); } while(0)
 
 
 // Log to stderr
@@ -55,13 +63,22 @@ THE SOFTWARE.
   #define assert_refcount(o, count_test) \
     if(!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld %s)", (long int)(o)->ob_refcnt, #count_test); }\
     assert((o)->ob_refcnt count_test)
+  #define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o) ? (o)->ob_refcnt : 0)
+  #define DUMP_REPR(o) \
+    do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
+      if(repr) {\
+        log_debug("repr(%s) = '%s'", #o, PyString_AS_STRING(repr));\
+      } else {\
+        log_debug("repr(%s) = <NULL>", #o);\
+      }\
+    } while(0);
 #else
   #define log_debug(fmt, ...) ((void)0)
   #define assert_refcount(o, count_test) 
   #define IFDEBUG(x) 
+  #define DUMP_REFCOUNT(o) 
+  #define DUMP_REPR(o) 
 #endif
-
-#define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o)->ob_refcnt)
 
 #define PyErr_SET_FROM_ERRNO_OR_CUSTOM(type, custom_msg) \
   PyErr_SetFromErrnoWithFilename(type, __FILE__)

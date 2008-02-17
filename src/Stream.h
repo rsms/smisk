@@ -28,8 +28,6 @@ typedef struct {
   PyObject_HEAD;
   
   FCGX_Stream* stream;
-  char*        readbuf;
-  Py_ssize_t   readbuf_size;
   
 } smisk_Stream;
 

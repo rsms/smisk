@@ -36,7 +36,7 @@ class Store:
     
     :param  session_id:  Session ID
     :type   session_id:  string
-    :param  data:        Data to be associated with ``ession_id``
+    :param  data:        Data to be associated with ``session_id``
     :type   data:        object
     :rtype: None
     '''

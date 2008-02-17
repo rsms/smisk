@@ -23,10 +23,12 @@ THE SOFTWARE.
 #include "utils.h"
 #include "multipart.h"
 #include "Request.h"
+#include "Application.h"
 #include <unistd.h>
 #include <structmember.h>
 #include <fastcgi.h>
 
+#pragma mark Internal
 
 static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
   char *s;
@@ -97,42 +99,20 @@ static int _parse_request_body(smisk_Request* self) {
 }
 
 
-/* ---------------------------------------------- */
-/* Python */
-
-
-int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs) {
-  log_debug("ENTER smisk_Request_init");
-  
-  // Nullify lazy instances
-  self->env = NULL;
-  self->url = NULL;
-  self->get = NULL;
-  self->post = NULL;
-  self->files = NULL;
-  self->cookie = NULL;
-  
-  // Construct a new Stream for in
-  self->input = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
-  if (self->input == NULL) {
-    Py_DECREF(self);
-    return -1;
-  }
-  
-  // Construct a new Stream for err
-  self->err = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
-  if (self->err == NULL) {
-    Py_DECREF(self);
-    return -1;
-  }
-  
-  return 0;
+// This should only be used internally and for strings we are certain
+// only contain characters within ASCII.
+inline char *_strtolower(char *s) {
+  char *p = s;
+  do {
+    *p = tolower(*p);
+  } while( *p++ );
+  return s;
 }
 
 
-
 // Called after every request has finished and called one from Request.dealloc
-void smisk_Request_cleanup (smisk_Request* self) {
+static void smisk_Request_cleanup (smisk_Request* self) {
+  log_debug("ENTER smisk_Request_cleanup");
   // Delete unused uploaded files
   if(self->files) {
     PyObject *files = PyDict_Values(self->files);
@@ -160,17 +140,58 @@ void smisk_Request_cleanup (smisk_Request* self) {
 // Called by Application.run just after a successful accept() 
 // and just before calling service(). Also called when server stops.
 int smisk_Request_reset (smisk_Request* self) {
+  log_debug("ENTER smisk_Request_reset");
   smisk_Request_cleanup(self);
-  
-#define USET(n) if(self->n) { Py_DECREF(self->n); self->n = NULL; }
+#define USET(n) Py_XDECREF(self->n); self->n = NULL; DUMP_REFCOUNT(self->n)
   USET(env);
   USET(url);
   USET(get);
   USET(post);
   USET(files);
   USET(cookie);
+  USET(session);
+  USET(session_id);
 #undef USET
+  self->initial_session_hash = 0;
+  return 0;
+}
+
+
+#pragma mark -
+#pragma mark Initialization & deallocation
+
+
+static PyObject * smisk_Request_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+  log_debug("ENTER smisk_Request_new");
+  smisk_Request *self;
   
+  self = (smisk_Request *)type->tp_alloc(type, 0);
+  if (self != NULL) {
+    if(smisk_Request_reset(self) != 0) {
+      Py_DECREF(self);
+      return NULL;
+    }
+  
+    // Construct a new Stream for in
+    self->input = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
+    if (self->input == NULL) {
+      Py_DECREF(self);
+      return NULL;
+    }
+  
+    // Construct a new Stream for err
+    self->err = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
+    if (self->err == NULL) {
+      Py_DECREF(self);
+      return NULL;
+    }
+  }
+  
+  return (PyObject *)self;
+}
+
+
+int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs) {
   return 0;
 }
 
@@ -178,21 +199,20 @@ int smisk_Request_reset (smisk_Request* self) {
 void smisk_Request_dealloc(smisk_Request* self) {
   log_debug("ENTER smisk_Request_dealloc");
   
-  smisk_Request_cleanup(self);
+  smisk_Request_reset(self);
   
   Py_XDECREF(self->input);
   Py_XDECREF(self->err);
-  Py_XDECREF(self->env);
-  Py_XDECREF(self->url);
-  Py_XDECREF(self->get);
-  Py_XDECREF(self->post);
-  Py_XDECREF(self->files);
-  Py_XDECREF(self->cookie);
   
   // free envp buf
-  if(self->envp_buf)
+  if(self->envp_buf) {
     free(self->envp_buf);
+  }
 }
+
+
+#pragma mark -
+#pragma mark Methods
 
 
 PyDoc_STRVAR(smisk_Request_log_error_DOC,
@@ -298,23 +318,11 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
 }
 
 
-// This should only be used internally and for strings we are certain
-// only contain characters within ASCII.
-inline char *_strtolower(char *s) {
-  char *p = s;
-  do {
-    *p = tolower(*p);
-  } while( *p++ );
-  return s;
-}
-
-
 PyObject* smisk_Request_get_url(smisk_Request* self) {
   char *s, *p, *s2;
   
   if(self->url == NULL) {
     if (!(self->url = (smisk_URL*)PyObject_Call((PyObject*)&smisk_URLType, NULL, NULL))) {
-      log_debug("self->url == NULL");
       return NULL;
     }
     
@@ -386,17 +394,20 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
 
 
 PyObject* smisk_Request_get_get(smisk_Request* self) {
-  smisk_URL *url;
-  
   if(self->get == NULL) {
+    smisk_URL *url = NULL;
+    
     if((self->get = PyDict_New()) == NULL) {
       return NULL;
     }
     url = (smisk_URL *)smisk_Request_get_url(self);
+    
     if(url->query && (url->query != Py_None) && (PyString_GET_SIZE(url->query) > 0)) {
       assert_refcount(self->get, == 1);
       if(parse_input_data(PyString_AS_STRING(url->query), "&", 0, self->get) != 0) {
         Py_DECREF(url);
+        Py_DECREF(self->get);
+        self->get = NULL;
         return NULL;
       }
     }
@@ -439,45 +450,148 @@ PyObject* smisk_Request_get_cookie(smisk_Request* self) {
     }
     
     if((http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp))) {
+      log_debug("Parsing input data");
       if(parse_input_data(http_cookie, ";", 1, self->cookie) != 0) {
+        Py_DECREF(self->cookie);
+        self->cookie = NULL;
         return NULL;
       }
+      log_debug("Done parsing input data");
     }
   }
+  
   Py_INCREF(self->cookie); // callers reference
   return self->cookie;
 }
 
 
-/********** type configuration **********/
+static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
+  if(self->session_id == NULL) {
+    // Sanity-checks
+    if(!smisk_current_app) {
+      PyErr_SetString(PyExc_EnvironmentError,
+        "This Request has not been correctly initialized by an Application");
+      return NULL;
+    }
+    
+    // os.urandom(self.app.session_id_size).encode('hex')
+    log_debug("Generating session id with %d bits", smisk_current_app->session_id_size);
+    
+    self->session_id = PyObject_CallMethod(
+      os_module, "urandom",
+      "i", smisk_current_app->session_id_size);
+    
+    self->session_id = PyObject_CallMethod(
+      self->session_id,
+      "encode",
+      "s", "hex");
+  }
+  
+  Py_INCREF(self->session_id); // callers reference
+  return self->session_id;
+}
+
+
+static int smisk_Request_set_session_id(smisk_Request* self, PyObject *session_id) {
+  REPLACE_OBJ(self->session_id, session_id, PyObject);
+  return self->session_id ? 0 : -1;
+}
+
+
+static PyObject* smisk_Request_get_session(smisk_Request* self) {
+  if(self->session == NULL) {
+    PyObject *session_store;
+    
+    // Sanity-checks
+    if(!smisk_current_app) {
+      PyErr_SetString(PyExc_EnvironmentError,
+        "This Request has not been correctly initialized by an Application");
+      return NULL;
+    }
+    
+    if( (session_store = smisk_Application_get_session_store(smisk_current_app)) == NULL ) {
+      PyErr_SetString(PyExc_EnvironmentError, "session only available during a HTTP transaction");
+      return NULL;
+    }
+    
+    // Call Application.session_store.read(app, session_id)
+    log_debug("session_store=%p", session_store);
+    self->session = PyObject_CallMethod(
+      session_store, "read",
+      "O", smisk_Request_get_session_id(self));
+    
+    if(self->session == NULL) {
+      return NULL;
+    }
+    
+    // Save hash
+    self->initial_session_hash = PyObject_Hash(self->session);
+  }
+  
+  Py_INCREF(self->session); // callers reference
+  return self->session;
+}
+
+
+static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
+  REPLACE_OBJ(self->session, val, PyObject);
+  return self->session ? 0 : -1;
+}
+
+
+#pragma mark -
+#pragma mark Type construction
 
 PyDoc_STRVAR(smisk_Request_DOC,
   "A HTTP request");
 
 // Methods
-static PyMethodDef smisk_Request_methods[] =
-{
+static PyMethodDef smisk_Request_methods[] = {
   {"log_error", (PyCFunction)smisk_Request_log_error, METH_O, smisk_Request_log_error_DOC},
   {NULL}
 };
 
 // Properties
 static PyGetSetDef smisk_Request_getset[] = {
-  {"env", (getter)smisk_Request_get_env,  (setter)0, ":type: dict\n\n"
+  {"env", (getter)smisk_Request_get_env,  (setter)0,
+    ":type: dict\n\n"
     "HTTP transaction environment.", NULL},
-  {"url", (getter)smisk_Request_get_url,  (setter)0, ":type: `URL`\n\n"
+  
+  {"url", (getter)smisk_Request_get_url,  (setter)0,
+    ":type: `URL`\n\n"
     "Reconstructed URL.", NULL},
-  {"get", (getter)smisk_Request_get_get,  (setter)0, ":type: dict\n\n"
+  
+  {"get", (getter)smisk_Request_get_get,  (setter)0,
+    ":type: dict\n\n"
     "Parameters passed in the query string part of the URL.", NULL},
-  {"post", (getter)smisk_Request_get_post, (setter)0, ":type: dict\n\n"
+  
+  {"post", (getter)smisk_Request_get_post, (setter)0,
+    ":type: dict\n\n"
     "Parameters passed in the body of a POST request.", NULL},
-  {"files", (getter)smisk_Request_get_files,  (setter)0, ":type: dict\n\n"
+  
+  {"files", (getter)smisk_Request_get_files,  (setter)0,
+    ":type: dict\n\n"
     "Any files uploaded via a POST request.", NULL},
-  {"cookie", (getter)smisk_Request_get_cookie,  (setter)0, ":type: dict\n\n"
+  
+  {"cookie", (getter)smisk_Request_get_cookie,  (setter)0,
+    ":type: dict\n\n"
     "Any cookies that was attached to the request.", NULL},
+  
+  {"session", (getter)smisk_Request_get_session, (setter)smisk_Request_set_session,
+    ":type: object\n\n"
+    "Current session.\n"
+    "\n"
+    "Any modifications to the session must be done before output has begun, as it "
+    "will add a ``Set-Cookie:`` header to the response.", NULL},
+  
+  {"session_id", (getter)smisk_Request_get_session_id, (setter)smisk_Request_set_session_id,
+    ":type: string\n\n"
+    "Current session id.", NULL},
+  
   {"is_active", (getter)smisk_Request_is_active,  (setter)0, ":type: bool\n\n"
     "Indicates if the request is active, if we are in the middle of a "
     "*HTTP transaction*", NULL},
+  
   {NULL}
 };
 
@@ -511,7 +625,9 @@ static struct PyMemberDef smisk_Request_members[] = {
     "\n"
     "``curl --data-binary '{\"Url\": \"http://www.example.com/image/481989943\", \"Position\": [125, \"100\"]}' http://localhost:8080/``"
     },
+  
   {"err",   T_OBJECT_EX, offsetof(smisk_Request, err),   RO, ":type: `Stream`"},
+  
   {NULL}
 };
 
@@ -519,7 +635,7 @@ static struct PyMemberDef smisk_Request_members[] = {
 PyTypeObject smisk_RequestType = {
   PyObject_HEAD_INIT(&PyType_Type)
   0,                         /*ob_size*/
-  "smisk.Request",             /*tp_name*/
+  "smisk.core.Request",             /*tp_name*/
   sizeof(smisk_Request),       /*tp_basicsize*/
   0,                         /*tp_itemsize*/
   (destructor)smisk_Request_dealloc,        /* tp_dealloc */
@@ -555,7 +671,7 @@ PyTypeObject smisk_RequestType = {
   0,                           /* tp_dictoffset */
   (initproc)smisk_Request_init, /* tp_init */
   0,                           /* tp_alloc */
-  PyType_GenericNew,           /* tp_new */
+  smisk_Request_new,           /* tp_new */
   0                            /* tp_free */
 };
 

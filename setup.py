@@ -8,16 +8,19 @@ import os, sys, platform
 version = "0.1"
 
 sources = ['src/module.c',
+           
+           'src/utils.c',
+           'src/atoin.c',
+           'src/cstr.c',
+           'src/multipart.c',
+           
            'src/Application.c',
            'src/Request.c',
            'src/Response.c',
            'src/Stream.c', 
            'src/NotificationCenter.c',
-           'src/utils.c',
            'src/URL.c',
-           'src/atoin.c',
-           'src/cstr.c',
-           'src/multipart.c']
+           'src/FileSessionStore.c']
 
 os.chdir(os.path.join('.', os.path.dirname(__file__)))
 py_version = ".".join([str(s) for s in sys.version_info[0:2]]) # "M.m"

@@ -24,6 +24,7 @@ THE SOFTWARE.
 #include "utils.h"
 #include "Application.h"
 #include "NotificationCenter.h"
+#include "FileSessionStore.h"
 
 #include <fcgiapp.h>
 #include <fastcgi.h>
@@ -34,66 +35,110 @@ THE SOFTWARE.
 //#include <unistd.h>
 #include <libgen.h>
 
-/**************** signal handlers wrapping run method *******************/
+#pragma mark Public C
+
+smisk_Application *smisk_current_app = NULL;
+
+
+#pragma mark -
+#pragma mark Internal
+
+static int _setup_transaction_context(smisk_Application *self) {
+  log_debug("ENTER _setup_transaction_context");
+  PyObject *request, *response;
+  
+  // Request
+  if((request = PyObject_Call((PyObject*)self->request_class, NULL, NULL)) == NULL) {
+    return -1;
+  }
+  REPLACE_OBJ(self->request, request, smisk_Request);
+  assert_refcount(self->request, > 0);
+  
+  
+  // Response
+  if((response = PyObject_Call((PyObject*)self->response_class, NULL, NULL)) == NULL) {
+    return -1;
+  }
+  REPLACE_OBJ(self->response, response, smisk_Response);
+  assert_refcount(self->response, > 0);
+  
+  
+  return 0;
+}
+
+
+// signal handlers wrapping run method
 
 int smisk_Application_trapped_signal = 0;
 
-void smisk_Application_sighandler_close_fcgi(int sig) {
+static void smisk_Application_sighandler_close_fcgi(int sig) {
   log_debug("Caught signal %d", sig);
   smisk_Application_trapped_signal = sig;
   FCGX_ShutdownPending();
 }
 
 
-/************************* instance methods *****************************/
+#pragma mark -
+#pragma mark Initialization & deallocation
 
-int smisk_Application_init(smisk_Application* self, PyObject* args, PyObject* kwargs) {
-  log_debug("ENTER smisk_Application_init");
+static PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+  log_debug("ENTER smisk_Application_new");
+  smisk_Application *self;
   
-  // Construct a new Request item
-  if(self->request_class == NULL) {
-      self->request_class = (PyTypeObject*)&smisk_RequestType;
-  }
-  self->request = (smisk_Request*)PyObject_Call((PyObject*)self->request_class, NULL, NULL);
-  if (self->request == NULL) {
-    Py_DECREF(self);
-    return -1;
-  }
-  
-  assert_refcount(self->request, == 1);
-  
-  // Construct a new Response item
-  if(self->response_class == NULL) {
+  self = (smisk_Application *)type->tp_alloc(type, 0);
+  if (self != NULL) {
+    // Set default classes
+    self->request_class = (PyTypeObject*)&smisk_RequestType;
     self->response_class = (PyTypeObject*)&smisk_ResponseType;
-  }
-  self->response = (smisk_Response*)PyObject_Call((PyObject*)self->response_class, NULL, NULL);
-  if (self->response == NULL) {
-    Py_DECREF(self);
-    return -1;
-  }
-  assert_refcount(self->response, == 1);
-  self->response->app = (PyObject *)self;
-  Py_INCREF(self->response->app);
-  assert_refcount(self, == 2);
+    self->session_store_class = (PyTypeObject*)&smisk_FileSessionStoreType;
   
-  // TODO: Make get/settable
-  self->includeExceptionInfoInErrors = 1;
+    // Set transaction context to None - run() will set up these.
+    self->request = (smisk_Request *)Py_None; Py_INCREF(Py_None);
+    self->response = (smisk_Response *)Py_None; Py_INCREF(Py_None);
+    
+    // Nullify lazy objects
+    self->session_store = NULL;
   
+    // Default values
+    self->session_id_size = 20;
+    self->session_name = PyString_FromString("smisk_sessid");
+    self->include_exc_info_with_errors = Py_True; Py_INCREF(Py_True);
+    
+    // Application.current = self
+    REPLACE_OBJ(smisk_current_app, self, smisk_Application);
+  }
+  
+  return (PyObject *)self;
+}
+
+
+int smisk_Application_init(smisk_Application *self, PyObject* args, PyObject* kwargs) {
   return 0;
 }
 
 
-void smisk_Application_dealloc(smisk_Application* self) {
+void smisk_Application_dealloc(smisk_Application *self) {
   log_debug("ENTER smisk_Application_dealloc");
+  if(smisk_current_app == self) {
+    REPLACE_OBJ(smisk_current_app, NULL, smisk_Application);
+  }
   Py_DECREF(self->request);
+  Py_DECREF(self->response);
+  Py_DECREF(self->session_store);
+  Py_DECREF(self->session_name);
+  Py_DECREF(self->include_exc_info_with_errors);
 }
+
+
+#pragma mark -
+#pragma mark Methods
 
 
 PyDoc_STRVAR(smisk_Application_run_DOC,
   "Run application.\n"
   "\n"
   ":rtype: None");
-PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
+PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
   log_debug("ENTER smisk_Application_run");
   
   PyOS_sighandler_t orig_int_handler, orig_hup_handler, orig_term_handler;
@@ -123,6 +168,11 @@ PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
     return PyErr_Format(smisk_Error, "Application must be run in a FastCGI environment");
   }
   
+  // Create transaction context
+  if(_setup_transaction_context(self) != 0) {
+    return NULL;
+  }
+  
   if(!POST_NOTIFICATION1(kApplicationWillStartNotification, self)) {
     return NULL;
   }
@@ -150,9 +200,9 @@ PyObject* smisk_Application_run(smisk_Application* self, PyObject* args) {
       // Finish request
       smisk_Response_finish(self->response);
     }
-    else if(!smisk_Application_trapped_signal) {
-      log_error("Calling <Application@%p>.service() failed", self);
-    }
+    IFDEBUG(else if(!smisk_Application_trapped_signal) {
+      log_debug("<Application@%p>.service() failed", self);
+    })
     
     // Exception raised?
     if(PyErr_Occurred()) {
@@ -211,7 +261,7 @@ PyDoc_STRVAR(smisk_Application_service_DOC,
   "Service a request.\n"
   "\n"
   ":rtype: None");
-PyObject* smisk_Application_service(smisk_Application* self, PyObject* args) {
+PyObject* smisk_Application_service(smisk_Application *self, PyObject* args) {
   log_debug("ENTER smisk_Application_service");
   
   FCGX_FPrintF(self->response->out->stream,
@@ -230,7 +280,7 @@ PyDoc_STRVAR(smisk_Application_error_DOC,
   "Service a error message.\n"
   "\n"
   ":rtype: None");
-PyObject* smisk_Application_error(smisk_Application* self, PyObject* args) {
+PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   log_debug("ENTER smisk_Application_error");
   
   int rc;
@@ -245,7 +295,7 @@ PyObject* smisk_Application_error(smisk_Application* self, PyObject* args) {
   msg = PyString_FromFormat("<h1>Internal Server Error</h1>\n"
     "<pre>%s</pre>\n"
     "<hr/><address>%s smisk/%s at %s port %s</address>\n",
-    (self->includeExceptionInfoInErrors ? PyString_AS_STRING(exc_str) : "Exception info has been logged."),
+    ((self->include_exc_info_with_errors == Py_True) ? PyString_AS_STRING(exc_str) : "Exception info has been logged."),
     FCGX_GetParam("SERVER_SOFTWARE", self->request->envp),
     SMISK_VERSION,
     FCGX_GetParam("SERVER_ADDR", self->request->envp),
@@ -268,8 +318,8 @@ PyObject* smisk_Application_error(smisk_Application* self, PyObject* args) {
       "Status: 500 Internal Server Error\r\n"
       "Content-Length: %ld\r\n"
        "\r\n"
-       "%s%s%s",
-      strlen(header)+PyString_GET_SIZE(msg)+strlen(footer),
+       "%s%s%s\r\n",
+      strlen(header)+PyString_GET_SIZE(msg)+strlen(footer)+2,
       header,
       PyString_AS_STRING(msg),
       footer);
@@ -294,9 +344,41 @@ PyDoc_STRVAR(smisk_Application_exit_DOC,
   "Exit application.\n"
   "\n"
   ":rtype: None");
-PyObject* smisk_Application_exit(smisk_Application* self) {
+PyObject *smisk_Application_exit(smisk_Application *self) {
   raise(2); // SIG_INT
   Py_RETURN_NONE;
+}
+
+
+PyDoc_STRVAR(smisk_Application_current_DOC,
+  "Current application instance, if any.\n"
+  "\n"
+  ":rtype: Application");
+PyObject *smisk_Application_current(smisk_Application *self) {
+  Py_XINCREF(smisk_current_app);
+  return (PyObject *)smisk_current_app;
+}
+
+
+PyObject* smisk_Application_get_session_store(smisk_Application* self) {
+  log_debug("ENTER smisk_Application_get_session_store");
+  if(self->session_store == NULL) {    
+    DUMP_REPR(self->session_store_class);
+    if((self->session_store = PyObject_Call((PyObject*)self->session_store_class, NULL, NULL)) == NULL) {
+      return NULL;
+    }
+  }
+  log_debug("self->session_store=%p", self->session_store);
+  
+  Py_INCREF(self->session_store); // callers reference
+  return self->session_store;
+}
+
+
+static int smisk_Application_set_session_store(smisk_Application* self, PyObject *session_store) {
+  log_debug("ENTER smisk_Application_set_session_store  session_store=%p", session_store);
+  REPLACE_OBJ(self->session_store, session_store, PyObject);
+  return self->session_store ? 0 : -1;
 }
 
 
@@ -311,24 +393,57 @@ PyDoc_STRVAR(smisk_Application_DOC,
   " * `ApplicationWillExitNotification` - The application is about to exit from a signal or by ending it's run loop.\n");
 
 // Methods
-static PyMethodDef smisk_Application_methods[] =
-{
+static PyMethodDef smisk_Application_methods[] = {
   {"run",     (PyCFunction)smisk_Application_run,     METH_VARARGS, smisk_Application_run_DOC},
   {"service", (PyCFunction)smisk_Application_service, METH_VARARGS, smisk_Application_service_DOC},
   {"error",   (PyCFunction)smisk_Application_error,   METH_VARARGS, smisk_Application_error_DOC},
-  {"exit",     (PyCFunction)smisk_Application_exit,    METH_NOARGS,  smisk_Application_exit_DOC},
+  {"exit",    (PyCFunction)smisk_Application_exit,    METH_NOARGS,  smisk_Application_exit_DOC},
+  {"current", (PyCFunction)smisk_Application_current, METH_STATIC|METH_NOARGS, smisk_Application_current_DOC},
   {NULL}
 };
 
-// Properties (Members)
-static struct PyMemberDef smisk_Application_members[] =
-{
-  {"request_class",  T_OBJECT_EX, offsetof(smisk_Application, request_class),  0, ":type: Type\n\n"
+// Properties
+static PyGetSetDef smisk_Application_getset[] = {
+  {"session_store",
+    (getter)smisk_Application_get_session_store,
+    (setter)smisk_Application_set_session_store,
+    ":type: `smisk.session.Store`", NULL},
+  
+  {NULL}
+};
+
+// Members
+static struct PyMemberDef smisk_Application_members[] = {
+  {"request_class",  T_OBJECT_EX, offsetof(smisk_Application, request_class), 0,
+    ":type: Type\n\n"
     "Must be set before calling `run()`"},
-  {"response_class", T_OBJECT_EX, offsetof(smisk_Application, response_class), 0, ":type: Type\n\n"
+  
+  {"response_class", T_OBJECT_EX, offsetof(smisk_Application, response_class), 0,
+    ":type: Type\n\n"
     "Must be set before calling `run()`"},
-  {"request",  T_OBJECT_EX, offsetof(smisk_Application, request),  RO, ":type: `Request`"},
-  {"response", T_OBJECT_EX, offsetof(smisk_Application, response), RO, ":type: `Response`"},
+  
+  {"session_store_class",  T_OBJECT_EX, offsetof(smisk_Application, session_store_class), 0,
+    ":type: Type\n\n"
+    "Must be set before first access to `session_store`"},
+  
+  {"request",  T_OBJECT_EX, offsetof(smisk_Application, request),  RO,
+    ":type: `Request`"},
+  
+  {"response", T_OBJECT_EX, offsetof(smisk_Application, response), RO,
+    ":type: `Response`"},
+  
+  {"include_exc_info_with_errors", T_OBJECT_EX, offsetof(smisk_Application, include_exc_info_with_errors), 0,
+    ":type: bool\n\n"
+    "Defaults to True."},
+  
+  {"session_id_size", T_INT, offsetof(smisk_Application, session_id_size), 0,
+    ":type: `int`\n\n"
+    "Number of bits in generated session ids."},
+  
+  {"session_name", T_OBJECT_EX, offsetof(smisk_Application, session_name), 0,
+    ":type: `string`\n\n"
+    "Name used to identify the session id cookie. Defaults to \"smisk_sessid\""},
+  
   {NULL}
 };
 
@@ -336,7 +451,7 @@ static struct PyMemberDef smisk_Application_members[] =
 PyTypeObject smisk_ApplicationType = {
   PyObject_HEAD_INIT(&PyType_Type)
   0,             /*ob_size*/
-  "smisk.Application",       /*tp_name*/
+  "smisk.core.Application",       /*tp_name*/
   sizeof(smisk_Application),     /*tp_basicsize*/
   0,             /*tp_itemsize*/
   (destructor)smisk_Application_dealloc,    /* tp_dealloc */
@@ -364,7 +479,7 @@ PyTypeObject smisk_ApplicationType = {
   0,             /* tp_iternext */
   smisk_Application_methods,  /* tp_methods */
   smisk_Application_members,  /* tp_members */
-  0,               /* tp_getset */
+  smisk_Application_getset,   /* tp_getset */
   0,               /* tp_base */
   0,               /* tp_dict */
   0,               /* tp_descr_get */
@@ -372,7 +487,7 @@ PyTypeObject smisk_ApplicationType = {
   0,               /* tp_dictoffset */
   (initproc)smisk_Application_init, /* tp_init */
   0,               /* tp_alloc */
-  PyType_GenericNew,       /* tp_new */
+  smisk_Application_new,       /* tp_new */
   0              /* tp_free */
 };
 

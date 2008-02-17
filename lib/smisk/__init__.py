@@ -15,6 +15,7 @@ Response
 Stream
 URL
 NotificationCenter
+FileSessionStore
 Error
 IOError
 bind

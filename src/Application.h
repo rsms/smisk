@@ -29,18 +29,23 @@ typedef struct {
   PyObject_HEAD;
   
   // Public Python
-  PyTypeObject*   request_class;
-  PyTypeObject*   response_class;
-  smisk_Request*  request;
-  smisk_Response* response;
-  
-  // Internal
-  int includeExceptionInfoInErrors;
+  PyTypeObject   *request_class;
+  PyTypeObject   *response_class;
+  PyTypeObject   *session_store_class;
+  smisk_Request  *request;
+  smisk_Response *response;
+  PyObject       *session_store; // lazy Session store
+  int            session_id_size;
+  PyObject       *session_name; // string
+  PyObject       *include_exc_info_with_errors; // bool
 } smisk_Application;
+
+// Current instance (NULL if none)
+extern smisk_Application *smisk_current_app;
 
 // Type setup
 extern PyTypeObject smisk_ApplicationType;
-int smisk_Application_register_types(PyObject *module);
+int smisk_Application_register_types (PyObject *module);
 
 // Methods
 int  smisk_Application_init    (smisk_Application* self, PyObject* args, PyObject* kwargs);
@@ -49,5 +54,7 @@ void smisk_Application_dealloc (smisk_Application* self);
 PyObject* smisk_Application_run     (smisk_Application* self, PyObject* args);
 PyObject* smisk_Application_service (smisk_Application* self, PyObject* args);
 PyObject* smisk_Application_exit    (smisk_Application* self);
+
+PyObject* smisk_Application_get_session_store (smisk_Application* self);
 
 #endif

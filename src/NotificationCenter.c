@@ -24,6 +24,8 @@ THE SOFTWARE.
 #include <structmember.h>
 
 
+#pragma mark Public C
+
 // for internal use
 PyObject* smisk_NotificationCenter_postc( smisk_NotificationCenter* self, PyObject* args ) {
   Py_ssize_t listSize, i;
@@ -52,9 +54,41 @@ PyObject* smisk_NotificationCenter_postc( smisk_NotificationCenter* self, PyObje
 }
 
 
-/************************* class methods *****************************/
+#pragma mark -
+#pragma mark Initialization & deallocation
 
-PyObject* smisk_NotificationCenter_default(PyObject* cls) {
+
+static PyObject *smisk_NotificationCenter_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+  log_debug("ENTER smisk_NotificationCenter_new");
+  smisk_NotificationCenter *self;
+  
+  self = (smisk_NotificationCenter *)type->tp_alloc(type, 0);
+  if (self != NULL) {
+    if( (self->observers = PyDict_New()) == NULL ) {
+      Py_DECREF(self);
+      return NULL;
+    }
+  }
+  
+  return (PyObject *)self;
+}
+
+
+int smisk_NotificationCenter_init(smisk_NotificationCenter* self, PyObject* args, PyObject* kwargs) {
+  return 0;
+}
+
+
+void smisk_NotificationCenter_dealloc(smisk_NotificationCenter* self) {
+  log_debug("ENTER smisk_NotificationCenter_dealloc");
+  Py_DECREF(self->observers);
+}
+
+
+#pragma mark -
+#pragma mark Methods (static)
+
+PyObject* smisk_NotificationCenter_default(PyObject* dummy) {
   log_debug("ENTER smisk_NotificationCenter_default");
   static PyObject* smisk_NotificationCenter_default_instance = NULL;
   if(!smisk_NotificationCenter_default_instance) {
@@ -65,29 +99,8 @@ PyObject* smisk_NotificationCenter_default(PyObject* cls) {
 }
 
 
-/************************* instance methods *****************************/
-
-int smisk_NotificationCenter_init(smisk_NotificationCenter* self, PyObject* args, PyObject* kwargs) {
-  log_debug("ENTER smisk_NotificationCenter_init");
-  
-  // Construct a new observers dict
-  self->observers = PyDict_New();
-  if (self->observers == NULL)
-  {
-    log_debug("self->observers == NULL");
-    Py_DECREF(self);
-    return -1;
-  }
-  
-  return 0;
-}
-
-
-void smisk_NotificationCenter_dealloc(smisk_NotificationCenter* self)
-{
-  log_debug("ENTER smisk_NotificationCenter_dealloc");
-  Py_DECREF(self->observers);
-}
+#pragma mark -
+#pragma mark Methods (instance)
 
 
 PyDoc_STRVAR(smisk_NotificationCenter_subscribe_DOC,
@@ -198,7 +211,8 @@ PyObject* smisk_NotificationCenter_post(smisk_NotificationCenter* self, PyObject
 }
 
 
-/********** type configuration **********/
+#pragma mark -
+#pragma mark Type construction
 
 PyDoc_STRVAR(smisk_NotificationCenter_DOC,
   "Notification center implementing process wide observation.\n"
@@ -207,19 +221,21 @@ PyDoc_STRVAR(smisk_NotificationCenter_DOC,
   ":type observers:  dict\n");
 
 // Methods
-static PyMethodDef smisk_NotificationCenter_methods[] =
-{
-  {"subscribe",   (PyCFunction)smisk_NotificationCenter_subscribe,   METH_VARARGS,           smisk_NotificationCenter_subscribe_DOC},
-  {"unsubscribe", (PyCFunction)smisk_NotificationCenter_unsubscribe, METH_VARARGS,           smisk_NotificationCenter_unsubscribe_DOC},
-  {"post",        (PyCFunction)smisk_NotificationCenter_post,        METH_VARARGS,           smisk_NotificationCenter_post_DOC},
-  {"default",     (PyCFunction)smisk_NotificationCenter_default,     METH_CLASS|METH_NOARGS, NULL},
+static PyMethodDef smisk_NotificationCenter_methods[] = {
+  {"subscribe",   (PyCFunction)smisk_NotificationCenter_subscribe,   METH_VARARGS,           
+    smisk_NotificationCenter_subscribe_DOC},
+  {"unsubscribe", (PyCFunction)smisk_NotificationCenter_unsubscribe, METH_VARARGS,           
+    smisk_NotificationCenter_unsubscribe_DOC},
+  {"post",        (PyCFunction)smisk_NotificationCenter_post,        METH_VARARGS,           
+    smisk_NotificationCenter_post_DOC},
+  {"default",     (PyCFunction)smisk_NotificationCenter_default,     METH_STATIC|METH_NOARGS, NULL},
   {NULL}
 };
 
 // Class members
-static struct PyMemberDef smisk_NotificationCenter_members[] =
-{
-  {"observers", T_OBJECT_EX, offsetof(smisk_NotificationCenter, observers), RO, NULL},
+static struct PyMemberDef smisk_NotificationCenter_members[] = {
+  {"observers", T_OBJECT_EX, offsetof(smisk_NotificationCenter, observers), RO,
+    ":type: dict"},
   {NULL}
 };
 
@@ -227,7 +243,7 @@ static struct PyMemberDef smisk_NotificationCenter_members[] =
 PyTypeObject smisk_NotificationCenterType = {
   PyObject_HEAD_INIT(&PyType_Type)
   0,             /*ob_size*/
-  "smisk.NotificationCenter", /*tp_name*/
+  "smisk.core.NotificationCenter", /*tp_name*/
   sizeof(smisk_NotificationCenter),     /*tp_basicsize*/
   0,             /*tp_itemsize*/
   (destructor)smisk_NotificationCenter_dealloc,    /* tp_dealloc */
@@ -263,7 +279,7 @@ PyTypeObject smisk_NotificationCenterType = {
   0,               /* tp_dictoffset */
   (initproc)smisk_NotificationCenter_init, /* tp_init */
   0,               /* tp_alloc */
-  PyType_GenericNew,  /* tp_new */
+  smisk_NotificationCenter_new,  /* tp_new */
   0              /* tp_free */
 };
 

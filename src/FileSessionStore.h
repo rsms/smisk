@@ -19,37 +19,21 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#ifndef SMISK_RESPONSE_H
-#define SMISK_RESPONSE_H
+#ifndef SMISK_FILE_SESSION_STORE_H
+#define SMISK_FILE_SESSION_STORE_H
 #include <Python.h>
-#include "Stream.h"
-
-//#include <fcgi_config.h>
-#include <fcgiapp.h>
 
 typedef struct {
   PyObject_HEAD;
   
   // Public Python & C
-  smisk_Stream *out;
-  PyObject     *headers; // lazy list
+  PyObject *dir; // string
+  PyObject *file_prefix; // string
   
-  // Private
-  int has_begun;
-  
-} smisk_Response;
+} smisk_FileSessionStore;
 
-// Internal functions
-int smisk_Response_reset (smisk_Response* self); // returns -1 on error
-void smisk_Response_finish (smisk_Response* self);
+extern PyTypeObject smisk_FileSessionStoreType;
 
-// Type setup
-extern PyTypeObject smisk_ResponseType;
-int smisk_Response_register_types (PyObject *module);
-
-// Methods
-int smisk_Response_init (smisk_Response* self, PyObject* args, PyObject* kwargs);
-void smisk_Response_dealloc (smisk_Response* self);
-PyObject* smisk_Response_begin (smisk_Response* self);
+int smisk_FileSessionStore_register_types (PyObject *module);
 
 #endif

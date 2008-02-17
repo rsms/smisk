@@ -25,7 +25,7 @@ THE SOFTWARE.
 
 typedef struct {
   PyObject_HEAD;
-  PyObject* observers; //PyDictObject
+  PyObject* observers; // dict
 } smisk_NotificationCenter;
 
 // Type setup

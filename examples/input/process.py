@@ -11,18 +11,34 @@ class MyApp(Application):
       self.response.set_cookie('a_cookie', self.request.get['set_cookie'])
     
     w = self.response.write
+    w("self: %s\n" % repr(self))
+    w("\n")
+    w("self.\n")
+    w(" request_class:       %s\n" % repr(self.request_class))
+    w(" response_class       %s\n" % repr(self.response_class))
+    w(" session_store_class: %s\n" % repr(self.session_store_class))
+    w(" session_store:       %s\n" % repr(self.session_store))
+    w(" session_id_size:     %s\n" % repr(self.session_id_size))
+    w(" session_name:        %s\n" % repr(self.session_name))
+    w("\n")
     w("self.request.\n")
-    w(" env     %s\n" % repr(self.request.env))
-    w(" get     %s\n" % repr(self.request.get))
-    w(" post    %s\n" % repr(self.request.post))
-    w(" files   %s\n" % repr(self.request.files))
-    w(" cookie  %s\n" % repr(self.request.cookie))
-    w(" input   %s\n" % repr(self.request.input.read()))
-    w(" url     %s\n" % self.request.url)
-    #w("session: %s\n" % repr(self.request.session))
+    w(" env      %s\n" % repr(self.request.env))
+    w(" get      %s\n" % repr(self.request.get))
+    w(" post     %s\n" % repr(self.request.post))
+    w(" files    %s\n" % repr(self.request.files))
+    w(" cookie   %s\n" % repr(self.request.cookie))
+    w(" input    %s\n" % repr(self.request.input.read()))
+    w(" url      %s\n" % self.request.url)
+    w(" session: %s\n" % repr(self.request.session))
+    w("\n")
+    w("self.response.\n")
+    w(" headers  %s\n" % repr(self.response.headers))
   
 
 try:
   MyApp().run()
 except KeyboardInterrupt:
   pass
+except:
+  import traceback
+  traceback.print_exc(1000, open(os.path.abspath(os.path.dirname(__file__)) + "/process-error.log", "a"))

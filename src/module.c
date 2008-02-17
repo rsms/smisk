@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include "Stream.h"
 #include "NotificationCenter.h"
 #include "URL.h"
+#include "FileSessionStore.h"
 
 #include <fastcgi.h>
 #include <sys/socket.h>
@@ -37,8 +38,8 @@ THE SOFTWARE.
 // Set default listensock
 int smisk_listensock_fileno = FCGI_LISTENSOCK_FILENO;
 
-// Static objects at module-level
-PyObject *smisk_Error, *smisk_IOError;
+// Objects at module-level
+PyObject *smisk_Error, *smisk_IOError, *os_module;
 
 // Notifications
 PyObject *kApplicationWillStartNotification;
@@ -167,6 +168,14 @@ PyMODINIT_FUNC initcore(void) {
   PyObject* module;
   module = Py_InitModule("core", module_methods);
   
+  // Load os module
+  PyObject *os_str = PyString_FromString("os");
+  os_module = PyImport_Import(os_str);
+  Py_DECREF(os_str);
+  if(os_module == NULL) {
+    return;
+  }
+  
   // Register types
   if (!module ||
     (smisk_Application_register_types(module) != 0) ||
@@ -174,24 +183,16 @@ PyMODINIT_FUNC initcore(void) {
     (smisk_Response_register_types(module) != 0) ||
     (smisk_Stream_register_types(module) != 0) ||
     (smisk_NotificationCenter_register_types(module) != 0) ||
-    (smisk_URL_register_types(module) != 0)
+    (smisk_URL_register_types(module) != 0) ||
+    (smisk_FileSessionStore_register_types(module) != 0)
     ) {
       goto error;
   }
   
-  // Register classes in module
-  
-  PyModule_AddObject(module, "Request", (PyObject *)&smisk_RequestType);
-  PyModule_AddObject(module, "Response", (PyObject *)&smisk_ResponseType);
-  PyModule_AddObject(module, "Stream", (PyObject *)&smisk_StreamType);
-  PyModule_AddObject(module, "NotificationCenter", (PyObject *)&smisk_NotificationCenterType);
-  PyModule_AddObject(module, "URL", (PyObject *)&smisk_URLType);
-  assert_refcount(&smisk_URLType, > 0);
-  
   // Setup exceptions
-  if (!(smisk_Error = PyErr_NewException("smisk.Error", PyExc_StandardError, NULL))) { goto error; }
+  if (!(smisk_Error = PyErr_NewException("smisk.core.Error", PyExc_StandardError, NULL))) { goto error; }
   PyModule_AddObject(module, "Error", smisk_Error);
-  if (!(smisk_IOError = PyErr_NewException("smisk.IOError", PyExc_IOError, NULL))) { goto error; }
+  if (!(smisk_IOError = PyErr_NewException("smisk.core.IOError", PyExc_IOError, NULL))) { goto error; }
   PyModule_AddObject(module, "IOError", smisk_IOError);
   
   // Setup notifications
