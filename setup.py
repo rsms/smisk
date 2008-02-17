@@ -94,15 +94,41 @@ if 'CFLAGS' in os.environ: os.environ['CFLAGS'] += cflags
 else: os.environ['CFLAGS'] = cflags
 
 #---------------------------------------
-setup (name = "smisk",
+setup (
+  name = "smisk",
   version = version,
-  description = "Minimal FastCGI-based web application framework",
+  description = "High-performance web service framework",
+  long_description = """
+Smisk is a simple, high-performance and scalable web service framework
+written in C, but controlled by Python.
+
+It is designed to widen the common bottle necks common in heavy-duty web
+services.
+
+The latest development version is available in
+<a href="http://svn.hunch.se/smisk/trunk">the Smisk subversion repository</a>.
+""",
+  url = 'http://trac.hunch.se/smisk',
+  download_url = 'http://trac.hunch.se/smisk/wiki/Download',
   author = 'Rasmus Andersson',
   author_email = 'rasmus@flajm.se',
   license = 'MIT',
-  url = 'http://trac.hunch.se/smisk',
-  
-  ext_modules = [Extension( name='smisk',
+  classifiers = [
+    'Development Status :: 4 - Beta',
+    'Environment :: Console',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: MacOS :: MacOS X',
+    'Operating System :: POSIX :: Linux',
+    'Operating System :: Unix',
+    'Programming Language :: C',
+    'Programming Language :: Python',
+    'Topic :: Internet :: WWW/HTTP',
+    'Topic :: Software Development :: Libraries :: Python Modules'],
+  package_dir = {'': 'lib'},
+  packages = ['smisk'],
+  ext_modules = [Extension(
+    name='smisk.core',
     sources=sources,
     include_dirs=include_dirs,
     library_dirs=library_dirs,

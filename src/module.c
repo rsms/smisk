@@ -154,19 +154,18 @@ PyObject* smisk_listening(PyObject *self, PyObject *args) {
 
 /* ------------------------------------------------------------------------- */
 
-static PyMethodDef module_methods[] =
-{
+static PyMethodDef module_methods[] = {
   {"bind",     (PyCFunction)smisk_bind,      METH_VARARGS, smisk_bind_DOC},
   {"listening",(PyCFunction)smisk_listening, METH_NOARGS,  smisk_listening_DOC},
   {NULL, NULL, 0, NULL}
 };
 
 PyDoc_STRVAR(smisk_module_DOC,
-  "Minimal FastCGI-based web application framework.");
+  "Smisk core library");
 
-PyMODINIT_FUNC initsmisk(void) {
+PyMODINIT_FUNC initcore(void) {
   PyObject* module;
-  module = Py_InitModule("smisk", module_methods);
+  module = Py_InitModule("core", module_methods);
   
   // Register types
   if (!module ||
@@ -212,7 +211,7 @@ PyMODINIT_FUNC initsmisk(void) {
   
 error:
   if (PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "smisk: init failed");
+    PyErr_SetString(PyExc_ImportError, "smisk.core init failed");
   }
 }
 
