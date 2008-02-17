@@ -1,6 +1,11 @@
 # encoding: utf-8
 
-class StoreInterface:
+class Store:
+  '''
+  Session store interface definition.
+  
+  Any session store must implement this interface.
+  '''
   def read(self, session_id):
     '''
     Return the data associated with a session id.
@@ -18,6 +23,7 @@ class StoreInterface:
     :type   session_id: string
     :rtype: object
     '''
+    raise NotImplementedError
   
   def write(self, session_id, data):
     '''
@@ -34,7 +40,7 @@ class StoreInterface:
     :type   data:        object
     :rtype: None
     '''
-    pass
+    raise NotImplementedError
   
   def destroy(self, session_id):
     '''
@@ -46,7 +52,7 @@ class StoreInterface:
     :type   session_id: string
     :rtype: None
     '''
-    pass
+    raise NotImplementedError
   
   def gc(self, max_lifetime):
     '''
@@ -65,5 +71,5 @@ class StoreInterface:
     :type   max_lifetime: int
     :rtype: None
     '''
-    pass
+    raise NotImplementedError
 
