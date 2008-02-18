@@ -123,11 +123,12 @@ static void smisk_Request_cleanup (smisk_Request* self) {
         PyObject *path = PyDict_GetItemString(file, "path");
         if(path) {
           char *fn = PyString_AsString(path);
+          log_debug("Trying to unlink file '%s' (%s)", fn, file_exist(fn) ? "exists" : "not found - skipping");
           if(file_exist(fn) && (unlink(fn) != 0)) {
             log_error("Failed to unlink temporary file %s", fn);
           }
           IFDEBUG(else {
-            log_debug("Unlinked unused uploaded file %s", fn);
+            log_debug("Unlinked unused uploaded file '%s'", fn);
           });
         }
       }

@@ -86,27 +86,25 @@ void smisk_multipart_ctx_free(multipart_ctx_t *ctx) {
 }
 
 
-// return 0 on success, !0 on error
-int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
-  char *fn, *e;
-  FILE *f;
-  ssize_t bw;
-  size_t bytes = 0;
-  IFDEBUG(double timer = microtime());
-  
-  // Create filename
-  fn = tempnam(SMISK_FILE_UPLOAD_DIR, SMISK_FILE_UPLOAD_PREFIX);
+char *smisk_multipart_mktmpfile(multipart_ctx_t *ctx) {
+  char *fn = tempnam(SMISK_FILE_UPLOAD_DIR, SMISK_FILE_UPLOAD_PREFIX);
+  log_debug("Creating temporary file '%s'", fn);
   if(fn == NULL) {
     PyErr_Format(smisk_IOError, "Failed to create temporary file at dir '%s' with prefix '%s'",
       SMISK_FILE_UPLOAD_DIR, SMISK_FILE_UPLOAD_PREFIX);
-    return 1;
+    return NULL;
   }
-  
-  // Open file for reading
-  if((f = fopen(fn, "w")) == NULL) {
-    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
-    return 1;
-  }
+  return fn;
+}
+
+
+// return 0 on success, !0 on error
+int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
+  char *fn = NULL, *e;
+  FILE *f = NULL;
+  ssize_t bw;
+  size_t bytes = 0;
+  IFDEBUG(double timer = microtime());
   
   // Read line and write line
   char *lbuf1, *lbuf2, *p;
@@ -143,6 +141,17 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
         lbuf2_len -= 2;
       }
       if(lbuf2_len) {
+        if(f == NULL) {
+          // Lazy tempfile creation
+          if( (fn = smisk_multipart_mktmpfile(ctx)) == NULL ) {
+            // PyErr has been set by smisk_multipart_mktmpfile
+            return 1;
+          }
+          if((f = fopen(fn, "w")) == NULL) {
+            PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+            return 1;
+          }
+        }
         bw = fwrite((const void *)lbuf2, 1, lbuf2_len, f);
         if(bw == -1) {
           fclose(f);
@@ -160,7 +169,7 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
     lbuf2_len = lbuf1_len;
   }
   
-  IFDEBUG(
+  IFDEBUG(if(bytes) {
     timer = microtime()-timer;
     double adjusted_size = (double)bytes;
     char size_unit = nearest_size_unit(&adjusted_size);
@@ -170,7 +179,7 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
       timer,
       adjusted_size, size_unit
       );
-  );
+  });
   
   // Close file
   fclose(f);
