@@ -437,11 +437,11 @@ static struct PyMemberDef smisk_Application_members[] = {
     "Defaults to True."},
   
   {"session_id_size", T_INT, offsetof(smisk_Application, session_id_size), 0,
-    ":type: `int`\n\n"
+    ":type: int\n\n"
     "Number of bits in generated session ids."},
   
   {"session_name", T_OBJECT_EX, offsetof(smisk_Application, session_name), 0,
-    ":type: `string`\n\n"
+    ":type: string\n\n"
     "Name used to identify the session id cookie. Defaults to \"smisk_sessid\""},
   
   {NULL}
