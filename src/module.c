@@ -205,13 +205,15 @@ PyMODINIT_FUNC initcore(void) {
   DEF_NOTI(ApplicationDidStopNotification);
 #undef DEF_NOTI
   
-  // __version__ and __doc___
+  // Special variables
+  // XXX should check for failure
   PyModule_AddObject(module, "__version__", PyString_FromString(SMISK_VERSION));
+  PyModule_AddObject(module, "__build__", PyString_FromString(SMISK_REVISION));
   PyModule_AddObject(module, "__doc__", PyString_FromString(smisk_module_DOC));
-  
   
 error:
   if (PyErr_Occurred()) {
+    // XXX add previous exc info if any to the message
     PyErr_SetString(PyExc_ImportError, "smisk.core init failed");
   }
 }

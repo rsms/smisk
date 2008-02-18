@@ -5,7 +5,7 @@ from distutils.cmd import Command
 from distutils.command.build import build as build_cmd
 import os, sys, platform
 
-version = "0.1"
+version = "0.1.0"
 
 sources = ['src/module.c',
            
@@ -26,10 +26,10 @@ os.chdir(os.path.join('.', os.path.dirname(__file__)))
 py_version = ".".join([str(s) for s in sys.version_info[0:2]]) # "M.m"
 
 # get revision
+revision = ''
 try:
   (child_stdin, child_stdout) = os.popen2('svnversion -n .')
   revision = child_stdout.read()
-  version += "r" + revision
 except:
   pass
 
@@ -79,7 +79,9 @@ class apidocs(Command):
 #---------------------------------------
 # write version.h
 f = open(os.path.abspath(os.path.join(os.path.dirname(__file__), "src/version.h")), "w")
-try: f.write("#ifndef SMISK_VERSION\n#define SMISK_VERSION \"%s\"\n#endif\n" % version)
+try:
+  f.write("#ifndef SMISK_VERSION\n#define SMISK_VERSION \"%s\"\n#endif\n" % version)
+  f.write("#ifndef SMISK_REVISION\n#define SMISK_REVISION \"%s\"\n#endif\n" % revision)
 finally: f.close()
 
 # set compiler options
