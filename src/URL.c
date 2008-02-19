@@ -544,7 +544,7 @@ PyObject* smisk_URL_decode(PyObject* self, PyObject* str) {
     return str;
   }
   
-  // Warning: This may be a problem in future Python versions as it's internal
+  // XXX This may be a problem in future Python versions as it's internal
   newstr_py->ob_size = newlen;
   
   // Return decoded string

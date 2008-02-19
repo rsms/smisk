@@ -101,7 +101,7 @@ static PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyOb
   
     // Default values
     self->session_id_size = 20;
-    self->session_name = PyString_FromString("smisk_sessid");
+    self->session_name = PyString_FromString("SID");
     self->include_exc_info_with_errors = Py_True; Py_INCREF(Py_True);
     
     // Application.current = self
@@ -442,7 +442,7 @@ static struct PyMemberDef smisk_Application_members[] = {
   
   {"session_name", T_OBJECT_EX, offsetof(smisk_Application, session_name), 0,
     ":type: string\n\n"
-    "Name used to identify the session id cookie. Defaults to \"smisk_sessid\""},
+    "Name used to identify the session id cookie. Defaults to \"SID\""},
   
   {NULL}
 };

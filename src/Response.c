@@ -408,7 +408,7 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
 }
 
 
-static PyObject* smisk_Response_get_headers(smisk_Response* self) {
+PyObject* smisk_Response_get_headers(smisk_Response* self) {
   if(self->headers == NULL) {
     if( (self->headers = PyList_New(0)) == NULL ) {
       return NULL;

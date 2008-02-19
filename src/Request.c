@@ -23,10 +23,21 @@ THE SOFTWARE.
 #include "utils.h"
 #include "multipart.h"
 #include "Request.h"
+#include "Response.h"
 #include "Application.h"
 #include <unistd.h>
 #include <structmember.h>
 #include <fastcgi.h>
+
+#define ENSURE_BY_GETTER(direct, getter, ...) \
+  if(direct == NULL) {\
+    PyObject *tmp = getter;\
+    if(tmp == NULL) {\
+      __VA_ARGS__ ;\
+    } else {\
+      Py_DECREF(tmp);\
+    }\
+  }
 
 #pragma mark Internal
 
@@ -154,6 +165,7 @@ int smisk_Request_reset (smisk_Request* self) {
   USET(session_id);
 #undef USET
   self->initial_session_hash = 0;
+  self->has_set_session_id_cookie = 0;
   return 0;
 }
 
@@ -499,7 +511,48 @@ static int smisk_Request_set_session_id(smisk_Request* self, PyObject *session_i
 }
 
 
+static int _set_session_cookie(smisk_Request *self, PyObject *session_id) {
+  log_debug("ENTER _set_session_cookie");
+  PyObject *cookie;
+  
+  // Set cookie
+  if(!PyString_Check(smisk_current_app->session_name)) {
+    return -1;
+  }
+  
+  ENSURE_BY_GETTER(self->url, smisk_Request_get_url(self),
+    return -1
+  );
+
+  cookie = PyString_FromFormat(
+    "Set-Cookie: %s=%s;Version=1;Domain=.%s;Path=/;Discard;HttpOnly",
+    PyString_AS_STRING(smisk_current_app->session_name),
+    PyString_AS_STRING(session_id),
+    PyString_AS_STRING(self->url->host) // XXX make configurable
+    );
+  if(!cookie) {
+    return -1;
+  }
+  
+  ENSURE_BY_GETTER(smisk_current_app->response->headers, smisk_Response_get_headers(smisk_current_app->response),
+    Py_DECREF(cookie);
+    return -1;
+  );
+  
+  if(PyList_Append(smisk_current_app->response->headers, cookie) != 0) {
+    Py_DECREF(cookie);
+    return -1;
+  }
+  
+  log_debug("%s", PyString_AS_STRING(cookie));
+  Py_DECREF(cookie);
+  self->has_set_session_id_cookie = 1;
+  return 0;
+}
+
+
 static PyObject* smisk_Request_get_session(smisk_Request* self) {
+  log_debug("ENTER smisk_Request_get_session");
   if(self->session == NULL) {
     PyObject *session_store;
     
@@ -515,18 +568,29 @@ static PyObject* smisk_Request_get_session(smisk_Request* self) {
       return NULL;
     }
     
+    ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
+      return NULL;
+    );
+    
     // Call Application.session_store.read(app, session_id)
     log_debug("session_store=%p", session_store);
     self->session = PyObject_CallMethod(
       session_store, "read",
-      "O", smisk_Request_get_session_id(self));
-    
+      "O", self->session_id);
     if(self->session == NULL) {
       return NULL;
     }
     
     // Save hash
     self->initial_session_hash = PyObject_Hash(self->session);
+    
+    if(!self->has_set_session_id_cookie) {
+      if(_set_session_cookie(self, self->session_id) != 0) {
+        Py_DECREF(self->session);
+        self->session = NULL;
+        return NULL;
+      }
+    }
   }
   
   Py_INCREF(self->session); // callers reference
@@ -535,7 +599,18 @@ static PyObject* smisk_Request_get_session(smisk_Request* self) {
 
 
 static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
+  log_debug("ENTER smisk_Request_set_session");
   REPLACE_OBJ(self->session, val, PyObject);
+  
+  if(!self->has_set_session_id_cookie) {
+    ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
+      return -1;
+    );
+    if(_set_session_cookie(self, self->session_id) != 0) {
+      return -1;
+    }
+  }
+  
   return self->session ? 0 : -1;
 }
 

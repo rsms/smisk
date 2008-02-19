@@ -51,5 +51,6 @@ int smisk_Response_register_types (PyObject *module);
 int smisk_Response_init (smisk_Response* self, PyObject* args, PyObject* kwargs);
 void smisk_Response_dealloc (smisk_Response* self);
 PyObject* smisk_Response_begin (smisk_Response* self);
+PyObject* smisk_Response_get_headers (smisk_Response* self);
 
 #endif

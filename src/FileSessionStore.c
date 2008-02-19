@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 #include "module.h"
+#include "utils.h"
 #include "FileSessionStore.h"
 #include <structmember.h>
 
@@ -36,6 +37,7 @@ static PyObject *smisk_FileSessionStore_new(PyTypeObject *type, PyObject *args, 
     if(tempdir == NULL) {
       tempdir = "/tmp/";
     }
+    assert(tempdir[strlen(tempdir)-1] == '/'); // see smisk_FileSessionStore_read()
     if( (self->dir = PyString_FromString(tempdir)) == NULL ) {
       Py_DECREF(self);
       return NULL;
@@ -49,8 +51,9 @@ static PyObject *smisk_FileSessionStore_new(PyTypeObject *type, PyObject *args, 
   return (PyObject *)self;
 }
 
+
 int smisk_FileSessionStore_init(smisk_FileSessionStore* self, PyObject* args, PyObject* kwargs) {
-  log_debug("ENTER smisk_FileSessionStore_init");
+  // XXX check so that self->dir exits
   return 0;
 }
 
@@ -64,13 +67,86 @@ void smisk_FileSessionStore_dealloc(smisk_FileSessionStore* self) {
 #pragma mark -
 #pragma mark Methods
 
+
+PyObject *file_readall(const char *fn) {
+  log_debug("ENTER file_readall  fn='%s'", fn);
+  FILE *f;
+  PyObject *py_buf;
+  char *buf, *p;
+  size_t br, length = 0, chunksize = 8096;
+  size_t bufsize = chunksize;
+  
+  if( (py_buf = PyString_FromStringAndSize(NULL, bufsize)) == NULL ) {
+    return NULL;
+  }
+  
+  buf = PyString_AS_STRING(py_buf);
+  
+  if((f = fopen(fn, "r")) == NULL) {
+    Py_DECREF(py_buf);
+    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+    return NULL;
+  }
+  
+  p = buf;
+  
+  while( (br = fread(p, 1, chunksize, f)) ) {
+    length += br;
+    p += br;
+    if(br < chunksize) {
+      // EOF
+      break;
+    }
+    // Realloc
+    bufsize += chunksize;
+    if(_PyString_Resize(&py_buf, (Py_ssize_t)bufsize) != 0) {
+      Py_DECREF(py_buf);
+      fclose(f);
+      return NULL;
+    }
+  }
+  
+  fclose(f);
+  buf[length] = 0;
+  ((PyStringObject *)py_buf)->ob_size = length;
+  return py_buf;
+}
+
+
 PyDoc_STRVAR(smisk_FileSessionStore_read_DOC,
-  "\n"
-  "\n"
   ":param  session_id: Session ID\n"
   ":type   session_id: string\n"
   ":rtype: object");
 PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore* self, PyObject* session_id) {
+  log_debug("ENTER smisk_FileSessionStore_read");
+  PyObject *fn, *data;
+  
+  if(!PyString_Check(session_id)) {
+    return NULL;
+  }
+  log_debug("session_id='%s'", PyString_AS_STRING(session_id));
+  
+  fn = PyString_FromStringAndSize("", 0);
+  PyString_Concat(&fn, self->dir);
+  if(PyString_AS_STRING(fn)[PyString_GET_SIZE(fn)-1] != '/') {
+    PyString_ConcatAndDel(&fn, PyString_FromStringAndSize("/", 1));
+  }
+  PyString_Concat(&fn, self->file_prefix);
+  PyString_Concat(&fn, session_id);
+  
+  // Read file data
+  if(file_exist(PyString_AS_STRING(fn))) {
+    if( (data = file_readall(PyString_AS_STRING(fn))) == NULL ) {
+      Py_DECREF(fn);
+      return NULL;
+    }
+    // XXX unarchive
+    Py_DECREF(fn);
+    return data; // Give away our reference to receiver
+  }
+  
+  log_debug("No session data  fn='%s'", PyString_AS_STRING(fn));
+  Py_DECREF(fn);
   Py_RETURN_NONE;
 }
 

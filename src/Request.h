@@ -56,6 +56,7 @@ typedef struct {
   // Don't touch my privates!
   char  *envp_buf;
   long  initial_session_hash; // for has-been-modified comparison. 0 = session not used at all.
+  char  has_set_session_id_cookie;
   
 } smisk_Request;
 
