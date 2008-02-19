@@ -31,13 +31,17 @@ typedef struct {
   // Public Python
   PyTypeObject   *request_class;
   PyTypeObject   *response_class;
-  PyTypeObject   *session_store_class;
   smisk_Request  *request;
   smisk_Response *response;
+  
+  PyTypeObject   *session_store_class;
   PyObject       *session_store; // lazy Session store
   int            session_id_size;
+  int            session_ttl;
   PyObject       *session_name; // string
+  
   PyObject       *include_exc_info_with_errors; // bool
+  
 } smisk_Application;
 
 // Current instance (NULL if none)

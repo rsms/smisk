@@ -8,7 +8,7 @@ class MyApp(Application):
     self.response.headers = ["Content-Type: text/plain"]
     
     if self.request.get.has_key('set_cookie'):
-      self.response.set_cookie('a_cookie', self.request.get['set_cookie'])
+      self.response.set_cookie('a_cookie', self.request.get['set_cookie'], max_age=20)
     
     self.request.session = 'mos'
     

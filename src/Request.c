@@ -511,6 +511,7 @@ static int smisk_Request_set_session_id(smisk_Request* self, PyObject *session_i
 }
 
 
+// XXX make configurable
 static int _set_session_cookie(smisk_Request *self, PyObject *session_id) {
   log_debug("ENTER _set_session_cookie");
   PyObject *cookie;
@@ -520,15 +521,10 @@ static int _set_session_cookie(smisk_Request *self, PyObject *session_id) {
     return -1;
   }
   
-  ENSURE_BY_GETTER(self->url, smisk_Request_get_url(self),
-    return -1
-  );
-
   cookie = PyString_FromFormat(
-    "Set-Cookie: %s=%s;Version=1;Domain=.%s;Path=/;Discard;HttpOnly",
+    "Set-Cookie: %s=%s;Version=1;Path=/",
     PyString_AS_STRING(smisk_current_app->session_name),
-    PyString_AS_STRING(session_id),
-    PyString_AS_STRING(self->url->host) // XXX make configurable
+    PyString_AS_STRING(session_id)
     );
   if(!cookie) {
     return -1;

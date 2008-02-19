@@ -315,7 +315,8 @@ PyDoc_STRVAR(smisk_Response_set_cookie_DOC,
     "**should** calculate the age of the cookie according to the age calculation rules in the "
     "`HTTP/1.1 specification <http://www.faqs.org/rfcs/rfc2616.html>`__. When the age is greater "
     "than delta-seconds seconds, the client **should** discard the cookie. A value of zero means "
-    "the cookie **should** be discarded immediately.\n"
+    "the cookie **should** be discarded immediately (not when the browsers closes, but really "
+    "immediately)\n"
   "\n"
   ":type  http_only: bool\n"
   ":param http_only: When True the cookie will be made accessible only through the HTTP protocol. "
@@ -329,7 +330,6 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
   static char *kwlist[] = {"name", "value", /* required */
                            "comment", "domain", "path",
                            "secure", "version", "max_age", "http_only", NULL};
-  
   char *name = NULL,
        *value = NULL,
        *comment = NULL,
@@ -352,7 +352,6 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
       &name, &value, &comment, &domain, &path, &secure, &version, &max_age, &http_only)) {
     return NULL;
   }
-  
   
   // Mandatory fields
   
@@ -385,6 +384,13 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
   
   if(max_age > -1) {
     PyString_ConcatAndDel(&s, PyString_FromFormat(";Max-Age=%d", max_age));
+    // Add Expires for compatibility reasons
+    // ;Expires=Wdy, DD-Mon-YY HH:MM:SS GMT
+    // XXX check for NULL returns
+    PyObject *expires = PyString_FromStringAndSize(NULL, 36);
+    time_t t = time(NULL);
+    strftime(PyString_AS_STRING(expires), 36, ";Expires=%a, %d-%b-%g %H:%M:%S GMT", gmtime(&t));
+    PyString_ConcatAndDel(&s, expires);
   } else {
     PyString_ConcatAndDel(&s, PyString_FromString(";Discard"));
   }
