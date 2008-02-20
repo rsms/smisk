@@ -30,6 +30,7 @@ revision = ''
 try:
   (child_stdin, child_stdout) = os.popen2('svnversion -n .')
   revision = child_stdout.read()
+  version += '-r' + revision
 except:
   pass
 
