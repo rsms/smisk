@@ -222,7 +222,7 @@ size_t smisk_stream_readline(char *str, int n, FCGX_Stream *stream) {
 
 void frepr_bytes(FILE *f, const char *s, size_t len) {
   int c;
-  fprintf(f, "bytes(%lu) '", len);
+  fprintf(f, "bytes(%lu) '", (unsigned long int)len);
   while(len--) {
     c = *s++;
     if( isgraph(c) || (c == ' ') ) {

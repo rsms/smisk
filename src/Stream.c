@@ -126,7 +126,7 @@ PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* args) {
   
   // Resize string (Almost all cases need this so no check before)
   if(_PyString_Resize(&str, length) == -1) {
-    log_error("_PyString_Resize(%p, %ld) == -1", str, length);
+    log_error("_PyString_Resize(%p, %ld) == -1", str, (long)length);
     return NULL;
   }
   
@@ -219,7 +219,7 @@ PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args) {
       if(bufsize < buflength+bufchunksize) {
         bufsize *= 2;
         if(_PyString_Resize(&str, bufsize) == -1) {
-          log_error("_PyString_Resize(%p, %ld) == -1", str, bufsize);
+          log_error("_PyString_Resize(%p, %ld) == -1", str, (long)bufsize);
           return NULL;
         }
       }

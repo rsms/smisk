@@ -7,8 +7,10 @@ Minimal FastCGI-based web application framework.
 :Author: Rasmus Andersson http://hunch.se/
 """
 from smisk.core import *
+import smisk.core
+__version__ = smisk.core.__version__
+__build__ = smisk.core.__build__
 
-__version__ = core.__version__
 __all__ = '''Application
 Request
 Response
