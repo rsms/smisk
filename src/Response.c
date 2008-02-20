@@ -173,6 +173,22 @@ PyObject* smisk_Response_begin(smisk_Response* self) {
     assert_refcount(self->headers, > 0);
   })
   
+  // Set session cookie?
+  if(smisk_current_app->request->session_id && (smisk_current_app->request->initial_session_hash == 0)) {
+    log_debug("New session - sending SID with Set-Cookie: %s=%s;Version=1;Path=/",
+      PyString_AS_STRING(smisk_current_app->session_name),
+      PyString_AS_STRING(smisk_current_app->request->session_id));
+    // First-time session!
+    if(!PyString_Check(smisk_current_app->session_name)) {
+      return NULL;
+    }
+    assert(smisk_current_app->request->session_id);
+    FCGX_FPrintF(self->out->stream, "Set-Cookie: %s=%s;Version=1;Path=/\r\n",
+      PyString_AS_STRING(smisk_current_app->session_name),
+      PyString_AS_STRING(smisk_current_app->request->session_id)
+    );
+  }
+  
   // Headers?
   if(self->headers && PyList_Check(self->headers) && (num_headers = PyList_GET_SIZE(self->headers))) {
     // Iterate over headers

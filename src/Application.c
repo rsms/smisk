@@ -221,8 +221,10 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
     }
     
     // Reset request & response
-    if((smisk_Request_reset(self->request) == 0) && (smisk_Response_reset(self->response) != 0)) {
-      log_error("Failed to reset request and/or response");
+    if(smisk_Request_reset(self->request) != 0) {
+      raise(SIGINT);
+    }
+    else if(smisk_Response_reset(self->response) != 0) {
       raise(SIGINT);
     }
   }
@@ -368,8 +370,8 @@ PyObject* smisk_Application_get_session_store(smisk_Application* self) {
     if((self->session_store = PyObject_Call((PyObject*)self->session_store_class, NULL, NULL)) == NULL) {
       return NULL;
     }
+    log_debug("self->session_store=%p", self->session_store);
   }
-  log_debug("self->session_store=%p", self->session_store);
   
   Py_INCREF(self->session_store); // callers reference
   return self->session_store;

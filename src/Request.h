@@ -46,8 +46,8 @@ typedef struct {
   PyObject      *get; // lazy dict
   PyObject      *post; // lazy dict
   PyObject      *files; // lazy dict
-  PyObject      *cookie; // lazy dict
-  PyObject      *session; // special object
+  PyObject      *cookies; // lazy dict
+  PyObject      *session; // special object (session data)
   PyObject      *session_id; // lazy string
   
   // Public C
@@ -56,7 +56,6 @@ typedef struct {
   // Don't touch my privates!
   char  *envp_buf;
   long  initial_session_hash; // for has-been-modified comparison. 0 = session not used at all.
-  char  has_set_session_id_cookie;
   
 } smisk_Request;
 

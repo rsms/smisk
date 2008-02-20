@@ -23,6 +23,7 @@ THE SOFTWARE.
 #include "utils.h"
 #include "FileSessionStore.h"
 #include <structmember.h>
+#include <sys/time.h>
 
 #pragma mark Initialization & deallocation
 
@@ -113,6 +114,19 @@ PyObject *file_readall(const char *fn) {
 }
 
 
+static PyObject *_path_for_session_id(smisk_FileSessionStore* self, PyObject* session_id) {
+  PyObject *fn;
+  // XXX check for errors
+  fn = PyString_FromStringAndSize(PyString_AS_STRING(self->dir), PyString_GET_SIZE(self->dir));
+  if(PyString_AS_STRING(fn)[PyString_GET_SIZE(fn)-1] != '/') {
+    PyString_ConcatAndDel(&fn, PyString_FromStringAndSize("/", 1));
+  }
+  PyString_Concat(&fn, self->file_prefix);
+  PyString_Concat(&fn, session_id);
+  return fn;
+}
+
+
 PyDoc_STRVAR(smisk_FileSessionStore_read_DOC,
   ":param  session_id: Session ID\n"
   ":type   session_id: string\n"
@@ -124,15 +138,10 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore* self, PyObject* se
   if(!PyString_Check(session_id)) {
     return NULL;
   }
-  log_debug("session_id='%s'", PyString_AS_STRING(session_id));
   
-  fn = PyString_FromStringAndSize("", 0);
-  PyString_Concat(&fn, self->dir);
-  if(PyString_AS_STRING(fn)[PyString_GET_SIZE(fn)-1] != '/') {
-    PyString_ConcatAndDel(&fn, PyString_FromStringAndSize("/", 1));
+  if( (fn = _path_for_session_id(self, session_id)) == NULL ) {
+    return NULL;
   }
-  PyString_Concat(&fn, self->file_prefix);
-  PyString_Concat(&fn, session_id);
   
   // Read file data
   if(file_exist(PyString_AS_STRING(fn))) {
@@ -144,10 +153,11 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore* self, PyObject* se
     Py_DECREF(fn);
     return data; // Give away our reference to receiver
   }
-  
-  log_debug("No session data  fn='%s'", PyString_AS_STRING(fn));
-  Py_DECREF(fn);
-  Py_RETURN_NONE;
+  else {
+    log_debug("No session data. File not found ('%s')", PyString_AS_STRING(fn));
+    Py_DECREF(fn);
+    Py_RETURN_NONE;
+  }
 }
 
 
@@ -158,6 +168,41 @@ PyDoc_STRVAR(smisk_FileSessionStore_write_DOC,
   ":type   data:       object\n"
   ":rtype: None");
 PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore* self, PyObject* args) {
+  log_debug("ENTER smisk_FileSessionStore_write");
+  
+  if (PyTuple_GET_SIZE(args) > 0) {
+    PyObject *session_id;
+    if( (session_id = PyTuple_GET_ITEM(args, 0)) != NULL ) {
+      if(!PyString_Check(session_id)) {
+        PyErr_Format(PyExc_TypeError, "first argument must be a string");
+        return NULL;
+      }
+      else {
+        return smisk_FileSessionStore_refresh(self, session_id);
+      }
+    }
+  }
+  Py_RETURN_NONE;
+}
+
+
+PyDoc_STRVAR(smisk_FileSessionStore_refresh_DOC,
+  ":param  session_id: Session ID\n"
+  ":type   session_id: string\n"
+  ":rtype: None");
+PyObject* smisk_FileSessionStore_refresh(smisk_FileSessionStore* self, PyObject* session_id) {
+  log_debug("ENTER smisk_FileSessionStore_refresh %s", PyString_AS_STRING(session_id));
+  PyObject *fn;
+  
+  if( (fn = _path_for_session_id(self, session_id)) == NULL ) {
+    return NULL;
+  }
+  
+  if(utimes(PyString_AS_STRING(fn), NULL) != 0) {
+    log_debug("utimes() failed - '%s' probably don't exist", PyString_AS_STRING(fn));
+  }
+  
+  Py_DECREF(fn);
   Py_RETURN_NONE;
 }
 
@@ -167,6 +212,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_destroy_DOC,
   ":type   session_id: string\n"
   ":rtype: None");
 PyObject* smisk_FileSessionStore_destroy(smisk_FileSessionStore* self, PyObject* session_id) {
+  log_debug("ENTER smisk_FileSessionStore_destroy");
   Py_RETURN_NONE;
 }
 
@@ -176,6 +222,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_gc_DOC,
   ":type   ttl: int\n"
   ":rtype: None");
 PyObject* smisk_FileSessionStore_gc(smisk_FileSessionStore* self, PyObject* ttl) {
+  log_debug("ENTER smisk_FileSessionStore_gc");
   Py_RETURN_NONE;
 }
 
@@ -190,6 +237,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_DOC,
 static PyMethodDef smisk_FileSessionStore_methods[] = {
   {"read", (PyCFunction)smisk_FileSessionStore_read, METH_O, smisk_FileSessionStore_read_DOC},
   {"write", (PyCFunction)smisk_FileSessionStore_write, METH_VARARGS, smisk_FileSessionStore_write_DOC},
+  {"refresh", (PyCFunction)smisk_FileSessionStore_refresh, METH_O, smisk_FileSessionStore_refresh_DOC},
   {"destroy", (PyCFunction)smisk_FileSessionStore_destroy, METH_O, smisk_FileSessionStore_destroy_DOC},
   {"gc", (PyCFunction)smisk_FileSessionStore_gc, METH_O, smisk_FileSessionStore_gc_DOC},
   {NULL}

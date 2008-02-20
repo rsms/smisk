@@ -268,3 +268,17 @@ char nearest_size_unit (double *bytes) {
   }
 }
 
+
+PyObject* smisk_generate_uid(int num_bits) {
+  PyObject *rnd, *uid;
+  log_debug("Generating uid with %d bits", num_bits);
+  
+  if( (rnd = PyObject_CallMethod(os_module, "urandom", "i", num_bits)) == NULL ) {
+    return NULL;
+  }
+  
+  uid = PyObject_CallMethod(rnd, "encode", "s", "hex");
+  
+  Py_DECREF(rnd);
+  return uid;
+}

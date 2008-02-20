@@ -121,10 +121,58 @@ inline char *_strtolower(char *s) {
 }
 
 
-// Called after every request has finished and called one from Request.dealloc
-static void smisk_Request_cleanup (smisk_Request* self) {
-  log_debug("ENTER smisk_Request_cleanup");
+static int _require_app(void) {
+  if(!smisk_current_app) {
+    PyErr_SetString(PyExc_EnvironmentError, "Application not initialized");
+    return -1;
+  }
+  return 0;
+}
+
+
+static int _cleanup_session(smisk_Request* self) {
+  log_debug("ENTER _cleanup_session");
+  // Write modified session
+  if(self->session_id) {
+    long h = 0;
+    
+    log_debug("self->session_id = %s", self->session_id ? PyString_AS_STRING(self->session_id) : "NULL");
+    log_debug("self->session = %p", self->session);
+    log_debug("self->initial_session_hash = %lu", self->initial_session_hash);
+    log_debug("PyObject_Hash(self->session) = %lu", self->session ? PyObject_Hash(self->session) : 0);
+    assert(self->session);
+    
+    if(_require_app() != 0) {
+      return -1;
+    }
+    ENSURE_BY_GETTER(smisk_current_app->session_store, smisk_Application_get_session_store(smisk_current_app),
+      return -1;
+    );
+    
+    if( ((self->initial_session_hash == 0) && (self->session != Py_None)) 
+      || (self->initial_session_hash != (h = PyObject_Hash(self->session))) )
+    {
+      // Session data was changed. Write it.
+      if(PyObject_CallMethod(smisk_current_app->session_store, "write", "OO", self->session_id, self->session) == NULL) {
+        return -1;
+      }
+    }
+    else if(self->initial_session_hash == h) {
+      // Session data was unchanged. Give the session store the opportunity to refresh this sessions' TTL:
+      if(PyObject_CallMethod(smisk_current_app->session_store, "refresh", "O", self->session_id) == NULL) {
+        return -1;
+      }
+    }
+    
+  }
+  return 0;
+}
+
+
+static int _cleanup_uploads(smisk_Request* self) {
+  log_debug("ENTER _cleanup_uploads");
   // Delete unused uploaded files
+  int st = 0;
   if(self->files) {
     PyObject *files = PyDict_Values(self->files);
     size_t i, count = PyList_GET_SIZE(files);
@@ -137,6 +185,7 @@ static void smisk_Request_cleanup (smisk_Request* self) {
           log_debug("Trying to unlink file '%s' (%s)", fn, file_exist(fn) ? "exists" : "not found - skipping");
           if(file_exist(fn) && (unlink(fn) != 0)) {
             log_error("Failed to unlink temporary file %s", fn);
+            st = -1;
           }
           IFDEBUG(else {
             log_debug("Unlinked unused uploaded file '%s'", fn);
@@ -146,6 +195,7 @@ static void smisk_Request_cleanup (smisk_Request* self) {
     }
     Py_DECREF(files);
   }
+  return st;
 }
 
 
@@ -153,19 +203,28 @@ static void smisk_Request_cleanup (smisk_Request* self) {
 // and just before calling service(). Also called when server stops.
 int smisk_Request_reset (smisk_Request* self) {
   log_debug("ENTER smisk_Request_reset");
-  smisk_Request_cleanup(self);
+  
+  if(_cleanup_session(self) != 0) {
+    return -1;
+  }
+  
+  if(_cleanup_uploads(self) != 0) {
+    return -1;
+  }
+  
 #define USET(n) Py_XDECREF(self->n); self->n = NULL; DUMP_REFCOUNT(self->n)
   USET(env);
   USET(url);
   USET(get);
   USET(post);
   USET(files);
-  USET(cookie);
+  USET(cookies);
   USET(session);
   USET(session_id);
 #undef USET
+  
   self->initial_session_hash = 0;
-  self->has_set_session_id_cookie = 0;
+  
   return 0;
 }
 
@@ -454,50 +513,112 @@ PyObject* smisk_Request_get_files(smisk_Request* self) {
 }
 
 
-PyObject* smisk_Request_get_cookie(smisk_Request* self) {
+PyObject* smisk_Request_get_cookies(smisk_Request* self) {
   char *http_cookie;
   
-  if(self->cookie == NULL) {
-    if((self->cookie = PyDict_New()) == NULL) {
+  if(self->cookies == NULL) {
+    if((self->cookies = PyDict_New()) == NULL) {
       return NULL;
     }
     
     if((http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp))) {
       log_debug("Parsing input data");
-      if(parse_input_data(http_cookie, ";", 1, self->cookie) != 0) {
-        Py_DECREF(self->cookie);
-        self->cookie = NULL;
+      if(parse_input_data(http_cookie, ";", 1, self->cookies) != 0) {
+        Py_DECREF(self->cookies);
+        self->cookies = NULL;
         return NULL;
       }
       log_debug("Done parsing input data");
     }
   }
   
-  Py_INCREF(self->cookie); // callers reference
-  return self->cookie;
+  Py_INCREF(self->cookies); // callers reference
+  return self->cookies;
 }
 
 
 static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
+  log_debug("ENTER smisk_Request_get_session_id");
   if(self->session_id == NULL) {
-    // Sanity-checks
-    if(!smisk_current_app) {
-      PyErr_SetString(PyExc_EnvironmentError,
-        "This Request has not been correctly initialized by an Application");
+    if(_require_app() != 0) {
       return NULL;
     }
     
-    // os.urandom(self.app.session_id_size).encode('hex')
-    log_debug("Generating session id with %d bits", smisk_current_app->session_id_size);
+    ENSURE_BY_GETTER(self->cookies, smisk_Request_get_cookies(self),
+      return NULL;
+    );
     
-    self->session_id = PyObject_CallMethod(
-      os_module, "urandom",
-      "i", smisk_current_app->session_id_size);
+    ENSURE_BY_GETTER(smisk_current_app->session_store, smisk_Application_get_session_store(smisk_current_app),
+      return NULL;
+    );
     
-    self->session_id = PyObject_CallMethod(
-      self->session_id,
-      "encode",
-      "s", "hex");
+    assert(smisk_current_app->session_name != NULL);
+    assert(self->session == NULL);
+    
+    // Has SID in cookie? - if so, validate
+    if( (self->session_id = PyDict_GetItem(self->cookies, smisk_current_app->session_name)) != NULL ) {
+      if(!PyString_Check(self->session_id)) {
+        if(PyList_Check(self->session_id)) {
+          log_debug("Ambiguous: Multiple SID supplied in request. Will use first one.");
+          if( (self->session_id = PyList_GetItem(self->session_id, 0)) == NULL ) {
+            return NULL;
+          }
+          else if(!PyString_Check(self->session_id)) {
+            self->session_id = NULL;
+            return NULL;
+          }
+        }
+        else {
+          log_debug("Inconsistency error: Provided SID is neither a single nor multiple string value");
+          self->session_id = NULL;
+          return NULL;
+        }
+      }
+      log_debug("SID '%s' provided by request", PyString_AS_STRING(self->session_id));
+      // As this is the first time we aquire the SID and it was provided by the user,
+      // we will also read up the session to validate wherethere this SID is valid.
+      if( (self->session = PyObject_CallMethod(smisk_current_app->session_store, "read", "O", self->session_id)) == NULL ) {
+        // Error
+        self->session_id = NULL;
+        return NULL;
+      }
+      if(self->session == Py_None) {
+        // Invalid SID
+        log_debug("Invalid SID provided by request");
+        Py_DECREF(self->session);
+        self->session = NULL;
+        self->session_id = NULL;
+      }
+      else {
+        // Valid SID
+        log_debug("Valid SID provided by request");
+        Py_INCREF(self->session_id);
+      }
+    }
+    
+    // No SID-cookie or incorrect SID?
+    if(self->session_id == NULL) {
+      assert(self->session == NULL);
+      if( (self->session_id = smisk_generate_uid(smisk_current_app->session_id_size)) == NULL ) {
+        return NULL;
+      }
+      // We do not call session_store.read() here because we *know* there is no data available.
+      self->session = Py_None;
+      Py_INCREF(Py_None);
+      self->initial_session_hash = 0;
+      if(smisk_current_app->response->has_begun) {
+        PyErr_SetString(smisk_Error, "Output already started - too late to send session id with response");
+        return NULL;
+      }
+    }
+    else {
+      assert(self->session != NULL);
+      // Compute and save hash of loaded data
+      self->initial_session_hash = PyObject_Hash(self->session);
+      log_debug("self->initial_session_hash = %lu", self->initial_session_hash);
+    }
+    
+    assert(self->session != NULL);
   }
   
   Py_INCREF(self->session_id); // callers reference
@@ -506,107 +627,61 @@ static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
 
 
 static int smisk_Request_set_session_id(smisk_Request* self, PyObject *session_id) {
-  REPLACE_OBJ(self->session_id, session_id, PyObject);
-  return self->session_id ? 0 : -1;
-}
-
-
-// XXX make configurable
-static int _set_session_cookie(smisk_Request *self, PyObject *session_id) {
-  log_debug("ENTER _set_session_cookie");
-  PyObject *cookie;
-  
-  // Set cookie
-  if(!PyString_Check(smisk_current_app->session_name)) {
+  log_debug("ENTER smisk_Request_set_session_id");
+  if(smisk_current_app->response->has_begun) {
+    PyErr_SetString(smisk_Error, "Output already started - too late to set session id");
     return -1;
   }
-  
-  cookie = PyString_FromFormat(
-    "Set-Cookie: %s=%s;Version=1;Path=/",
-    PyString_AS_STRING(smisk_current_app->session_name),
-    PyString_AS_STRING(session_id)
-    );
-  if(!cookie) {
-    return -1;
-  }
-  
-  ENSURE_BY_GETTER(smisk_current_app->response->headers, smisk_Response_get_headers(smisk_current_app->response),
-    Py_DECREF(cookie);
+  ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
     return -1;
   );
   
-  if(PyList_Append(smisk_current_app->response->headers, cookie) != 0) {
-    Py_DECREF(cookie);
+  // Delete old session data (a copy of it is still in this apps memory)
+  if(PyObject_CallMethod(smisk_current_app->session_store, "destroy", "O", self->session_id) == NULL) {
     return -1;
   }
   
-  log_debug("%s", PyString_AS_STRING(cookie));
-  Py_DECREF(cookie);
-  self->has_set_session_id_cookie = 1;
-  return 0;
+  REPLACE_OBJ(self->session_id, session_id, PyObject);
+  self->initial_session_hash = 0; // Causes "session_store.write()" and "Set-Cookie: SID="
+  return self->session_id ? 0 : -1;
 }
 
 
 static PyObject* smisk_Request_get_session(smisk_Request* self) {
   log_debug("ENTER smisk_Request_get_session");
   if(self->session == NULL) {
-    PyObject *session_store;
-    
-    // Sanity-checks
-    if(!smisk_current_app) {
-      PyErr_SetString(PyExc_EnvironmentError,
-        "This Request has not been correctly initialized by an Application");
-      return NULL;
-    }
-    
-    if( (session_store = smisk_Application_get_session_store(smisk_current_app)) == NULL ) {
-      PyErr_SetString(PyExc_EnvironmentError, "session only available during a HTTP transaction");
-      return NULL;
-    }
-    
+    // get_session_id will take it from here
     ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
       return NULL;
     );
-    
-    // Call Application.session_store.read(app, session_id)
-    log_debug("session_store=%p", session_store);
-    self->session = PyObject_CallMethod(
-      session_store, "read",
-      "O", self->session_id);
-    if(self->session == NULL) {
-      return NULL;
-    }
-    
-    // Save hash
-    self->initial_session_hash = PyObject_Hash(self->session);
-    
-    if(!self->has_set_session_id_cookie) {
-      if(_set_session_cookie(self, self->session_id) != 0) {
-        Py_DECREF(self->session);
-        self->session = NULL;
-        return NULL;
-      }
-    }
   }
-  
   Py_INCREF(self->session); // callers reference
   return self->session;
 }
 
 
 static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
-  log_debug("ENTER smisk_Request_set_session");
-  REPLACE_OBJ(self->session, val, PyObject);
+  log_debug("ENTER smisk_Request_set_session");  
+  ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
+    return -1;
+  );
   
-  if(!self->has_set_session_id_cookie) {
-    ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
-      return -1;
-    );
-    if(_set_session_cookie(self, self->session_id) != 0) {
-      return -1;
+  // Passing None causes the current session to be destroyed
+  if(val == Py_None) {
+    if(self->session != Py_None) {
+      log_debug("Destroying session '%s'", PyString_AS_STRING(self->session_id));
+      assert(smisk_current_app);
+      assert(smisk_current_app->session_store);
+      if(PyObject_CallMethod(smisk_current_app->session_store, "destroy", "O", self->session_id) == NULL) {
+        return -1;
+      }
+      self->initial_session_hash = 0;
+      REPLACE_OBJ(self->session, Py_None, PyObject);
     }
+    return 0;
   }
-  
+  // else: actually set session
+  REPLACE_OBJ(self->session, val, PyObject);
   return self->session ? 0 : -1;
 }
 
@@ -645,7 +720,7 @@ static PyGetSetDef smisk_Request_getset[] = {
     ":type: dict\n\n"
     "Any files uploaded via a POST request.", NULL},
   
-  {"cookie", (getter)smisk_Request_get_cookie,  (setter)0,
+  {"cookies", (getter)smisk_Request_get_cookies,  (setter)0,
     ":type: dict\n\n"
     "Any cookies that was attached to the request.", NULL},
   

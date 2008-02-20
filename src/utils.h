@@ -53,4 +53,7 @@ double microtime (void);
 // KB, GB, etc
 char nearest_size_unit (double *bytes);
 
+// Returns new reference to a string based on num_bits random data
+PyObject* smisk_generate_uid (int num_bits);
+
 #endif
