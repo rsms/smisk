@@ -404,7 +404,7 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
     // ;Expires=Wdy, DD-Mon-YY HH:MM:SS GMT
     // XXX check for NULL returns
     PyObject *expires = PyString_FromStringAndSize(NULL, 36);
-    time_t t = time(NULL);
+    time_t t = time(NULL) + max_age;
     strftime(PyString_AS_STRING(expires), 36, ";Expires=%a, %d-%b-%g %H:%M:%S GMT", gmtime(&t));
     PyString_ConcatAndDel(&s, expires);
   } else {
