@@ -184,7 +184,8 @@ static int _cleanup_uploads(smisk_Request* self) {
           char *fn = PyString_AsString(path);
           log_debug("Trying to unlink file '%s' (%s)", fn, file_exist(fn) ? "exists" : "not found - skipping");
           if(file_exist(fn) && (unlink(fn) != 0)) {
-            log_error("Failed to unlink temporary file %s", fn);
+            log_debug("Failed to unlink temporary file %s", fn);
+            PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
             st = -1;
           }
           IFDEBUG(else {

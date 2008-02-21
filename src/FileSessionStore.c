@@ -27,26 +27,52 @@ THE SOFTWARE.
 
 #pragma mark Initialization & deallocation
 
+static PyObject *tempfile_mod = NULL;
+static PyObject *cjson_mod = NULL;
+
 
 static PyObject *smisk_FileSessionStore_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
   log_debug("ENTER smisk_FileSessionStore_new");
   smisk_FileSessionStore *self;
+  PyObject *s;
   
-  self = (smisk_FileSessionStore *)type->tp_alloc(type, 0);
-  if (self != NULL) {
-    char *tempdir = getenv("TMPDIR");
-    if(tempdir == NULL) {
-      tempdir = "/tmp/";
+  if ( (self = (smisk_FileSessionStore *)type->tp_alloc(type, 0)) == NULL ) {
+    return NULL;
+  }
+  
+  // Load required modules
+  if(tempfile_mod == NULL) {
+    // tempfile
+    s = PyString_FromString("tempfile");
+    tempfile_mod = PyImport_Import(s);
+    Py_DECREF(s);
+    if(tempfile_mod == NULL) {
+      tempfile_mod = Py_None;
     }
-    assert(tempdir[strlen(tempdir)-1] == '/'); // see smisk_FileSessionStore_read()
-    if( (self->dir = PyString_FromString(tempdir)) == NULL ) {
+    // cjson
+    s = PyString_FromString("cjson");
+    cjson_mod = PyImport_Import(s);
+    Py_DECREF(s);
+    if(cjson_mod == NULL) {
+      return NULL;
+    }
+  }
+  
+  if(tempfile_mod != Py_None) {
+    if( (self->file_prefix = PyObject_CallMethod(tempfile_mod, "gettempdir", NULL)) == NULL ) {
+      log_debug("PyObject_CallMethod failed");
       Py_DECREF(self);
       return NULL;
     }
-    if( (self->file_prefix = PyString_FromString("smisk-sess.")) == NULL ) {
+    PyString_ConcatAndDel(&self->file_prefix, PyString_FromString("/smisk-sess."));
+    if(self->file_prefix == NULL) {
+      log_debug("PyString_ConcatAndDel failed");
       Py_DECREF(self);
       return NULL;
     }
+  }
+  else {
+    self->file_prefix = PyString_FromString("/tmp/smisk-sess.");
   }
   
   return (PyObject *)self;
@@ -61,7 +87,6 @@ int smisk_FileSessionStore_init(smisk_FileSessionStore* self, PyObject* args, Py
 
 void smisk_FileSessionStore_dealloc(smisk_FileSessionStore* self) {
   log_debug("ENTER smisk_FileSessionStore_dealloc");
-  Py_DECREF(self->dir);
   Py_DECREF(self->file_prefix);
 }
 
@@ -69,59 +94,12 @@ void smisk_FileSessionStore_dealloc(smisk_FileSessionStore* self) {
 #pragma mark Methods
 
 
-PyObject *file_readall(const char *fn) {
-  log_debug("ENTER file_readall  fn='%s'", fn);
-  FILE *f;
-  PyObject *py_buf;
-  char *buf, *p;
-  size_t br, length = 0, chunksize = 8096;
-  size_t bufsize = chunksize;
-  
-  if( (py_buf = PyString_FromStringAndSize(NULL, bufsize)) == NULL ) {
-    return NULL;
-  }
-  
-  buf = PyString_AS_STRING(py_buf);
-  
-  if((f = fopen(fn, "r")) == NULL) {
-    Py_DECREF(py_buf);
-    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
-    return NULL;
-  }
-  
-  p = buf;
-  
-  while( (br = fread(p, 1, chunksize, f)) ) {
-    length += br;
-    p += br;
-    if(br < chunksize) {
-      // EOF
-      break;
-    }
-    // Realloc
-    bufsize += chunksize;
-    if(_PyString_Resize(&py_buf, (Py_ssize_t)bufsize) != 0) {
-      Py_DECREF(py_buf);
-      fclose(f);
-      return NULL;
-    }
-  }
-  
-  fclose(f);
-  buf[length] = 0;
-  ((PyStringObject *)py_buf)->ob_size = length;
-  return py_buf;
-}
-
-
 static PyObject *_path_for_session_id(smisk_FileSessionStore* self, PyObject* session_id) {
   PyObject *fn;
-  // XXX check for errors
-  fn = PyString_FromStringAndSize(PyString_AS_STRING(self->dir), PyString_GET_SIZE(self->dir));
-  if(PyString_AS_STRING(fn)[PyString_GET_SIZE(fn)-1] != '/') {
-    PyString_ConcatAndDel(&fn, PyString_FromStringAndSize("/", 1));
+  fn = PyString_FromStringAndSize(PyString_AS_STRING(self->file_prefix), PyString_GET_SIZE(self->file_prefix));
+  if(fn == NULL) {
+    return NULL;
   }
-  PyString_Concat(&fn, self->file_prefix);
   PyString_Concat(&fn, session_id);
   return fn;
 }
@@ -145,7 +123,7 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore* self, PyObject* se
   
   // Read file data
   if(file_exist(PyString_AS_STRING(fn))) {
-    if( (data = file_readall(PyString_AS_STRING(fn))) == NULL ) {
+    if( (data = smisk_file_readall(PyString_AS_STRING(fn))) == NULL ) {
       Py_DECREF(fn);
       return NULL;
     }
@@ -161,6 +139,42 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore* self, PyObject* se
 }
 
 
+#define SMISK_FILE_APPEND 1
+
+// Return 0 on success
+int smisk_file_write(const char *fn, const char *data, size_t len, int flags) {
+  log_debug("ENTER smisk_file_write  fn='%s'  len=%lu", fn, len);
+  FILE *f;
+  void *p, *mode;
+  size_t bw, bytes_written = 0;
+  
+  mode = (flags & SMISK_FILE_APPEND) ? "a" : "w";
+  
+  if((f = fopen(fn, mode)) == NULL) {
+    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+    return -1;
+  }
+  
+  p = (void *)data;
+  
+  while(p < (void *)data+len) {
+    bw = fwrite((const void *)p, 1, len, f);
+    if(bw == -1) {
+      fclose(f);
+      PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+      return -1;
+    }
+    IFDEBUG(if(bw == 0) {
+      log_debug("bw=0");
+    })
+    p += bw;
+  }
+  
+  fclose(f);
+  return 0;
+}
+
+
 PyDoc_STRVAR(smisk_FileSessionStore_write_DOC,
   ":param  session_id: Session ID\n"
   ":type   session_id: string\n"
@@ -169,19 +183,40 @@ PyDoc_STRVAR(smisk_FileSessionStore_write_DOC,
   ":rtype: None");
 PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore* self, PyObject* args) {
   log_debug("ENTER smisk_FileSessionStore_write");
+  PyObject *session_id, *data, *s, *fn;
   
-  if (PyTuple_GET_SIZE(args) > 0) {
-    PyObject *session_id;
-    if( (session_id = PyTuple_GET_ITEM(args, 0)) != NULL ) {
-      if(!PyString_Check(session_id)) {
-        PyErr_Format(PyExc_TypeError, "first argument must be a string");
-        return NULL;
-      }
-      else {
-        return smisk_FileSessionStore_refresh(self, session_id);
-      }
-    }
+  if (PyTuple_GET_SIZE(args) != 2) {
+    PyErr_Format(PyExc_TypeError, "this method takes exactly 2 arguments");
+    return NULL;
   }
+  
+  if( (session_id = PyTuple_GET_ITEM(args, 0)) == NULL ) {
+    return NULL;
+  }
+  
+  if( (data = PyTuple_GET_ITEM(args, 1)) == NULL ) {
+    Py_DECREF(session_id);
+    return NULL;
+  }
+  
+  if( (fn = _path_for_session_id(self, session_id)) == NULL ) {
+    return NULL;
+  }
+  
+  if( (s = PyObject_CallMethod(cjson_mod, "encode", NULL)) == NULL ) {
+    Py_DECREF(data);
+    Py_DECREF(session_id);
+    return NULL;
+  }
+  
+  if(smisk_file_write(PyString_AS_STRING(fn), PyString_AS_STRING(data), PyString_GET_SIZE(data), 0) != 0) {
+    Py_DECREF(data);
+    Py_DECREF(session_id);
+    return NULL;
+  }
+  
+  Py_DECREF(data);
+  Py_DECREF(session_id);
   Py_RETURN_NONE;
 }
 
@@ -213,6 +248,22 @@ PyDoc_STRVAR(smisk_FileSessionStore_destroy_DOC,
   ":rtype: None");
 PyObject* smisk_FileSessionStore_destroy(smisk_FileSessionStore* self, PyObject* session_id) {
   log_debug("ENTER smisk_FileSessionStore_destroy");
+  PyObject *fn;
+  char *p;
+  
+  if( (fn = _path_for_session_id(self, session_id)) == NULL ) {
+    return NULL;
+  }
+  
+  p = PyString_AS_STRING(fn);
+  
+  if(file_exist(p) && (unlink(p) != 0)) {
+    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+    Py_DECREF(fn);
+    return NULL;
+  }
+  
+  Py_DECREF(fn);
   Py_RETURN_NONE;
 }
 
@@ -245,17 +296,11 @@ static PyMethodDef smisk_FileSessionStore_methods[] = {
 
 // Class members
 static struct PyMemberDef smisk_FileSessionStore_members[] = {
-  {"dir", T_OBJECT_EX, offsetof(smisk_FileSessionStore, dir), 0,
-    ":type: string\n\n"
-    "Directory in which to store session data files.\n"
-    "\n"
-    "Defaults to the value of the *TMPDIR* environment variable."},
-  
   {"file_prefix", T_OBJECT_EX, offsetof(smisk_FileSessionStore, file_prefix), 0,
     ":type: string\n\n"
     "A string to prepend to each file stored in `dir`.\n"
     "\n"
-    "Defaults to \"``smisk-sess.``\"."},
+    "Defaults to ´´tempfile.tempdir + \"smisk-sess.\"`` - for example: ``/tmp/smisk-sess.``"},
   
   {NULL}
 };

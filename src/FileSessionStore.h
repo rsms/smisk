@@ -27,7 +27,6 @@ typedef struct {
   PyObject_HEAD;
   
   // Public Python & C
-  PyObject *dir; // string
   PyObject *file_prefix; // string
   
 } smisk_FileSessionStore;

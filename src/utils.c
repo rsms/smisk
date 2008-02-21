@@ -282,3 +282,48 @@ PyObject* smisk_generate_uid(int num_bits) {
   Py_DECREF(rnd);
   return uid;
 }
+
+
+PyObject *smisk_file_readall(const char *fn) {
+  log_debug("ENTER file_readall  fn='%s'", fn);
+  FILE *f;
+  PyObject *py_buf;
+  char *buf, *p;
+  size_t br, length = 0, chunksize = 8096;
+  size_t bufsize = chunksize;
+  
+  if( (py_buf = PyString_FromStringAndSize(NULL, bufsize)) == NULL ) {
+    return NULL;
+  }
+  
+  buf = PyString_AS_STRING(py_buf);
+  
+  if((f = fopen(fn, "r")) == NULL) {
+    Py_DECREF(py_buf);
+    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+    return NULL;
+  }
+  
+  p = buf;
+  
+  while( (br = fread(p, 1, chunksize, f)) ) {
+    length += br;
+    p += br;
+    if(br < chunksize) {
+      // EOF
+      break;
+    }
+    // Realloc
+    bufsize += chunksize;
+    if(_PyString_Resize(&py_buf, (Py_ssize_t)bufsize) != 0) {
+      Py_DECREF(py_buf);
+      fclose(f);
+      return NULL;
+    }
+  }
+  
+  fclose(f);
+  buf[length] = 0;
+  ((PyStringObject *)py_buf)->ob_size = length;
+  return py_buf;
+}

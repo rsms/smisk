@@ -56,4 +56,8 @@ char nearest_size_unit (double *bytes);
 // Returns new reference to a string based on num_bits random data
 PyObject* smisk_generate_uid (int num_bits);
 
+// Return the contents of file fn as a newly allocated string
+// Returns a new reference
+PyObject *smisk_file_readall (const char *fn);
+
 #endif
