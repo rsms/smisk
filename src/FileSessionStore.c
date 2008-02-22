@@ -24,11 +24,12 @@ THE SOFTWARE.
 #include "FileSessionStore.h"
 #include <structmember.h>
 #include <sys/time.h>
+#include <fcntl.h>
+#include <marshal.h>
 
 #pragma mark Initialization & deallocation
 
 static PyObject *tempfile_mod = NULL;
-static PyObject *cjson_mod = NULL;
 
 
 static PyObject *smisk_FileSessionStore_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
@@ -48,13 +49,6 @@ static PyObject *smisk_FileSessionStore_new(PyTypeObject *type, PyObject *args, 
     Py_DECREF(s);
     if(tempfile_mod == NULL) {
       tempfile_mod = Py_None;
-    }
-    // cjson
-    s = PyString_FromString("cjson");
-    cjson_mod = PyImport_Import(s);
-    Py_DECREF(s);
-    if(cjson_mod == NULL) {
-      return NULL;
     }
   }
   
@@ -112,66 +106,88 @@ PyDoc_STRVAR(smisk_FileSessionStore_read_DOC,
 PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore* self, PyObject* session_id) {
   log_debug("ENTER smisk_FileSessionStore_read");
   PyObject *fn, *data;
+  char *pathname;
+  int fd;
+  FILE *fp;
   
   if(!PyString_Check(session_id)) {
     return NULL;
   }
   
   if( (fn = _path_for_session_id(self, session_id)) == NULL ) {
+    Py_DECREF(session_id);
     return NULL;
   }
   
+  pathname = PyString_AS_STRING(fn);
+  
   // Read file data
-  if(file_exist(PyString_AS_STRING(fn))) {
-    if( (data = smisk_file_readall(PyString_AS_STRING(fn))) == NULL ) {
+  if(file_exist(pathname)) {
+	  fd = open(pathname, O_RDONLY
+#ifdef O_BINARY
+				|O_BINARY   /* necessary for Windows */
+#endif
+#ifdef __VMS
+                        , 0666, "ctxt=bin", "shr=nil"
+#else
+                        , 0666
+#endif
+		  );
+  	if( (fd < 0) || ((fp = fdopen(fd, "rb")) == NULL) ) {
+      PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+  	  Py_DECREF(session_id);
+  	  Py_DECREF(fn);
+  		return NULL;
+  	}
+    
+    if( (data = PyMarshal_ReadObjectFromFile(fp)) == NULL ) {
+      fclose(fp);
+  	  Py_DECREF(session_id);
       Py_DECREF(fn);
       return NULL;
     }
-    // XXX unarchive
+    
+    fclose(fp);
+    log_debug("Read session data from %s", pathname);
     Py_DECREF(fn);
     return data; // Give away our reference to receiver
   }
   else {
-    log_debug("No session data. File not found ('%s')", PyString_AS_STRING(fn));
+    log_debug("No session data. File not found '%s'", PyString_AS_STRING(fn));
     Py_DECREF(fn);
     Py_RETURN_NONE;
   }
 }
 
 
-#define SMISK_FILE_APPEND 1
-
-// Return 0 on success
-int smisk_file_write(const char *fn, const char *data, size_t len, int flags) {
-  log_debug("ENTER smisk_file_write  fn='%s'  len=%lu", fn, len);
-  FILE *f;
-  void *p, *mode;
-  size_t bw, bytes_written = 0;
-  
-  mode = (flags & SMISK_FILE_APPEND) ? "a" : "w";
-  
-  if((f = fopen(fn, mode)) == NULL) {
-    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
-    return -1;
-  }
-  
-  p = (void *)data;
-  
-  while(p < (void *)data+len) {
-    bw = fwrite((const void *)p, 1, len, f);
-    if(bw == -1) {
-      fclose(f);
-      PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
-      return -1;
-    }
-    IFDEBUG(if(bw == 0) {
-      log_debug("bw=0");
-    })
-    p += bw;
-  }
-  
-  fclose(f);
-  return 0;
+static FILE *_open_exclusive(const char *filename) {
+  log_debug("_open_exclusive(\"%s\")", filename);
+#if defined(O_EXCL)&&defined(O_CREAT)&&defined(O_WRONLY)&&defined(O_TRUNC)
+	/* Use O_EXCL to avoid a race condition when another process tries to
+	   write the same file.  When that happens, our open() call fails,
+	   which is just fine (since it's only a cache).
+	   XXX If the file exists and is writable but the directory is not
+	   writable, the file will never be written.  Oh well.
+	*/
+	int fd;
+	(void) unlink(filename);
+	fd = open(filename, O_EXCL|O_CREAT|O_WRONLY|O_TRUNC
+#ifdef O_BINARY
+				|O_BINARY   /* necessary for Windows */
+#endif
+#ifdef __VMS
+                        , 0666, "ctxt=bin", "shr=nil"
+#else
+                        , 0666
+#endif
+		  );
+	if (fd < 0)
+		return NULL;
+	return fdopen(fd, "wb");
+#else
+	/* Best we can do -- on Windows this can't happen anyway */
+	return fopen(filename, "wb");
+#endif
 }
 
 
@@ -183,9 +199,11 @@ PyDoc_STRVAR(smisk_FileSessionStore_write_DOC,
   ":rtype: None");
 PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore* self, PyObject* args) {
   log_debug("ENTER smisk_FileSessionStore_write");
-  PyObject *session_id, *data, *s, *fn;
+  PyObject *session_id, *data, *fn;
+  char *pathname;
+  FILE *fp;
   
-  if (PyTuple_GET_SIZE(args) != 2) {
+  if( PyTuple_GET_SIZE(args) != 2 ) {
     PyErr_Format(PyExc_TypeError, "this method takes exactly 2 arguments");
     return NULL;
   }
@@ -200,23 +218,35 @@ PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore* self, PyObject* a
   }
   
   if( (fn = _path_for_session_id(self, session_id)) == NULL ) {
-    return NULL;
-  }
-  
-  if( (s = PyObject_CallMethod(cjson_mod, "encode", NULL)) == NULL ) {
-    Py_DECREF(data);
     Py_DECREF(session_id);
-    return NULL;
-  }
-  
-  if(smisk_file_write(PyString_AS_STRING(fn), PyString_AS_STRING(data), PyString_GET_SIZE(data), 0) != 0) {
     Py_DECREF(data);
-    Py_DECREF(session_id);
     return NULL;
   }
   
+  pathname = PyString_AS_STRING(fn);
+  
+  fp = _open_exclusive(pathname);
+  if(fp == NULL) {
+    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+    return NULL;
+  }
+  
+  PyMarshal_WriteObjectToFile(data, fp, Py_MARSHAL_VERSION);
+  if ((fflush(fp) != 0) || ferror(fp)) {
+    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+		log_error("can't write to %s", pathname);
+		fclose(fp);
+		(void) unlink(pathname);
+		return NULL;
+	}
+	
+	fclose(fp);
+  log_debug("Wrote '%s'", pathname);
+  
+  Py_DECREF(fn);
   Py_DECREF(data);
   Py_DECREF(session_id);
+  
   Py_RETURN_NONE;
 }
 

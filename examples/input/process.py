@@ -10,7 +10,13 @@ class MyApp(Application):
     if self.request.get.has_key('set_cookie'):
       self.response.set_cookie('a_cookie', self.request.get['set_cookie'], max_age=20)
     
-    self.request.session = 'mos'
+    if self.request.get.has_key('set_session'):
+      if self.request.get['set_session'] == '':
+        self.request.session = None
+      else:
+        self.request.session = self.request.get['set_session']
+    else:
+      self.request.session = 'mos'
     
     w = self.response.write
     w("self: %s\n" % repr(self))

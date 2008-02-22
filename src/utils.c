@@ -269,11 +269,11 @@ char nearest_size_unit (double *bytes) {
 }
 
 
-PyObject* smisk_generate_uid(int num_bits) {
+PyObject* smisk_generate_uid(int num_bytes) {
   PyObject *rnd, *uid;
-  log_debug("Generating uid with %d bits", num_bits);
+  log_debug("Generating %d bytes long UID", num_bytes);
   
-  if( (rnd = PyObject_CallMethod(os_module, "urandom", "i", num_bits)) == NULL ) {
+  if( (rnd = PyObject_CallMethod(os_module, "urandom", "i", num_bytes)) == NULL ) {
     return NULL;
   }
   
@@ -311,6 +311,12 @@ PyObject *smisk_file_readall(const char *fn) {
     p += br;
     if(br < chunksize) {
       // EOF
+      if(!feof(f)) {
+        PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+        Py_DECREF(py_buf);
+        fclose(f);
+        return NULL;
+      }
       break;
     }
     // Realloc

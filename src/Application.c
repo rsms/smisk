@@ -221,10 +221,9 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
     }
     
     // Reset request & response
-    if(smisk_Request_reset(self->request) != 0) {
-      raise(SIGINT);
-    }
-    else if(smisk_Response_reset(self->response) != 0) {
+    if( (smisk_Request_reset(self->request) != 0) || (smisk_Response_reset(self->response) != 0) ) {
+      log_debug("Reqeust.reset() or Response.reset() failed");
+      PyErr_Print();
       raise(SIGINT);
     }
   }
@@ -365,7 +364,7 @@ PyObject *smisk_Application_current(smisk_Application *self) {
 
 PyObject* smisk_Application_get_session_store(smisk_Application* self) {
   log_debug("ENTER smisk_Application_get_session_store");
-  if(self->session_store == NULL) {    
+  if(self->session_store == NULL) {
     DUMP_REPR(self->session_store_class);
     if((self->session_store = PyObject_Call((PyObject*)self->session_store_class, NULL, NULL)) == NULL) {
       return NULL;
@@ -441,7 +440,7 @@ static struct PyMemberDef smisk_Application_members[] = {
   
   {"session_id_size", T_INT, offsetof(smisk_Application, session_id_size), 0,
     ":type: int\n\n"
-    "Number of bits in generated session ids."},
+    "How big and complex generated session IDs should be, expressed in bytes. Defaults to 20."},
   
   {"session_name", T_OBJECT_EX, offsetof(smisk_Application, session_name), 0,
     ":type: string\n\n"
@@ -449,7 +448,7 @@ static struct PyMemberDef smisk_Application_members[] = {
   
   {"session_ttl", T_INT, offsetof(smisk_Application, session_ttl), 0,
     ":type: int\n\n"
-    "For how long a session should be valid in seconds"},
+    "For how long a session should be valid, expressed in seconds. Defaults to 900."},
   
   {NULL}
 };

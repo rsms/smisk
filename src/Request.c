@@ -153,7 +153,10 @@ static int _cleanup_session(smisk_Request* self) {
       || (self->initial_session_hash != (h = PyObject_Hash(self->session))) )
     {
       // Session data was changed. Write it.
+      DUMP_REFCOUNT(self->session);
+      DUMP_REFCOUNT(self->session_id);
       if(PyObject_CallMethod(smisk_current_app->session_store, "write", "OO", self->session_id, self->session) == NULL) {
+        log_debug("session_store.write() returned NULL");
         return -1;
       }
     }
@@ -213,7 +216,8 @@ int smisk_Request_reset (smisk_Request* self) {
     return -1;
   }
   
-#define USET(n) Py_XDECREF(self->n); self->n = NULL; DUMP_REFCOUNT(self->n)
+#define USET(n) Py_XDECREF(self->n); self->n = NULL;
+//DUMP_REFCOUNT(self->n)
   USET(env);
   USET(url);
   USET(get);
@@ -538,6 +542,20 @@ PyObject* smisk_Request_get_cookies(smisk_Request* self) {
 }
 
 
+int smisk_valid_uid(const char *uid, size_t len) {
+  size_t i;
+  for(i=0;i<len;i++) {
+    if( ((uid[i] < '0') || (uid[i] > '9')) 
+      &&((uid[i] < 'a') || (uid[i] > 'f')) 
+      &&((uid[i] < 'A') || (uid[i] > 'F')) )
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+
 static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
   log_debug("ENTER smisk_Request_get_session_id");
   if(self->session_id == NULL) {
@@ -578,22 +596,28 @@ static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
       log_debug("SID '%s' provided by request", PyString_AS_STRING(self->session_id));
       // As this is the first time we aquire the SID and it was provided by the user,
       // we will also read up the session to validate wherethere this SID is valid.
-      if( (self->session = PyObject_CallMethod(smisk_current_app->session_store, "read", "O", self->session_id)) == NULL ) {
-        // Error
-        self->session_id = NULL;
-        return NULL;
-      }
-      if(self->session == Py_None) {
-        // Invalid SID
-        log_debug("Invalid SID provided by request");
-        Py_DECREF(self->session);
-        self->session = NULL;
+      if(!smisk_valid_uid(PyString_AS_STRING(self->session_id), PyString_GET_SIZE(self->session_id))) {
+        log_debug("Invalid SID provided by request (illegal format)");
         self->session_id = NULL;
       }
       else {
-        // Valid SID
-        log_debug("Valid SID provided by request");
-        Py_INCREF(self->session_id);
+        self->session = PyObject_CallMethod(smisk_current_app->session_store, "read", "O", self->session_id);
+        if(self->session == NULL) {
+          self->session_id = NULL; // Error
+          return NULL;
+        }
+        if(self->session == Py_None) {
+          // Invalid SID
+          log_debug("Invalid SID provided by request (no session)");
+          Py_DECREF(self->session);
+          self->session = NULL;
+          self->session_id = NULL;
+        }
+        else {
+          // Valid SID
+          log_debug("Valid SID provided by request");
+          Py_INCREF(self->session_id);
+        }
       }
     }
     
@@ -662,10 +686,12 @@ static PyObject* smisk_Request_get_session(smisk_Request* self) {
 
 
 static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
-  log_debug("ENTER smisk_Request_set_session");  
+  log_debug("ENTER smisk_Request_set_session");
+  DUMP_REPR(val);
   ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
     return -1;
   );
+  log_debug("----asas");
   
   // Passing None causes the current session to be destroyed
   if(val == Py_None) {
@@ -679,9 +705,13 @@ static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
       self->initial_session_hash = 0;
       REPLACE_OBJ(self->session, Py_None, PyObject);
     }
+    IFDEBUG(else {
+      log_debug("No need to destroy - self.session == None");
+    })
     return 0;
   }
   // else: actually set session
+  log_debug("REPLACE_OBJ(self->session, val, PyObject)");
   REPLACE_OBJ(self->session, val, PyObject);
   return self->session ? 0 : -1;
 }

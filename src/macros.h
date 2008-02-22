@@ -67,7 +67,7 @@ THE SOFTWARE.
   #define DUMP_REPR(o) \
     do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
       if(repr) {\
-        log_debug("repr(%s) = '%s'", #o, PyString_AS_STRING(repr));\
+        log_debug("repr(%s) = %s", #o, PyString_AS_STRING(repr));\
       } else {\
         log_debug("repr(%s) = <NULL>", #o);\
       }\
