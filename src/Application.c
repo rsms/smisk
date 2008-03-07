@@ -20,7 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 #include "module.h"
-#include "version.h"
 #include "utils.h"
 #include "Application.h"
 #include "NotificationCenter.h"
@@ -293,14 +292,17 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
     return NULL;
   }
   
+  ENSURE_BY_GETTER(self->request->env, smisk_Request_get_env(self->request),
+    return NULL;
+  );
+  
   // Format error message
   msg = PyString_FromFormat("<h1>Internal Server Error</h1>\n"
     "<pre>%s</pre>\n"
-    "<hr/><address>%s smisk/%s at %s port %s</address>\n",
+    "<hr/><address>%s at %s port %s</address>\n",
     ((self->include_exc_info_with_errors == Py_True) ? PyString_AS_STRING(exc_str) : "Exception info has been logged."),
-    FCGX_GetParam("SERVER_SOFTWARE", self->request->envp),
-    SMISK_VERSION,
-    FCGX_GetParam("SERVER_ADDR", self->request->envp),
+    PyString_AS_STRING(PyDict_GetItemString(self->request->env, "SERVER_SOFTWARE")),
+    FCGX_GetParam("SERVER_NAME", self->request->envp),
     FCGX_GetParam("SERVER_PORT", self->request->envp));
   
   // Log exception

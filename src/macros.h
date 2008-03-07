@@ -52,6 +52,16 @@ THE SOFTWARE.
   Py_XINCREF(obj); \
   Py_XDECREF(__replace_obj); } while(0)
 
+// Ensure a lazy instance variable is available
+#define ENSURE_BY_GETTER(direct, getter, ...) \
+  if(direct == NULL) {\
+    PyObject *tmp = getter;\
+    if(tmp == NULL) {\
+      __VA_ARGS__ ;\
+    } else {\
+      Py_DECREF(tmp);\
+    }\
+  }
 
 // Log to stderr
 #define log_error(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)

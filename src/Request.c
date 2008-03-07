@@ -29,16 +29,6 @@ THE SOFTWARE.
 #include <structmember.h>
 #include <fastcgi.h>
 
-#define ENSURE_BY_GETTER(direct, getter, ...) \
-  if(direct == NULL) {\
-    PyObject *tmp = getter;\
-    if(tmp == NULL) {\
-      __VA_ARGS__ ;\
-    } else {\
-      Py_DECREF(tmp);\
-    }\
-  }
-
 #pragma mark Internal
 
 static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
@@ -346,9 +336,8 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
     // Transcribe envp to dict
     if(self->envp != NULL) {
       
-      PyStringObject* k;
-      PyStringObject* v;
-      char** envp = self->envp;
+      PyObject *k, *v;
+      char **envp = self->envp;
       
       // Parse env into dict
       for( ; *envp; envp++) {
@@ -360,15 +349,24 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
           continue;
         }
         
-        k = (PyStringObject *)PyString_FromStringAndSize(*envp, value-*envp);
+        k = PyString_FromStringAndSize(*envp, value-*envp);
         if(k == NULL) {
-          break;
+          return NULL;
         }
         
-        v = (PyStringObject *)PyString_FromString(++value);
+        v = PyString_FromString(++value);
         if(v == NULL) {
           Py_DECREF(k);
-          break;
+          return NULL;
+        }
+        
+        // Append smisk info if SERVER_SOFTWARE
+        if(strcmp(PyString_AS_STRING(k), "SERVER_SOFTWARE") == 0) {
+          PyString_ConcatAndDel(&v, PyString_FromFormat(" smisk/%s", SMISK_VERSION));
+          if(v == NULL) {
+            Py_DECREF(k);
+            return NULL;
+          }
         }
         
         if( PyDict_SetItem(self->env, (PyObject *)k, (PyObject *)v) ) {

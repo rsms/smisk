@@ -22,6 +22,7 @@ THE SOFTWARE.
 #ifndef SMISK_MODULE_H
 #define SMISK_MODULE_H
 #include <Python.h>
+#include "version.h"
 #include "macros.h"
 #include "config.h"
 
