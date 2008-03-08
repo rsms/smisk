@@ -23,7 +23,7 @@ THE SOFTWARE.
 #include <unistd.h>
 #include <signal.h>
 #include <ctype.h>
-#include "module.h"
+#include "__init__.h"
 #include "utils.h"
 #include "multipart.h"
 #include "cstr.h"

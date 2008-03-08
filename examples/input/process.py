@@ -10,24 +10,16 @@ class MyApp(Application):
     if self.request.get.has_key('set_cookie'):
       self.response.set_cookie('a_cookie', self.request.get['set_cookie'], max_age=20)
     
-    if self.request.get.has_key('set_session'):
-      if self.request.get['set_session'] == '':
-        self.request.session = None
-      else:
-        self.request.session = self.request.get['set_session']
-    else:
-      self.request.session = 'mos'
-    
     w = self.response.write
     w("self: %s\n" % repr(self))
     w("\n")
     w("self.\n")
     w(" request_class:       %s\n" % repr(self.request_class))
     w(" response_class       %s\n" % repr(self.response_class))
-    w(" session_store_class: %s\n" % repr(self.session_store_class))
-    w(" session_store:       %s\n" % repr(self.session_store))
-    w(" session_id_size:     %s\n" % repr(self.session_id_size))
-    w(" session_name:        %s\n" % repr(self.session_name))
+    #w(" session_store_class: %s\n" % repr(self.session_store_class))
+    #w(" session_store:       %s\n" % repr(self.session_store))
+    #w(" session_id_size:     %s\n" % repr(self.session_id_size))
+    #w(" session_name:        %s\n" % repr(self.session_name))
     w("\n")
     w("self.request.\n")
     w(" env      %s\n" % repr(self.request.env))
@@ -37,7 +29,7 @@ class MyApp(Application):
     w(" cookies  %s\n" % repr(self.request.cookies))
     w(" input    %s\n" % repr(self.request.input.read()))
     w(" url      %s\n" % self.request.url)
-    w(" session: %s\n" % repr(self.request.session))
+    #w(" session: %s\n" % repr(self.request.session))
     w("\n")
     w("self.response.\n")
     w(" headers  %s\n" % repr(self.response.headers))

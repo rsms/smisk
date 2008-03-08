@@ -23,8 +23,8 @@ THE SOFTWARE.
 #define SMISK_UTILS_H
 #include <fcgiapp.h>
 
-// Returns PyStringObject (borrowed reference)
-PyObject* format_exc (void);
+// Returns PyStringObject (borrowed reference). Does NOT clear exception.
+PyObject* format_exc (PyObject *type, PyObject *value, PyObject *tb);
 
 // Return ISO timestamp YYYY-MM-DD HH:MM:SS
 // @return newly allocated string. You must free the resulting string yourself.

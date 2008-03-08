@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#include "module.h"
+#include "__init__.h"
 #include "utils.h"
 #include "Application.h"
 #include "NotificationCenter.h"
@@ -206,16 +206,24 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
     
     // Exception raised?
     if(PyErr_Occurred()) {
+      PyObject *type, *value, *tb;
+      PyErr_Fetch(&type, &value, &tb);
+      log_debug("PyError: %p, %p, %p", type, value, tb);
       if(smisk_Application_trapped_signal) {
         PyErr_Print();
         break;
       }
-      else if(PyObject_CallMethod((PyObject *)self, "error", NULL) == NULL) {
-        // Exit run loop if sending the error failed
-        log_error("Failed to send error message because of another error:");
-        PyErr_Print();
-        raise(SIGINT);
-        break;
+      else {
+        if(PyObject_CallMethod((PyObject *)self, "error", "OOO", type, value, tb) != NULL) {
+          PyErr_Clear();
+        }
+        else {
+          // Exit run loop if sending the error failed
+          log_error("Failed to send error message because of another error:");
+          PyErr_Print();
+          raise(SIGINT);
+          break;
+        }
       }
     }
     
@@ -280,15 +288,25 @@ PyObject* smisk_Application_service(smisk_Application *self, PyObject* args) {
 PyDoc_STRVAR(smisk_Application_error_DOC,
   "Service a error message.\n"
   "\n"
+  ":param typ: Exception type\n"
+  ":type  typ: type\n"
+  ":param val: Exception value\n"
+  ":type  val: Exception\n"
+  ":param tb:  Traceback\n"
+  ":type  tb:  object\n"
   ":rtype: None");
 PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   log_debug("ENTER smisk_Application_error");
   
   int rc;
-  PyObject *msg, *exc_str;
+  PyObject *msg, *exc_str, *type, *value, *tb;
+  
+  if(!PyArg_UnpackTuple(args, "error", 3, 3, &type, &value, &tb)) {
+    return NULL;
+  }
   
   // Format exception into string
-  if( (exc_str = format_exc()) == NULL ) {
+  if( (exc_str = format_exc(type, value, tb)) == NULL ) {
     return NULL;
   }
   

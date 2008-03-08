@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 #include "version.h"
-#include "module.h"
+#include "__init__.h"
 #include "Application.h"
 #include "Request.h"
 #include "Response.h"
@@ -28,6 +28,7 @@ THE SOFTWARE.
 #include "NotificationCenter.h"
 #include "URL.h"
 #include "FileSessionStore.h"
+#include "xml/__init__.h"
 
 #include <fastcgi.h>
 #include <sys/socket.h>
@@ -49,6 +50,7 @@ PyObject *kApplicationDidStopNotification;
 //#include <fcgi_config.h>
 #include <fcgiapp.h>
 #include <fastcgi.h>
+
 
 PyDoc_STRVAR(smisk_bind_DOC,
   "Bind to a specific unix socket or host (and/or port).\n"
@@ -156,8 +158,8 @@ PyObject* smisk_listening(PyObject *self, PyObject *args) {
 /* ------------------------------------------------------------------------- */
 
 static PyMethodDef module_methods[] = {
-  {"bind",     (PyCFunction)smisk_bind,      METH_VARARGS, smisk_bind_DOC},
-  {"listening",(PyCFunction)smisk_listening, METH_NOARGS,  smisk_listening_DOC},
+  {"bind",      (PyCFunction)smisk_bind,       METH_VARARGS, smisk_bind_DOC},
+  {"listening", (PyCFunction)smisk_listening,  METH_NOARGS,  smisk_listening_DOC},
   {NULL, NULL, 0, NULL}
 };
 
@@ -184,7 +186,8 @@ PyMODINIT_FUNC initcore(void) {
     (smisk_Stream_register_types(module) != 0) ||
     (smisk_NotificationCenter_register_types(module) != 0) ||
     (smisk_URL_register_types(module) != 0) ||
-    (smisk_FileSessionStore_register_types(module) != 0)
+    (smisk_FileSessionStore_register_types(module) != 0) ||
+    (smisk_xml_register(module) == NULL)
     ) {
       goto error;
   }
@@ -207,9 +210,9 @@ PyMODINIT_FUNC initcore(void) {
   
   // Special variables
   // XXX should check for failure
-  PyModule_AddObject(module, "__version__", PyString_FromString(SMISK_VERSION));
-  PyModule_AddObject(module, "__build__", PyString_FromString(SMISK_REVISION));
-  PyModule_AddObject(module, "__doc__", PyString_FromString(smisk_module_DOC));
+  PyModule_AddStringConstant(module, "__version__", SMISK_VERSION);
+  PyModule_AddStringConstant(module, "__build__", SMISK_REVISION);
+  PyModule_AddStringConstant(module, "__doc__", smisk_module_DOC);
   
 error:
   if (PyErr_Occurred()) {

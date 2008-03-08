@@ -26,20 +26,17 @@ THE SOFTWARE.
 #include <unistd.h>
 #include <time.h>
 #include <sys/time.h>
-#include "module.h"
+#include "__init__.h"
 #include "URL.h"
 
 
 // Returns PyStringObject (borrowed reference)
-PyObject* format_exc(void) {
+PyObject* format_exc(PyObject *type, PyObject *value, PyObject *tb) {
   PyObject* msg = NULL;
   PyObject* lines = NULL;
   PyObject* traceback = NULL;
   PyObject* format_exception = NULL;
-  PyObject *type = NULL, *value = NULL, *tb = NULL;
   
-  PyErr_Fetch(&type, &value, &tb);
-  PyErr_Clear();
   if(type == NULL) {
     log_debug("No error occured. type == NULL");
     Py_RETURN_NONE;
