@@ -13,6 +13,7 @@ sources = ['src/__init__.c',
            'src/atoin.c',
            'src/cstr.c',
            'src/multipart.c',
+           'src/sigsegv.c',
            
            'src/Application.c',
            'src/Request.c',

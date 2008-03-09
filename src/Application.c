@@ -30,8 +30,7 @@ THE SOFTWARE.
 
 #include <structmember.h>
 #include <signal.h>
-
-//#include <unistd.h>
+#include <limits.h> // for PATH_MAX
 #include <libgen.h>
 
 #pragma mark Public C

@@ -283,35 +283,33 @@ PyObject* smisk_generate_uid(int num_bytes) {
 
 PyObject *smisk_file_readall(const char *fn) {
   log_debug("ENTER file_readall  fn='%s'", fn);
-  FILE *f;
+  FILE *fp;
   PyObject *py_buf;
   char *buf, *p;
   size_t br, length = 0, chunksize = 8096;
   size_t bufsize = chunksize;
+  
+  if( (fp = fopen(fn, "rb")) == NULL ) {
+    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+    return NULL;
+  }
   
   if( (py_buf = PyString_FromStringAndSize(NULL, bufsize)) == NULL ) {
     return NULL;
   }
   
   buf = PyString_AS_STRING(py_buf);
-  
-  if((f = fopen(fn, "r")) == NULL) {
-    Py_DECREF(py_buf);
-    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
-    return NULL;
-  }
-  
   p = buf;
   
-  while( (br = fread(p, 1, chunksize, f)) ) {
+  while( (br = fread(p, 1, chunksize, fp)) ) {
     length += br;
     p += br;
     if(br < chunksize) {
       // EOF
-      if(!feof(f)) {
+      if(!feof(fp)) {
         PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
         Py_DECREF(py_buf);
-        fclose(f);
+        fclose(fp);
         return NULL;
       }
       break;
@@ -320,13 +318,14 @@ PyObject *smisk_file_readall(const char *fn) {
     bufsize += chunksize;
     if(_PyString_Resize(&py_buf, (Py_ssize_t)bufsize) != 0) {
       Py_DECREF(py_buf);
-      fclose(f);
+      fclose(fp);
       return NULL;
     }
   }
   
-  fclose(f);
+  fclose(fp);
   buf[length] = 0;
   ((PyStringObject *)py_buf)->ob_size = length;
   return py_buf;
 }
+

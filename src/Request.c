@@ -684,7 +684,7 @@ static PyObject* smisk_Request_get_session(smisk_Request* self) {
 
 
 static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
-  log_debug("ENTER smisk_Request_set_session");
+  log_debug("ENTER smisk_Request_set_session val=%p", val);
   DUMP_REPR(val);
   ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
     return -1;

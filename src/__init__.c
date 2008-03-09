@@ -30,11 +30,15 @@ THE SOFTWARE.
 #include "FileSessionStore.h"
 #include "xml/__init__.h"
 
+#include "sigsegv.h"
+
 #include <fastcgi.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/un.h>
 #include <arpa/inet.h>
+#include <fcgiapp.h>
+#include <fastcgi.h>
 
 // Set default listensock
 int smisk_listensock_fileno = FCGI_LISTENSOCK_FILENO;
@@ -47,9 +51,13 @@ PyObject *kApplicationWillStartNotification;
 PyObject *kApplicationWillExitNotification;
 PyObject *kApplicationDidStopNotification;
 
-//#include <fcgi_config.h>
-#include <fcgiapp.h>
-#include <fastcgi.h>
+
+#ifdef SMISK_DEBUG
+static void _debug_sighandler(int sig) {
+  log_debug("Caught signal %d", sig);
+  _exit(sig);
+}
+#endif
 
 
 PyDoc_STRVAR(smisk_bind_DOC,
@@ -169,6 +177,16 @@ PyDoc_STRVAR(smisk_module_DOC,
 PyMODINIT_FUNC initcore(void) {
   PyObject* module;
   module = Py_InitModule("core", module_methods);
+  
+  // We want stack trace on SIGSEGV and SIGBUS
+  setup_sigsegv();
+  #ifdef SMISK_DEBUG
+  // A note about what signal killed us if something else
+  PyOS_setsig(SIGILL,  _debug_sighandler);
+  PyOS_setsig(SIGTRAP, _debug_sighandler);
+  PyOS_setsig(SIGABRT, _debug_sighandler);
+  PyOS_setsig(SIGPIPE, _debug_sighandler);
+  #endif
   
   // Load os module
   PyObject *os_str = PyString_FromString("os");

@@ -27,6 +27,41 @@ THE SOFTWARE.
 #include <fcntl.h>
 #include <marshal.h>
 
+#pragma mark Internal
+
+
+static FILE *_open_exclusive(const char *filename) {
+  log_debug("_open_exclusive(\"%s\")", filename);
+#if defined(O_EXCL)&&defined(O_CREAT)&&defined(O_WRONLY)&&defined(O_TRUNC)
+	/* Use O_EXCL to avoid a race condition when another process tries to
+	   write the same file.  When that happens, our open() call fails,
+	   which is just fine (since it's only a cache).
+	   XXX If the file exists and is writable but the directory is not
+	   writable, the file will never be written.  Oh well.
+	*/
+	int fd;
+	(void) unlink(filename);
+	fd = open(filename, O_EXCL|O_CREAT|O_WRONLY|O_TRUNC
+#ifdef O_BINARY
+				|O_BINARY   /* necessary for Windows */
+#endif
+#ifdef __VMS
+                        , 0666, "ctxt=bin", "shr=nil"
+#else
+                        , 0666
+#endif
+		  );
+	if (fd < 0)
+		return NULL;
+	return fdopen(fd, "wb");
+#else
+	/* Best we can do -- on Windows this can't happen anyway */
+	return fopen(filename, "wb");
+#endif
+}
+
+
+
 #pragma mark Initialization & deallocation
 
 static PyObject *tempfile_mod = NULL;
@@ -88,7 +123,11 @@ void smisk_FileSessionStore_dealloc(smisk_FileSessionStore* self) {
 #pragma mark Methods
 
 
-static PyObject *_path_for_session_id(smisk_FileSessionStore* self, PyObject* session_id) {
+PyDoc_STRVAR(smisk_FileSessionStore_path_DOC,
+  ":param  session_id: Session ID\n"
+  ":type   session_id: string\n"
+  ":rtype: string");
+static PyObject *smisk_FileSessionStore_path(smisk_FileSessionStore* self, PyObject* session_id) {
   PyObject *fn;
   fn = PyString_FromStringAndSize(PyString_AS_STRING(self->file_prefix), PyString_GET_SIZE(self->file_prefix));
   if(fn == NULL) {
@@ -107,15 +146,13 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore* self, PyObject* se
   log_debug("ENTER smisk_FileSessionStore_read");
   PyObject *fn, *data;
   char *pathname;
-  int fd;
   FILE *fp;
   
   if(!PyString_Check(session_id)) {
     return NULL;
   }
   
-  if( (fn = _path_for_session_id(self, session_id)) == NULL ) {
-    Py_DECREF(session_id);
+  if( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL ) {
     return NULL;
   }
   
@@ -123,26 +160,14 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore* self, PyObject* se
   
   // Read file data
   if(file_exist(pathname)) {
-	  fd = open(pathname, O_RDONLY
-#ifdef O_BINARY
-				|O_BINARY   /* necessary for Windows */
-#endif
-#ifdef __VMS
-                        , 0666, "ctxt=bin", "shr=nil"
-#else
-                        , 0666
-#endif
-		  );
-  	if( (fd < 0) || ((fp = fdopen(fd, "rb")) == NULL) ) {
+    if( (fp = fopen(pathname, "rb")) == NULL ) {
+      Py_DECREF(fn);
       PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
-  	  Py_DECREF(session_id);
-  	  Py_DECREF(fn);
-  		return NULL;
-  	}
+      return NULL;
+    }
     
     if( (data = PyMarshal_ReadObjectFromFile(fp)) == NULL ) {
       fclose(fp);
-  	  Py_DECREF(session_id);
       Py_DECREF(fn);
       return NULL;
     }
@@ -157,37 +182,6 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore* self, PyObject* se
     Py_DECREF(fn);
     Py_RETURN_NONE;
   }
-}
-
-
-static FILE *_open_exclusive(const char *filename) {
-  log_debug("_open_exclusive(\"%s\")", filename);
-#if defined(O_EXCL)&&defined(O_CREAT)&&defined(O_WRONLY)&&defined(O_TRUNC)
-	/* Use O_EXCL to avoid a race condition when another process tries to
-	   write the same file.  When that happens, our open() call fails,
-	   which is just fine (since it's only a cache).
-	   XXX If the file exists and is writable but the directory is not
-	   writable, the file will never be written.  Oh well.
-	*/
-	int fd;
-	(void) unlink(filename);
-	fd = open(filename, O_EXCL|O_CREAT|O_WRONLY|O_TRUNC
-#ifdef O_BINARY
-				|O_BINARY   /* necessary for Windows */
-#endif
-#ifdef __VMS
-                        , 0666, "ctxt=bin", "shr=nil"
-#else
-                        , 0666
-#endif
-		  );
-	if (fd < 0)
-		return NULL;
-	return fdopen(fd, "wb");
-#else
-	/* Best we can do -- on Windows this can't happen anyway */
-	return fopen(filename, "wb");
-#endif
 }
 
 
@@ -213,13 +207,10 @@ PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore* self, PyObject* a
   }
   
   if( (data = PyTuple_GET_ITEM(args, 1)) == NULL ) {
-    Py_DECREF(session_id);
     return NULL;
   }
   
-  if( (fn = _path_for_session_id(self, session_id)) == NULL ) {
-    Py_DECREF(session_id);
-    Py_DECREF(data);
+  if( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL ) {
     return NULL;
   }
   
@@ -244,9 +235,6 @@ PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore* self, PyObject* a
   log_debug("Wrote '%s'", pathname);
   
   Py_DECREF(fn);
-  Py_DECREF(data);
-  Py_DECREF(session_id);
-  
   Py_RETURN_NONE;
 }
 
@@ -259,7 +247,7 @@ PyObject* smisk_FileSessionStore_refresh(smisk_FileSessionStore* self, PyObject*
   log_debug("ENTER smisk_FileSessionStore_refresh %s", PyString_AS_STRING(session_id));
   PyObject *fn;
   
-  if( (fn = _path_for_session_id(self, session_id)) == NULL ) {
+  if( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL ) {
     return NULL;
   }
   
@@ -281,7 +269,7 @@ PyObject* smisk_FileSessionStore_destroy(smisk_FileSessionStore* self, PyObject*
   PyObject *fn;
   char *p;
   
-  if( (fn = _path_for_session_id(self, session_id)) == NULL ) {
+  if( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL ) {
     return NULL;
   }
   
@@ -321,6 +309,7 @@ static PyMethodDef smisk_FileSessionStore_methods[] = {
   {"refresh", (PyCFunction)smisk_FileSessionStore_refresh, METH_O, smisk_FileSessionStore_refresh_DOC},
   {"destroy", (PyCFunction)smisk_FileSessionStore_destroy, METH_O, smisk_FileSessionStore_destroy_DOC},
   {"gc", (PyCFunction)smisk_FileSessionStore_gc, METH_O, smisk_FileSessionStore_gc_DOC},
+  {"path", (PyCFunction)smisk_FileSessionStore_path, METH_O, smisk_FileSessionStore_path_DOC},
   {NULL}
 };
 
