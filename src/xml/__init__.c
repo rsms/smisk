@@ -162,10 +162,6 @@ PyDoc_STRVAR(smisk_xml_DOC,
 
 PyObject *smisk_xml_register (PyObject *parent) {
   log_debug("ENTER smisk_xml_register");
-  
-  const char *s = "<b>Mos & Pos</b> Dem kallar det \"internet\"";
-  log_debug("%s", smisk_xml_encode(s, strlen(s)));
-  
   smisk_xml = Py_InitModule("xml", methods);
   PyModule_AddStringConstant(smisk_xml, "__doc__", smisk_xml_DOC);
   if(PyModule_AddObject(parent, "xml", smisk_xml) != 0) {
