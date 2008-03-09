@@ -73,7 +73,7 @@ THE SOFTWARE.
   #define assert_refcount(o, count_test) \
     if(!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld %s)", (long int)(o)->ob_refcnt, #count_test); }\
     assert((o)->ob_refcnt count_test)
-  #define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o) ? (o)->ob_refcnt : 0)
+  #define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o) ? (long int)(o)->ob_refcnt : 0)
   #define DUMP_REPR(o) \
     do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
       if(repr) {\
