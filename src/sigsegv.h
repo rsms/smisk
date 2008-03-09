@@ -4,6 +4,6 @@
 #ifdef __cplusplus
 extern "C"
 #endif
-int setup_sigsegv();
+int setup_sigsegv(void);
 
 #endif

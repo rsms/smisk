@@ -35,7 +35,6 @@
 
 static void signal_segv(int signum, siginfo_t* info, void*ptr) {
     static const char *si_codes[3] = {"", "SEGV_MAPERR", "SEGV_ACCERR"};
-    size_t i;
 
 #if defined(SIGSEGV_STACK_X86) || defined(SIGSEGV_STACK_IA64)
     int f = 0;
@@ -53,10 +52,12 @@ static void signal_segv(int signum, siginfo_t* info, void*ptr) {
     fprintf(stderr, "info.si_errno = %d\n", info->si_errno);
     fprintf(stderr, "info.si_code  = %d (%s)\n", info->si_code, si_codes[info->si_code]);
     fprintf(stderr, "info.si_addr  = %p\n", info->si_addr);
-    /*for(i = 0; i < NGREG; i++)
-        fprintf(stderr, "reg[%02u]       = 0x" REGFORMAT "\n", i, ucontext->uc_mcontext.gregs[i]);*/
 
 #if defined(SIGSEGV_STACK_X86) || defined(SIGSEGV_STACK_IA64)
+    ucontext_t *ucontext = (ucontext_t*)ptr;
+    
+    for(i = 0; i < NGREG; i++)
+        fprintf(stderr, "reg[%02u]       = 0x" REGFORMAT "\n", i, ucontext->uc_mcontext.gregs[i]);
 # if defined(SIGSEGV_STACK_IA64)
     ip = (void*)ucontext->uc_mcontext.gregs[REG_RIP];
     bp = (void**)ucontext->uc_mcontext.gregs[REG_RBP];
@@ -71,13 +72,6 @@ static void signal_segv(int signum, siginfo_t* info, void*ptr) {
             break;
 
         const char *symname = dlinfo.dli_sname;
-#ifndef NO_CPP_DEMANGLE
-        int status;
-        char *tmp = __cxa_demangle(symname, NULL, 0, &status);
-
-        if(status == 0 && tmp)
-            symname = tmp;
-#endif
 
         fprintf(stderr, "% 2d: %p <%s+%u> (%s)\n",
                 ++f,
@@ -85,11 +79,6 @@ static void signal_segv(int signum, siginfo_t* info, void*ptr) {
                 symname,
                 (unsigned)(ip - dlinfo.dli_saddr),
                 dlinfo.dli_fname);
-
-#ifndef NO_CPP_DEMANGLE
-        if(tmp)
-            free(tmp);
-#endif
 
         if(dlinfo.dli_sname && !strcmp(dlinfo.dli_sname, "main"))
             break;
@@ -101,7 +90,7 @@ static void signal_segv(int signum, siginfo_t* info, void*ptr) {
     fprintf(stderr, "Stack trace (non-dedicated):\n");
     sz = backtrace(bt, 1000);
     strings = backtrace_symbols(bt, sz);
-
+    size_t i;
     for(i = 0; i < sz; ++i)
         fprintf(stderr, "%s\n", strings[i]);
 #endif
@@ -110,7 +99,7 @@ static void signal_segv(int signum, siginfo_t* info, void*ptr) {
 }
 
 
-int setup_sigsegv() {
+int setup_sigsegv(void) {
     struct sigaction action;
     memset(&action, 0, sizeof(action));
     action.sa_sigaction = signal_segv;
