@@ -33,7 +33,7 @@ THE SOFTWARE.
 
 // Where and how uploaded files are saved before taken care of
 #define SMISK_FILE_UPLOAD_DIR "/tmp/"
-#define SMISK_FILE_UPLOAD_PREFIX "smisk-upload."
+#define SMISK_FILE_UPLOAD_PREFIX "smisk-upload-"
 
 
 #endif

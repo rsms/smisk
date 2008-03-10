@@ -25,11 +25,21 @@ THE SOFTWARE.
 #include "Request.h"
 #include "Response.h"
 #include "Application.h"
+
+#include "sha1.h"
+
 #include <unistd.h>
 #include <structmember.h>
 #include <fastcgi.h>
 
 #pragma mark Internal
+
+
+// Warning: Changing SMISK_SESSION_NBITS may cause some smisk installations to
+//          stop sharing sessions with each other, which is dangerous. Do not
+//          change unless during a major version step.
+#define SMISK_SESSION_NBITS 5
+
 
 static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
   char *s;
@@ -117,6 +127,70 @@ static int _require_app(void) {
     return -1;
   }
   return 0;
+}
+
+
+static int _valid_sid(const char *uid, size_t len) {
+  size_t i;
+  for(i=0;i<len;i++) {
+    if( ((uid[i] < '0') || (uid[i] > '9')) 
+#if (SMISK_SESSION_NBITS == 6)
+      &&((uid[i] < 'a') || (uid[i] > 'f')) 
+      &&((uid[i] < 'A') || (uid[i] > 'F'))
+      &&(uid[i] != '+')
+      &&(uid[i] != '/')
+#elif (SMISK_SESSION_NBITS == 5)
+      &&((uid[i] < 'a') || (uid[i] > 'v'))
+#else
+      &&((uid[i] < 'a') || (uid[i] > 'f'))
+#endif
+      )
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+
+static PyObject* _generate_sid(smisk_Request* self) {
+  PyObject *uid;
+  struct timeval tv;
+  char *remote_info;
+  sha1_ctx_t sha1_ctx;
+  
+  gettimeofday(&tv, NULL);
+  
+  // maximum 19+19+11+19+1 bytes
+  char buf[69];
+  sprintf(buf, "%ld%ld%d%ld",
+    tv.tv_sec,
+    (long int)tv.tv_usec,
+    getpid(),
+    random());
+  
+  unsigned char digest[21];
+  sha1_init(&sha1_ctx);
+  sha1_update(&sha1_ctx, (unsigned char *)buf, strlen(buf));
+  if((remote_info = FCGX_GetParam("REMOTE_ADDR", self->envp))) {
+    sha1_update(&sha1_ctx, (unsigned char *)remote_info, strlen(remote_info));
+  }
+  if((remote_info = FCGX_GetParam("REMOTE_PORT", self->envp))) {
+    sha1_update(&sha1_ctx, (unsigned char *)remote_info, strlen(remote_info));
+  }
+  sha1_final(&sha1_ctx, digest);
+	
+#if (SMISK_SESSION_NBITS == 6)
+  uid = PyString_FromStringAndSize(NULL, 27);
+#elif (SMISK_SESSION_NBITS == 5)
+  uid = PyString_FromStringAndSize(NULL, 32);
+#else
+  uid = PyString_FromStringAndSize(NULL, 40);
+#endif
+  char *digest_buf = PyString_AS_STRING(uid);
+	smisk_encode_bin((char *)digest, 20, digest_buf, SMISK_SESSION_NBITS);
+	
+  return uid;
 }
 
 
@@ -540,20 +614,6 @@ PyObject* smisk_Request_get_cookies(smisk_Request* self) {
 }
 
 
-int smisk_valid_uid(const char *uid, size_t len) {
-  size_t i;
-  for(i=0;i<len;i++) {
-    if( ((uid[i] < '0') || (uid[i] > '9')) 
-      &&((uid[i] < 'a') || (uid[i] > 'f')) 
-      &&((uid[i] < 'A') || (uid[i] > 'F')) )
-    {
-      return 0;
-    }
-  }
-  return 1;
-}
-
-
 static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
   log_debug("ENTER smisk_Request_get_session_id");
   if(self->session_id == NULL) {
@@ -594,7 +654,7 @@ static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
       log_debug("SID '%s' provided by request", PyString_AS_STRING(self->session_id));
       // As this is the first time we aquire the SID and it was provided by the user,
       // we will also read up the session to validate wherethere this SID is valid.
-      if(!smisk_valid_uid(PyString_AS_STRING(self->session_id), PyString_GET_SIZE(self->session_id))) {
+      if(!_valid_sid(PyString_AS_STRING(self->session_id), PyString_GET_SIZE(self->session_id))) {
         log_debug("Invalid SID provided by request (illegal format)");
         self->session_id = NULL;
       }
@@ -622,7 +682,7 @@ static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
     // No SID-cookie or incorrect SID?
     if(self->session_id == NULL) {
       assert(self->session == NULL);
-      if( (self->session_id = smisk_generate_uid(smisk_current_app->session_id_size)) == NULL ) {
+      if( (self->session_id = _generate_sid(self)) == NULL ) {
         return NULL;
       }
       // We do not call session_store.read() here because we *know* there is no data available.
@@ -689,7 +749,6 @@ static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
   ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
     return -1;
   );
-  log_debug("----asas");
   
   // Passing None causes the current session to be destroyed
   if(val == Py_None) {

@@ -178,6 +178,9 @@ PyMODINIT_FUNC initcore(void) {
   PyObject* module;
   module = Py_InitModule("core", module_methods);
   
+  // Seed random
+  srandom((unsigned int)getpid());
+  
   // We want stack trace on SIGSEGV and SIGBUS
   setup_sigsegv();
   #ifdef SMISK_DEBUG

@@ -266,21 +266,6 @@ char nearest_size_unit (double *bytes) {
 }
 
 
-PyObject* smisk_generate_uid(int num_bytes) {
-  PyObject *rnd, *uid;
-  log_debug("Generating %d bytes long UID", num_bytes);
-  
-  if( (rnd = PyObject_CallMethod(os_module, "urandom", "i", num_bytes)) == NULL ) {
-    return NULL;
-  }
-  
-  uid = PyObject_CallMethod(rnd, "encode", "s", "hex");
-  
-  Py_DECREF(rnd);
-  return uid;
-}
-
-
 PyObject *smisk_file_readall(const char *fn) {
   log_debug("ENTER file_readall  fn='%s'", fn);
   FILE *fp;
@@ -327,5 +312,44 @@ PyObject *smisk_file_readall(const char *fn) {
   buf[length] = 0;
   ((PyStringObject *)py_buf)->ob_size = length;
   return py_buf;
+}
+
+
+static char binconvtab[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-";
+
+char *smisk_encode_bin(char *in, size_t inlen, char *out, char nbits) {
+	unsigned char *p, *q;
+	unsigned short w;
+	int mask;
+	int have;
+	
+	p = (unsigned char *)in;
+	q = (unsigned char *)in + inlen;
+
+	w = 0;
+	have = 0;
+	mask = (1 << nbits) - 1;
+	
+	while (1) {
+		if (have < nbits) {
+			if (p < q) {
+				w |= *p++ << have;
+				have += 8;
+			} else {
+				/* consumed everything? */
+				if (have == 0) break;
+				/* No? We need a final round */
+				have = nbits;
+			}
+		}
+
+		/* consume nbits */
+		*out++ = binconvtab[w & mask];
+		w >>= nbits;
+		have -= nbits;
+	}
+	
+	*out = '\0';
+	return out;
 }
 

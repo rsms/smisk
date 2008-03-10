@@ -53,11 +53,18 @@ double microtime (void);
 // KB, GB, etc
 char nearest_size_unit (double *bytes);
 
-// Return a string of num_bytes random bytes
-PyObject* smisk_generate_uid (int num_bytes);
-
 // Return the contents of file fn as a newly allocated string
 // Returns a new reference
 PyObject *smisk_file_readall (const char *fn);
+
+/*
+Encode bytes into printable ASCII characters.
+Returns a pointer to the byte after the last valid character in out.
+
+nbits=4: out need to fit 40+1 bytes (base 16) (0-9, a-f)
+nbits=5: out need to fit 32+1 bytes (base 32) (0-9, a-v)
+nbits=6: out need to fit 27+1 bytes (base 64) (0-9, a-z, A-Z, "-", ",")
+*/
+char *smisk_encode_bin (char *in, size_t inlen, char *out, char bits_per_byte);
 
 #endif
