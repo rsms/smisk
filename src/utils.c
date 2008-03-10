@@ -239,11 +239,11 @@ int file_exist(const char *fn) {
 
 
 double microtime(void) {
-	struct timeval tp;
-	if(gettimeofday(&tp, NULL) == 0) {
-		return ((double)tp.tv_usec / 1000000.0) + tp.tv_sec;
-	}
-	return 0.0;
+  struct timeval tp;
+  if(gettimeofday(&tp, NULL) == 0) {
+    return ((double)tp.tv_usec / 1000000.0) + tp.tv_sec;
+  }
+  return 0.0;
 }
 
 
@@ -318,38 +318,38 @@ PyObject *smisk_file_readall(const char *fn) {
 static char binconvtab[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-";
 
 char *smisk_encode_bin(char *in, size_t inlen, char *out, char nbits) {
-	unsigned char *p, *q;
-	unsigned short w;
-	int mask;
-	int have;
-	
-	p = (unsigned char *)in;
-	q = (unsigned char *)in + inlen;
+  unsigned char *p, *q;
+  unsigned short w;
+  int mask;
+  int have;
+  
+  p = (unsigned char *)in;
+  q = (unsigned char *)in + inlen;
 
-	w = 0;
-	have = 0;
-	mask = (1 << nbits) - 1;
-	
-	while (1) {
-		if (have < nbits) {
-			if (p < q) {
-				w |= *p++ << have;
-				have += 8;
-			} else {
-				/* consumed everything? */
-				if (have == 0) break;
-				/* No? We need a final round */
-				have = nbits;
-			}
-		}
+  w = 0;
+  have = 0;
+  mask = (1 << nbits) - 1;
+  
+  while (1) {
+    if (have < nbits) {
+      if (p < q) {
+        w |= *p++ << have;
+        have += 8;
+      } else {
+        /* consumed everything? */
+        if (have == 0) break;
+        /* No? We need a final round */
+        have = nbits;
+      }
+    }
 
-		/* consume nbits */
-		*out++ = binconvtab[w & mask];
-		w >>= nbits;
-		have -= nbits;
-	}
-	
-	*out = '\0';
-	return out;
+    /* consume nbits */
+    *out++ = binconvtab[w & mask];
+    w >>= nbits;
+    have -= nbits;
+  }
+  
+  *out = '\0';
+  return out;
 }
 
