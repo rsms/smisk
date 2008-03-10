@@ -27,10 +27,10 @@ THE SOFTWARE.
 #include <stddef.h>
 
 typedef struct {
-	char* ptr;
+  char* ptr;
   unsigned int growsize;
-	size_t size;
-	size_t length;
+  size_t size;
+  size_t length;
 } cstr_t;
 
 int cstr_init (cstr_t *s, size_t capacity, unsigned int growsize); // return 0 on success, 1 on malloc failure

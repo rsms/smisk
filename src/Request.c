@@ -179,7 +179,7 @@ static PyObject* _generate_sid(smisk_Request* self) {
     sha1_update(&sha1_ctx, (unsigned char *)remote_info, strlen(remote_info));
   }
   sha1_final(&sha1_ctx, digest);
-	
+  
 #if (SMISK_SESSION_NBITS == 6)
   uid = PyString_FromStringAndSize(NULL, 27);
 #elif (SMISK_SESSION_NBITS == 5)
@@ -188,8 +188,8 @@ static PyObject* _generate_sid(smisk_Request* self) {
   uid = PyString_FromStringAndSize(NULL, 40);
 #endif
   char *digest_buf = PyString_AS_STRING(uid);
-	smisk_encode_bin((char *)digest, 20, digest_buf, SMISK_SESSION_NBITS);
-	
+  smisk_encode_bin((char *)digest, 20, digest_buf, SMISK_SESSION_NBITS);
+  
   return uid;
 }
 

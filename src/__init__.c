@@ -112,9 +112,9 @@ PyObject* smisk_bind(PyObject *self, PyObject *args) {
       PyString_AS_STRING(path), backlog, fd, errno);
     return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "bind() failed");
   }
-	
-	// Set the process global fileno
-	smisk_listensock_fileno = fd;
+  
+  // Set the process global fileno
+  smisk_listensock_fileno = fd;
   
   Py_RETURN_NONE;
 }

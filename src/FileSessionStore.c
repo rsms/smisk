@@ -33,30 +33,30 @@ THE SOFTWARE.
 static FILE *_open_exclusive(const char *filename) {
   log_debug("_open_exclusive(\"%s\")", filename);
 #if defined(O_EXCL)&&defined(O_CREAT)&&defined(O_WRONLY)&&defined(O_TRUNC)
-	/* Use O_EXCL to avoid a race condition when another process tries to
-	   write the same file.  When that happens, our open() call fails,
-	   which is just fine (since it's only a cache).
-	   XXX If the file exists and is writable but the directory is not
-	   writable, the file will never be written.  Oh well.
-	*/
-	int fd;
-	(void) unlink(filename);
-	fd = open(filename, O_EXCL|O_CREAT|O_WRONLY|O_TRUNC
+  /* Use O_EXCL to avoid a race condition when another process tries to
+     write the same file.  When that happens, our open() call fails,
+     which is just fine (since it's only a cache).
+     XXX If the file exists and is writable but the directory is not
+     writable, the file will never be written.  Oh well.
+  */
+  int fd;
+  (void) unlink(filename);
+  fd = open(filename, O_EXCL|O_CREAT|O_WRONLY|O_TRUNC
 #ifdef O_BINARY
-				|O_BINARY   /* necessary for Windows */
+        |O_BINARY   /* necessary for Windows */
 #endif
 #ifdef __VMS
                         , 0666, "ctxt=bin", "shr=nil"
 #else
                         , 0666
 #endif
-		  );
-	if (fd < 0)
-		return NULL;
-	return fdopen(fd, "wb");
+      );
+  if (fd < 0)
+    return NULL;
+  return fdopen(fd, "wb");
 #else
-	/* Best we can do -- on Windows this can't happen anyway */
-	return fopen(filename, "wb");
+  /* Best we can do -- on Windows this can't happen anyway */
+  return fopen(filename, "wb");
 #endif
 }
 
@@ -225,13 +225,13 @@ PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore* self, PyObject* a
   PyMarshal_WriteObjectToFile(data, fp, Py_MARSHAL_VERSION);
   if ((fflush(fp) != 0) || ferror(fp)) {
     PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
-		log_error("can't write to %s", pathname);
-		fclose(fp);
-		(void) unlink(pathname);
-		return NULL;
-	}
-	
-	fclose(fp);
+    log_error("can't write to %s", pathname);
+    fclose(fp);
+    (void) unlink(pathname);
+    return NULL;
+  }
+  
+  fclose(fp);
   log_debug("Wrote '%s'", pathname);
   
   Py_DECREF(fn);

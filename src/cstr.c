@@ -25,10 +25,10 @@ THE SOFTWARE.
 
 /*
 typedef struct {
-	char* ptr;
+  char* ptr;
   size_t growsize;
-	size_t size;
-	size_t length;
+  size_t size;
+  size_t length;
 } cstr;
 */
 
@@ -60,10 +60,10 @@ void cstr_reset(cstr_t *s) {
 int cstr_resize(cstr_t *s, const size_t increment) {
   size_t new_size;
   if(increment < s->growsize) {
-		new_size = s->size + s->growsize + 1;
-	} else {
-	  new_size = s->size + increment + 1;
-	}
+    new_size = s->size + s->growsize + 1;
+  } else {
+    new_size = s->size + increment + 1;
+  }
   char *new = (char *)realloc(s->ptr, sizeof(char)*new_size);
   if(new != NULL) {
     s->ptr = new;
