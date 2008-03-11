@@ -36,6 +36,7 @@ extern PyTypeObject smisk_StreamType;
 int smisk_Stream_register_types (PyObject *module);
 
 // Methods
+PyObject *smisk_Stream_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
 int smisk_Stream_init (smisk_Stream* self, PyObject* args, PyObject* kwargs);
 void smisk_Stream_dealloc (smisk_Stream* self);
 

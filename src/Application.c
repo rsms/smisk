@@ -46,7 +46,7 @@ static int _setup_transaction_context(smisk_Application *self) {
   PyObject *request, *response;
   
   // Request
-  if((request = PyObject_Call((PyObject*)self->request_class, NULL, NULL)) == NULL) {
+  if((request = smisk_Request_new(self->request_class, NULL, NULL)) == NULL) {
     return -1;
   }
   REPLACE_OBJ(self->request, request, smisk_Request);
@@ -54,7 +54,7 @@ static int _setup_transaction_context(smisk_Application *self) {
   
   
   // Response
-  if((response = PyObject_Call((PyObject*)self->response_class, NULL, NULL)) == NULL) {
+  if((response = smisk_Response_new(self->response_class, NULL, NULL)) == NULL) {
     return -1;
   }
   REPLACE_OBJ(self->response, response, smisk_Response);
@@ -79,7 +79,7 @@ static void smisk_Application_sighandler_close_fcgi(int sig) {
 #pragma mark -
 #pragma mark Initialization & deallocation
 
-static PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
   log_debug("ENTER smisk_Application_new");
   smisk_Application *self;
   
@@ -126,6 +126,8 @@ void smisk_Application_dealloc(smisk_Application *self) {
   Py_DECREF(self->session_store);
   Py_DECREF(self->session_name);
   Py_DECREF(self->include_exc_info_with_errors);
+  
+  self->ob_type->tp_free((PyObject*)self);
 }
 
 
@@ -205,20 +207,25 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
     
     // Exception raised?
     if(PyErr_Occurred()) {
-      PyObject *type, *value, *tb;
-      PyErr_Fetch(&type, &value, &tb);
-      log_debug("PyError: %p, %p, %p", type, value, tb);
       if(smisk_Application_trapped_signal) {
         PyErr_Print();
         break;
       }
       else {
-        if(PyObject_CallMethod((PyObject *)self, "error", "OOO", type, value, tb) != NULL) {
-          PyErr_Clear();
+        PyObject *type, *value, *tb;
+        PyErr_Fetch(&type, &value, &tb);
+        PyErr_Clear();
+        log_debug("PyError: %p, %p, %p", type, value, tb);
+        PyObject *err_ret = PyObject_CallMethod((PyObject *)self, "error", "OOO", type, value, tb);
+        Py_DECREF(type);
+        Py_DECREF(value);
+        Py_DECREF(tb);
+        if(err_ret != NULL) {
+          Py_DECREF(err_ret);
         }
         else {
           // Exit run loop if sending the error failed
-          log_error("Failed to send error message because of another error:");
+          log_error("Failed to send error message because of another error");
           PyErr_Print();
           raise(SIGINT);
           break;
@@ -324,7 +331,7 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   
   // Log exception
   if(FCGX_PutStr(PyString_AS_STRING(exc_str), PyString_GET_SIZE(exc_str), self->request->err->stream) == -1) {
-    log_error("Error in %s.service(): %s", PyString_AS_STRING(PyObject_Str((PyObject *)self)), PyString_AS_STRING(exc_str));
+    log_error("Error in %s.error(): %s", PyString_AS_STRING(PyObject_Str((PyObject *)self)), PyString_AS_STRING(exc_str));
     return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on err stream");
   }
   

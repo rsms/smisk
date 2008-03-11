@@ -41,6 +41,8 @@ PyObject* format_exc(PyObject *type, PyObject *value, PyObject *tb) {
     log_debug("No error occured. type == NULL");
     Py_RETURN_NONE;
   }
+  assert(value != NULL);
+  assert(tb != NULL);
   
   if( (traceback = PyImport_ImportModule("traceback")) == NULL ) {
     log_debug("PyImport_ImportModule('traceback') == NULL");
@@ -52,28 +54,14 @@ PyObject* format_exc(PyObject *type, PyObject *value, PyObject *tb) {
     Py_DECREF(traceback);
     return NULL;
   }
-  
-  if(value == NULL) {
-    log_debug("value == NULL");
-    value = Py_None;
-    Py_INCREF(value);
-  }
-  
-  if(tb == NULL) {
-    log_debug("tb == NULL");
-    tb = Py_None;
-    Py_INCREF(tb);
-  }
+  Py_DECREF(traceback);
   
   if( (lines = PyObject_CallFunctionObjArgs(format_exception, type, value, tb, NULL)) == NULL ) {
     log_debug("PyObject_CallFunctionObjArgs(format_exception...) == NULL");
     Py_DECREF(format_exception);
-    Py_DECREF(traceback);
     return NULL;
   }
-  
   Py_DECREF(format_exception);
-  Py_DECREF(traceback);
   
   msg = PyString_FromString("");
   Py_ssize_t i = 0, lines_len = PyList_GET_SIZE(lines);
@@ -85,6 +73,8 @@ PyObject* format_exc(PyObject *type, PyObject *value, PyObject *tb) {
       return NULL;
     }
   }
+  
+  Py_DECREF(lines);
   
   return msg;
 }

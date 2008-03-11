@@ -47,6 +47,7 @@ class MyApp(Application):
   
 
 try:
+  # Any arguments means we run stand.alone and should bind to the first argument:
   if len(sys.argv) > 1:
     print 'Binding to %s' % repr(sys.argv[1])
     bind(sys.argv[1])

@@ -58,7 +58,7 @@ PyObject* smisk_NotificationCenter_postc( smisk_NotificationCenter* self, PyObje
 #pragma mark Initialization & deallocation
 
 
-static PyObject *smisk_NotificationCenter_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+PyObject *smisk_NotificationCenter_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
   log_debug("ENTER smisk_NotificationCenter_new");
   smisk_NotificationCenter *self;
   
@@ -82,6 +82,8 @@ int smisk_NotificationCenter_init(smisk_NotificationCenter* self, PyObject* args
 void smisk_NotificationCenter_dealloc(smisk_NotificationCenter* self) {
   log_debug("ENTER smisk_NotificationCenter_dealloc");
   Py_DECREF(self->observers);
+  
+  self->ob_type->tp_free((PyObject*)self);
 }
 
 
@@ -92,7 +94,7 @@ PyObject* smisk_NotificationCenter_default(PyObject* dummy) {
   log_debug("ENTER smisk_NotificationCenter_default");
   static PyObject* smisk_NotificationCenter_default_instance = NULL;
   if(!smisk_NotificationCenter_default_instance) {
-    smisk_NotificationCenter_default_instance = PyObject_Call((PyObject*)&smisk_NotificationCenterType, NULL, NULL);
+    smisk_NotificationCenter_default_instance = smisk_NotificationCenter_new(&smisk_NotificationCenterType, NULL, NULL);
   }
   Py_INCREF(smisk_NotificationCenter_default_instance);
   return smisk_NotificationCenter_default_instance;

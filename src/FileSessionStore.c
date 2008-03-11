@@ -67,7 +67,7 @@ static FILE *_open_exclusive(const char *filename) {
 static PyObject *tempfile_mod = NULL;
 
 
-static PyObject *smisk_FileSessionStore_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+PyObject *smisk_FileSessionStore_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
   log_debug("ENTER smisk_FileSessionStore_new");
   smisk_FileSessionStore *self;
   PyObject *s;
@@ -117,6 +117,8 @@ int smisk_FileSessionStore_init(smisk_FileSessionStore* self, PyObject* args, Py
 void smisk_FileSessionStore_dealloc(smisk_FileSessionStore* self) {
   log_debug("ENTER smisk_FileSessionStore_dealloc");
   Py_DECREF(self->file_prefix);
+  
+  self->ob_type->tp_free((PyObject*)self);
 }
 
 #pragma mark -

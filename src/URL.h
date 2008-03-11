@@ -47,6 +47,7 @@ extern PyTypeObject smisk_URLType;
 int smisk_URL_register_types (PyObject *module);
 
 // Methods
+PyObject *smisk_URL_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
 int smisk_URL_init (smisk_URL* self, PyObject* args, PyObject* kwargs);
 void smisk_URL_dealloc (smisk_URL* self);
 

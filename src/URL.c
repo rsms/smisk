@@ -402,7 +402,7 @@ static int _parse(smisk_URL* self, const char *s, size_t len) { // bool URL::set
 #pragma mark Initialization & deallocation
 
 
-static PyObject * smisk_URL_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+PyObject *smisk_URL_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
   log_debug("ENTER smisk_URL_new");
   smisk_URL *self;
   
@@ -456,6 +456,8 @@ void smisk_URL_dealloc(smisk_URL* self) {
   Py_DECREF(self->path);
   Py_DECREF(self->query);
   Py_DECREF(self->fragment);
+  
+  self->ob_type->tp_free((PyObject*)self);
 }
 
 

@@ -280,17 +280,14 @@ int smisk_Request_reset (smisk_Request* self) {
     return -1;
   }
   
-#define USET(n) Py_XDECREF(self->n); self->n = NULL;
-//DUMP_REFCOUNT(self->n)
-  USET(env);
-  USET(url);
-  USET(get);
-  USET(post);
-  USET(files);
-  USET(cookies);
-  USET(session);
-  USET(session_id);
-#undef USET
+  Py_CLEAR(self->env);
+  Py_CLEAR(self->url);
+  Py_CLEAR(self->get);
+  Py_CLEAR(self->post);
+  Py_CLEAR(self->files);
+  Py_CLEAR(self->cookies);
+  Py_CLEAR(self->session);
+  Py_CLEAR(self->session_id);
   
   self->initial_session_hash = 0;
   
@@ -302,7 +299,7 @@ int smisk_Request_reset (smisk_Request* self) {
 #pragma mark Initialization & deallocation
 
 
-static PyObject * smisk_Request_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+PyObject * smisk_Request_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
   log_debug("ENTER smisk_Request_new");
   smisk_Request *self;
   
@@ -314,14 +311,14 @@ static PyObject * smisk_Request_new(PyTypeObject *type, PyObject *args, PyObject
     }
   
     // Construct a new Stream for in
-    self->input = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
+    self->input = (smisk_Stream*)smisk_Stream_new(&smisk_StreamType, NULL, NULL);
     if (self->input == NULL) {
       Py_DECREF(self);
       return NULL;
     }
   
     // Construct a new Stream for err
-    self->err = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
+    self->err = (smisk_Stream*)smisk_Stream_new(&smisk_StreamType, NULL, NULL);
     if (self->err == NULL) {
       Py_DECREF(self);
       return NULL;
@@ -349,6 +346,8 @@ void smisk_Request_dealloc(smisk_Request* self) {
   if(self->envp_buf) {
     free(self->envp_buf);
   }
+  
+  self->ob_type->tp_free((PyObject*)self);
 }
 
 
@@ -466,12 +465,11 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
   return (PyObject*)self->env;
 }
 
-
 PyObject* smisk_Request_get_url(smisk_Request* self) {
   char *s, *p, *s2;
   
   if(self->url == NULL) {
-    if (!(self->url = (smisk_URL*)PyObject_Call((PyObject*)&smisk_URLType, NULL, NULL))) {
+    if( (self->url = (smisk_URL *)smisk_URL_new(&smisk_URLType, NULL, NULL)) == NULL ) {
       return NULL;
     }
     
@@ -544,23 +542,22 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
 
 PyObject* smisk_Request_get_get(smisk_Request* self) {
   if(self->get == NULL) {
-    smisk_URL *url = NULL;
-    
     if((self->get = PyDict_New()) == NULL) {
       return NULL;
     }
-    url = (smisk_URL *)smisk_Request_get_url(self);
     
-    if(url->query && (url->query != Py_None) && (PyString_GET_SIZE(url->query) > 0)) {
+    ENSURE_BY_GETTER(self->url, smisk_Request_get_url(self),
+      return NULL;
+    );
+    
+    if(self->url->query && (self->url->query != Py_None) && (PyString_GET_SIZE(self->url->query) > 0)) {
       assert_refcount(self->get, == 1);
-      if(parse_input_data(PyString_AS_STRING(url->query), "&", 0, self->get) != 0) {
-        Py_DECREF(url);
+      if(parse_input_data(PyString_AS_STRING(self->url->query), "&", 0, self->get) != 0) {
         Py_DECREF(self->get);
         self->get = NULL;
         return NULL;
       }
     }
-    Py_DECREF(url);
   }
   
   Py_INCREF(self->get);

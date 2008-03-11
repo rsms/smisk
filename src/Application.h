@@ -52,6 +52,7 @@ extern PyTypeObject smisk_ApplicationType;
 int smisk_Application_register_types (PyObject *module);
 
 // Methods
+PyObject *smisk_Application_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
 int  smisk_Application_init    (smisk_Application* self, PyObject* args, PyObject* kwargs);
 void smisk_Application_dealloc (smisk_Application* self);
 

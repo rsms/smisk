@@ -70,7 +70,7 @@ void smisk_Response_finish(smisk_Response* self) {
 #pragma mark Initialization & deallocation
 
 
-static PyObject * smisk_Response_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+PyObject * smisk_Response_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
   log_debug("ENTER smisk_Response_new");
   smisk_Response *self;
   
@@ -82,7 +82,7 @@ static PyObject * smisk_Response_new(PyTypeObject *type, PyObject *args, PyObjec
     }
   
     // Construct a new Stream for out
-    self->out = (smisk_Stream*)PyObject_Call((PyObject*)&smisk_StreamType, NULL, NULL);
+    self->out = (smisk_Stream*)smisk_Stream_new(&smisk_StreamType, NULL, NULL);
     if (self->out == NULL) {
       Py_DECREF(self);
       return NULL;
@@ -102,6 +102,8 @@ void smisk_Response_dealloc(smisk_Response* self) {
   smisk_Response_reset(self);
   
   Py_XDECREF(self->out);
+  
+  self->ob_type->tp_free((PyObject*)self);
 }
 
 

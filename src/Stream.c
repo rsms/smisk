@@ -27,7 +27,7 @@ THE SOFTWARE.
 #pragma mark Initialization & deallocation
 
 
-static PyObject * smisk_Stream_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+PyObject * smisk_Stream_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
   log_debug("ENTER smisk_Stream_new");
   smisk_Stream *self;
   
@@ -47,6 +47,8 @@ int smisk_Stream_init(smisk_Stream* self, PyObject* args, PyObject* kwargs) {
 
 void smisk_Stream_dealloc(smisk_Stream* self) {
   log_debug("ENTER smisk_Stream_dealloc");
+  
+  self->ob_type->tp_free((PyObject*)self);
 }
 
 

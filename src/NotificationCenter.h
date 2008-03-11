@@ -36,6 +36,7 @@ int smisk_NotificationCenter_register_types(PyObject *module);
 PyObject* smisk_NotificationCenter_default (PyObject* cls);
 
 // Instance Methods
+PyObject *smisk_NotificationCenter_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
      int  smisk_NotificationCenter_init        (smisk_NotificationCenter* self, PyObject* args, PyObject* kwargs);
      void smisk_NotificationCenter_dealloc     (smisk_NotificationCenter* self);
 PyObject* smisk_NotificationCenter_subscribe   (smisk_NotificationCenter* self, PyObject* args);

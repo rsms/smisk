@@ -35,6 +35,7 @@ extern PyTypeObject smisk_FileSessionStoreType;
 
 int smisk_FileSessionStore_register_types (PyObject *module);
 
-PyObject* smisk_FileSessionStore_refresh (smisk_FileSessionStore* self, PyObject* session_id);
+PyObject *smisk_FileSessionStore_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
+PyObject *smisk_FileSessionStore_refresh (smisk_FileSessionStore *self, PyObject *session_id);
 
 #endif
