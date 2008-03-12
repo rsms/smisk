@@ -223,7 +223,7 @@ static PyObject* encode_or_escape(PyObject* self, PyObject* str, unsigned char m
   return newstr_py;
 }
 
-static int _parse(smisk_URL* self, const char *s, size_t len) { // bool URL::set( const string &str )
+static int _parse(smisk_URL* self, const char *s, size_t len) {
   struct vec { int len; const void *ptr; };
   struct url { struct vec proto; struct vec user; struct vec pass;
                struct vec host;  struct vec port; struct vec uri; };
@@ -447,6 +447,7 @@ int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs) {
   return 0;
 }
 
+
 void smisk_URL_dealloc(smisk_URL* self) {
   log_debug("ENTER smisk_URL_dealloc");
   Py_DECREF(self->scheme);
@@ -456,7 +457,7 @@ void smisk_URL_dealloc(smisk_URL* self) {
   Py_DECREF(self->path);
   Py_DECREF(self->query);
   Py_DECREF(self->fragment);
-  
+                            
   self->ob_type->tp_free((PyObject*)self);
 }
 
@@ -562,36 +563,37 @@ PyDoc_STRVAR(smisk_URL_unescape_DOC,
   ":raises TypeError: if str is not a string");
 
 PyObject *smisk_URL___str__(smisk_URL* self) {
-  PyObject *s = PyString_FromStringAndSize("",0);
+  PyObject *s = PyString_FromStringAndSize("", 0);
+  
   if(self->scheme != Py_None) {
     PyString_Concat(&s, self->scheme);
-    PyString_Concat(&s, PyString_FromStringAndSize("://", 3));
+    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("://", 3));
   }
-  if((self->user != Py_None) || (self->password != Py_None)) {
+  if( (self->user != Py_None) || (self->password != Py_None) ) {
     if(self->user != Py_None) {
       PyString_Concat(&s, self->user);
     }
     if(self->password != Py_None) {
-      PyString_Concat(&s, PyString_FromStringAndSize(":", 1));
+      PyString_ConcatAndDel(&s, PyString_FromStringAndSize(":", 1));
       PyString_Concat(&s, self->password);
     }
-    PyString_Concat(&s, PyString_FromStringAndSize("@", 1));
+    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("@", 1));
   }
   if(self->host != Py_None) {
     PyString_Concat(&s, self->host);
   }
-  if(self->port > 0 && self->port != 80) { // should we really skip 80?
-    PyString_Concat(&s, PyString_FromFormat(":%d", self->port));
+  if( (self->port > 0) && (self->port != 80) ) { // should we really skip 80?
+    PyString_ConcatAndDel(&s, PyString_FromFormat(":%d", self->port));
   }
   if(self->path != Py_None) {
     PyString_Concat(&s, self->path);
   }
   if(self->query != Py_None) {
-    PyString_Concat(&s, PyString_FromStringAndSize("?", 1));
+    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("?", 1));
     PyString_Concat(&s, self->query);
   }
   if(self->fragment != Py_None) {
-    PyString_Concat(&s, PyString_FromStringAndSize("#", 1));
+    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("#", 1));
     PyString_Concat(&s, self->fragment);
   }
   
