@@ -37,6 +37,14 @@ THE SOFTWARE.
 
 smisk_Application *smisk_current_app = NULL;
 
+int smisk_require_app (void) {
+  if(!smisk_current_app) {
+    PyErr_SetString(PyExc_EnvironmentError, "Application not initialized");
+    return -1;
+  }
+  return 0;
+}
+
 
 #pragma mark -
 #pragma mark Internal
@@ -98,7 +106,6 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
     self->session_store = NULL;
   
     // Default values
-    self->session_id_size = 20;
     self->session_ttl = 900;
     self->session_name = PyString_FromString("SID");
     self->include_exc_info_with_errors = Py_True; Py_INCREF(Py_True);
@@ -155,7 +162,7 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
   FCGX_Request request;
   int rc = FCGX_Init();
   if (rc) {
-    return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to initialize libfcgi");
+    return PyErr_SET_FROM_ERRNO(smisk_IOError);
   }
   FCGX_InitRequest(&request, smisk_listensock_fileno, FCGI_FAIL_ACCEPT_ON_INTR);
   
@@ -174,7 +181,7 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
     return NULL;
   }
   
-  if(!POST_NOTIFICATION1(kApplicationWillStartNotification, self)) {
+  if(smisk_post_notification(kApplicationWillStartNotification, self, NULL) == NULL) {
     return NULL;
   }
   
@@ -245,7 +252,7 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
   FCGX_Finish_r(&request);
   
   // Notify observers
-  ret = POST_NOTIFICATION1(kApplicationDidStopNotification, self);
+  ret = smisk_post_notification(kApplicationDidStopNotification, self, NULL);
   
   // reset signal handlers
   PyOS_setsig(SIGINT, orig_int_handler);
@@ -254,7 +261,7 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
   
   // Notify observers
   if(ret != NULL) {
-    ret = POST_NOTIFICATION1(kApplicationWillExitNotification, self);
+    ret = smisk_post_notification(kApplicationWillExitNotification, self, NULL);
   }
   
   // Now, raise the signal again if that was the reason for exiting the run loop
@@ -332,7 +339,7 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   // Log exception
   if(FCGX_PutStr(PyString_AS_STRING(exc_str), PyString_GET_SIZE(exc_str), self->request->err->stream) == -1) {
     log_error("Error in %s.error(): %s", PyString_AS_STRING(PyObject_Str((PyObject *)self)), PyString_AS_STRING(exc_str));
-    return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on err stream");
+    return PyErr_SET_FROM_ERRNO(smisk_IOError);
   }
   
   Py_DECREF(exc_str);
@@ -361,7 +368,7 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   Py_DECREF(msg);
   
   if(rc == -1) {
-    return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on stream");
+    return PyErr_SET_FROM_ERRNO(smisk_IOError);
   }
   
   Py_RETURN_NONE;
@@ -463,10 +470,6 @@ static struct PyMemberDef smisk_Application_members[] = {
   {"include_exc_info_with_errors", T_OBJECT_EX, offsetof(smisk_Application, include_exc_info_with_errors), 0,
     ":type: bool\n\n"
     "Defaults to True."},
-  
-  {"session_id_size", T_INT, offsetof(smisk_Application, session_id_size), 0,
-    ":type: int\n\n"
-    "How big and complex generated session IDs should be, expressed in bytes. Defaults to 20."},
   
   {"session_name", T_OBJECT_EX, offsetof(smisk_Application, session_name), 0,
     ":type: string\n\n"

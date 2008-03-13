@@ -29,6 +29,10 @@ typedef struct {
   // Public Python & C
   PyObject *file_prefix; // string
   
+  // Private C
+  long gc_tid;
+  int gc_run;
+  
 } smisk_FileSessionStore;
 
 extern PyTypeObject smisk_FileSessionStoreType;
@@ -37,5 +41,6 @@ int smisk_FileSessionStore_register_types (PyObject *module);
 
 PyObject *smisk_FileSessionStore_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
 PyObject *smisk_FileSessionStore_refresh (smisk_FileSessionStore *self, PyObject *session_id);
+PyObject *smisk_FileSessionStore_gc (smisk_FileSessionStore* self);
 
 #endif

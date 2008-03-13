@@ -29,7 +29,6 @@ class MyApp(Application):
     w(" response_class       %s\n" % repr(self.response_class))
     w(" session_store_class: %s\n" % repr(self.session_store_class))
     w(" session_store:       %s\n" % repr(self.session_store))
-    w(" session_id_size:     %s\n" % repr(self.session_id_size))
     w(" session_name:        %s\n" % repr(self.session_name))
     w("\n")
     w("self.request.\n")

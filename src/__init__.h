@@ -34,9 +34,13 @@ extern PyObject *os_module;
 extern PyObject *smisk_Error; // extends PyExc_StandardError
 extern PyObject *smisk_IOError; // extends PyExc_IOError
 
-// Notifications
+// Notifications (exported to module.<name without 'k' prefix>)
 extern PyObject *kApplicationWillStartNotification;
 extern PyObject *kApplicationWillExitNotification;
 extern PyObject *kApplicationDidStopNotification;
+
+// Other static strings (only used in C API)
+extern PyObject *kString_http;
+extern PyObject *kString_https;
 
 #endif

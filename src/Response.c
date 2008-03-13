@@ -153,7 +153,7 @@ PyObject* smisk_Response_send_file(smisk_Response* self, PyObject* filename) {
   
   // Check for errors
   if(rc == -1) {
-    return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on stream");
+    return PyErr_SET_FROM_ERRNO(smisk_IOError);
   }
   
   Py_RETURN_NONE;
@@ -218,7 +218,7 @@ PyObject* smisk_Response_begin(smisk_Response* self) {
   
   // Errors?
   if(rc == -1) {
-    return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on stream");
+    return PyErr_SET_FROM_ERRNO(smisk_IOError);
   }
   
   log_debug("EXIT smisk_Response_begin");

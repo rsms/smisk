@@ -24,15 +24,21 @@ THE SOFTWARE.
 #include <structmember.h>
 
 
+static PyObject* smisk_NotificationCenter_default_instance = NULL;
+
+
 #pragma mark Public C
 
 // for internal use
 PyObject* smisk_NotificationCenter_postc( smisk_NotificationCenter* self, PyObject* args ) {
   Py_ssize_t listSize, i;
-  PyObject* notificationList;
-  PyObject* observer;
+  PyObject *notificationList, *n, *observer;
   
-  if((notificationList = PyDict_GetItem(self->observers, PyTuple_GET_ITEM(args, 0))) == NULL) {
+  n = PyTuple_GET_ITEM(args, 0);
+  assert(n != NULL);
+  
+  //log_debug("A %p", PyTuple_GET_ITEM(args, 0));
+  if((notificationList = PyDict_GetItem(self->observers, n)) == NULL) {
     log_debug("No observers for notification '%s'", PyString_AS_STRING(PyTuple_GET_ITEM(args, 0)));
     Py_RETURN_NONE;
   }
@@ -51,6 +57,37 @@ PyObject* smisk_NotificationCenter_postc( smisk_NotificationCenter* self, PyObje
   }
   
   Py_RETURN_NONE;
+}
+
+
+PyObject *smisk_post_notification(PyObject *notification, ... ) {
+  va_list args;
+  PyObject *arg, *pyargs, *r;
+  smisk_NotificationCenter *nc;
+  Py_ssize_t len = 1;
+  
+  va_start(args, notification);
+  while( (arg = va_arg(args, PyObject *)) ) {
+    len++;
+  }
+  va_end(args);
+  
+  pyargs = PyTuple_New(len);
+  PyTuple_SET_ITEM(pyargs, 0, notification);
+  
+  va_start(args, notification);
+  while( (arg = va_arg(args, PyObject *)) ) {
+    PyTuple_SET_ITEM(pyargs, len--, arg);
+  }
+  va_end(args);
+  
+  nc = (smisk_NotificationCenter *)smisk_NotificationCenter_default();
+  r = smisk_NotificationCenter_postc(nc, pyargs);
+  
+  Py_DECREF(pyargs);
+  Py_DECREF(nc);
+  
+  return r;
 }
 
 
@@ -90,9 +127,8 @@ void smisk_NotificationCenter_dealloc(smisk_NotificationCenter* self) {
 #pragma mark -
 #pragma mark Methods (static)
 
-PyObject* smisk_NotificationCenter_default(PyObject* dummy) {
+PyObject* smisk_NotificationCenter_default(void) {
   log_debug("ENTER smisk_NotificationCenter_default");
-  static PyObject* smisk_NotificationCenter_default_instance = NULL;
   if(!smisk_NotificationCenter_default_instance) {
     smisk_NotificationCenter_default_instance = smisk_NotificationCenter_new(&smisk_NotificationCenterType, NULL, NULL);
   }

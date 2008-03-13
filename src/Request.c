@@ -34,7 +34,6 @@ THE SOFTWARE.
 
 #pragma mark Internal
 
-
 // Warning: Changing SMISK_SESSION_NBITS may cause some smisk installations to
 //          stop sharing sessions with each other, which is dangerous. Do not
 //          change unless during a major version step.
@@ -121,15 +120,6 @@ inline char *_strtolower(char *s) {
 }
 
 
-static int _require_app(void) {
-  if(!smisk_current_app) {
-    PyErr_SetString(PyExc_EnvironmentError, "Application not initialized");
-    return -1;
-  }
-  return 0;
-}
-
-
 static int _valid_sid(const char *uid, size_t len) {
   size_t i;
   for(i=0;i<len;i++) {
@@ -206,7 +196,7 @@ static int _cleanup_session(smisk_Request* self) {
     log_debug("PyObject_Hash(self->session) = %lu", self->session ? PyObject_Hash(self->session) : 0);
     assert(self->session);
     
-    if(_require_app() != 0) {
+    if(smisk_require_app() != 0) {
       return -1;
     }
     ENSURE_BY_GETTER(smisk_current_app->session_store, smisk_Application_get_session_store(smisk_current_app),
@@ -379,7 +369,7 @@ PyObject* smisk_Request_log_error(smisk_Request* self, PyObject* msg) {
   
   if(FCGX_FPrintF(self->err->stream, format, Py_GetProgramName(), getpid(), PyString_AsString(msg)) == -1) {
     fprintf(stderr, format, Py_GetProgramName(), getpid(), PyString_AsString(msg));
-    return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on stream");
+    return PyErr_SET_FROM_ERRNO(smisk_IOError);
   }
   
   Py_RETURN_NONE;
@@ -465,8 +455,10 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
   return (PyObject*)self->env;
 }
 
+
 PyObject* smisk_Request_get_url(smisk_Request* self) {
   char *s, *p, *s2;
+  PyObject *old;
   
   if(self->url == NULL) {
     if( (self->url = (smisk_URL *)smisk_URL_new(&smisk_URLType, NULL, NULL)) == NULL ) {
@@ -474,21 +466,40 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
     }
     
     // Scheme
-    if((s = FCGX_GetParam("SERVER_PROTOCOL", self->envp)) && (p = strchr(s, '/'))) {
-      *p = '\0';
-      Py_DECREF(self->url->scheme);
-      self->url->scheme = PyString_FromString(_strtolower(s));
+    if((s = FCGX_GetParam("SERVER_PROTOCOL", self->envp))) {
+      old = self->url->scheme;
+      
+      // As this is called MANY times, this op is really worth it...
+      if( ((s[0]=='H')&&(s[1]=='T')&&(s[2]=='T')&&(s[3]=='P')) 
+        ||((s[0]=='h')&&(s[1]=='t')&&(s[2]=='t')&&(s[3]=='p')) ) {
+        if( (s[4]=='S'||s[4]=='s') ) { // what about if the interface spec is less than 5 chars?
+          self->url->scheme = kString_https; Py_INCREF(kString_https);
+        }
+        else {
+          self->url->scheme = kString_http; Py_INCREF(kString_http);
+        }
+      }
+      else {
+        Py_ssize_t len = strlen(s); 
+        if((p = strchr(s, '/'))) {
+          len = (Py_ssize_t)(p-s);
+        }
+        self->url->scheme = PyString_FromStringAndSize(_strtolower(s), len);
+      }
+      
+      Py_CLEAR(old);
     }
     
     // User
     if((s = FCGX_GetParam("REMOTE_USER", self->envp))) {
-      Py_DECREF(self->url->user);
+      old = self->url->user;
       self->url->user = PyString_FromString(s);
+      Py_CLEAR(old);
     }
     
     // Host & port
     s = FCGX_GetParam("SERVER_NAME", self->envp);
-    Py_DECREF(self->url->host);
+    old = self->url->host;
     if((p = strchr(s, ':'))) {
       self->url->host = PyString_FromStringAndSize(s, p-s);
       self->url->port = atoi(p+1);
@@ -500,36 +511,49 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
     else {
       self->url->host = PyString_FromString(s);
     }
+    PyString_InternInPlace(&self->url->host);
+    if(self->url->host == NULL) {
+      return PyErr_NoMemory();
+    }
+    Py_CLEAR(old);
     
     // Path & querystring
     // Not in RFC, but considered standard
     if((s = FCGX_GetParam("REQUEST_URI", self->envp))) {
-      Py_DECREF(self->url->path);
       if((p = strchr(s, '?'))) {
         *p = '\0';
+        
+        old = self->url->path;
         self->url->path = PyString_FromString(s);
-        Py_DECREF(self->url->query);
+        Py_DECREF(old);
+        
+        old = self->url->query;
         self->url->query = PyString_FromString(p+1);
+        Py_DECREF(old);
       }
       else {
+        old = self->url->path;
         self->url->path = PyString_FromString(s);
+        Py_DECREF(old);
       }
     }
     // Non-REQUEST_URI compliant fallback
     else {
       if((s = FCGX_GetParam("SCRIPT_NAME", self->envp))) {
-        Py_DECREF(self->url->path);
+        old = self->url->path;
         self->url->path = PyString_FromString(s);
+        Py_DECREF(old);
         // May not always give the same results as the above implementation
         // because the CGI specification does claim "This information should be
         // decoded by the server if it comes from a URL" which is a bit vauge.
         if((s = FCGX_GetParam("PATH_INFO", self->envp))) {
-          PyString_Concat(&self->url->path, PyString_FromString(s));
+          PyString_ConcatAndDel(&self->url->path, PyString_FromString(s));
         }
       }
       if((s = FCGX_GetParam("QUERY_STRING", self->envp))) {
-        Py_DECREF(self->url->query);
+        old = self->url->query;
         self->url->query = PyString_FromString(s);
+        Py_DECREF(old);
       }
     }
     
@@ -614,7 +638,7 @@ PyObject* smisk_Request_get_cookies(smisk_Request* self) {
 static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
   log_debug("ENTER smisk_Request_get_session_id");
   if(self->session_id == NULL) {
-    if(_require_app() != 0) {
+    if(smisk_require_app() != 0) {
       return NULL;
     }
     

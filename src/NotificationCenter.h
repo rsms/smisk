@@ -25,7 +25,7 @@ THE SOFTWARE.
 
 typedef struct {
   PyObject_HEAD;
-  PyObject* observers; // dict
+  PyObject *observers; // dict
 } smisk_NotificationCenter;
 
 // Type setup
@@ -33,22 +33,20 @@ extern PyTypeObject smisk_NotificationCenterType;
 int smisk_NotificationCenter_register_types(PyObject *module);
 
 // Class Methods
-PyObject* smisk_NotificationCenter_default (PyObject* cls);
+PyObject *smisk_NotificationCenter_default (void);
 
 // Instance Methods
 PyObject *smisk_NotificationCenter_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
-     int  smisk_NotificationCenter_init        (smisk_NotificationCenter* self, PyObject* args, PyObject* kwargs);
+     int  smisk_NotificationCenter_init        (smisk_NotificationCenter* self, PyObject *args, PyObject *kwargs);
      void smisk_NotificationCenter_dealloc     (smisk_NotificationCenter* self);
-PyObject* smisk_NotificationCenter_subscribe   (smisk_NotificationCenter* self, PyObject* args);
-PyObject* smisk_NotificationCenter_unsubscribe (smisk_NotificationCenter* self, PyObject* args);
-PyObject* smisk_NotificationCenter_post        (smisk_NotificationCenter* self, PyObject* args);
+PyObject *smisk_NotificationCenter_subscribe   (smisk_NotificationCenter* self, PyObject *args);
+PyObject *smisk_NotificationCenter_unsubscribe (smisk_NotificationCenter* self, PyObject *args);
+PyObject *smisk_NotificationCenter_post        (smisk_NotificationCenter* self, PyObject *args);
 
-// Internal utilities
-PyObject* smisk_NotificationCenter_postc (smisk_NotificationCenter* self, PyObject* args );
+// C API
+PyObject *smisk_NotificationCenter_postc (smisk_NotificationCenter* self, PyObject *args );
 
-// Convenience macro
-#define POST_NOTIFICATION1(n, arg1) \
-  smisk_NotificationCenter_postc((smisk_NotificationCenter *)smisk_NotificationCenter_default(NULL), \
-    PyTuple_Pack(2, n, arg1))
+// Convenience function. Terminate args with NULL.
+PyObject *smisk_post_notification (PyObject *notification, ... );
 
 #endif

@@ -252,7 +252,7 @@ PyObject* smisk_Stream_write_byte(smisk_Stream* self, PyObject* ch) {
   }
   
   if(FCGX_PutChar((int)PyInt_AS_LONG(ch), self->stream) == -1) {
-    return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on stream");
+    return PyErr_SET_FROM_ERRNO(smisk_IOError);
   }
   
   Py_RETURN_NONE;
@@ -312,7 +312,7 @@ PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args) {
 
 int smisk_Stream_perform_write(smisk_Stream* self, PyObject* str, Py_ssize_t length) {
   if( FCGX_PutStr(PyString_AS_STRING(str), length, self->stream) == -1 ) {
-    PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to write on stream");
+    PyErr_SET_FROM_ERRNO(smisk_IOError);
     return -1;
   }
   return 0;
@@ -327,7 +327,7 @@ PyDoc_STRVAR(smisk_Stream_flush_DOC,
   ":rtype: None");
 PyObject* smisk_Stream_flush(smisk_Stream* self) {
   if(FCGX_FFlush(self->stream) == -1) {
-    return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to flush stream");
+    return PyErr_SET_FROM_ERRNO(smisk_IOError);
   }
   Py_RETURN_NONE;
 }
@@ -341,7 +341,7 @@ PyDoc_STRVAR(smisk_Stream_close_DOC,
   ":rtype: None");
 PyObject* smisk_Stream_close(smisk_Stream* self) {
   if(FCGX_FClose(self->stream) == -1) {
-    return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "Failed to close stream");
+    return PyErr_SET_FROM_ERRNO(smisk_IOError);
   }
   Py_RETURN_NONE;
 }

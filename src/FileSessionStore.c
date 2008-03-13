@@ -22,12 +22,61 @@ THE SOFTWARE.
 #include "__init__.h"
 #include "utils.h"
 #include "FileSessionStore.h"
+#include "Application.h"
 #include <structmember.h>
 #include <sys/time.h>
 #include <fcntl.h>
+#include <dirent.h>
+
 #include <marshal.h>
+#include <pythread.h>
+
+// in Python/getmtime.c
+extern time_t PyOS_GetLastModificationTime(char *fn, FILE *fp);
+
 
 #pragma mark Internal
+
+// "returns" 0 on success or -1 on failure when an error has been set
+static int _unlink(char *fn) {
+  if(unlink((const char *)fn) != 0) {
+    PyErr_SET_FROM_ERRNO(PyExc_IOError);
+    return -1;
+  }
+  return 0;
+}
+
+
+time_t smisk_file_mtime(char *fn, FILE *fp, int _fd) {
+  struct stat st;
+  int fd, r;
+  
+  if(fn && fp) {
+    return PyOS_GetLastModificationTime(fn, fp);
+  }
+  else {
+    fd = (_fd == -1) ? open(fn, O_NOFOLLOW) : _fd;
+    r = fstat(fd, &st);
+    if(_fd == -1) {
+      close(fd);
+    }
+  	if (r != 0) {
+  		return 0;
+		}
+  	return st.st_mtime;
+  }
+}
+
+
+static time_t _is_garbage(char *fn, FILE *fp, int fd) {
+  time_t n, m;
+  m = smisk_file_mtime(fn, fp, fd);
+  if(m == -1) {
+    return 0;
+  }
+  n = time(NULL) - m;
+  return ( n > smisk_current_app->session_ttl ) ? n : 0;
+}
 
 
 static FILE *_open_exclusive(const char *filename) {
@@ -61,6 +110,33 @@ static FILE *_open_exclusive(const char *filename) {
 }
 
 
+static void _gc_thread(void *_self) {
+  int first_run;
+  
+  smisk_FileSessionStore *self = (smisk_FileSessionStore *)_self;
+  first_run = 1;
+  log_debug("_gc_thread started on thread #%ld", PyThread_get_thread_ident());
+  
+  while(self->gc_run) {
+    if(first_run) {
+      first_run = 0;
+      // short delay so that a server restart doesn't hog resources
+      sleep(smisk_current_app->session_ttl/8);
+    }
+    else {
+      PyObject *r = smisk_FileSessionStore_gc(self);
+      if(r == NULL) {
+        PyErr_Print();
+      }
+      sleep(smisk_current_app->session_ttl/2); // will be interrupted by exit signal
+    }
+  }
+  
+  log_debug("_gc_thread is exiting from thread #%ld", PyThread_get_thread_ident());
+  self->gc_tid = -1;
+  self->gc_run = 0;
+  PyThread_exit_thread();
+}
 
 #pragma mark Initialization & deallocation
 
@@ -71,6 +147,10 @@ PyObject *smisk_FileSessionStore_new(PyTypeObject *type, PyObject *args, PyObjec
   log_debug("ENTER smisk_FileSessionStore_new");
   smisk_FileSessionStore *self;
   PyObject *s;
+  
+  if( smisk_require_app() != 0 ) {
+    return NULL;
+  }
   
   if ( (self = (smisk_FileSessionStore *)type->tp_alloc(type, 0)) == NULL ) {
     return NULL;
@@ -104,18 +184,34 @@ PyObject *smisk_FileSessionStore_new(PyTypeObject *type, PyObject *args, PyObjec
     self->file_prefix = PyString_FromString("/tmp/smisk-sess.");
   }
   
+  // Start GC thread
+  self->gc_run = 1;
+  self->gc_tid = PyThread_start_new_thread(_gc_thread, (void *)self);
+  if(self->gc_tid == -1) {
+    Py_DECREF(self);
+    return NULL;
+  }
+  
   return (PyObject *)self;
 }
 
 
-int smisk_FileSessionStore_init(smisk_FileSessionStore* self, PyObject* args, PyObject* kwargs) {
-  // XXX check so that self->dir exits
+int smisk_FileSessionStore_init(smisk_FileSessionStore* self, PyObject* args, PyObject* kwargs) {  
   return 0;
 }
 
 
 void smisk_FileSessionStore_dealloc(smisk_FileSessionStore* self) {
   log_debug("ENTER smisk_FileSessionStore_dealloc");
+  
+  // Stop GC thread
+  if(self->gc_tid != -1) {
+    self->gc_run = 0;
+    // Note: Due to the level of abstraction in PyThread, this is as good as it gets.
+    //       The gc thread might live beyond this point... However, sleep() in the thread
+    //       should get interrupted by the exit signal we rise in Application.run().
+  }
+  
   Py_DECREF(self->file_prefix);
   
   self->ob_type->tp_free((PyObject*)self);
@@ -146,11 +242,11 @@ PyDoc_STRVAR(smisk_FileSessionStore_read_DOC,
   ":rtype: object");
 PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore* self, PyObject* session_id) {
   log_debug("ENTER smisk_FileSessionStore_read");
-  PyObject *fn, *data;
+  PyObject *fn, *data = NULL;
   char *pathname;
   FILE *fp;
   
-  if(!PyString_Check(session_id)) {
+  if( !PyString_Check(session_id) ) {
     return NULL;
   }
   
@@ -162,20 +258,28 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore* self, PyObject* se
   
   // Read file data
   if(file_exist(pathname)) {
+    PyThreadState *_save = PyEval_SaveThread();
+    
     if( (fp = fopen(pathname, "rb")) == NULL ) {
       Py_DECREF(fn);
       PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+      PyEval_RestoreThread(_save);
       return NULL;
     }
     
-    if( (data = PyMarshal_ReadObjectFromFile(fp)) == NULL ) {
-      fclose(fp);
-      Py_DECREF(fn);
-      return NULL;
+    if( _is_garbage(pathname, fp, -1) ) {
+      log_debug("Garbage session %s (older than ttl=%d)",
+        PyString_AS_STRING(session_id), smisk_current_app->session_ttl);
+      if(_unlink(pathname) == 0) {
+        data = Py_None;
+        Py_INCREF(Py_None);
+      }
     }
-    
+    else if( (data = PyMarshal_ReadObjectFromFile(fp)) != NULL ) {
+      log_debug("Successfully read session data from %s", pathname);
+    }
     fclose(fp);
-    log_debug("Read session data from %s", pathname);
+    PyEval_RestoreThread(_save);
     Py_DECREF(fn);
     return data; // Give away our reference to receiver
   }
@@ -217,10 +321,12 @@ PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore* self, PyObject* a
   }
   
   pathname = PyString_AS_STRING(fn);
+  PyThreadState *_save = PyEval_SaveThread();
   
   fp = _open_exclusive(pathname);
   if(fp == NULL) {
     PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
+    PyEval_RestoreThread(_save);
     return NULL;
   }
   
@@ -230,10 +336,12 @@ PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore* self, PyObject* a
     log_error("can't write to %s", pathname);
     fclose(fp);
     (void) unlink(pathname);
+    PyEval_RestoreThread(_save);
     return NULL;
   }
   
   fclose(fp);
+  PyEval_RestoreThread(_save);
   log_debug("Wrote '%s'", pathname);
   
   Py_DECREF(fn);
@@ -253,9 +361,15 @@ PyObject* smisk_FileSessionStore_refresh(smisk_FileSessionStore* self, PyObject*
     return NULL;
   }
   
-  if(utimes(PyString_AS_STRING(fn), NULL) != 0) {
-    log_debug("utimes() failed - '%s' probably don't exist", PyString_AS_STRING(fn));
-  }
+  PyThreadState *_save = PyEval_SaveThread();
+  #ifdef SMISK_DEBUG
+    if(utimes(PyString_AS_STRING(fn), NULL) != 0) {
+      log_debug("utimes() failed - '%s' probably don't exist", PyString_AS_STRING(fn));
+    }
+  #else
+    utimes(PyString_AS_STRING(fn), NULL);
+  #endif
+  PyEval_RestoreThread(_save);
   
   Py_DECREF(fn);
   Py_RETURN_NONE;
@@ -269,31 +383,76 @@ PyDoc_STRVAR(smisk_FileSessionStore_destroy_DOC,
 PyObject* smisk_FileSessionStore_destroy(smisk_FileSessionStore* self, PyObject* session_id) {
   log_debug("ENTER smisk_FileSessionStore_destroy");
   PyObject *fn;
-  char *p;
+  char *pathname;
   
   if( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL ) {
     return NULL;
   }
   
-  p = PyString_AS_STRING(fn);
+  pathname = PyString_AS_STRING(fn);
   
-  if(file_exist(p) && (unlink(p) != 0)) {
-    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
-    Py_DECREF(fn);
+  PyThreadState *_save = PyEval_SaveThread();
+  int failed = file_exist(pathname) && (_unlink(pathname) != 0);
+  PyEval_RestoreThread(_save);
+  Py_DECREF(fn);
+  
+  if( failed ) {
     return NULL;
   }
   
-  Py_DECREF(fn);
   Py_RETURN_NONE;
 }
 
 
 PyDoc_STRVAR(smisk_FileSessionStore_gc_DOC,
-  ":param  ttl: Max lifetime in seconds\n"
-  ":type   ttl: int\n"
   ":rtype: None");
-PyObject* smisk_FileSessionStore_gc(smisk_FileSessionStore* self, PyObject* ttl) {
+PyObject* smisk_FileSessionStore_gc(smisk_FileSessionStore* self) {
   log_debug("ENTER smisk_FileSessionStore_gc");
+  DIR *d;
+  struct dirent *f;
+  char *p, *path_p, *fn_prefix, *path_buf;
+  size_t fn_prefix_len, path_p_len;
+  
+  path_p = PyString_AS_STRING(self->file_prefix);
+  p = strrchr(path_p, '/'); // XXX fix for windows?
+  fn_prefix = p+1;
+  fn_prefix_len = strlen(fn_prefix);
+  
+  if(p) {
+    *p = '\0';
+    PyThreadState *_save = PyEval_SaveThread();
+    d = opendir(path_p);
+    if(d) {
+      path_p_len = strlen(path_p);
+      path_buf = (char *)malloc(path_p_len + 1 + PATH_MAX + 1);
+      strcpy(path_buf, path_p);
+      path_buf[path_p_len] = '/';
+      path_buf[path_p_len+1] = 0;
+      
+      while ((f = readdir(d)) != NULL) {
+        if( (f->d_type == DT_REG)
+         && (strncmp(f->d_name, fn_prefix, min(f->d_namlen, fn_prefix_len)) == 0)
+         && _is_garbage(NULL, NULL, f->d_ino) ) {
+          strcpy(path_buf+path_p_len+1, f->d_name);
+          #ifdef SMISK_DEBUG
+            log_debug("unlink %s -> %d", path_buf, unlink(path_buf));
+          #else
+            unlink(path_buf);
+          #endif
+        }
+      }
+      free(path_buf);
+      closedir(d);
+    }
+    IFDEBUG(else {
+      *p = '\0';
+      log_error("Failed to opendir(\"%s\")", path_p);
+      *p = '/';
+    });
+    PyEval_RestoreThread(_save);
+    *p = '/';
+  }
+  
   Py_RETURN_NONE;
 }
 
@@ -310,7 +469,8 @@ static PyMethodDef smisk_FileSessionStore_methods[] = {
   {"write", (PyCFunction)smisk_FileSessionStore_write, METH_VARARGS, smisk_FileSessionStore_write_DOC},
   {"refresh", (PyCFunction)smisk_FileSessionStore_refresh, METH_O, smisk_FileSessionStore_refresh_DOC},
   {"destroy", (PyCFunction)smisk_FileSessionStore_destroy, METH_O, smisk_FileSessionStore_destroy_DOC},
-  {"gc", (PyCFunction)smisk_FileSessionStore_gc, METH_O, smisk_FileSessionStore_gc_DOC},
+  
+  {"gc", (PyCFunction)smisk_FileSessionStore_gc, METH_NOARGS, smisk_FileSessionStore_gc_DOC},
   {"path", (PyCFunction)smisk_FileSessionStore_path, METH_O, smisk_FileSessionStore_path_DOC},
   {NULL}
 };

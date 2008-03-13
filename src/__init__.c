@@ -46,10 +46,14 @@ int smisk_listensock_fileno = FCGI_LISTENSOCK_FILENO;
 // Objects at module-level
 PyObject *smisk_Error, *smisk_IOError, *os_module;
 
-// Notifications
+// Notifications (exported to module.<name without 'k' prefix>)
 PyObject *kApplicationWillStartNotification;
 PyObject *kApplicationWillExitNotification;
 PyObject *kApplicationDidStopNotification;
+
+// Other static strings (only used in C API)
+PyObject *kString_http;
+PyObject *kString_https;
 
 
 #ifdef SMISK_DEBUG
@@ -110,7 +114,7 @@ PyObject* smisk_bind(PyObject *self, PyObject *args) {
   if(fd < 0) {
     log_debug("ERROR: FCGX_OpenSocket(\"%s\", %d) returned %d. errno: %d", 
       PyString_AS_STRING(path), backlog, fd, errno);
-    return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "bind() failed");
+    return PyErr_SET_FROM_ERRNO(smisk_IOError);
   }
   
   // Set the process global fileno
@@ -140,7 +144,7 @@ PyObject* smisk_listening(PyObject *self, PyObject *args) {
   addrlen = sizeof(struct sockaddr_in); // Assume INET
   addr = (struct sockaddr *)malloc(addrlen);
   if(getsockname(smisk_listensock_fileno, addr, &addrlen) != 0) {
-    return PyErr_SET_FROM_ERRNO_OR_CUSTOM(smisk_IOError, "getsockname() failed");
+    return PyErr_SET_FROM_ERRNO(smisk_IOError);
   }
   
   if(addr->sa_family == AF_INET || addr->sa_family == AF_INET6) {
@@ -199,6 +203,24 @@ PyMODINIT_FUNC initcore(void) {
     return;
   }
   
+  // Constants: Notifications (exported to module.<name without 'k' prefix>)
+#define N(_name_) \
+  if (!(k##_name_ = PyString_FromString(#_name_) )) return; \
+  PyModule_AddObject(module, #_name_, k##_name_);
+  N(ApplicationWillStartNotification);
+  N(ApplicationWillExitNotification);
+  N(ApplicationDidStopNotification);
+#undef N
+  
+  // Constants: Other static strings (only used in C API)
+  kString_http = PyString_FromString("http");
+  kString_https = PyString_FromString("https");
+  
+  // Constants: Special variables
+  if(PyModule_AddStringConstant(module, "__version__", SMISK_VERSION) != 0) return;
+  if(PyModule_AddStringConstant(module, "__build__", SMISK_REVISION) != 0) return;
+  if(PyModule_AddStringConstant(module, "__doc__", smisk_module_DOC) != 0) return;
+  
   // Register types
   if (!module ||
     (smisk_Application_register_types(module) != 0) ||
@@ -210,35 +232,13 @@ PyMODINIT_FUNC initcore(void) {
     (smisk_FileSessionStore_register_types(module) != 0) ||
     (smisk_xml_register(module) == NULL)
     ) {
-      goto error;
+      return;
   }
   
-  // Setup exceptions
-  if (!(smisk_Error = PyErr_NewException("smisk.core.Error", PyExc_StandardError, NULL))) { goto error; }
+  // Exceptions
+  if (!(smisk_Error = PyErr_NewException("smisk.core.Error", PyExc_StandardError, NULL))) return;
   PyModule_AddObject(module, "Error", smisk_Error);
-  if (!(smisk_IOError = PyErr_NewException("smisk.core.IOError", PyExc_IOError, NULL))) { goto error; }
+  if (!(smisk_IOError = PyErr_NewException("smisk.core.IOError", PyExc_IOError, NULL))) return;
   PyModule_AddObject(module, "IOError", smisk_IOError);
-  
-  // Setup notifications
-#define DEF_NOTI(_name_) \
-  if (!(k##_name_ = PyString_FromString(#_name_) )) { goto error; } \
-  PyModule_AddObject(module, #_name_, k##_name_);
-  
-  DEF_NOTI(ApplicationWillStartNotification);
-  DEF_NOTI(ApplicationWillExitNotification);
-  DEF_NOTI(ApplicationDidStopNotification);
-#undef DEF_NOTI
-  
-  // Special variables
-  // XXX should check for failure
-  PyModule_AddStringConstant(module, "__version__", SMISK_VERSION);
-  PyModule_AddStringConstant(module, "__build__", SMISK_REVISION);
-  PyModule_AddStringConstant(module, "__doc__", smisk_module_DOC);
-  
-error:
-  if (PyErr_Occurred()) {
-    // XXX add previous exc info if any to the message
-    PyErr_SetString(PyExc_ImportError, "smisk.core init failed");
-  }
 }
 

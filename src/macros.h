@@ -44,12 +44,15 @@ THE SOFTWARE.
 #ifndef min
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
 #endif
+#ifndef max
+#define max(X, Y)  ((X) > (Y) ? (X) : (Y))
+#endif
 
 // Replace a PyObject while counting references
-#define REPLACE_OBJ(obj, val, type) \
-  do { type *__replace_obj = (type *)(obj); \
-  (obj) = (type *)(val); \
-  Py_XINCREF(obj); \
+#define REPLACE_OBJ(to, expr, type) \
+  do { type *__replace_obj = (type *)(to); \
+  (to) = (type *)(expr); \
+  Py_XINCREF(to); \
   Py_XDECREF(__replace_obj); } while(0)
 
 // Ensure a lazy instance variable is available
@@ -66,14 +69,17 @@ THE SOFTWARE.
 // Log to stderr
 #define log_error(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
+// Used for temporary debugging
+#define _DUMP_REFCOUNT(o) log_error("*** %s: %ld", #o, (o) ? (long int)(o)->ob_refcnt : 0)
+
 // Log to stderr, but only in debug builds
 #ifdef SMISK_DEBUG
   #define log_debug(fmt, ...) fprintf(stderr, "DEBUG %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
   #define IFDEBUG(x) x
   #define assert_refcount(o, count_test) \
-    if(!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld %s)", (long int)(o)->ob_refcnt, #count_test); }\
+    if(!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test); }\
     assert((o)->ob_refcnt count_test)
-  #define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o) ? (long int)(o)->ob_refcnt : 0)
+  #define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
   #define DUMP_REPR(o) \
     do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
       if(repr) {\
@@ -90,9 +96,7 @@ THE SOFTWARE.
   #define DUMP_REPR(o) 
 #endif
 
-#define PyErr_SET_FROM_ERRNO_OR_CUSTOM(type, custom_msg) \
-  PyErr_SetFromErrnoWithFilename(type, __FILE__)
-  //(errno ? PyErr_SetFromErrnoWithFilename(type, __FILE__) : PyErr_SetString(type, custom_msg))
+#define PyErr_SET_FROM_ERRNO(type) PyErr_SetFromErrnoWithFilename(type, __FILE__)
 
 
 // STR macros

@@ -36,7 +36,6 @@ typedef struct {
   
   PyTypeObject   *session_store_class;
   PyObject       *session_store; // lazy Session store
-  int            session_id_size;
   int            session_ttl;
   PyObject       *session_name; // string
   
@@ -46,6 +45,9 @@ typedef struct {
 
 // Current instance (NULL if none)
 extern smisk_Application *smisk_current_app;
+
+// Set error if smisk_current_app is NULL and return -1. Returns 0 when app is available.
+int smisk_require_app (void);
 
 // Type setup
 extern PyTypeObject smisk_ApplicationType;

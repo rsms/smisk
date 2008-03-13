@@ -27,7 +27,7 @@ typedef struct {
   PyObject_HEAD;
   
   // Public Python & C
-  PyObject* scheme; // //<user>:<password>@<host>:<port>/<url-path>
+  PyObject* scheme;
   PyObject* user;
   PyObject* password;
   PyObject* host;
