@@ -37,6 +37,7 @@
 
 static void signal_segv(int signum, siginfo_t* info, void*ptr) {
     static const char *si_codes[3] = {"", "SEGV_MAPERR", "SEGV_ACCERR"};
+    size_t i;
 
 #if defined(SIGSEGV_STACK_X86) || defined(SIGSEGV_STACK_IA64)
     int f = 0;
@@ -59,7 +60,7 @@ static void signal_segv(int signum, siginfo_t* info, void*ptr) {
     ucontext_t *ucontext = (ucontext_t*)ptr;
     
     for(i = 0; i < NGREG; i++)
-        fprintf(stderr, "reg[%02u]       = 0x" REGFORMAT "\n", i, ucontext->uc_mcontext.gregs[i]);
+        fprintf(stderr, "reg[%02lu]       = 0x" REGFORMAT "\n", i, (unsigned long)ucontext->uc_mcontext.gregs[i]);
 # if defined(SIGSEGV_STACK_IA64)
     ip = (void*)ucontext->uc_mcontext.gregs[REG_RIP];
     bp = (void**)ucontext->uc_mcontext.gregs[REG_RBP];
@@ -92,7 +93,6 @@ static void signal_segv(int signum, siginfo_t* info, void*ptr) {
     fprintf(stderr, "Stack trace (non-dedicated):\n");
     sz = backtrace(bt, 1000);
     strings = backtrace_symbols(bt, sz);
-    size_t i;
     for(i = 0; i < sz; ++i)
         fprintf(stderr, "%s\n", strings[i]);
 #endif

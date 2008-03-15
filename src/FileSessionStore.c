@@ -83,7 +83,7 @@ static int _gc_run(smisk_FileSessionStore *self) {
       
       while ((f = readdir(d)) != NULL) {
         if( (f->d_type == DT_REG)
-         && (strncmp(f->d_name, fn_prefix, min(f->d_namlen, fn_prefix_len)) == 0)
+         && (strncmp(f->d_name, fn_prefix, min(strlen(f->d_name), fn_prefix_len)) == 0)
          && _is_garbage(self, NULL, f->d_ino) ) {
           strcpy(path_buf+path_p_len+1, f->d_name);
           #if SMISK_DEBUG

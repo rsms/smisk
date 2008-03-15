@@ -159,6 +159,7 @@ def configure_system_conditions():
 
 def configure_compiler():
   import platform
+  global cflags
   if '--debug' in sys.argv:
     define_macros.append(('SMISK_DEBUG', '1'))
     undef_macros.append('NDEBUG')
