@@ -1,3 +1,11 @@
+python-smisk (1.0b-r113-7) unstable; urgency=low
+
+  * Release candidate 2
+  * Complete set of functionality
+  * Has gone through testing on different platforms
+
+ -- Rasmus Andersson <rasmus@flajm.se> Sun, 16 Mar 2008 00:40:04 +0100
+
 python-smisk (0.1r74-6) unstable; urgency=low
 
   * Adjusted naming convention to be consistent lower_case.
