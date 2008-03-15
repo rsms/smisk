@@ -5,7 +5,7 @@ from distutils.cmd import Command
 from distutils.command.build import build as build_cmd
 import os, sys, datetime
 
-version = "0.1.0"
+version = "1.0b"
 
 sources = ['src/__init__.c',
            
