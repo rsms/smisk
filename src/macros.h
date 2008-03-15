@@ -66,6 +66,8 @@ THE SOFTWARE.
     }\
   }
 
+#define PyErr_SET_FROM_ERRNO   PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__)
+
 // Log to stderr
 #define log_error(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
@@ -73,7 +75,7 @@ THE SOFTWARE.
 #define _DUMP_REFCOUNT(o) log_error("*** %s: %ld", #o, (o) ? (long int)(o)->ob_refcnt : 0)
 
 // Log to stderr, but only in debug builds
-#ifdef SMISK_DEBUG
+#if SMISK_DEBUG
   #define log_debug(fmt, ...) fprintf(stderr, "DEBUG %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
   #define IFDEBUG(x) x
   #define assert_refcount(o, count_test) \
@@ -84,6 +86,7 @@ THE SOFTWARE.
     do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
       if(repr) {\
         log_debug("repr(%s) = %s", #o, PyString_AS_STRING(repr));\
+        Py_DECREF(repr);\
       } else {\
         log_debug("repr(%s) = <NULL>", #o);\
       }\
@@ -95,8 +98,6 @@ THE SOFTWARE.
   #define DUMP_REFCOUNT(o) 
   #define DUMP_REPR(o) 
 #endif
-
-#define PyErr_SET_FROM_ERRNO(type) PyErr_SetFromErrnoWithFilename(type, __FILE__)
 
 
 // STR macros
@@ -119,4 +120,5 @@ THE SOFTWARE.
 #define STR_EQUALS_9(x,y) ( ((x)[0]==(y)[0])&&((x)[1]==(y)[1])&&((x)[2]==(y)[2])&&((x)[3]==(y)[3])&&((x)[4]==(y)[4])&&((x)[5]==(y)[5])&&((x)[6]==(y)[6])&&((x)[7]==(y)[7])&&((x)[8]==(y)[8]) )
 #define STR_EQUALS_10(x,y) ( ((x)[0]==(y)[0])&&((x)[1]==(y)[1])&&((x)[2]==(y)[2])&&((x)[3]==(y)[3])&&((x)[4]==(y)[4])&&((x)[5]==(y)[5])&&((x)[6]==(y)[6])&&((x)[7]==(y)[7])&&((x)[8]==(y)[8])&&((x)[9]==(y)[9]) )
 
-#endif /* define SMISK_MACROS_H */
+
+#endif

@@ -22,11 +22,12 @@ THE SOFTWARE.
 #include "__init__.h"
 #include "utils.h"
 #include "multipart.h"
+#include "file.h"
+#include "sha1.h"
 #include "Request.h"
 #include "Response.h"
 #include "Application.h"
-
-#include "sha1.h"
+#include "SessionStore.h"
 
 #include <unistd.h>
 #include <structmember.h>
@@ -96,7 +97,7 @@ static int _parse_request_body(smisk_Request* self) {
     }
     else if(strstr(content_type, "/x-www-form-urlencoded")) {
       char *s = smisk_read_fcgxstream(self->input->stream, content_length);
-      int parse_status = parse_input_data(s, "&", 0, self->post);
+      int parse_status = smisk_parse_input_data(s, "&", 0, self->post);
       free(s);
       if(parse_status != 0) {
         return -1;
@@ -239,8 +240,8 @@ static int _cleanup_uploads(smisk_Request* self) {
         PyObject *path = PyDict_GetItemString(file, "path");
         if(path) {
           char *fn = PyString_AsString(path);
-          log_debug("Trying to unlink file '%s' (%s)", fn, file_exist(fn) ? "exists" : "not found - skipping");
-          if(file_exist(fn) && (unlink(fn) != 0)) {
+          log_debug("Trying to unlink file '%s' (%s)", fn, smisk_file_exist(fn) ? "exists" : "not found - skipping");
+          if(smisk_file_exist(fn) && (unlink(fn) != 0)) {
             log_debug("Failed to unlink temporary file %s", fn);
             PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
             st = -1;
@@ -369,7 +370,7 @@ PyObject* smisk_Request_log_error(smisk_Request* self, PyObject* msg) {
   
   if(FCGX_FPrintF(self->err->stream, format, Py_GetProgramName(), getpid(), PyString_AsString(msg)) == -1) {
     fprintf(stderr, format, Py_GetProgramName(), getpid(), PyString_AsString(msg));
-    return PyErr_SET_FROM_ERRNO(smisk_IOError);
+    return PyErr_SET_FROM_ERRNO;
   }
   
   Py_RETURN_NONE;
@@ -576,7 +577,7 @@ PyObject* smisk_Request_get_get(smisk_Request* self) {
     
     if(self->url->query && (self->url->query != Py_None) && (PyString_GET_SIZE(self->url->query) > 0)) {
       assert_refcount(self->get, == 1);
-      if(parse_input_data(PyString_AS_STRING(self->url->query), "&", 0, self->get) != 0) {
+      if(smisk_parse_input_data(PyString_AS_STRING(self->url->query), "&", 0, self->get) != 0) {
         Py_DECREF(self->get);
         self->get = NULL;
         return NULL;
@@ -621,7 +622,7 @@ PyObject* smisk_Request_get_cookies(smisk_Request* self) {
     
     if((http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp))) {
       log_debug("Parsing input data");
-      if(parse_input_data(http_cookie, ";", 1, self->cookies) != 0) {
+      if(smisk_parse_input_data(http_cookie, ";", 1, self->cookies) != 0) {
         Py_DECREF(self->cookies);
         self->cookies = NULL;
         return NULL;
@@ -650,11 +651,12 @@ static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
       return NULL;
     );
     
-    assert(smisk_current_app->session_name != NULL);
     assert(self->session == NULL);
     
     // Has SID in cookie? - if so, validate
-    if( (self->session_id = PyDict_GetItem(self->cookies, smisk_current_app->session_name)) != NULL ) {
+    self->session_id = PyDict_GetItem(self->cookies,
+      ((smisk_SessionStore *)smisk_current_app->session_store)->name);
+    if( self->session_id != NULL ) {
       if(!PyString_Check(self->session_id)) {
         if(PyList_Check(self->session_id)) {
           log_debug("Ambiguous: Multiple SID supplied in request. Will use first one.");

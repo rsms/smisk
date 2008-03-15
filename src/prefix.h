@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007 Rasmus Andersson
+Copyright (c) 2007, Rasmus Andersson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,23 +19,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#ifndef SMISK_CONFIG_H
-#define SMISK_CONFIG_H
+
+/*
+ Included for every source file
+*/
+
+#ifndef SMISK_PREFIX_H
+#define SMISK_PREFIX_H
 
 #include "system_config.h"
-
-// Chunk size for reading unknown length from a stream
-#define SMISK_STREAM_READ_CHUNKSIZE 1024
-
-// Default readline length for smisk.Stream.readline()
-#define SMISK_STREAM_READLINE_LENGTH 8192
-
-// How much post data can be stored in memory instead of being written to disk
-#define SMISK_POST_SIZE_MEMORY_LIMIT 10240000
-
-// Where and how uploaded files are saved before taken care of
-#define SMISK_FILE_UPLOAD_DIR "/tmp/"
-#define SMISK_FILE_UPLOAD_PREFIX "smisk-upload-"
-
+#include "version.h"
+#include "config.h"
+#include "macros.h"
 
 #endif

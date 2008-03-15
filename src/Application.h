@@ -36,8 +36,6 @@ typedef struct {
   
   PyTypeObject   *session_store_class;
   PyObject       *session_store; // lazy Session store
-  int            session_ttl;
-  PyObject       *session_name; // string
   
   PyObject       *include_exc_info_with_errors; // bool
   

@@ -21,10 +21,10 @@ THE SOFTWARE.
 */
 #ifndef SMISK_FILE_SESSION_STORE_H
 #define SMISK_FILE_SESSION_STORE_H
-#include <Python.h>
+#include "SessionStore.h"
 
 typedef struct {
-  PyObject_HEAD;
+  smisk_SessionStore parent;
   
   // Public Python & C
   PyObject *file_prefix; // string

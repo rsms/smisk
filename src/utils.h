@@ -21,41 +21,39 @@ THE SOFTWARE.
 */
 #ifndef SMISK_UTILS_H
 #define SMISK_UTILS_H
+
 #include <fcgiapp.h>
 
-// Returns PyStringObject (borrowed reference). Does NOT clear exception.
-PyObject* format_exc (PyObject *type, PyObject *value, PyObject *tb);
 
-// Return ISO timestamp YYYY-MM-DD HH:MM:SS
-// @return newly allocated string. You must free the resulting string yourself.
-char *timestr (struct tm *time_or_null);
+/** @return PyStringObject (borrowed reference). Does NOT clear exception. */
+PyObject* smisk_format_exc (PyObject *type, PyObject *value, PyObject *tb);
 
-// Associate value with key - if the key exists, the keys value is a list of values.
+/**
+ * Associate value with key - if the key exists, the keys value is a list of
+ * values.
+ */
 int PyDict_assoc_val_with_key (PyObject *dict, PyObject *val, PyObject *key);
 
-// Parse input data (query string, post url-encoded, cookie, etc). Returns 0 on success.
-int parse_input_data (char *s, const char *separator, int is_cookie_data, PyObject *dict);
+/**
+ * Parse input data (query string, post url-encoded, cookie, etc).
+ * @return 0 on success.
+ */
+int smisk_parse_input_data (char *s, const char *separator, int is_cookie_data, PyObject *dict);
 
-// Read a line from a FCGI stream
+/** Read a line from a FCGI stream */
 size_t smisk_stream_readline (char *str, int n, FCGX_Stream *stream);
 
-// Print bytes - unsafe or outside ASCII characters are printed as \xXX
-// Will print something like: bytes(4) 'm\x0dos'
-void frepr_bytes (FILE *f, const char *s, size_t len);
+/**
+ * Print bytes - unsafe or outside ASCII characters are printed as \xXX
+ * Will print something like: bytes(4) 'm\x0dos'
+ */
+void smisk_frepr_bytes (FILE *f, const char *s, size_t len);
 
-// Quick way to find out if a file exists. May not be bullet proof, for when
-// example a file exists, but is not accessible.
-int file_exist (const char *fn);
+/** @return Current time in microseconds */
+double smisk_microtime (void);
 
-// Current time in microseconds
-double microtime (void);
-
-// KB, GB, etc
-char nearest_size_unit (double *bytes);
-
-// Return the contents of file fn as a newly allocated string
-// Returns a new reference
-PyObject *smisk_file_readall (const char *fn);
+/** KB, GB, etc */
+char smisk_size_unit (double *bytes);
 
 /*
 Encode bytes into printable ASCII characters.

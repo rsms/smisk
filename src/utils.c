@@ -20,18 +20,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <stdlib.h>
+#include <time.h>
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
 #include <fcgiapp.h>
 #include <Python.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/time.h>
+
 #include "__init__.h"
 #include "URL.h"
 
 
 // Returns PyStringObject (borrowed reference)
-PyObject* format_exc(PyObject *type, PyObject *value, PyObject *tb) {
+PyObject* smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
   PyObject* msg = NULL;
   PyObject* lines = NULL;
   PyObject* traceback = NULL;
@@ -80,19 +83,6 @@ PyObject* format_exc(PyObject *type, PyObject *value, PyObject *tb) {
 }
 
 
-char *timestr(struct tm *time_or_null) {
-  if(!time_or_null) {
-    time_t curtime = time(NULL);
-    time_or_null = localtime(&curtime);
-  }
-  
-  char *buffer = (char*)malloc(sizeof(char)*20);
-  strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", time_or_null);
-  
-  return buffer;
-}
-
-
 int PyDict_assoc_val_with_key(PyObject *dict, PyObject *val, PyObject* key) {
   PyObject *existing_val, *new_val;
   
@@ -131,11 +121,11 @@ int PyDict_assoc_val_with_key(PyObject *dict, PyObject *val, PyObject* key) {
 }
 
 
-int parse_input_data(char *s, const char *separator, int is_cookie_data, PyObject *dict) {
+int smisk_parse_input_data(char *s, const char *separator, int is_cookie_data, PyObject *dict) {
   char *scpy, *key, *val, *strtok_ctx = NULL;
   int status = 0;
   
-  log_debug("parse_input_data '%s'", s);
+  log_debug("smisk_parse_input_data '%s'", s);
   scpy = strdup(s);
   key = strtok_r(scpy, separator, &strtok_ctx);
   
@@ -207,7 +197,7 @@ size_t smisk_stream_readline(char *str, int n, FCGX_Stream *stream) {
 }
 
 
-void frepr_bytes(FILE *f, const char *s, size_t len) {
+void smisk_frepr_bytes(FILE *f, const char *s, size_t len) {
   int c;
   fprintf(f, "bytes(%lu) '", (unsigned long int)len);
   while(len--) {
@@ -223,12 +213,7 @@ void frepr_bytes(FILE *f, const char *s, size_t len) {
 }
 
 
-int file_exist(const char *fn) {
-  return ((access(fn, R_OK) == 0) ? 1 : 0);
-}
-
-
-double microtime(void) {
+double smisk_microtime(void) {
   struct timeval tp;
   if(gettimeofday(&tp, NULL) == 0) {
     return ((double)tp.tv_usec / 1000000.0) + tp.tv_sec;
@@ -237,7 +222,7 @@ double microtime(void) {
 }
 
 
-char nearest_size_unit (double *bytes) {
+char smisk_size_unit (double *bytes) {
   if(*bytes > 1024000000.0) {
     *bytes = *bytes/1024000000.0;
     return 'G';
@@ -253,55 +238,6 @@ char nearest_size_unit (double *bytes) {
   else {
     return 'B';
   }
-}
-
-
-PyObject *smisk_file_readall(const char *fn) {
-  log_debug("ENTER file_readall  fn='%s'", fn);
-  FILE *fp;
-  PyObject *py_buf;
-  char *buf, *p;
-  size_t br, length = 0, chunksize = 8096;
-  size_t bufsize = chunksize;
-  
-  if( (fp = fopen(fn, "rb")) == NULL ) {
-    PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
-    return NULL;
-  }
-  
-  if( (py_buf = PyString_FromStringAndSize(NULL, bufsize)) == NULL ) {
-    return NULL;
-  }
-  
-  buf = PyString_AS_STRING(py_buf);
-  p = buf;
-  
-  while( (br = fread(p, 1, chunksize, fp)) ) {
-    length += br;
-    p += br;
-    if(br < chunksize) {
-      // EOF
-      if(!feof(fp)) {
-        PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
-        Py_DECREF(py_buf);
-        fclose(fp);
-        return NULL;
-      }
-      break;
-    }
-    // Realloc
-    bufsize += chunksize;
-    if(_PyString_Resize(&py_buf, (Py_ssize_t)bufsize) != 0) {
-      Py_DECREF(py_buf);
-      fclose(fp);
-      return NULL;
-    }
-  }
-  
-  fclose(fp);
-  buf[length] = 0;
-  ((PyStringObject *)py_buf)->ob_size = length;
-  return py_buf;
 }
 
 

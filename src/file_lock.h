@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007 Rasmus Andersson
+Copyright (c) 2007, Rasmus Andersson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,23 +19,29 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#ifndef SMISK_CONFIG_H
-#define SMISK_CONFIG_H
+#ifndef SMISK_FILE_LOCK_H
+#define SMISK_FILE_LOCK_H
 
-#include "system_config.h"
+#define SMISK_FILE_LOCK_SHARED 1
+#define SMISK_FILE_LOCK_NONBLOCK 2
 
-// Chunk size for reading unknown length from a stream
-#define SMISK_STREAM_READ_CHUNKSIZE 1024
 
-// Default readline length for smisk.Stream.readline()
-#define SMISK_STREAM_READLINE_LENGTH 8192
+/**
+ * Aquire a file lock, similar to libc flock().
+ * 
+ * @param type  Bitmask constructed by and of SMISK_FLOCK_*.
+ *              If SMISK_FLOCK_SHARED is not included, an exclusive lock
+ *              is aquired.
+ * @return 0 on success, otherwise -1 or errno.
+ */
+int smisk_file_lock (FILE *fh, int type);
 
-// How much post data can be stored in memory instead of being written to disk
-#define SMISK_POST_SIZE_MEMORY_LIMIT 10240000
 
-// Where and how uploaded files are saved before taken care of
-#define SMISK_FILE_UPLOAD_DIR "/tmp/"
-#define SMISK_FILE_UPLOAD_PREFIX "smisk-upload-"
-
+/**
+ * Release a file lock previously aquired using smisk_file_lock.
+ *
+ * @return 0 on success, otherwise -1 or errno.
+ */
+int smisk_file_unlock (FILE *fh);
 
 #endif

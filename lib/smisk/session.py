@@ -4,20 +4,12 @@ class Store:
   '''
   Session store interface definition.
   
-  Any session store must implement this interface.
-  
-  `Application` keeps alot of session "settings", like TTL (or "max lifetime").
-  You can always get a hold of the current `Application` by calling the static
-  method `Application.current()`. For example, you can aquire the TTL value
-  like this: ``Application.current().session_ttl``.
-  
-  :ivar uses_gc: If the Store uses Garbage Collection to handle old sessions,
-                this should have a True value and the Store must implement the
-                `gc()` method.
-  :type uses_gc: bool
+  :type ttl:  int
+  :type name: string
   '''
   
-  uses_gc = True
+  ttl = 900
+  name = 'SID'
   
   def read(self, session_id):
     '''
@@ -64,7 +56,7 @@ class Store:
     
     For example, the built-in file-based session stores implementation
     uses ``touch session-file`` in order to refresh the sessions modified time,
-    which is later used in `smisk.core.FileSessionStore.gc()` to detect dead
+    which is later used in the garbage collector-based model to detect dead
     sessions.
     
     :param  session_id:  Session ID
@@ -85,25 +77,4 @@ class Store:
     '''
     raise NotImplementedError
   
-  def gc(self, max_lifetime):
-    '''
-    Periodically called to allow for deletion of timed out sessions.
-    
-    Should delete any session data which is older than ``max_lifetime``
-    seconds.
-    
-    This method is only required and used if the `uses_gc` instance variable
-    evaluates to True.
-    
-    There is no way to know exactly when this method will be called, since
-    it uses a probabilistic approach to decide when it's time to garbage
-    collect. It will be ran just after some *HTTP transaction* has finished,
-    and is guaranteed not to be ran at the same time as any of `read()`,
-    `write()`, `refresh()` or `destroy()`.
-    
-    :param  max_lifetime: Maximum lifetime expressed in seconds
-    :type   max_lifetime: int
-    :rtype: None
-    '''
-    raise NotImplementedError
 

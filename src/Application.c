@@ -22,7 +22,6 @@ THE SOFTWARE.
 #include "__init__.h"
 #include "utils.h"
 #include "Application.h"
-#include "NotificationCenter.h"
 #include "FileSessionStore.h"
 
 #include <fcgiapp.h>
@@ -106,8 +105,6 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
     self->session_store = NULL;
   
     // Default values
-    self->session_ttl = 900;
-    self->session_name = PyString_FromString("SID");
     self->include_exc_info_with_errors = Py_True; Py_INCREF(Py_True);
     
     // Application.current = self
@@ -130,8 +127,7 @@ void smisk_Application_dealloc(smisk_Application *self) {
   }
   Py_DECREF(self->request);
   Py_DECREF(self->response);
-  Py_DECREF(self->session_store);
-  Py_DECREF(self->session_name);
+  Py_XDECREF(self->session_store);
   Py_DECREF(self->include_exc_info_with_errors);
   
   self->ob_type->tp_free((PyObject*)self);
@@ -162,7 +158,7 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
   FCGX_Request request;
   int rc = FCGX_Init();
   if (rc) {
-    return PyErr_SET_FROM_ERRNO(smisk_IOError);
+    return PyErr_SET_FROM_ERRNO;
   }
   FCGX_InitRequest(&request, smisk_listensock_fileno, FCGI_FAIL_ACCEPT_ON_INTR);
   
@@ -178,10 +174,6 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
   
   // Create transaction context
   if(_setup_transaction_context(self) != 0) {
-    return NULL;
-  }
-  
-  if(smisk_post_notification(kApplicationWillStartNotification, self, NULL) == NULL) {
     return NULL;
   }
   
@@ -251,18 +243,10 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
   //FCGX_Finish();
   FCGX_Finish_r(&request);
   
-  // Notify observers
-  ret = smisk_post_notification(kApplicationDidStopNotification, self, NULL);
-  
   // reset signal handlers
   PyOS_setsig(SIGINT, orig_int_handler);
   PyOS_setsig(SIGHUP, orig_hup_handler);
   PyOS_setsig(SIGTERM, orig_term_handler);
-  
-  // Notify observers
-  if(ret != NULL) {
-    ret = smisk_post_notification(kApplicationWillExitNotification, self, NULL);
-  }
   
   // Now, raise the signal again if that was the reason for exiting the run loop
   if(smisk_Application_trapped_signal) {
@@ -319,7 +303,7 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   }
   
   // Format exception into string
-  if( (exc_str = format_exc(type, value, tb)) == NULL ) {
+  if( (exc_str = smisk_format_exc(type, value, tb)) == NULL ) {
     return NULL;
   }
   
@@ -339,7 +323,7 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   // Log exception
   if(FCGX_PutStr(PyString_AS_STRING(exc_str), PyString_GET_SIZE(exc_str), self->request->err->stream) == -1) {
     log_error("Error in %s.error(): %s", PyString_AS_STRING(PyObject_Str((PyObject *)self)), PyString_AS_STRING(exc_str));
-    return PyErr_SET_FROM_ERRNO(smisk_IOError);
+    return PyErr_SET_FROM_ERRNO;
   }
   
   Py_DECREF(exc_str);
@@ -368,7 +352,7 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   Py_DECREF(msg);
   
   if(rc == -1) {
-    return PyErr_SET_FROM_ERRNO(smisk_IOError);
+    return PyErr_SET_FROM_ERRNO;
   }
   
   Py_RETURN_NONE;
@@ -420,12 +404,7 @@ static int smisk_Application_set_session_store(smisk_Application* self, PyObject
 /********** type configuration **********/
 
 PyDoc_STRVAR(smisk_Application_DOC,
-  "An application.\n"
-  "\n"
-  "Notifications whis is emitted by an Application:\n"
-  " * `ApplicationWillStartNotification` - Emitted just before the application starts accept()'ing.\n"
-  " * `ApplicationDidStopNotification` - The application stopped accepting connections.\n"
-  " * `ApplicationWillExitNotification` - The application is about to exit from a signal or by ending it's run loop.\n");
+  "An application.\n");
 
 // Methods
 static PyMethodDef smisk_Application_methods[] = {
@@ -470,14 +449,6 @@ static struct PyMemberDef smisk_Application_members[] = {
   {"include_exc_info_with_errors", T_OBJECT_EX, offsetof(smisk_Application, include_exc_info_with_errors), 0,
     ":type: bool\n\n"
     "Defaults to True."},
-  
-  {"session_name", T_OBJECT_EX, offsetof(smisk_Application, session_name), 0,
-    ":type: string\n\n"
-    "Name used to identify the session id cookie. Defaults to \"SID\""},
-  
-  {"session_ttl", T_INT, offsetof(smisk_Application, session_ttl), 0,
-    ":type: int\n\n"
-    "For how long a session should be valid, expressed in seconds. Defaults to 900."},
   
   {NULL}
 };

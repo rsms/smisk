@@ -25,8 +25,8 @@ THE SOFTWARE.
 #include "Request.h"
 #include "Response.h"
 #include "Stream.h"
-#include "NotificationCenter.h"
 #include "URL.h"
+#include "SessionStore.h"
 #include "FileSessionStore.h"
 #include "xml/__init__.h"
 
@@ -46,17 +46,12 @@ int smisk_listensock_fileno = FCGI_LISTENSOCK_FILENO;
 // Objects at module-level
 PyObject *smisk_Error, *smisk_IOError, *os_module;
 
-// Notifications (exported to module.<name without 'k' prefix>)
-PyObject *kApplicationWillStartNotification;
-PyObject *kApplicationWillExitNotification;
-PyObject *kApplicationDidStopNotification;
-
 // Other static strings (only used in C API)
 PyObject *kString_http;
 PyObject *kString_https;
 
 
-#ifdef SMISK_DEBUG
+#if SMISK_DEBUG
 static void _debug_sighandler(int sig) {
   log_debug("Caught signal %d", sig);
   _exit(sig);
@@ -114,7 +109,7 @@ PyObject* smisk_bind(PyObject *self, PyObject *args) {
   if(fd < 0) {
     log_debug("ERROR: FCGX_OpenSocket(\"%s\", %d) returned %d. errno: %d", 
       PyString_AS_STRING(path), backlog, fd, errno);
-    return PyErr_SET_FROM_ERRNO(smisk_IOError);
+    return PyErr_SET_FROM_ERRNO;
   }
   
   // Set the process global fileno
@@ -144,7 +139,7 @@ PyObject* smisk_listening(PyObject *self, PyObject *args) {
   addrlen = sizeof(struct sockaddr_in); // Assume INET
   addr = (struct sockaddr *)malloc(addrlen);
   if(getsockname(smisk_listensock_fileno, addr, &addrlen) != 0) {
-    return PyErr_SET_FROM_ERRNO(smisk_IOError);
+    return PyErr_SET_FROM_ERRNO;
   }
   
   if(addr->sa_family == AF_INET || addr->sa_family == AF_INET6) {
@@ -187,7 +182,7 @@ PyMODINIT_FUNC initcore(void) {
   
   // We want stack trace on SIGSEGV and SIGBUS
   setup_sigsegv();
-  #ifdef SMISK_DEBUG
+  #if SMISK_DEBUG
   // A note about what signal killed us if something else
   PyOS_setsig(SIGILL,  _debug_sighandler);
   PyOS_setsig(SIGTRAP, _debug_sighandler);
@@ -202,15 +197,6 @@ PyMODINIT_FUNC initcore(void) {
   if(os_module == NULL) {
     return;
   }
-  
-  // Constants: Notifications (exported to module.<name without 'k' prefix>)
-#define N(_name_) \
-  if (!(k##_name_ = PyString_FromString(#_name_) )) return; \
-  PyModule_AddObject(module, #_name_, k##_name_);
-  N(ApplicationWillStartNotification);
-  N(ApplicationWillExitNotification);
-  N(ApplicationDidStopNotification);
-#undef N
   
   // Constants: Other static strings (only used in C API)
   kString_http = PyString_FromString("http");
@@ -227,8 +213,8 @@ PyMODINIT_FUNC initcore(void) {
     (smisk_Request_register_types(module) != 0) ||
     (smisk_Response_register_types(module) != 0) ||
     (smisk_Stream_register_types(module) != 0) ||
-    (smisk_NotificationCenter_register_types(module) != 0) ||
     (smisk_URL_register_types(module) != 0) ||
+    (smisk_SessionStore_register_types(module) != 0) ||
     (smisk_FileSessionStore_register_types(module) != 0) ||
     (smisk_xml_register(module) == NULL)
     ) {

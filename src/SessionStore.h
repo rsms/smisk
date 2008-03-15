@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007 Rasmus Andersson
+Copyright (c) 2007, Rasmus Andersson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,23 +19,30 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#ifndef SMISK_CONFIG_H
-#define SMISK_CONFIG_H
+#ifndef SMISK_SESSION_STORE_H
+#define SMISK_SESSION_STORE_H
+#include <Python.h>
 
-#include "system_config.h"
+typedef struct {
+  PyObject_HEAD;
+  
+  // Public Python
+  int ttl; /// Lifetime in seconds
+  PyObject *name; /// Name of session in cookie
+  
+} smisk_SessionStore;
 
-// Chunk size for reading unknown length from a stream
-#define SMISK_STREAM_READ_CHUNKSIZE 1024
+extern PyTypeObject smisk_SessionStoreType;
 
-// Default readline length for smisk.Stream.readline()
-#define SMISK_STREAM_READLINE_LENGTH 8192
+int smisk_SessionStore_register_types (PyObject *module);
 
-// How much post data can be stored in memory instead of being written to disk
-#define SMISK_POST_SIZE_MEMORY_LIMIT 10240000
+PyObject *smisk_SessionStore_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
+int       smisk_SessionStore_init (smisk_SessionStore* self, PyObject* args, PyObject* kwargs);
+void      smisk_SessionStore_dealloc (smisk_SessionStore* self);
 
-// Where and how uploaded files are saved before taken care of
-#define SMISK_FILE_UPLOAD_DIR "/tmp/"
-#define SMISK_FILE_UPLOAD_PREFIX "smisk-upload-"
-
+PyObject *smisk_SessionStore_read (smisk_SessionStore* self, PyObject* session_id);
+PyObject *smisk_SessionStore_write (smisk_SessionStore* self, PyObject* args);
+PyObject *smisk_SessionStore_refresh (smisk_SessionStore* self, PyObject* session_id);
+PyObject *smisk_SessionStore_destroy (smisk_SessionStore* self, PyObject* session_id);
 
 #endif

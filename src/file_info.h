@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007 Rasmus Andersson
+Copyright (c) 2007, Rasmus Andersson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,23 +19,37 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#ifndef SMISK_CONFIG_H
-#define SMISK_CONFIG_H
+#ifndef SMISK_FILE_INFO_H
+#define SMISK_FILE_INFO_H
 
-#include "system_config.h"
+#include <stdio.h>
+#if HAVE_SYS_TIME_H
+  #include <sys/time.h>
+#endif
 
-// Chunk size for reading unknown length from a stream
-#define SMISK_STREAM_READ_CHUNKSIZE 1024
+// XXX set these at configure-time
+#define HAVE_UTIMES 1
+#define HAVE_UTIME 1
 
-// Default readline length for smisk.Stream.readline()
-#define SMISK_STREAM_READLINE_LENGTH 8192
+/**
+ * Quick way to find out if a file exists. May not be bullet proof, for when
+ * example a file exists, but is not accessible.
+ */
+int smisk_file_exist (const char *fn);
 
-// How much post data can be stored in memory instead of being written to disk
-#define SMISK_POST_SIZE_MEMORY_LIMIT 10240000
+/**
+ * Get modified time for file pointed to by either descriptor fd or name fn.
+ *
+ * @param fn  if not used, set to NULL
+ * @param fd  if not used, set to -1
+ * @return  Returns 0 on error. (You can check errno for errors)
+ */
+time_t smisk_file_mtime (const char *fn, int fd);
 
-// Where and how uploaded files are saved before taken care of
-#define SMISK_FILE_UPLOAD_DIR "/tmp/"
-#define SMISK_FILE_UPLOAD_PREFIX "smisk-upload-"
+/** @return 0 on success */
+int smisk_file_mtime_set (const char *fn, int fd, struct timeval mtime);
 
+/** @return 0 on success */
+int smisk_file_mtime_set_now (const char *fn, int fd);
 
 #endif

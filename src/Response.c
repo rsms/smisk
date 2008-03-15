@@ -22,6 +22,7 @@ THE SOFTWARE.
 #include "__init__.h"
 #include "Response.h"
 #include "Application.h"
+#include "SessionStore.h"
 #include <structmember.h>
 #include <fastcgi.h>
 
@@ -153,7 +154,7 @@ PyObject* smisk_Response_send_file(smisk_Response* self, PyObject* filename) {
   
   // Check for errors
   if(rc == -1) {
-    return PyErr_SET_FROM_ERRNO(smisk_IOError);
+    return PyErr_SET_FROM_ERRNO;
   }
   
   Py_RETURN_NONE;
@@ -178,15 +179,15 @@ PyObject* smisk_Response_begin(smisk_Response* self) {
   // Set session cookie?
   if(smisk_current_app->request->session_id && (smisk_current_app->request->initial_session_hash == 0)) {
     log_debug("New session - sending SID with Set-Cookie: %s=%s;Version=1;Path=/",
-      PyString_AS_STRING(smisk_current_app->session_name),
+      PyString_AS_STRING(((smisk_SessionStore *)smisk_current_app->session_store)->name),
       PyString_AS_STRING(smisk_current_app->request->session_id));
     // First-time session!
-    if(!PyString_Check(smisk_current_app->session_name)) {
+    if(!PyString_Check(((smisk_SessionStore *)smisk_current_app->session_store)->name)) {
       return NULL;
     }
     assert(smisk_current_app->request->session_id);
     FCGX_FPrintF(self->out->stream, "Set-Cookie: %s=%s;Version=1;Path=/\r\n",
-      PyString_AS_STRING(smisk_current_app->session_name),
+      PyString_AS_STRING(((smisk_SessionStore *)smisk_current_app->session_store)->name),
       PyString_AS_STRING(smisk_current_app->request->session_id)
     );
   }
@@ -218,7 +219,7 @@ PyObject* smisk_Response_begin(smisk_Response* self) {
   
   // Errors?
   if(rc == -1) {
-    return PyErr_SET_FROM_ERRNO(smisk_IOError);
+    return PyErr_SET_FROM_ERRNO;
   }
   
   log_debug("EXIT smisk_Response_begin");

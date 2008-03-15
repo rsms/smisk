@@ -22,14 +22,13 @@ class MyApp(Application):
     
     # Print alot of information
     w = self.response.write
-    w("self: %s\n" % repr(self))
-    w("\n")
-    w("self.\n")
+    w("self. %s\n" % repr(self))
     w(" request_class:       %s\n" % repr(self.request_class))
     w(" response_class       %s\n" % repr(self.response_class))
     w(" session_store_class: %s\n" % repr(self.session_store_class))
-    w(" session_store:       %s\n" % repr(self.session_store))
-    w(" session_name:        %s\n" % repr(self.session_name))
+    w(" session_store.       %s\n" % repr(self.session_store))
+    w("  name:                %s\n" % repr(self.session_store.name))
+    w("  ttl:                 %d\n" % self.session_store.ttl)
     w("\n")
     w("self.request.\n")
     w(" env      %s\n" % repr(self.request.env))

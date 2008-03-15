@@ -22,9 +22,6 @@ THE SOFTWARE.
 #ifndef SMISK_MODULE_H
 #define SMISK_MODULE_H
 #include <Python.h>
-#include "version.h"
-#include "macros.h"
-#include "config.h"
 
 // fcgi socket fd
 extern int smisk_listensock_fileno;
@@ -33,11 +30,6 @@ extern PyObject *os_module;
 // static objects at module-level
 extern PyObject *smisk_Error; // extends PyExc_StandardError
 extern PyObject *smisk_IOError; // extends PyExc_IOError
-
-// Notifications (exported to module.<name without 'k' prefix>)
-extern PyObject *kApplicationWillStartNotification;
-extern PyObject *kApplicationWillExitNotification;
-extern PyObject *kApplicationDidStopNotification;
 
 // Other static strings (only used in C API)
 extern PyObject *kString_http;
