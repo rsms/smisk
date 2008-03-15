@@ -9,4 +9,4 @@ Minimal FastCGI-based web application framework.
 import smisk.core
 __version__ = smisk.core.__version__
 __build__ = smisk.core.__build__
-
+from smisk.core import *
