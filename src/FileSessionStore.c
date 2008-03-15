@@ -232,7 +232,7 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* se
   log_debug("ENTER smisk_FileSessionStore_read");
   PyObject *fn, *data = NULL;
   char *pathname;
-  FILE *fp;
+  FILE *fp = NULL;
   PyThreadState *_save = NULL;
   
   if( !PyString_Check(session_id) ) {

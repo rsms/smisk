@@ -10,7 +10,9 @@
  *
  * Copyright (C) 2005 - 2006 Jaco Kroon
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <memory.h>
 #include <stdlib.h>
 #include <stdio.h>

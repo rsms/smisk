@@ -22,6 +22,8 @@ THE SOFTWARE.
 #ifndef SMISK_MACROS_H
 #define SMISK_MACROS_H
 
+#include <Python.h>
+
 /* Convert an ASCII hex digit to the corresponding number between 0
    and 15.  H should be a hexadecimal digit that satisfies isxdigit;
    otherwise, the result is undefined.  */

@@ -40,11 +40,7 @@ try:
 except:
   pass
 
-include_dirs = ['/usr/include/python%s' % py_version, # debian and others
-                '/opt/local/include/python%s' % py_version, # bsd ports, mac ports, etc
-                '/usr/local/include', # general
-                '/usr/include']       # general
-
+include_dirs = []
 library_dirs = ['/opt/local/lib',
                 '/usr/local/lib',
                 '/usr/lib']
@@ -89,8 +85,44 @@ class apidocs(Command):
       print 'epydoc not installed, skipping API documentation.'
   
 
-def build_configure():
-  import platform, re
+def configure_build():
+  configure_include_dirs()
+  configure_system_conditions()
+  configure_compiler()
+
+
+def configure_include_dirs():
+  # Add any system header search paths
+  for dn in [
+    '/usr/local/include',
+    '/usr/include'
+    ]:
+    if os.path.isdir(dn):
+      include_dirs.append(dn)
+  # Add first existing python header search path
+  found_py = False
+  for dn in [
+    '/usr/include/python%s' % py_version, # debian and others
+    '/usr/local/include/python%s' % py_version, # debian and others
+    '/opt/local/include/python%s' % py_version, # bsd ports, mac ports, etc
+    '/opt/local/Library/Frameworks/Python.framework/Versions/%s/Headers' % py_version, # less common ports path
+    '/usr/include/python',
+    '/usr/local/include/python',
+    '/opt/local/include/python',
+    ]:
+    if os.path.isdir(dn):
+      include_dirs.append(dn)
+      found_py = True
+      break
+  if not found_py:
+    sys.stderr.write("\nNo Python header search paths found!\n"\
+      "This is a serious error. Please contact rasmus@flajm.se.\n")
+    sys.exit(1)
+  
+
+
+def configure_system_conditions():
+  import re
   sys_conf_h_create = True
   try:
     if os.path.getmtime(sys_conf_h) > os.path.getmtime(__file__):
@@ -98,7 +130,6 @@ def build_configure():
   except os.error:
     pass
   if sys_conf_h_create:
-    print 'Configuring build environment'
     f = open(sys_conf_h, "w")
     try:
       defname_re = re.compile('[^a-zA-Z_]')
@@ -125,6 +156,9 @@ def build_configure():
       f.write("\n#endif\n")
     finally:
       f.close()
+
+def configure_compiler():
+  import platform
   if '--debug' in sys.argv:
     define_macros.append(('SMISK_DEBUG', '1'))
     undef_macros.append('NDEBUG')
@@ -145,7 +179,7 @@ if sys.argv[1] == 'build':
   finally: f.close()
 
   # configure
-  build_configure()
+  configure_build()
   
   # set c flags
   if 'CFLAGS' in os.environ: os.environ['CFLAGS'] += cflags
