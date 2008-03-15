@@ -4,6 +4,11 @@ import sys, os
 from smisk import *
 
 class MyApp(Application):
+  def __init__(self, *args, **kwargs):
+    super(MyApp, self).__init__(*args, **kwargs)
+    # Set a very low session TTL for easy demonstration
+    self.session_store.ttl = 30
+  
   def service(self):
     self.response.headers = ["Content-Type: text/plain"]
     
@@ -31,17 +36,18 @@ class MyApp(Application):
     w("  ttl:                 %d\n" % self.session_store.ttl)
     w("\n")
     w("self.request.\n")
-    w(" env      %s\n" % repr(self.request.env))
-    w(" get      %s\n" % repr(self.request.get))
-    w(" post     %s\n" % repr(self.request.post))
-    w(" files    %s\n" % repr(self.request.files))
-    w(" cookies  %s\n" % repr(self.request.cookies))
-    w(" input    %s\n" % repr(self.request.input.read()))
-    w(" url      %s\n" % self.request.url)
-    w(" session: %s\n" % repr(self.request.session))
+    w(" env         %s\n" % repr(self.request.env))
+    w(" get         %s\n" % repr(self.request.get))
+    w(" post        %s\n" % repr(self.request.post))
+    w(" files       %s\n" % repr(self.request.files))
+    w(" cookies     %s\n" % repr(self.request.cookies))
+    w(" input       %s\n" % repr(self.request.input.read()))
+    w(" url         %s\n" % self.request.url)
+    w(" session_id: %s\n" % repr(self.request.session_id))
+    w(" session:    %s\n" % repr(self.request.session))
     w("\n")
     w("self.response.\n")
-    w(" headers  %s\n" % repr(self.response.headers))
+    w(" headers     %s\n" % repr(self.response.headers))
   
 
 try:
