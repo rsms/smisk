@@ -83,14 +83,16 @@ static int _gc_run(smisk_FileSessionStore *self) {
       
       while ((f = readdir(d)) != NULL) {
         if( (f->d_type == DT_REG)
-         && (strncmp(f->d_name, fn_prefix, min(strlen(f->d_name), fn_prefix_len)) == 0)
-         && _is_garbage(self, NULL, f->d_ino) ) {
+          && (strncmp(f->d_name, fn_prefix, min(strlen(f->d_name), fn_prefix_len)) == 0) )
+        {
           strcpy(path_buf+path_p_len+1, f->d_name);
-          #if SMISK_DEBUG
-            log_debug("unlink %s -> %d", path_buf, unlink(path_buf));
-          #else
-            unlink(path_buf);
-          #endif
+          if(_is_garbage(self, path_buf, -1)) {
+            #if SMISK_DEBUG
+              log_debug("unlink %s %s", path_buf, (unlink(path_buf) == 0) ? "SUCCESS" : "FAILED");
+            #else
+              unlink(path_buf);
+            #endif
+          }
         }
       }
       free(path_buf);
@@ -110,23 +112,24 @@ static int _gc_run(smisk_FileSessionStore *self) {
 
 
 static void _gc_thread(void *_self) {
-  int first_run;
-  
-  smisk_FileSessionStore *self = (smisk_FileSessionStore *)_self;
-  first_run = 1;
   log_debug("_gc_thread started on thread #%ld", PyThread_get_thread_ident());
+  unsigned int sleeptime;
+  
+  sleep(1);
+  smisk_FileSessionStore *self = (smisk_FileSessionStore *)_self;
   
   while(self->gc_run) {
-    if(first_run) {
-      first_run = 0;
-      // short delay so that a server restart doesn't hog resources
-      sleep(((smisk_SessionStore *)self)->ttl/8);
+    if(_gc_run(self) != 0) {
+      PyErr_Print();
+    }
+    if(((smisk_SessionStore *)self)->ttl > 0) {
+      sleeptime = (unsigned int)(((smisk_SessionStore *)self)->ttl / 2);
+      if(sleeptime < 2)
+        sleeptime = 2;
+      sleep(sleeptime); // will be interrupted by exit signal
     }
     else {
-      if(_gc_run(self) != 0) {
-        PyErr_Print();
-      }
-      sleep(((smisk_SessionStore *)self)->ttl/2); // will be interrupted by exit signal
+      sleep(30);
     }
   }
   
@@ -227,7 +230,7 @@ static PyObject *smisk_FileSessionStore_path(smisk_FileSessionStore *self, PyObj
 PyDoc_STRVAR(smisk_FileSessionStore_read_DOC,
   ":param  session_id: Session ID\n"
   ":type   session_id: string\n"
-  ":raises smisk.core.InvalidSessionError: if there is no actual session associated with `session_id`.\n"
+  ":raises smisk.core.InvalidSessionError: if there is no actual session associated with ``session_id``.\n"
   ":rtype: object");
 PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* session_id) {
   log_debug("ENTER smisk_FileSessionStore_read");
@@ -249,11 +252,10 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* se
   
   // Read file data
   if(smisk_file_exist(pathname)) {
-    _save = PyEval_SaveThread();
-    
     if( _is_garbage(self, pathname, -1) ) {
       log_debug("Garbage session %s (older than ttl=%d)",
-        PyString_AS_STRING(session_id), ((smisk_SessionStore *)self)->ttl);
+                PyString_AS_STRING(session_id),
+                ((smisk_SessionStore *)self)->ttl);
       if(_unlink(pathname) != 0) {
         PyErr_SET_FROM_ERRNO;
       }
@@ -262,6 +264,7 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* se
       }
     }
     else {
+      _save = PyEval_SaveThread();
       if( (fp = fopen(pathname, "rb")) == NULL ) {
         PyErr_SET_FROM_ERRNO;
         goto end_return;

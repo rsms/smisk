@@ -95,14 +95,14 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
     // Set default classes
     self->request_class = (PyTypeObject*)&smisk_RequestType;
     self->response_class = (PyTypeObject*)&smisk_ResponseType;
-    self->session_store_class = (PyTypeObject*)&smisk_FileSessionStoreType;
+    self->sessions_class = (PyTypeObject*)&smisk_FileSessionStoreType;
   
     // Set transaction context to None - run() will set up these.
     self->request = (smisk_Request *)Py_None; Py_INCREF(Py_None);
     self->response = (smisk_Response *)Py_None; Py_INCREF(Py_None);
     
     // Nullify lazy objects
-    self->session_store = NULL;
+    self->sessions = NULL;
   
     // Default values
     self->include_exc_info_with_errors = Py_True; Py_INCREF(Py_True);
@@ -127,7 +127,7 @@ void smisk_Application_dealloc(smisk_Application *self) {
   }
   Py_DECREF(self->request);
   Py_DECREF(self->response);
-  Py_XDECREF(self->session_store);
+  Py_XDECREF(self->sessions);
   Py_DECREF(self->include_exc_info_with_errors);
   
   self->ob_type->tp_free((PyObject*)self);
@@ -193,7 +193,7 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
       FCGX_GetParam("REMOTE_ADDR", request.envp),
       FCGX_GetParam("REMOTE_PORT", request.envp) );
     
-    // Set streams (TODO: check if this really is needed)
+    // Set streams
     self->request->input->stream = request.in;
     self->response->out->stream  = request.out;
     self->request->err->stream   = request.err;
@@ -202,12 +202,16 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
     
     // Service request
     if(PyObject_CallMethod((PyObject *)self, "service", NULL) != NULL) {
-      // Finish request
+      // Finish response
       smisk_Response_finish(self->response);
     }
-    IFDEBUG(else if(!smisk_Application_trapped_signal) {
-      log_debug("<Application@%p>.service() failed", self);
-    })
+    #if SMISK_DEBUG
+      else if(!smisk_Application_trapped_signal) {
+        PyObject *repr = PyObject_Repr((PyObject *)self);
+        log_debug("%s.service() failed", PyString_AS_STRING(repr));
+        Py_DECREF(repr);
+      }
+    #endif
     
     // Exception raised?
     if(PyErr_Occurred()) {
@@ -219,7 +223,17 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
         PyObject *type, *value, *tb;
         PyErr_Fetch(&type, &value, &tb);
         PyErr_Clear();
-        log_debug("PyError: %p, %p, %p", type, value, tb);
+        #if SMISK_DEBUG
+          PyObject *type_repr, *value_repr, *tb_repr;
+          type_repr = PyObject_Repr((PyObject *)type);
+          value_repr = PyObject_Repr((PyObject *)value);
+          tb_repr = PyObject_Repr((PyObject *)tb);
+          log_debug("Exeption: type=%s, value=%s, tb=%s", PyString_AS_STRING(type_repr),
+                    PyString_AS_STRING(value_repr), PyString_AS_STRING(tb_repr));
+          Py_DECREF(type_repr);
+          Py_DECREF(value_repr);
+          Py_DECREF(tb_repr);
+        #endif
         PyObject *err_ret = PyObject_CallMethod((PyObject *)self, "error", "OOO", type, value, tb);
         Py_DECREF(type);
         Py_DECREF(value);
@@ -317,6 +331,10 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
     return NULL;
   }
   
+  if(!self->request) {
+    PyErr_SetString(PyExc_EnvironmentError, "self->request == NULL");
+    return NULL;
+  }
   ENSURE_BY_GETTER(self->request->env, smisk_Request_get_env(self->request),
     return NULL;
   );
@@ -418,25 +436,25 @@ PyObject *smisk_Application_application_did_stop(smisk_Application *self) {
 #pragma mark -
 #pragma mark Properties
 
-PyObject* smisk_Application_get_session_store(smisk_Application* self) {
-  log_debug("ENTER smisk_Application_get_session_store");
-  if(self->session_store == NULL) {
-    DUMP_REPR(self->session_store_class);
-    if((self->session_store = PyObject_Call((PyObject*)self->session_store_class, NULL, NULL)) == NULL) {
+PyObject* smisk_Application_get_sessions(smisk_Application* self) {
+  log_debug("ENTER smisk_Application_get_sessions");
+  if(self->sessions == NULL) {
+    DUMP_REPR(self->sessions_class);
+    if((self->sessions = PyObject_Call((PyObject*)self->sessions_class, NULL, NULL)) == NULL) {
       return NULL;
     }
-    log_debug("self->session_store=%p", self->session_store);
+    log_debug("self->sessions=%p", self->sessions);
   }
   
-  Py_INCREF(self->session_store); // callers reference
-  return self->session_store;
+  Py_INCREF(self->sessions); // callers reference
+  return self->sessions;
 }
 
 
-static int smisk_Application_set_session_store(smisk_Application* self, PyObject *session_store) {
-  log_debug("ENTER smisk_Application_set_session_store  session_store=%p", session_store);
-  REPLACE_OBJ(self->session_store, session_store, PyObject);
-  return self->session_store ? 0 : -1;
+static int smisk_Application_set_sessions(smisk_Application* self, PyObject *sessions) {
+  log_debug("ENTER smisk_Application_set_sessions  sessions=%p", sessions);
+  REPLACE_OBJ(self->sessions, sessions, PyObject);
+  return self->sessions ? 0 : -1;
 }
 
 
@@ -464,9 +482,9 @@ static PyMethodDef smisk_Application_methods[] = {
 
 // Properties
 static PyGetSetDef smisk_Application_getset[] = {
-  {"session_store",
-    (getter)smisk_Application_get_session_store,
-    (setter)smisk_Application_set_session_store,
+  {"sessions",
+    (getter)smisk_Application_get_sessions,
+    (setter)smisk_Application_set_sessions,
     ":type: `smisk.session.Store`", NULL},
   
   {NULL}
@@ -482,9 +500,9 @@ static struct PyMemberDef smisk_Application_members[] = {
     ":type: Type\n\n"
     "Must be set before calling `run()`"},
   
-  {"session_store_class",  T_OBJECT_EX, offsetof(smisk_Application, session_store_class), 0,
+  {"sessions_class",  T_OBJECT_EX, offsetof(smisk_Application, sessions_class), 0,
     ":type: Type\n\n"
-    "Must be set before first access to `session_store`"},
+    "Must be set before first access to `sessions`"},
   
   {"request",  T_OBJECT_EX, offsetof(smisk_Application, request),  RO,
     ":type: `Request`"},

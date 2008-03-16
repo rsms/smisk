@@ -28,7 +28,7 @@ sources = ['src/__init__.c',
            
               'src/xml/__init__.c']
 
-os.chdir(os.path.join('.', os.path.dirname(__file__)))
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 py_version = ".".join([str(s) for s in sys.version_info[0:2]]) # "M.m"
 
 # get revision
@@ -173,7 +173,7 @@ def configure_compiler():
 #---------------------------------------
 if sys.argv[1] == 'build':
   # write version.h
-  f = open(os.path.abspath(os.path.join(os.path.dirname(__file__), "src/version.h")), "w")
+  f = open('src/version.h', "w")
   try:
     f.write("#ifndef SMISK_VERSION\n#define SMISK_VERSION \"%s\"\n#endif\n" % version)
     f.write("#ifndef SMISK_REVISION\n#define SMISK_REVISION \"%s\"\n#endif\n" % revision)

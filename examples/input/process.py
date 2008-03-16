@@ -7,7 +7,7 @@ class MyApp(Application):
   def __init__(self, *args, **kwargs):
     super(MyApp, self).__init__(*args, **kwargs)
     # Set a very low session TTL for easy demonstration
-    self.session_store.ttl = 30
+    self.sessions.ttl = 10
   
   def service(self):
     self.response.headers = ["Content-Type: text/plain"]
@@ -30,10 +30,10 @@ class MyApp(Application):
     w("self. %s\n" % repr(self))
     w(" request_class:       %s\n" % repr(self.request_class))
     w(" response_class       %s\n" % repr(self.response_class))
-    w(" session_store_class: %s\n" % repr(self.session_store_class))
-    w(" session_store.       %s\n" % repr(self.session_store))
-    w("  name:                %s\n" % repr(self.session_store.name))
-    w("  ttl:                 %d\n" % self.session_store.ttl)
+    w(" sessions_class: %s\n" % repr(self.sessions_class))
+    w(" sessions.       %s\n" % repr(self.sessions))
+    w("  name:                %s\n" % repr(self.sessions.name))
+    w("  ttl:                 %d\n" % self.sessions.ttl)
     w("\n")
     w("self.request.\n")
     w(" env         %s\n" % repr(self.request.env))

@@ -179,16 +179,16 @@ PyObject* smisk_Response_begin(smisk_Response* self) {
   // Set session cookie?
   if(smisk_current_app->request->session_id && (smisk_current_app->request->initial_session_hash == 0)) {
     log_debug("New session - sending SID with Set-Cookie: %s=%s;Version=1;Path=/",
-      PyString_AS_STRING(((smisk_SessionStore *)smisk_current_app->session_store)->name),
+      PyString_AS_STRING(((smisk_SessionStore *)smisk_current_app->sessions)->name),
       PyString_AS_STRING(smisk_current_app->request->session_id));
     // First-time session!
-    if(!PyString_Check(((smisk_SessionStore *)smisk_current_app->session_store)->name)) {
-      PyErr_SetString(PyExc_TypeError, "session_store.name is not a string");
+    if(!PyString_Check(((smisk_SessionStore *)smisk_current_app->sessions)->name)) {
+      PyErr_SetString(PyExc_TypeError, "sessions.name is not a string");
       return NULL;
     }
     assert(smisk_current_app->request->session_id);
     FCGX_FPrintF(self->out->stream, "Set-Cookie: %s=%s;Version=1;Path=/\r\n",
-      PyString_AS_STRING(((smisk_SessionStore *)smisk_current_app->session_store)->name),
+      PyString_AS_STRING(((smisk_SessionStore *)smisk_current_app->sessions)->name),
       PyString_AS_STRING(smisk_current_app->request->session_id)
     );
   }

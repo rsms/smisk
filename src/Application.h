@@ -34,8 +34,8 @@ typedef struct {
   smisk_Request  *request;
   smisk_Response *response;
   
-  PyTypeObject   *session_store_class;
-  PyObject       *session_store; // lazy Session store
+  PyTypeObject   *sessions_class;
+  PyObject       *sessions; // lazy Session store
   
   PyObject       *include_exc_info_with_errors; // bool
   
@@ -60,6 +60,6 @@ PyObject* smisk_Application_run     (smisk_Application* self, PyObject* args);
 PyObject* smisk_Application_service (smisk_Application* self, PyObject* args);
 PyObject* smisk_Application_exit    (smisk_Application* self);
 
-PyObject* smisk_Application_get_session_store (smisk_Application* self);
+PyObject* smisk_Application_get_sessions (smisk_Application* self);
 
 #endif

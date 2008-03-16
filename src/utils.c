@@ -68,7 +68,7 @@ PyObject* smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
   
   msg = PyString_FromString("");
   Py_ssize_t i = 0, lines_len = PyList_GET_SIZE(lines);
-  for(;i<lines_len;i++) {
+  for(; i < lines_len; i++) {
     PyString_ConcatAndDel(&msg, PyList_GET_ITEM(lines, i));
     if(msg == NULL) {
       log_debug("msg == NULL");
@@ -76,8 +76,6 @@ PyObject* smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
       return NULL;
     }
   }
-  
-  Py_DECREF(lines);
   
   return msg;
 }
