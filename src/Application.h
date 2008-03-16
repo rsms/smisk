@@ -37,7 +37,7 @@ typedef struct {
   PyTypeObject   *sessions_class;
   PyObject       *sessions; // lazy Session store
   
-  PyObject       *include_exc_info_with_errors; // bool
+  PyObject       *show_traceback; // bool
   
 } smisk_Application;
 

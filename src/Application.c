@@ -105,7 +105,7 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
     self->sessions = NULL;
   
     // Default values
-    self->include_exc_info_with_errors = Py_True; Py_INCREF(Py_True);
+    self->show_traceback = Py_True; Py_INCREF(Py_True);
     
     // Application.current = self
     REPLACE_OBJ(smisk_current_app, self, smisk_Application);
@@ -128,7 +128,7 @@ void smisk_Application_dealloc(smisk_Application *self) {
   Py_DECREF(self->request);
   Py_DECREF(self->response);
   Py_XDECREF(self->sessions);
-  Py_DECREF(self->include_exc_info_with_errors);
+  Py_DECREF(self->show_traceback);
   
   self->ob_type->tp_free((PyObject*)self);
 }
@@ -321,6 +321,7 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   
   int rc;
   PyObject *msg, *exc_str, *type, *value, *tb;
+  char *exc_strp = NULL, *value_repr = NULL;
   
   if(!PyArg_UnpackTuple(args, "error", 3, 3, &type, &value, &tb)) {
     return NULL;
@@ -339,17 +340,31 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
     return NULL;
   );
   
+  // Get reference to last line of trace, containing short message
+  exc_strp = PyString_AS_STRING(exc_str);
+  Py_ssize_t len = PyString_GET_SIZE(exc_str)-2;
+  for(; len; len-- ) {
+    if(exc_strp[len] == '\n') {
+      log_debug("%s", exc_strp+len);
+      value_repr = exc_strp+len;
+      break;
+    }
+  }
+  
   // Format error message
-  msg = PyString_FromFormat("<h1>Internal Server Error</h1>\n"
-    "<pre>%s</pre>\n"
+  msg = PyString_FromFormat("<h1>Service Error</h1>\n"
+    "<p class=\"message\">%s</p>\n"
+    "<pre class=\"traceback\">%s</pre>\n"
     "<hr/><address>%s at %s port %s</address>\n",
-    ((self->include_exc_info_with_errors == Py_True) ? PyString_AS_STRING(exc_str) : "Exception info has been logged."),
+    value_repr ? value_repr : "",
+    ((self->show_traceback == Py_True) ? exc_strp : "Additional information has been logged."),
     PyString_AS_STRING(PyDict_GetItemString(self->request->env, "SERVER_SOFTWARE")),
     FCGX_GetParam("SERVER_NAME", self->request->envp),
     FCGX_GetParam("SERVER_PORT", self->request->envp));
   
-  // Log exception
+  // Log exception throught fcgi error stream
   if(FCGX_PutStr(PyString_AS_STRING(exc_str), PyString_GET_SIZE(exc_str), self->request->err->stream) == -1) {
+    // Fall back to stderr
     log_error("Error in %s.error(): %s", PyString_AS_STRING(PyObject_Str((PyObject *)self)), PyString_AS_STRING(exc_str));
     return PyErr_SET_FROM_ERRNO;
   }
@@ -358,10 +373,22 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   
   if(!self->response->has_begun) {
     // Include headers if response has not yet been sent
-    static char *header = "<html><head><title>Internal Server Error</title></head><body>";
+    static char *header = "<html><head>"
+      "<title>Service Error</title>"
+      "<style type=\"text/css\">\n"
+        "body,html { padding:0; margin:0; background:#666; }\n"
+        "h1 { padding:25pt 10pt 10pt 15pt; background:#ffb2bf; color:#560c00; font-family:arial,helvetica,sans-serif; margin:0; }\n"
+        "address, p { font-family:'lucida grande',verdana,arial,sans-serif; }\n"
+        "p.message { padding:10pt 16pt; background:#fff; color:#222; margin:0; font-size:.9em; }\n"
+        "pre.traceback { padding:10pt 15pt 25pt 15pt; line-height:1.4; background:#f2f2ca; color:#52523b; "
+                        "margin:0; border-top:1px solid #e3e3ba; border-bottom:1px solid #555; }\n"
+        "hr { display:none; }\n"
+        "address { padding:10pt 15pt; color:#333; font-size:11px; }\n"
+      "</style>"
+      "</head><body>";
     static char *footer = "</body></html>";
     rc = FCGX_FPrintF(self->response->out->stream,
-       "Content-Type: text/html\r\n"
+      "Content-Type: text/html\r\n"
       "Status: 500 Internal Server Error\r\n"
       "Content-Length: %ld\r\n"
        "\r\n"
@@ -510,7 +537,7 @@ static struct PyMemberDef smisk_Application_members[] = {
   {"response", T_OBJECT_EX, offsetof(smisk_Application, response), RO,
     ":type: `Response`"},
   
-  {"include_exc_info_with_errors", T_OBJECT_EX, offsetof(smisk_Application, include_exc_info_with_errors), 0,
+  {"show_traceback", T_OBJECT_EX, offsetof(smisk_Application, show_traceback), 0,
     ":type: bool\n\n"
     "Defaults to True."},
   
