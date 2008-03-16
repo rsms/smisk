@@ -227,6 +227,7 @@ static PyObject *smisk_FileSessionStore_path(smisk_FileSessionStore *self, PyObj
 PyDoc_STRVAR(smisk_FileSessionStore_read_DOC,
   ":param  session_id: Session ID\n"
   ":type   session_id: string\n"
+  ":raises smisk.core.InvalidSessionError: if there is no actual session associated with `session_id`.\n"
   ":rtype: object");
 PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* session_id) {
   log_debug("ENTER smisk_FileSessionStore_read");
@@ -236,6 +237,7 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* se
   PyThreadState *_save = NULL;
   
   if( !PyString_Check(session_id) ) {
+    PyErr_SetString(PyExc_TypeError, "session_id must be a string");
     return NULL;
   }
   
@@ -256,8 +258,7 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* se
         PyErr_SET_FROM_ERRNO;
       }
       else {
-        data = Py_None;
-        Py_INCREF(Py_None);
+        PyErr_SetString(smisk_InvalidSessionError, "data too old");
       }
     }
     else {
@@ -284,8 +285,7 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* se
   }
   else {
     log_debug("No session data. File not found '%s'", PyString_AS_STRING(fn));
-    data = Py_None;
-    Py_INCREF(Py_None);
+    PyErr_SetString(smisk_InvalidSessionError, "no data");
   }
   
 end_return:
@@ -455,7 +455,7 @@ static struct PyMemberDef smisk_FileSessionStore_members[] = {
     ":type: string\n\n"
     "A string to prepend to each file stored in `dir`.\n"
     "\n"
-    "Defaults to ´´tempfile.tempdir + \"smisk-sess.\"`` - for example: ``/tmp/smisk-sess.``"},
+    "Defaults to ``tempfile.tempdir + \"smisk-sess.\"`` - for example: ``/tmp/smisk-sess.``"},
   
   {NULL}
 };

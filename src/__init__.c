@@ -44,7 +44,8 @@ THE SOFTWARE.
 int smisk_listensock_fileno = FCGI_LISTENSOCK_FILENO;
 
 // Objects at module-level
-PyObject *smisk_Error, *smisk_IOError, *os_module;
+PyObject *smisk_Error, *smisk_IOError, *smisk_InvalidSessionError;
+PyObject *os_module;
 
 // Other static strings (only used in C API)
 PyObject *kString_http;
@@ -175,7 +176,7 @@ PyDoc_STRVAR(smisk_module_DOC,
 
 PyMODINIT_FUNC initcore(void) {
   PyObject* module;
-  module = Py_InitModule("core", module_methods);
+  module = Py_InitModule("smisk.core", module_methods);
   
   // Seed random
   srandom((unsigned int)getpid());
@@ -226,5 +227,7 @@ PyMODINIT_FUNC initcore(void) {
   PyModule_AddObject(module, "Error", smisk_Error);
   if (!(smisk_IOError = PyErr_NewException("smisk.core.IOError", PyExc_IOError, NULL))) return;
   PyModule_AddObject(module, "IOError", smisk_IOError);
+  if (!(smisk_InvalidSessionError = PyErr_NewException("smisk.core.InvalidSessionError", PyExc_ValueError, NULL))) return;
+  PyModule_AddObject(module, "InvalidSessionError", smisk_InvalidSessionError);
 }
 

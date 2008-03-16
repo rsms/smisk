@@ -37,7 +37,7 @@ THE SOFTWARE.
 smisk_Application *smisk_current_app = NULL;
 
 int smisk_require_app (void) {
-  if(!smisk_current_app) {
+  if(!smisk_current_app || (smisk_current_app == (smisk_Application *)Py_None)) {
     PyErr_SetString(PyExc_EnvironmentError, "Application not initialized");
     return -1;
   }
@@ -123,7 +123,7 @@ int smisk_Application_init(smisk_Application *self, PyObject* args, PyObject* kw
 void smisk_Application_dealloc(smisk_Application *self) {
   log_debug("ENTER smisk_Application_dealloc");
   if(smisk_current_app == self) {
-    REPLACE_OBJ(smisk_current_app, NULL, smisk_Application);
+    REPLACE_OBJ(smisk_current_app, Py_None, smisk_Application);
   }
   Py_DECREF(self->request);
   Py_DECREF(self->response);
@@ -174,6 +174,11 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
   
   // Create transaction context
   if(_setup_transaction_context(self) != 0) {
+    return NULL;
+  }
+  
+  // Notify ourselves we are about to start accepting requests
+  if(PyObject_CallMethod((PyObject *)self, "application_will_start", NULL) == NULL) {
     return NULL;
   }
   
@@ -238,6 +243,11 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
       PyErr_Print();
       raise(SIGINT);
     }
+  }
+  
+  // Notify ourselves we have stopped accepting requests
+  if(PyObject_CallMethod((PyObject *)self, "application_did_stop", NULL) == NULL) {
+    return NULL;
   }
   
   //FCGX_Finish();
@@ -373,11 +383,40 @@ PyDoc_STRVAR(smisk_Application_current_DOC,
   "Current application instance, if any.\n"
   "\n"
   ":rtype: Application");
-PyObject *smisk_Application_current(smisk_Application *self) {
-  Py_XINCREF(smisk_current_app);
+PyObject *smisk_Application_current() {
+  Py_INCREF(smisk_current_app);
   return (PyObject *)smisk_current_app;
 }
 
+
+#pragma mark -
+#pragma mark Notification methods
+
+
+PyDoc_STRVAR(smisk_Application_application_will_start_DOC,
+  "Called just before the application starts accepting incoming requests.\n"
+  "\n"
+  "The default implementations does nothing. It's ment to be overridden."
+  "\n"
+  ":rtype: None");
+PyObject *smisk_Application_application_will_start(smisk_Application *self) {
+  Py_RETURN_NONE;
+}
+
+
+PyDoc_STRVAR(smisk_Application_application_did_stop_DOC,
+  "Called when the application stops accepting incoming requests.\n"
+  "\n"
+  "The default implementations does nothing. It's ment to be overridden."
+  "\n"
+  ":rtype: None");
+PyObject *smisk_Application_application_did_stop(smisk_Application *self) {
+  Py_RETURN_NONE;
+}
+
+
+#pragma mark -
+#pragma mark Properties
 
 PyObject* smisk_Application_get_session_store(smisk_Application* self) {
   log_debug("ENTER smisk_Application_get_session_store");
@@ -413,6 +452,13 @@ static PyMethodDef smisk_Application_methods[] = {
   {"error",   (PyCFunction)smisk_Application_error,   METH_VARARGS, smisk_Application_error_DOC},
   {"exit",    (PyCFunction)smisk_Application_exit,    METH_NOARGS,  smisk_Application_exit_DOC},
   {"current", (PyCFunction)smisk_Application_current, METH_STATIC|METH_NOARGS, smisk_Application_current_DOC},
+  
+  // Notifications
+  {"application_will_start",  (PyCFunction)smisk_Application_application_will_start,
+    METH_NOARGS,  smisk_Application_application_will_start_DOC},
+  {"application_did_stop",    (PyCFunction)smisk_Application_application_did_stop,
+    METH_NOARGS,  smisk_Application_application_did_stop_DOC},
+  
   {NULL}
 };
 
@@ -498,6 +544,10 @@ PyTypeObject smisk_ApplicationType = {
 };
 
 int smisk_Application_register_types(PyObject *module) {
+  if(smisk_current_app == NULL) {
+    smisk_current_app = (smisk_Application *)Py_None;
+    Py_INCREF(Py_None);
+  }
   if(PyType_Ready(&smisk_ApplicationType) == 0) {
     return PyModule_AddObject(module, "Application", (PyObject *)&smisk_ApplicationType);
   }

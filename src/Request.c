@@ -664,12 +664,14 @@ static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
             return NULL;
           }
           else if(!PyString_Check(self->session_id)) {
+            PyErr_SetString(PyExc_TypeError, "self.session_id is not a string");
             self->session_id = NULL;
             return NULL;
           }
         }
         else {
           log_debug("Inconsistency error: Provided SID is neither a single nor multiple string value");
+          PyErr_SetString(PyExc_TypeError, "type of self.session_id is neither string nor list");
           self->session_id = NULL;
           return NULL;
         }
@@ -684,15 +686,15 @@ static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
       else {
         self->session = PyObject_CallMethod(smisk_current_app->session_store, "read", "O", self->session_id);
         if(self->session == NULL) {
-          self->session_id = NULL; // Error
-          return NULL;
-        }
-        if(self->session == Py_None) {
-          // Invalid SID
-          log_debug("Invalid SID provided by request (no session)");
-          Py_DECREF(self->session);
-          self->session = NULL;
-          self->session_id = NULL;
+          if(PyErr_ExceptionMatches(smisk_InvalidSessionError)) {
+            PyErr_Clear();
+            log_debug("Invalid SID provided by request (no data)");
+            self->session_id = NULL;
+          }
+          else {
+            self->session_id = NULL; // Error
+            return NULL;
+          }
         }
         else {
           // Valid SID

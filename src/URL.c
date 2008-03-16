@@ -181,8 +181,25 @@ static PyObject* encode_or_escape(PyObject* self, PyObject* str, unsigned char m
   Py_ssize_t orglen;
   Py_ssize_t newlen;
   PyObject* newstr_py;
+  int should_decref_str = 0;
+  
+  if(!PyString_CheckExact(str)) {
+    if(PyUnicode_Check(str)) {
+      str = PyUnicode_AsUTF8String(str);
+      if(str == NULL)
+        return NULL;
+      should_decref_str = 1;
+    }
+    else {
+      PyErr_SetString(PyExc_TypeError, "first argument must be a string");
+      return NULL;
+    }
+  }
   
   if((orgstr = PyString_AsString(str)) == NULL) {
+    if(should_decref_str) {
+      Py_DECREF(str);
+    }
     return NULL; // TypeError was raised
   }
   
@@ -190,7 +207,9 @@ static PyObject* encode_or_escape(PyObject* self, PyObject* str, unsigned char m
   
   if(orglen < 1) {
     // Empty string
-    Py_INCREF(str);
+    if(!should_decref_str) {
+      Py_INCREF(str);
+    }
     return str;
   }
   
@@ -206,18 +225,28 @@ static PyObject* encode_or_escape(PyObject* self, PyObject* str, unsigned char m
   
   if(orglen == newlen) {
     // No need to encode - return original string
-    Py_INCREF(str);
+    if(!should_decref_str) {
+      Py_INCREF(str);
+    }
     return str;
   }
   
   // Initialize new PyString
   if((newstr_py = PyString_FromStringAndSize(NULL, newlen)) == NULL) {
+    if(should_decref_str) {
+      Py_DECREF(str);
+    }
     return NULL;
   }
   
   // Do the actual encoding
   newstr = PyString_AS_STRING(newstr_py);
   _url_encode(orgstr, newstr, mask);
+  
+  
+  if(should_decref_str) {
+    Py_DECREF(str);
+  }
   
   // Return new string
   return newstr_py;
@@ -434,6 +463,7 @@ int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs) {
   // Save reference to first argument (a string) and type check it
   str = PyTuple_GET_ITEM(args, 0);
   if(!PyString_Check(str)) {
+    PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     Py_DECREF(self);
     return -1;
   }

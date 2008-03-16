@@ -30,6 +30,7 @@ extern PyObject *os_module;
 // static objects at module-level
 extern PyObject *smisk_Error; // extends PyExc_StandardError
 extern PyObject *smisk_IOError; // extends PyExc_IOError
+extern PyObject *smisk_InvalidSessionError; // extends PyExc_ValueError
 
 // Other static strings (only used in C API)
 extern PyObject *kString_http;

@@ -126,6 +126,21 @@ PyObject* smisk_xml_encode_py(PyObject *self, PyObject *pys) {
   size_t len, nlen;
   PyObject *npys;
   char *s, *dest;
+  int should_decref_pys = 0;
+  
+  if(!PyString_CheckExact(pys)) {
+    if(PyUnicode_Check(pys)) {
+      pys = PyUnicode_AsUTF8String(pys);
+      if(pys == NULL) {
+        return NULL;
+      }
+      should_decref_pys = 1;
+    }
+    else {
+      PyErr_SetString(PyExc_TypeError, "first argument must be a string");
+      return NULL;
+    }
+  }
   
   len = (size_t)PyString_GET_SIZE(pys);
   s = PyString_AS_STRING(pys);
@@ -138,12 +153,18 @@ PyObject* smisk_xml_encode_py(PyObject *self, PyObject *pys) {
   
   npys = PyString_FromStringAndSize(NULL, nlen);
   if(npys == NULL) {
+    if(should_decref_pys) {
+      Py_DECREF(pys);
+    }
     return NULL;
   }
   dest = PyString_AS_STRING(npys);
   
   smisk_xml_encode_p(s, len, dest);
   
+  if(should_decref_pys) {
+    Py_DECREF(pys);
+  }
   return npys;
 }
 
@@ -162,7 +183,7 @@ PyDoc_STRVAR(smisk_xml_DOC,
 
 PyObject *smisk_xml_register (PyObject *parent) {
   log_debug("ENTER smisk_xml_register");
-  smisk_xml = Py_InitModule("xml", methods);
+  smisk_xml = Py_InitModule("smisk.core.xml", methods);
   PyModule_AddStringConstant(smisk_xml, "__doc__", smisk_xml_DOC);
   if(PyModule_AddObject(parent, "xml", smisk_xml) != 0) {
     Py_DECREF(smisk_xml);
