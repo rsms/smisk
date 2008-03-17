@@ -428,7 +428,7 @@ PyDoc_STRVAR(smisk_Application_current_DOC,
   "Current application instance, if any.\n"
   "\n"
   ":rtype: Application");
-PyObject *smisk_Application_current() {
+PyObject *smisk_Application_current(void) {
   Py_INCREF(smisk_current_app);
   return (PyObject *)smisk_current_app;
 }
