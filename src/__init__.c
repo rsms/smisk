@@ -37,6 +37,7 @@ THE SOFTWARE.
 #include <netinet/in.h>
 #include <sys/un.h>
 #include <arpa/inet.h>
+#include <signal.h>
 #include <fcgiapp.h>
 #include <fastcgi.h>
 
