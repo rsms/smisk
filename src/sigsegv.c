@@ -13,10 +13,9 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
+#include "sigsegv.h"
 #include <memory.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <signal.h>
 #include <ucontext.h>
 #include <dlfcn.h>
 #include <execinfo.h>
@@ -35,7 +34,7 @@
   #define REGFORMAT "%x"
 #endif
 
-void sigsegv_write_backtrace(siginfo_t* info, void*ptr, FILE *out) {
+void sigsegv_write_backtrace(siginfo_t *info, void *ptr, FILE *out) {
   size_t i;
   
 #if defined(SIGSEGV_STACK_X86) || defined(SIGSEGV_STACK_IA64)

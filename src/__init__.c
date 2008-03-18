@@ -63,7 +63,8 @@ PyObject *kString_https;
   static void smisk_crash_sighandler(int signum, siginfo_t* info, void*ptr) {
     FILE *out = NULL;
     char out_fn[PATH_MAX];
-    char cwd[PATH_MAX];
+    char cwd_buf[PATH_MAX];
+    char *cwd = NULL;
     struct tm *t;
     time_t timer;
     size_t i = 0;
@@ -124,7 +125,7 @@ PyObject *kString_https;
     // Construct filename smisk-YYYYMMDD-HHMMSS.PID.crash
     timer = time(NULL);
     t = localtime(&timer);
-    getcwd(cwd, PATH_MAX);
+    cwd = getcwd(cwd_buf, PATH_MAX);
     sprintf(out_fn, "%s/smisk-%04d%02d%02d-%02d%02d%02d.%d.crash",
       (access(cwd ? cwd : ".", W_OK) == 0) ? (cwd ? cwd : ".") : "/tmp",
       1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, getpid());
