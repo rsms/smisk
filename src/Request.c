@@ -307,8 +307,6 @@ PyObject * smisk_Request_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
       Py_DECREF(self);
       return NULL;
     }
-    
-    int* ptr = (int*)0; *ptr = 1; // XXX segfault please
   
     // Construct a new Stream for err
     self->err = (smisk_Stream*)smisk_Stream_new(&smisk_StreamType, NULL, NULL);
