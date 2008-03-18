@@ -199,12 +199,6 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
       return -1;
     }
   }
-  else {
-    // no value, only key
-    if(PyDict_assoc_val_with_key(ctx->files, Py_None, py_key) != 0) {
-      return -1;
-    }
-  }
   
   return 0;
 }
