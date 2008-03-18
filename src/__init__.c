@@ -118,8 +118,22 @@ PyObject *kString_https;
     };
     
     // Header
-    fprintf(stderr, "FATAL: smisk died from signal %d (%s). ", // intentionally no LF
-      signum, (signum == SIGSEGV) ? "Segmentation violation" : "Bus error");
+    fputs("FATAL: smisk died from ", stderr);
+    switch(signum) {
+      case SIGILL:
+        fputs("Illegal instruction ", stderr);
+        break;
+      case SIGFPE:
+        fputs("Floating-point exception ", stderr);
+        break;
+      case SIGBUS:
+        fputs("Bus error ", stderr);
+        break;
+      case SIGSEGV:
+        fputs("Segmentation violation ", stderr);
+        break;
+    }
+    fprintf(stderr, "[%d] ", signum);
     fflush(stderr);
     
     // Construct filename smisk-YYYYMMDD-HHMMSS.PID.crash
