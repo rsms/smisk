@@ -35,91 +35,60 @@
   #define REGFORMAT "%x"
 #endif
 
-static void signal_segv(int signum, siginfo_t* info, void*ptr) {
-    static const char *si_codes[3] = {"", "SEGV_MAPERR", "SEGV_ACCERR"};
-    size_t i;
-
+void sigsegv_write_backtrace(siginfo_t* info, void*ptr, FILE *out) {
+  size_t i;
+  
 #if defined(SIGSEGV_STACK_X86) || defined(SIGSEGV_STACK_IA64)
-    int f = 0;
-    Dl_info dlinfo;
-    void **bp = 0;
-    void *ip = 0;
+  int f = 0;
+  Dl_info dlinfo;
+  void **bp = 0;
+  void *ip = 0;
 #else
-    void *bt[20];
-    char **strings;
-    size_t sz;
+  void *bt[20];
+  char **strings;
+  size_t sz;
 #endif
 
-    fprintf(stderr, "Segmentation Fault!\n");
-    fprintf(stderr, "info.si_signo = %d\n", signum);
-    fprintf(stderr, "info.si_errno = %d\n", info->si_errno);
-    fprintf(stderr, "info.si_code  = %d (%s)\n", info->si_code, si_codes[info->si_code]);
-    fprintf(stderr, "info.si_addr  = %p\n", info->si_addr);
-
 #if defined(SIGSEGV_STACK_X86) || defined(SIGSEGV_STACK_IA64)
-    ucontext_t *ucontext = (ucontext_t*)ptr;
-    
-    for(i = 0; i < NGREG; i++)
-        fprintf(stderr, "reg[%02lu]       = 0x" REGFORMAT "\n", i, (unsigned long)ucontext->uc_mcontext.gregs[i]);
+  ucontext_t *ucontext = (ucontext_t*)ptr;
+  
+  for(i = 0; i < NGREG; i++)
+    fprintf(out, "reg[%02lu]     = 0x" REGFORMAT "\n", i, (unsigned long)ucontext->uc_mcontext.gregs[i]);
 # if defined(SIGSEGV_STACK_IA64)
-    ip = (void*)ucontext->uc_mcontext.gregs[REG_RIP];
-    bp = (void**)ucontext->uc_mcontext.gregs[REG_RBP];
+  ip = (void*)ucontext->uc_mcontext.gregs[REG_RIP];
+  bp = (void**)ucontext->uc_mcontext.gregs[REG_RBP];
 # elif defined(SIGSEGV_STACK_X86)
-    ip = (void*)ucontext->uc_mcontext.gregs[REG_EIP];
-    bp = (void**)ucontext->uc_mcontext.gregs[REG_EBP];
+  ip = (void*)ucontext->uc_mcontext.gregs[REG_EIP];
+  bp = (void**)ucontext->uc_mcontext.gregs[REG_EBP];
 # endif
 
-    fprintf(stderr, "Stack trace:\n");
-    while(bp && ip) {
-        if(!dladdr(ip, &dlinfo))
-            break;
+  fprintf(out, "Stack trace:\n");
+  while(bp && ip) {
+    if(!dladdr(ip, &dlinfo))
+      break;
 
-        const char *symname = dlinfo.dli_sname;
+    const char *symname = dlinfo.dli_sname;
 
-        fprintf(stderr, "% 2d: %p <%s+%u> (%s)\n",
-                ++f,
-                ip,
-                symname,
-                (unsigned)(ip - dlinfo.dli_saddr),
-                dlinfo.dli_fname);
+    fprintf(out, "% 2d: %p <%s+%u> (%s)\n",
+        ++f,
+        ip,
+        symname,
+        (unsigned)(ip - dlinfo.dli_saddr),
+        dlinfo.dli_fname);
 
-        if(dlinfo.dli_sname && !strcmp(dlinfo.dli_sname, "main"))
-            break;
+    if(dlinfo.dli_sname && !strcmp(dlinfo.dli_sname, "main"))
+      break;
 
-        ip = bp[1];
-        bp = (void**)bp[0];
-    }
+    ip = bp[1];
+    bp = (void**)bp[0];
+  }
 #else
-    fprintf(stderr, "Stack trace (non-dedicated):\n");
-    sz = backtrace(bt, 1000);
-    strings = backtrace_symbols(bt, sz);
-    for(i = 0; i < sz; ++i)
-        fprintf(stderr, "%s\n", strings[i]);
+  fprintf(out, "Stack trace (non-dedicated):\n");
+  sz = backtrace(bt, 1000);
+  strings = backtrace_symbols(bt, sz);
+  for(i = 0; i < sz; ++i)
+    fprintf(out, "%s\n", strings[i]);
 #endif
-    fprintf(stderr, "End of stack trace\n");
-    exit (-1);
+  fprintf(out, "End of stack trace\n");
 }
 
-
-int setup_sigsegv(void) {
-    struct sigaction action;
-    memset(&action, 0, sizeof(action));
-    action.sa_sigaction = signal_segv;
-    action.sa_flags = SA_SIGINFO;
-    if(sigaction(SIGSEGV, &action, NULL) < 0) {
-        perror("sigaction");
-        return 0;
-    }
-    if(sigaction(SIGBUS, &action, NULL) < 0) {
-        perror("sigaction");
-        return 0;
-    }
-    
-    return 1;
-}
-
-/*#ifndef SIGSEGV_NO_AUTO_INIT
-static void __attribute((constructor)) init(void) {
-    setup_sigsegv();
-}
-#endif*/

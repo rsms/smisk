@@ -1,9 +1,6 @@
 #ifndef __SIGSEGV_H__
 #define __SIGSEGV_H__
 
-#ifdef __cplusplus
-extern "C"
-#endif
-int setup_sigsegv(void);
+void sigsegv_write_backtrace (siginfo_t* info, void *ptr, FILE *out);
 
 #endif

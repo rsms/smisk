@@ -36,7 +36,6 @@ revision = ''
 try:
   (child_stdin, child_stdout) = os.popen2('svnversion -n .')
   revision = child_stdout.read()
-  version += '-r' + revision
 except:
   pass
 
@@ -57,7 +56,8 @@ has_headers = [
   'fcntl.h',
   'sys/file.h',
   'sys/time.h',
-  'sys/stat.h'
+  'sys/stat.h',
+  'sys/utsname.h'
 ]
 
 #---------------------------------------
@@ -160,9 +160,12 @@ def configure_system_conditions():
 def configure_compiler():
   import platform
   global cflags
-  if '--debug' in sys.argv:
-    define_macros.append(('SMISK_DEBUG', '1'))
+  if '--debug' in sys.argv or '--debug-smisk' in sys.argv:
     undef_macros.append('NDEBUG')
+    cflags += ' -g -O0'
+    define_macros.append(('DEBUG', '1'))
+    if '--smisk-debug' in sys.argv:
+      define_macros.append(('SMISK_DEBUG', '1'))
   else:
     if platform.machine().find('x86') != -1:
       cflags += ' -msse3'
@@ -189,7 +192,7 @@ if sys.argv[1] == 'build':
 #---------------------------------------
 setup (
   name = "smisk",
-  version = version,
+  version = version + '-r' + revision,
   description = "High-performance web service framework",
   long_description = """
 Smisk is a simple, high-performance and scalable web service framework
