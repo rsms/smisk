@@ -62,7 +62,8 @@ PyObject *kString_https;
 #ifndef SMISK_NO_CRASH_REPORTING
   static void smisk_crash_sighandler(int signum, siginfo_t* info, void*ptr) {
     FILE *out = NULL;
-    char out_fn[42];
+    char out_fn[PATH_MAX];
+    char cwd[PATH_MAX];
     struct tm *t;
     time_t timer;
     size_t i = 0;
@@ -123,7 +124,9 @@ PyObject *kString_https;
     // Construct filename smisk-YYYYMMDD-HHMMSS.PID.crash
     timer = time(NULL);
     t = localtime(&timer);
-    sprintf(out_fn, "smisk-%04d%02d%02d-%02d%02d%02d.%d.crash",
+    getcwd(cwd, PATH_MAX);
+    sprintf(out_fn, "%s/smisk-%04d%02d%02d-%02d%02d%02d.%d.crash",
+      (access(cwd ? cwd : ".", W_OK) == 0) ? (cwd ? cwd : ".") : "/tmp",
       1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, getpid());
     
     // Open file
@@ -133,26 +136,27 @@ PyObject *kString_https;
       out = stderr;
     
     // Basic info
-    fprintf(out, "Time:     %04d-%02d-%02d %02d:%02d:%02d\n",
+    fprintf(out, "Time:               %04d-%02d-%02d %02d:%02d:%02d\n",
       1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
-    fprintf(out, "Process:  %d\n", getpid());
-    fprintf(out, "Python:   %s %s\n", Py_GetProgramFullPath(), Py_GetVersion());
-    fprintf(out, "Smisk:    %s (r%s %s %s)\n", SMISK_VERSION, SMISK_REVISION, __DATE__, __TIME__);
+    fprintf(out, "Process:            %d\n", getpid());
+    fprintf(out, "Working directory:  %s\n", cwd ? cwd : "?");
+    fprintf(out, "Python:             %s %s\n", Py_GetProgramFullPath(), Py_GetVersion());
+    fprintf(out, "Smisk:              %s (r%s %s %s)\n", SMISK_VERSION, SMISK_REVISION, __DATE__, __TIME__);
     #if HAVE_SYS_UTSNAME_H
       struct utsname un;
       if(uname(&un) == 0) {
-        fprintf(out, "System:   %s, %s, %s, %s\n",
+        fprintf(out, "System:             %s, %s, %s, %s\n",
           un.sysname, un.release, un.version, un.machine);
-        fprintf(out, "Hostname: %s\n", un.nodename);
+        fprintf(out, "Hostname:           %s\n", un.nodename);
       }
       else
     #endif
-      fprintf(out, "System:   %s\n", Py_GetPlatform());
+      fprintf(out, "System:             %s\n", Py_GetPlatform());
     fprintf(out, "\n");
-    fprintf(out, "Signal:   %d\n", signum);
-    fprintf(out, "Errno:    %d\n", info->si_errno);
-    fprintf(out, "Code:     %d\t%s\n", info->si_code, (signum > 0) ? si_codes[signum-1][info->si_code] : "?");
-    fprintf(out, "Address:  %p\n", info->si_addr);
+    fprintf(out, "Signal:             %d\n", signum);
+    fprintf(out, "Errno:              %d\n", info->si_errno);
+    fprintf(out, "Code:               %d\t%s\n", info->si_code, (signum > 0) ? si_codes[signum-1][info->si_code] : "?");
+    fprintf(out, "Address:            %p\n", info->si_addr);
     
     // Find GDB
     i = 0;
@@ -168,6 +172,7 @@ PyObject *kString_https;
     // Write backtrace
     fprintf(out, "\nBacktrace:\n");
     if(found_gdb_path) {
+      fclose(out);
       system("/bin/echo 'backtrace' > /tmp/smisk_gdb_args");
       sprintf(cmd, "%s -batch -x /tmp/smisk_gdb_args %s %d >> %s",
         found_gdb_path, Py_GetProgramFullPath(), getpid(), out_fn);
@@ -176,9 +181,9 @@ PyObject *kString_https;
     else {
       log_error("Note: GDB not found. Install GDB to get a more detailed backtrace.");
       sigsegv_write_backtrace(info, ptr, out);
+      fclose(out);
     }
     
-    fclose(out);
     //exit(-1);
     _exit(-1);
   }
