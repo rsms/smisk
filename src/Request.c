@@ -386,6 +386,8 @@ PyObject* smisk_Request_is_active(smisk_Request* self) {
 
 PyObject* smisk_Request_get_env(smisk_Request* self) {
   //log_debug("ENTER smisk_Request_get_env");
+  static PyObject *_cached_SERVER_SOFTWARE_k = NULL;
+  static PyObject *_cached_SERVER_SOFTWARE_v = NULL;
   
   // Lazy initializer
   if(self->env == NULL) {
@@ -413,6 +415,37 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
           continue;
         }
         
+        // SERVER_SOFTWARE will most likely not change during the process lifetime,
+        // or at least, we done really care, so lets cache it.
+        if(smisk_str8cmp(*envp, 'S','E','R','V','E','R','_','S') &&
+          (*envp)[8]=='O'  && (*envp)[9]=='F'  && (*envp)[10]=='T' && (*envp)[11]=='W' && 
+          (*envp)[12]=='A' && (*envp)[13]=='R' && (*envp)[14]=='E')
+        {
+          
+          if(_cached_SERVER_SOFTWARE_k == NULL) {
+            
+            k = PyString_FromStringAndSize(*envp, value-*envp);
+            if(k) PyString_InternInPlace(&k);
+            if(k == NULL)
+              return NULL;
+            
+            v = PyString_FromFormat("%s smisk/%s", ++value, SMISK_VERSION);
+            if(v == NULL) {
+              Py_DECREF(k);
+              return NULL;
+            }
+            
+            _cached_SERVER_SOFTWARE_k = k;
+            _cached_SERVER_SOFTWARE_v = v;
+            
+          }
+          
+          if( PyDict_SetItem(self->env, _cached_SERVER_SOFTWARE_k, _cached_SERVER_SOFTWARE_v) != 0 )
+            return NULL;
+          
+          continue;
+        }
+        
         k = PyString_FromStringAndSize(*envp, value-*envp);
         if(k) PyString_InternInPlace(&k);
         if(k == NULL) {
@@ -425,19 +458,8 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
           return NULL;
         }
         
-        // Append smisk info if SERVER_SOFTWARE
-        if(strcmp(PyString_AS_STRING(k), "SERVER_SOFTWARE") == 0) {
-          PyString_ConcatAndDel(&v, PyString_FromFormat(" smisk/%s", SMISK_VERSION));
-          if(v == NULL) {
-            Py_DECREF(k);
-            return NULL;
-          }
-        }
-        
-        if( PyDict_SetItem(self->env, (PyObject *)k, (PyObject *)v) ) {
-          log_debug("PyDict_SetItem() != 0");
+        if( PyDict_SetItem(self->env, (PyObject *)k, (PyObject *)v) != 0 )
           return NULL;
-        }
         
         // Release ownership
         assert_refcount(k, > 1);

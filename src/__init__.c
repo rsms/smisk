@@ -29,9 +29,7 @@ THE SOFTWARE.
 #include "SessionStore.h"
 #include "FileSessionStore.h"
 #include "xml/__init__.h"
-#ifndef SMISK_NO_CRASH_REPORTING
-#include "sigsegv.h"
-#endif
+#include "crash_dump.h"
 
 #include <fastcgi.h>
 #include <sys/socket.h>
@@ -41,9 +39,6 @@ THE SOFTWARE.
 #include <signal.h>
 #include <unistd.h>
 
-#if HAVE_SYS_UTSNAME_H
-#include <sys/utsname.h>
-#endif
 #include <fcgiapp.h>
 #include <fastcgi.h>
 
@@ -57,175 +52,6 @@ PyObject *os_module;
 // Other static strings (only used in C API)
 PyObject *kString_http;
 PyObject *kString_https;
-
-
-#ifndef SMISK_NO_CRASH_REPORTING
-  static void smisk_crash_sighandler(int signum, siginfo_t* info, void*ptr) {
-    FILE *out = NULL;
-    char out_fn[PATH_MAX];
-    char cwd_buf[PATH_MAX];
-    char *cwd = NULL;
-    struct tm *t;
-    time_t timer;
-    size_t i = 0;
-    const char *found_gdb_path;
-    char cmd[1024];
-    // Signal code table (from http://www.opengroup.org/onlinepubs/007908799/xsh/signal.h.html)
-    static const char *si_codes[][9] = {
-      {"", "", "", "", "", "", "", "", ""},
-      {"", "", "", "", "", "", "", "", ""},
-      {"", "", "", "", "", "", "", "", ""},
-      {"",
-       "ILL_ILLOPC\tillegal opcode",
-       "ILL_ILLOPN\tillegal operand",
-       "ILL_ILLADR\tillegal addressing mode",
-       "ILL_ILLTRP\tillegal trap",
-       "ILL_PRVOPC\tprivileged opcode",
-       "ILL_PRVREG\tprivileged register",
-       "ILL_COPROC\tcoprocessor error",
-       "ILL_BADSTK\tinternal stack error"}, // ILL
-      {"", "", "", "", "", "", "", "", ""},
-      {"", "", "", "", "", "", "", "", ""},
-      {"", "", "", "", "", "", "", "", ""},
-      {"",
-       "FPE_INTDIV\tinteger divide by zero",
-       "FPE_INTOVF\tinteger overflow", 
-       "FPE_FLTDIV\tfloating point divide by zero",
-       "FPE_FLTOVF\tfloating point overflow",
-       "FPE_FLTUND\tfloating point underflow",
-       "FPE_FLTRES\tfloating point inexact result",
-       "FPE_FLTINV\tinvalid floating point operation",
-       "FPE_FLTSUB\tsubscript out of range"}, // FPE
-      {"", "", "", "", "", "", "", "", ""},
-      {"",
-       "BUS_ADRALN\tinvalid address alignment",
-       "BUS_ADRERR\tnon-existent physical address",
-       "BUS_OBJERR\tobject specific hardware error",
-       "", "", "", ""}, // BUS
-      {"",
-       "SEGV_MAPERR\taddress not mapped to object",
-       "SEGV_ACCERR\tinvalid permissions for mapped object",
-       "", "", "", "", "", ""} // SEGV
-    };
-    // Possible paths to GDB
-    static const char *gdb_path[] = {
-      "/usr/bin/gdb",
-      "/usr/local/bin/gdb",
-      "/opt/local/bin/gdb",
-      "/opt/bin/gdb",
-      "/local/bin/gdb",
-      NULL
-    };
-    
-    // Header
-    fputs("FATAL: smisk died from ", stderr);
-    switch(signum) {
-      case SIGILL:
-        fputs("Illegal instruction ", stderr);
-        break;
-      case SIGFPE:
-        fputs("Floating-point exception ", stderr);
-        break;
-      case SIGBUS:
-        fputs("Bus error ", stderr);
-        break;
-      case SIGSEGV:
-        fputs("Segmentation violation ", stderr);
-        break;
-    }
-    fprintf(stderr, "[%d] ", signum);
-    fflush(stderr);
-    
-    // Construct filename smisk-YYYYMMDD-HHMMSS.PID.crash
-    timer = time(NULL);
-    t = localtime(&timer);
-    cwd = getcwd(cwd_buf, PATH_MAX);
-    sprintf(out_fn, "%s/smisk-%04d%02d%02d-%02d%02d%02d.%d.crash",
-      (access(cwd ? cwd : ".", W_OK) == 0) ? (cwd ? cwd : ".") : "/tmp",
-      1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, getpid());
-    
-    // Open file
-    fprintf(stderr, "Writing crash dump to %s...\n", out_fn);
-    out = fopen(out_fn, "w");
-    if(!out)
-      out = stderr;
-    
-    // Basic info
-    fprintf(out, "Time:               %04d-%02d-%02d %02d:%02d:%02d\n",
-      1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
-    fprintf(out, "Process:            %d\n", getpid());
-    fprintf(out, "Working directory:  %s\n", cwd ? cwd : "?");
-    fprintf(out, "Python:             %s %s\n", Py_GetProgramFullPath(), Py_GetVersion());
-    fprintf(out, "Smisk:              %s (r%s %s %s)\n", SMISK_VERSION, SMISK_REVISION, __DATE__, __TIME__);
-    #if HAVE_SYS_UTSNAME_H
-      struct utsname un;
-      if(uname(&un) == 0) {
-        fprintf(out, "System:             %s, %s, %s, %s\n",
-          un.sysname, un.release, un.version, un.machine);
-        fprintf(out, "Hostname:           %s\n", un.nodename);
-      }
-      else
-    #endif
-      fprintf(out, "System:             %s\n", Py_GetPlatform());
-    fprintf(out, "\n");
-    fprintf(out, "Signal:             %d\n", signum);
-    fprintf(out, "Errno:              %d\n", info->si_errno);
-    fprintf(out, "Code:               %d\t%s\n", info->si_code, (signum > 0) ? si_codes[signum-1][info->si_code] : "?");
-    fprintf(out, "Address:            %p\n", info->si_addr);
-    
-    // Find GDB
-    i = 0;
-    found_gdb_path = NULL;
-    do {
-      if(access(*(gdb_path+i), R_OK) == 0) {
-        found_gdb_path = *(gdb_path+i);
-        log_debug("found gdb at %s", found_gdb_path);
-        break;
-      }
-    } while ( *(gdb_path + ++i) );
-    
-    // Write backtrace
-    fprintf(out, "\nBacktrace:\n");
-    if(found_gdb_path) {
-      fclose(out);
-      system("/bin/echo 'backtrace' > /tmp/smisk_gdb_args");
-      sprintf(cmd, "%s -batch -x /tmp/smisk_gdb_args %s %d >> %s",
-        found_gdb_path, Py_GetProgramFullPath(), getpid(), out_fn);
-      system(cmd);
-    }
-    else {
-      log_error("Note: GDB not found. Install GDB to get a more detailed backtrace.");
-      sigsegv_write_backtrace(info, ptr, out);
-      fclose(out);
-    }
-    
-    //exit(-1);
-    _exit(-1);
-  }
-  
-  static void smisk_crash_dump_init(void) {
-    struct sigaction action;
-    memset(&action, 0, sizeof(action));
-    action.sa_sigaction = smisk_crash_sighandler;
-    action.sa_flags = SA_SIGINFO;
-    // Important: Only register for signals which have
-    //            its codes in the si_codes table above.
-    if(sigaction(SIGILL, &action, NULL) < 0) {
-      perror("sigaction"); return;
-    }
-    if(sigaction(SIGFPE, &action, NULL) < 0) {
-      perror("sigaction"); return;
-    }
-    if(sigaction(SIGBUS, &action, NULL) < 0) {
-      perror("sigaction"); return;
-    }
-    if(sigaction(SIGSEGV, &action, NULL) < 0) {
-      perror("sigaction");
-    }
-  }
-#else
-  #define smisk_crash_dump_init()
-#endif
 
 
 PyDoc_STRVAR(smisk_bind_DOC,

@@ -261,49 +261,45 @@ int smisk_multipart_parse_part(multipart_ctx_t *ctx) {
   
   // Parse headers
   while( FCGX_GetLine(buf, SMISK_STREAM_READLINE_LENGTH, ctx->stream) ) {
-    if((buf[0] == '\r') && (buf[1] == '\n') && (buf[2] == '\0')) {
+    if(buf[0] == '\r' && buf[1] == '\n' && buf[2] == '\0') {
       // end of headers
       break;
     }
-    if(strncasecmp(buf, "Content-Disposition:", 20) == 0) {
-      char *ssp = buf+20;
-      char *key, *val, *p;
-      int keylen;
-      while( (val = strsep(&ssp, ";")) ) {
-        STR_LTRIM_S(val);
-        if((p = strchr(val, '='))) { // key=value
-          *p = 0; // terminate part where val begin
-          keylen = p-val;
-          key = val;
-          val = p;
-          val++;
-          if(*val == '"') { // value is quoted
+    if(buf[0] == 'C' || buf[0] == 'c') {
+      if(strncasecmp(buf, "Content-Disposition:", 20) == 0) {
+        char *ssp = buf+20;
+        char *key, *val, *p;
+        int keylen;
+        while( (val = strsep(&ssp, ";")) ) {
+          STR_LTRIM_S(val);
+          if((p = strchr(val, '='))) { // key=value
+            *p = 0; // terminate part where val begin
+            keylen = p-val;
+            key = val;
+            val = p;
             val++;
-            p = val; for(;(*p != '"') && (*p != '\r'); p++); *p = 0; // rterm
+            if(*val == '"') { // value is quoted
+              val++;
+              p = val; for(;(*p != '"') && (*p != '\r'); p++); *p = 0; // rterm
+            }
+            // tests
+            if(smisk_str4cmp(key, 'n','a','m','e')) {
+              strncpy(ctx->part_name, val, FILENAME_MAX);
+            }
+            else if(smisk_str8cmp(key, 'f','i','l','e','n','a','m','e')) {
+              strncpy(ctx->filename, val, FILENAME_MAX);
+              is_file = 1;
+            }
           }
-          // tests
-          if(STR_EQUALS_4(key, "name")) {
-            strncpy(ctx->part_name, val, FILENAME_MAX);
-          }
-          else if(STR_EQUALS_8(key, "filename")) {
-            strncpy(ctx->filename, val, FILENAME_MAX);
-            is_file = 1;
-          }
-          /*else {
-            print("unused key-value: '%s'='%s'", key, val);
-          }*/
         }
-        /*else { // not key=value
-          print("unused value: '%s'", val);
-        }*/
       }
-    }
-    else if(strncasecmp(buf, "Content-Type:", 13) == 0) {
-      buf += 13;
-      STR_LTRIM_S(buf);
-      if( (p = strchr(buf, '\r')) ) {
-        *p = 0;
-        strncpy(ctx->content_type, buf, FILENAME_MAX);
+      else if(strncasecmp(buf, "Content-Type:", 13) == 0) {
+        buf += 13;
+        STR_LTRIM_S(buf);
+        if( (p = strchr(buf, '\r')) ) {
+          *p = 0;
+          strncpy(ctx->content_type, buf, FILENAME_MAX);
+        }
       }
     }
   }
