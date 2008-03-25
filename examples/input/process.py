@@ -16,14 +16,6 @@ class MyApp(Application):
     if self.request.get.has_key('set_cookie'):
       self.response.set_cookie('a_cookie', self.request.get['set_cookie'], max_age=20)
     
-    # Add some session data
-    if self.request.get.has_key('set_session'):
-      if self.request.get['set_session'] == '':
-        self.request.session = None
-      else:
-        self.request.session = self.request.get['set_session']
-    elif self.request.session is None:
-      self.request.session = 'mos'
     
     # Print alot of information
     w = self.response.write
@@ -43,8 +35,6 @@ class MyApp(Application):
     w(" cookies     %s\n" % repr(self.request.cookies))
     w(" input       %s\n" % repr(self.request.input.read()))
     w(" url         %s\n" % self.request.url)
-    w(" session_id: %s\n" % repr(self.request.session_id))
-    w(" session:    %s\n" % repr(self.request.session))
     w("\n")
     w("self.response.\n")
     w(" headers     %s\n" % repr(self.response.headers))

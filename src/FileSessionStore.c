@@ -72,7 +72,6 @@ static int _gc_run(smisk_FileSessionStore *self) {
   
   if(p) {
     *p = '\0';
-    PyThreadState *_save = PyEval_SaveThread();
     d = opendir(path_p);
     if(d) {
       path_p_len = strlen(path_p);
@@ -103,7 +102,6 @@ static int _gc_run(smisk_FileSessionStore *self) {
       log_error("Failed to opendir(\"%s\")", path_p);
       *p = '/';
     });
-    PyEval_RestoreThread(_save);
     *p = '/';
   }
   
@@ -114,12 +112,17 @@ static int _gc_run(smisk_FileSessionStore *self) {
 static void _gc_thread(void *_self) {
   log_debug("_gc_thread started on thread #%ld", PyThread_get_thread_ident());
   unsigned int sleeptime;
+  int r;
   
   sleep(1);
   smisk_FileSessionStore *self = (smisk_FileSessionStore *)_self;
   
   while(self->gc_run) {
-    if(_gc_run(self) != 0) {
+    Py_BEGIN_ALLOW_THREADS;
+    r = _gc_run(self);
+    Py_END_ALLOW_THREADS;
+    
+    if(r != 0) {
       PyErr_Print();
     }
     if(((smisk_SessionStore *)self)->ttl > 0) {
@@ -237,7 +240,6 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* se
   PyObject *fn, *data = NULL;
   char *pathname;
   FILE *fp = NULL;
-  PyThreadState *_save = NULL;
   
   if( !PyString_Check(session_id) ) {
     PyErr_SetString(PyExc_TypeError, "session_id must be a string");
@@ -264,7 +266,6 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* se
       }
     }
     else {
-      _save = PyEval_SaveThread();
       if( (fp = fopen(pathname, "rb")) == NULL ) {
         PyErr_SET_FROM_ERRNO;
         goto end_return;
@@ -294,8 +295,6 @@ PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* se
 end_return:
   if(fp)
     fclose(fp);
-  if(_save)
-    PyEval_RestoreThread(_save);
   Py_DECREF(fn);
   return data;
 }
@@ -331,12 +330,10 @@ PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore *self, PyObject* a
   }
   
   pathname = PyString_AS_STRING(fn);
-  PyThreadState *_save = PyEval_SaveThread();
   
   fp = fopen(pathname, "wb");
   if(fp == NULL) {
     PyErr_SET_FROM_ERRNO;
-    PyEval_RestoreThread(_save);
     return NULL;
   }
   
@@ -352,14 +349,12 @@ PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore *self, PyObject* a
       log_error("can't write to %s", pathname);
       fclose(fp);
       (void) unlink(pathname);
-      PyEval_RestoreThread(_save);
       return NULL;
     }
     
     if(smisk_file_unlock(fp) != 0) {
       log_debug("Failed to unlock file opened from %s", pathname);
       PyErr_SET_FROM_ERRNO;
-      PyEval_RestoreThread(_save);
       return NULL;
     }
     
@@ -367,7 +362,6 @@ PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore *self, PyObject* a
   }
   
   fclose(fp);
-  PyEval_RestoreThread(_save);
   Py_DECREF(fn);
   Py_RETURN_NONE;
 }
@@ -385,12 +379,9 @@ PyObject* smisk_FileSessionStore_refresh(smisk_FileSessionStore *self, PyObject*
     return NULL;
   }
   
-  PyThreadState *_save = PyEval_SaveThread();
-  
   if(smisk_file_mtime_set_now(PyString_AS_STRING(fn), -1) != 0) {
     if(errno != ENOENT) {
       PyErr_SET_FROM_ERRNO;
-      PyEval_RestoreThread(_save);
       Py_DECREF(fn);
       return NULL;
     }
@@ -401,7 +392,6 @@ PyObject* smisk_FileSessionStore_refresh(smisk_FileSessionStore *self, PyObject*
 #endif
   }
   
-  PyEval_RestoreThread(_save);
   Py_DECREF(fn);
   Py_RETURN_NONE;
 }
@@ -422,9 +412,7 @@ PyObject* smisk_FileSessionStore_destroy(smisk_FileSessionStore *self, PyObject*
   
   pathname = PyString_AS_STRING(fn);
   
-  PyThreadState *_save = PyEval_SaveThread();
   int failed = smisk_file_exist(pathname) && (_unlink(pathname) != 0);
-  PyEval_RestoreThread(_save);
   Py_DECREF(fn);
   
   if( failed ) {
