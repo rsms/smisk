@@ -97,11 +97,12 @@ static int _gc_run(smisk_FileSessionStore *self) {
       free(path_buf);
       closedir(d);
     }
-    IFDEBUG(else {
-      *p = '\0';
-      log_error("Failed to opendir(\"%s\")", path_p);
-      *p = '/';
-    });
+    #if SMISK_DEBUG
+      else {
+        *p = '\0';
+        log_error("Failed to opendir(\"%s\")", path_p);
+      }
+    #endif
     *p = '/';
   }
   
