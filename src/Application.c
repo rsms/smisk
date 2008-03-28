@@ -221,8 +221,7 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
       }
       else {
         PyObject *type, *value, *tb;
-        PyErr_Fetch(&type, &value, &tb);
-        PyErr_Clear();
+        PyErr_Fetch(&type, &value, &tb); // will also clear
         #if SMISK_DEBUG
           PyObject *type_repr, *value_repr, *tb_repr;
           type_repr = PyObject_Repr((PyObject *)type);

@@ -51,7 +51,7 @@ typedef struct FCGX_Stream_Data {
 
 // Called by Application.run just after a successful accept() 
 // and just before calling service().
-int smisk_Response_reset (smisk_Response* self) {
+int smisk_Response_reset (smisk_Response *self) {
   self->has_begun = 0;
   Py_XDECREF(self->headers);
   self->headers = NULL;
@@ -60,7 +60,7 @@ int smisk_Response_reset (smisk_Response* self) {
 
 
 // Called by Application.run() after a successful call to service()
-void smisk_Response_finish(smisk_Response* self) {
+void smisk_Response_finish(smisk_Response *self) {
   if(!self->has_begun) {
     smisk_Response_begin(self);
   }
