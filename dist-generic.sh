@@ -67,13 +67,25 @@ $PYTHON setup.py apidocs
 
 # Upload & update links on server
 echo "Uploading dist/ready/$PACKAGE-$VER*.tar.gz to $REMOTE_HOST"
-scp -qC dist/ready/$PACKAGE-$VER*.tar.gz $REMOTE_HOST:$REMOTE_PATH
-ssh $REMOTE_HOST "cd $REMOTE_PATH;\
+CMD="cd $REMOTE_PATH;\
 for f in $PACKAGE-$VER*.tar.gz;do \
   if [ -f \"\$f\" ]; then\
     lname=\`echo \"\$f\"|sed 's/$VER/latest/g'\`;\
     ln -sf \"\$f\" \"\$lname\";\
   fi;\
 done"
-echo "Uploading doc/api to $REMOTE_HOST"
-scp -qCr doc/api $REMOTE_HOST:$REMOTE_PATH_DOCS
+if is_local_host $REMOTE_HOST; then
+  cp dist/ready/$PACKAGE-$VER*.tar.gz $REMOTE_PATH
+  sh -c $CMD
+  if [ -d doc/api ]; then
+    echo "Copying doc/api"
+    cp -rf doc/api $REMOTE_PATH_DOCS
+  fi
+else
+  scp -qC dist/ready/$PACKAGE-$VER*.tar.gz $REMOTE_HOST:$REMOTE_PATH
+  ssh $REMOTE_HOST $CMD
+  if [ -d doc/api ]; then
+    echo "Uploading doc/api to $REMOTE_HOST"
+    scp -qCr doc/api $REMOTE_HOST:$REMOTE_PATH_DOCS
+  fi
+fi
