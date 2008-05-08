@@ -81,9 +81,12 @@ if [ $PREV_DEB_REV -lt $(expr $REV - 1) ]; then
   mv debian/changelog.tmp debian/changelog
   echo 'debian/changelog updated.'
   if [ -d .svn ]; then
-    echo 'Committing changelog update to subversion'
-    svn ci -m 'Debian changelog message added' debian/changelog
+    echo 'Committing changelog update'
+    svn ci -m 'Debian changelog message added (dist-debian.sh)' debian/changelog
     svn up
+  elif [ -d .hg ]; then
+    echo 'Committing changelog update'
+    hg ci -m 'Debian changelog message added (dist-debian.sh)' debian/changelog
   fi
   ensure_clean_working_revision
 fi

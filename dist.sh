@@ -10,15 +10,14 @@ GREP=$(which grep)
 DEFAULT_PYTHON=$(which python)
 PACKAGE=$($DEFAULT_PYTHON setup.py --name)
 VER=$($DEFAULT_PYTHON setup.py --version)
-REV=$(echo "$VER"|cut -d r -f 2)
+REV=$(echo "$VER"|cut -d - -f 2)
 
 
 # Confirm working revision is synchronized with repository
 ensure_clean_working_revision() {
   RREV=$REV
-  if [ -d .svn ]; then RREV=$(svnversion -n); fi
-  if [ "$(echo "$RREV"|$GREP -E '[:SM]')" != "" ]; then
-    echo "Working revision $RREV is not up-to-date. Commit and/or update first."
+  if (echo "$RREV"|$GREP '+' > /dev/null); then
+    echo "Working revision $RREV is not up-to-date. You need to sort things out first."
     exit 1
   fi
 }
