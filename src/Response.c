@@ -495,9 +495,9 @@ static struct PyMemberDef smisk_Response_members[] = {
   {"has_begun", T_OBJECT_EX, offsetof(smisk_Response, has_begun), RO,
     "Check if output (http headers & possible body content) has been sent to the client.\n"
     "\n"
-    "True if `begin()` has been called and output has started.\n"
+    "1 if `begin()` has been called and output has started, otherwise 0.\n"
     "\n"
-    ":type:   bool"},
+    ":type:   int"},
   
   {NULL}
 };
