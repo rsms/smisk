@@ -57,7 +57,7 @@ done
   echo >> debian/changelog.tmp
   echo '  * '>> debian/changelog.tmp
   echo >> debian/changelog.tmp
-  echo " -- $PREV_DEB_CONTACT $(date --rfc-2822)">> debian/changelog.tmp
+  echo " -- $PREV_DEB_CONTACT  $(date --rfc-2822)">> debian/changelog.tmp
   echo >> debian/changelog.tmp
   cat debian/changelog >> debian/changelog.tmp
   NEED_ANSWER=1
