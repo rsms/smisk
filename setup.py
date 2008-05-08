@@ -38,14 +38,8 @@ sources = ['src/__init__.c',
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 py_version = ".".join([str(s) for s in sys.version_info[0:2]]) # "M.m"
 
-# get revision
-revision = ''
-try:
-  (child_stdin, child_stdout) = os.popen2('svnversion -n .')
-  revision = child_stdout.read()
-except:
-  pass
-
+# Default. This may be overwritten later on if we are in a checkout
+revision = '-'
 
 required_libraries = [
   ('fcgi', ['fastcgi.h', 'fcgiapp.h']),
@@ -71,6 +65,41 @@ X86_MACHINES = ['i386', 'i686', 'i86pc', 'amd64', 'x86_64']
 # Load config if available
 if os.path.isfile(sys_conf_py) and 'config' not in sys.argv:
   execfile(sys_conf_py, globals(), locals())
+
+def shell_cmd(cmd):
+  child_stdin = None
+  child_stdout = None
+  try:
+    (child_stdin, child_stdout) = os.popen2(cmd)
+    return child_stdout.read().strip()
+  finally:
+    if child_stdin: child_stdin.close()
+    if child_stdout: child_stdout.close()
+
+def revision_from_version_h():
+  f = open('src/version.h', "r")
+  try:
+    for line in f:
+      if line[:17] == '#define SMISK_REV':
+        return line[24:].strip(' "\n\r\t')
+  finally:
+    f.close() 
+  return None
+
+def coll_wild_unique(seq):
+  # Not order preserving
+  return list(set(seq))
+
+def coll_ordered_unique(seq, idfun=None):
+  # Order preserving
+  seen = set()
+  return [x for x in seq if x not in seen and not seen.add(x)]
+
+repo_has_changed = not os.path.exists('src/version.h') or os.path.getmtime('src/version.h') < os.path.getmtime('.hg')
+if repo_has_changed:
+  revision = shell_cmd("hg id -bi | awk '{printf(\"%s-%s\", $2, $1)}'")
+else:
+  revision = revision_from_version_h()
 
 #---------------------------------------
 # Commands
@@ -108,12 +137,16 @@ class smisk_build_core(build_ext):
     build_ext.run(self)
   
   def _update_version_h(self):
-    # write version.h
+    # write version.h if needed
+    if not repo_has_changed:
+      return
     f = open('src/version.h', "w")
     try:
       f.write("#ifndef SMISK_VERSION\n#define SMISK_VERSION \"%s\"\n#endif\n" % version)
       f.write("#ifndef SMISK_REVISION\n#define SMISK_REVISION \"%s\"\n#endif\n" % revision)
-    finally: f.close()
+      print 'wrote version info to src/version.h'
+    finally:
+      f.close()
   
   def _run_config_if_needed(self):
     run_configure = True
@@ -190,7 +223,7 @@ class smisk_config(config):
     log._global_log.threshold = log_threshold
   
   def _include_dirs(self):
-    sys.stdout.write('locating header search paths ... ')
+    sys.stdout.write('locating Python header search paths ... ')
     sys.stdout.flush()
     found_py = False
     for dn in [
@@ -214,6 +247,7 @@ class smisk_config(config):
       sys.exit(1)
     else:
       print 'found:'
+      self.include_dirs = coll_wild_unique(self.include_dirs)
       for s in self.include_dirs:
         print ' ', s
   
