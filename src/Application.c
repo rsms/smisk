@@ -322,9 +322,12 @@ PyDoc_STRVAR(smisk_Application_error_DOC,
 PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   log_debug("ENTER smisk_Application_error");
   
-  int rc;
+  int rc, free_hostname = 0;
   PyObject *msg, *exc_str, *type, *value, *tb;
-  char *exc_strp = NULL, *value_repr = NULL;
+  char *exc_strp = NULL, 
+       *value_repr = NULL, 
+       *hostname = NULL,
+       *port = NULL;
   
   if(!PyArg_UnpackTuple(args, "error", 3, 3, &type, &value, &tb)) {
     return NULL;
@@ -354,6 +357,25 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
     }
   }
   
+  // Get SERVER_NAME and separate port if any
+  // Beyond this point, you must not simply return, but check free_hostname
+  // goto return_error_from_errno is available as a convenience.
+  if((hostname = FCGX_GetParam("SERVER_NAME", self->request->envp))) {
+    if( (port = strchr(hostname, (int)':')) ) {
+      size_t len = port-hostname;
+      char *buf = (char *)malloc(len+1);
+      strncpy(buf, hostname, len);
+      buf[len] = 0;
+      port++;
+      hostname = buf;
+      free_hostname = 1;
+    }
+  }
+  
+  // Set port if not already set
+  if(!port)
+    port = FCGX_GetParam("SERVER_PORT", self->request->envp);
+  
   // Format error message
   msg = PyString_FromFormat("<h1>Service Error</h1>\n"
     "<p class=\"message\">%s</p>\n"
@@ -362,14 +384,14 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
     value_repr ? value_repr : "",
     ((self->show_traceback == Py_True) ? exc_strp : "Additional information has been logged."),
     PyString_AS_STRING(PyDict_GetItemString(self->request->env, "SERVER_SOFTWARE")),
-    FCGX_GetParam("SERVER_NAME", self->request->envp),
-    FCGX_GetParam("SERVER_PORT", self->request->envp));
+    hostname ? hostname : "?",
+    port ? port : "?");
   
   // Log exception throught fcgi error stream
   if(FCGX_PutStr(PyString_AS_STRING(exc_str), PyString_GET_SIZE(exc_str), self->request->errors->stream) == -1) {
     // Fall back to stderr
     log_error("Error in %s.error(): %s", PyString_AS_STRING(PyObject_Str((PyObject *)self)), PyString_AS_STRING(exc_str));
-    return PyErr_SET_FROM_ERRNO;
+    goto return_error_from_errno;
   }
   
   Py_DECREF(exc_str);
@@ -409,11 +431,17 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   
   Py_DECREF(msg);
   
-  if(rc == -1) {
-    return PyErr_SET_FROM_ERRNO;
-  }
+  if(rc == -1)
+    goto return_error_from_errno;
   
+  if(free_hostname)
+    free(hostname);
   Py_RETURN_NONE;
+  
+return_error_from_errno:
+  if(free_hostname)
+    free(hostname);
+  return PyErr_SET_FROM_ERRNO;
 }
 
 
