@@ -20,10 +20,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 #include "__init__.h"
+#include "utils.h"
 #include "Response.h"
 #include "Application.h"
 #include "SessionStore.h"
 #include <structmember.h>
+#include <ctype.h>
 #include <fastcgi.h>
 
 
@@ -49,6 +51,16 @@ typedef struct FCGX_Stream_Data {
 } FCGX_Stream_Data;
 
 
+static int _begin_if_needed(smisk_Response *self) {
+  if(!self->has_begun) {
+    if(PyObject_CallMethod((PyObject *)self, "begin", NULL) == NULL) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+
 // Called by Application.run just after a successful accept() 
 // and just before calling service().
 int smisk_Response_reset (smisk_Response *self) {
@@ -60,10 +72,8 @@ int smisk_Response_reset (smisk_Response *self) {
 
 
 // Called by Application.run() after a successful call to service()
-void smisk_Response_finish(smisk_Response *self) {
-  if(!self->has_begun) {
-    smisk_Response_begin(self);
-  }
+int smisk_Response_finish(smisk_Response *self) {
+  return _begin_if_needed(self);
 }
 
 
@@ -172,6 +182,8 @@ PyObject* smisk_Response_begin(smisk_Response* self) {
   int rc;
   Py_ssize_t num_headers, i;
   
+  // Note: self->headers can be NULL at this point and that's by design.
+  
   IFDEBUG(if(self->headers) {
     assert_refcount(self->headers, > 0);
   })
@@ -199,7 +211,7 @@ PyObject* smisk_Response_begin(smisk_Response* self) {
     PyObject* str;
     for(i=0;i<num_headers;i++) {
       str = PyList_GET_ITEM(self->headers, i);
-      if(str && PyString_CheckExact(str)) {
+      if(str && PyString_Check(str)) {
         FCGX_PutStr(PyString_AS_STRING(str), PyString_GET_SIZE(str), self->out->stream);
         FCGX_PutChar('\r', self->out->stream);
         FCGX_PutChar('\n', self->out->stream);
@@ -253,11 +265,8 @@ PyObject* smisk_Response_write(smisk_Response* self, PyObject* str) {
   }
   
   // Send HTTP headers
-  if(!self->has_begun) {
-    if(smisk_Response_begin(self) == NULL) {
-      return NULL;
-    }
-  }
+  if(_begin_if_needed(self) != 0)
+    return NULL;
   
   // Write data
   if( smisk_Stream_perform_write(self->out, str, PyString_GET_SIZE(str)) == -1 ) {
@@ -268,15 +277,14 @@ PyObject* smisk_Response_write(smisk_Response* self, PyObject* str) {
 }
 
 
-PyDoc_STRVAR(smisk_Response_has_begun_DOC,
-  "Check if output (http headers) has been sent to the client.\n"
+PyDoc_STRVAR(smisk_Response_find_header_DOC,
+  "Find a header in the list of 'headers' matching 'prefix' in a case-insensitive manner.\n"
   "\n"
-  ":returns: True if `begin()` has been called and output has started.\n"
-  ":rtype:   bool");
-PyObject* smisk_Response_has_begun(smisk_Response* self) {
-  PyObject* b = self->has_begun ? Py_True : Py_False;
-  Py_INCREF(b);
-  return b;
+  ":returns: Index in 'headers' or -1 if not found.\n"
+  ":rtype:   int");
+PyObject* smisk_Response_find_header(smisk_Response* self, PyObject *prefix) {
+  ENSURE_BY_GETTER(self->headers, smisk_Response_get_headers(self), return NULL; );
+  return smisk_find_string_by_prefix_in_dict(self->headers, prefix);
 }
 
 
@@ -424,6 +432,9 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
     PyString_ConcatAndDel(&s, PyString_FromString(";HttpOnly"));
   }
   
+  // Make sure self->headers is initialized
+  ENSURE_BY_GETTER(self->headers, smisk_Response_get_headers(self), return NULL; );
+  
   // Append the set-cookie header
   if(PyList_Append(self->headers, s) != 0) {
     return NULL;
@@ -460,11 +471,12 @@ PyDoc_STRVAR(smisk_Response_DOC,
 
 // Methods
 static PyMethodDef smisk_Response_methods[] = {
-  {"send_file", (PyCFunction)smisk_Response_send_file, METH_O, smisk_Response_send_file_DOC},
-  {"begin",    (PyCFunction)smisk_Response_begin,    METH_NOARGS,  smisk_Response_begin_DOC},
-  {"write",    (PyCFunction)smisk_Response_write,    METH_O,       smisk_Response_write_DOC},
-  {"has_begun", (PyCFunction)smisk_Response_has_begun, METH_NOARGS,  smisk_Response_has_begun_DOC},
-  {"set_cookie",(PyCFunction)smisk_Response_set_cookie, METH_VARARGS|METH_KEYWORDS, smisk_Response_set_cookie_DOC},
+  {"send_file",  (PyCFunction)smisk_Response_send_file,  METH_O, smisk_Response_send_file_DOC},
+  {"begin",      (PyCFunction)smisk_Response_begin,      METH_NOARGS,  smisk_Response_begin_DOC},
+  {"write",      (PyCFunction)smisk_Response_write,      METH_O,       smisk_Response_write_DOC},
+  {"set_cookie", (PyCFunction)smisk_Response_set_cookie, METH_VARARGS|METH_KEYWORDS,
+                 smisk_Response_set_cookie_DOC},
+  {"find_header",(PyCFunction)smisk_Response_find_header,METH_O,       smisk_Response_find_header_DOC},
   {NULL}
 };
 
@@ -472,13 +484,21 @@ static PyMethodDef smisk_Response_methods[] = {
 static PyGetSetDef smisk_Response_getset[] = {
   {"headers", (getter)smisk_Response_get_headers, (setter)smisk_Response_set_headers,
     ":type: list", NULL},
-  
   {NULL}
 };
 
 // Members
 static struct PyMemberDef smisk_Response_members[] = {
-  {"out",     T_OBJECT_EX, offsetof(smisk_Response, out),     RO, ":type: `Stream`"},
+  {"out",       T_OBJECT_EX, offsetof(smisk_Response, out), RO,
+    ":type: `Stream`"},
+  
+  {"has_begun", T_OBJECT_EX, offsetof(smisk_Response, has_begun), RO,
+    "Check if output (http headers & possible body content) has been sent to the client.\n"
+    "\n"
+    "True if `begin()` has been called and output has started.\n"
+    "\n"
+    ":type:   bool"},
+  
   {NULL}
 };
 

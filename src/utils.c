@@ -277,3 +277,39 @@ char *smisk_encode_bin(char *in, size_t inlen, char *out, char nbits) {
   return out;
 }
 
+
+PyObject* smisk_find_string_by_prefix_in_dict(PyObject* list, PyObject *prefix) {
+  Py_ssize_t num_items, prefix_len, item_len, i, x;
+  char *item_ptr, *prefix_ptr, *prefix_it;
+  PyObject* item;
+  
+  if(!prefix || !PyString_Check(prefix))
+    return PyErr_Format(PyExc_TypeError, "first argument must be a string");
+  
+  num_items = PyList_GET_SIZE(list);
+  prefix_len = PyString_GET_SIZE(prefix);
+  prefix_ptr = PyString_AS_STRING(prefix);
+  
+  // Iterate over headers
+  for(i=0; i<num_items; i++) {
+    if( (item = PyList_GET_ITEM(list, i)) && PyString_Check(item) ) {
+      item_len = PyString_GET_SIZE(item);
+      if(item_len < prefix_len)
+        continue;
+      item_ptr = PyString_AS_STRING(item);
+      prefix_it = prefix_ptr;
+      
+      for(x = 0; x < prefix_len; x++) {
+        if( toupper(*(prefix_it++)) != toupper(*(item_ptr++)) ) {
+          prefix_it = NULL;
+          break; // try next header...
+        }
+      }
+      if(prefix_it)
+        return PyInt_FromLong((long)i);
+    }
+  }
+  
+  return PyInt_FromLong(-1L);
+}
+

@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 import smisk
 
-__version__ = '0.1.0'
+__version__ = (0,1,0)
 
 _hop_headers = {
   'connection':1, 'keep-alive':1, 'proxy-authenticate':1,
@@ -43,47 +43,63 @@ def is_hop_by_hop(header_name):
   """Return true if 'header_name' is an HTTP/1.1 "Hop-by-Hop" header"""
   return header_name.lower() in _hop_headers
 
-def guess_scheme(environ):
-  """Return a guess for whether 'wsgi.url_scheme' should be 'http' or 'https'
-  """
-  if environ.get("HTTPS") in ('yes','on','1'):
-    return 'https'
-  else:
-    return 'http'
+class Request(smisk.Request):
+  """WSGI request"""
+  def prepare(self, app):
+    """Set up the environment for one request"""
+    self.env['wsgi.input']        = self.input
+    self.env['wsgi.errors']       = self.errors
+    self.env['wsgi.version']      = app.wsgi_version
+    self.env['wsgi.run_once']     = app.wsgi_run_once
+    self.env['wsgi.url_scheme']   = app.request.url.scheme
+    self.env['wsgi.multithread']  = app.wsgi_multithread
+    self.env['wsgi.multiprocess'] = app.wsgi_multiprocess
+    
+    # Put a reference of ourselves in the environment so that the user
+    # might reference other parts of the framework and discover if they
+    # are running in Smisk or not.
+    self.env['smisk.app'] = app
+    
+    # Rebind our send_file to the real send_file
+    self.send_file = app.response.send_file
+  
+  def send_file(self, path):
+    raise NotImplementedError('unprepared request does not have a valid send_file')
+  
 
-class SmiskWSGI(smisk.Application):
+class Application(smisk.Application):
   """This is the Smisk Wsgi adapter."""
   # Configuration parameters; can override per-subclass or per-instance
   wsgi_version = (1,0)
-  wsgi_multithread = True
+  wsgi_multithread = False
   wsgi_multiprocess = True
   wsgi_run_once = False
-
+  
   def __init__(self, wsgi_app):
+    smisk.Application.__init__(self)
+    self.request_class = Request
     self.wsgi_app = wsgi_app
-
-  def get_scheme(self):
-    """Return the URL scheme being used"""
-    return guess_scheme(self.request.env)
-
-  def start_response(self, status, headers,exc_info=None):
+  
+  def start_response(self, status, headers, exc_info=None):
     """'start_response()' callable as specified by PEP 333"""
     if exc_info:
       try:
-        if self.response.has_begun():
-          # Call the application's error call, not sure
-          # what smisk does with this.
+        if self.response.has_begun:
+          raise exc_info[0],exc_info[1],exc_info[2]
+        else:
+          # In this case of response not being initiated yet, this will replace 
+          # both headers and any buffered body.
           self.error(exc_info[0], exc_info[1], exc_info[2])
       finally:
-        exc_info = None    # avoid dangling circular ref
+        exc_info = None # Avoid circular ref.
     elif len(self.response.headers) != 0:
       raise AssertionError("Headers already set!")
-
+    
     assert isinstance(status, str),"Status must be a string"
     assert len(status)>=4,"Status must be at least 4 characters"
     assert int(status[:3]),"Status message must begin w/3-digit code"
     assert status[3]==" ", "Status message must have a space after code"
-
+    
     if __debug__:
       for name,val in headers:
         assert isinstance(name, str),"Header names must be strings"
@@ -92,46 +108,40 @@ class SmiskWSGI(smisk.Application):
     
     # Construct the headers
     # Add the status to the headers
-    self.response.headers = [status]
+    self.response.headers = ['Status: '+status]
     # Append each of the headers provided by wsgi
     self.response.headers += [": ".join(header) for header in headers]
     # Add the X-Powered-By header to show off Smisk
-    self.response.headers.append("X-Powered-By: smisk/%s smisk+wsgi/%s" %
-      (smisk.__version__, __version__))
+    self.response.headers.append("X-Powered-By: smisk/%s smisk+wsgi/%d.%d.%d" %
+      (smisk.__version__, __version__[0], __version__[1], __version__[2]))
     # Return the write function as required by the WSGI spec
     return self.response.write
-
-  def init_request(self):
-    """Set up the environment for one request"""
-    self.request.env['wsgi.input']    = self.request.input
-    self.request.env['wsgi.errors']     = self.request.err
-    self.request.env['wsgi.version']    = self.wsgi_version
-    self.request.env['wsgi.run_once']   = self.wsgi_run_once
-    self.request.env['wsgi.url_scheme']   = self.get_scheme()
-    self.request.env['wsgi.multithread']  = self.wsgi_multithread
-    self.request.env['wsgi.multiprocess'] = self.wsgi_multiprocess
-
-    # Put a reference of ourselves in the environment so that they
-    # could access self.response.send_file if they want
-    self.request.env['smisk.app'] = self
-
+  
   def service(self):
-    self.init_request()
+    self.request.prepare(self)
     output = self.wsgi_app(self.request.env, self.start_response)
-    for data in output: 
+    # Discussion:
+    #  output might be an iterable in which case we can not trust len()
+    #  but in a perfect world, we did know how many parts we got and if
+    #  we only got _one_ we could also add a Content-length. But no.
+    #  Instead, we rely on the host server splitting up things in nice
+    #  chunks, using chunked transfer encoding. (If the server complies
+    #  to HTTP/1.1 it is required to do so, so we are pretty safe)
+    for data in output:
       self.response.write(data)
-
-
-def hello_app(env, start_response):
-  start_response("200 OK", [])
-  return ["Hello, World"]
+  
 
 if __name__ == '__main__':
   import sys
+  
+  def hello_app(env, start_response):
+    start_response("200 OK", [])
+    return ["Hello, World"]
+  
   if len(sys.argv) != 2:
     print "Usage: %s hostname:port" % (sys.argv[0])
     print "This runs a sample fastcgi server under the hostname and"
     print "port given in argv[1]"
 
   smisk.bind(sys.argv[1])
-  SmiskWSGI(hello_app).run()
+  Application(hello_app).run()

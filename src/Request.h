@@ -40,7 +40,7 @@ typedef struct {
   
   // Public Python & C
   smisk_Stream  *input;
-  smisk_Stream  *err;
+  smisk_Stream  *errors;
   PyObject      *env; // lazy dict
   smisk_URL     *url; // lazy smisk.URL
   PyObject      *get; // lazy dict

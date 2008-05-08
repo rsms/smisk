@@ -157,6 +157,7 @@ PyObject* smisk_listening(PyObject *self, PyObject *args) {
   return s;
 }
 
+
 /* ------------------------------------------------------------------------- */
 
 static PyMethodDef module_methods[] = {

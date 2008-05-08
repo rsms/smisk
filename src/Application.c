@@ -196,14 +196,14 @@ PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
     // Set streams
     self->request->input->stream = request.in;
     self->response->out->stream  = request.out;
-    self->request->err->stream   = request.err;
+    self->request->errors->stream   = request.err;
     self->request->envp          = request.envp;
-    
     
     // Service request
     if(PyObject_CallMethod((PyObject *)self, "service", NULL) != NULL) {
       // Finish response
       smisk_Response_finish(self->response);
+      // We do not catch errors here because we PyErr_Occurred later
     }
     #if SMISK_DEBUG
       else if(!smisk_Application_trapped_signal) {
@@ -308,6 +308,10 @@ PyObject* smisk_Application_service(smisk_Application *self, PyObject* args) {
 PyDoc_STRVAR(smisk_Application_error_DOC,
   "Service a error message.\n"
   "\n"
+  "You might override this to display a custom error response, but it is recommended you use this implementation, or at least filter certain higher level exceptions and let the lower ones through to this handler."
+  "\n"
+  "The result is a bit different depending on if output has started or not. (See `Response.`)"
+  "\n"
   ":param typ: Exception type\n"
   ":type  typ: type\n"
   ":param val: Exception value\n"
@@ -362,7 +366,7 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
     FCGX_GetParam("SERVER_PORT", self->request->envp));
   
   // Log exception throught fcgi error stream
-  if(FCGX_PutStr(PyString_AS_STRING(exc_str), PyString_GET_SIZE(exc_str), self->request->err->stream) == -1) {
+  if(FCGX_PutStr(PyString_AS_STRING(exc_str), PyString_GET_SIZE(exc_str), self->request->errors->stream) == -1) {
     // Fall back to stderr
     log_error("Error in %s.error(): %s", PyString_AS_STRING(PyObject_Str((PyObject *)self)), PyString_AS_STRING(exc_str));
     return PyErr_SET_FROM_ERRNO;
@@ -387,8 +391,8 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
       "</head><body>";
     static char *footer = "</body></html>";
     rc = FCGX_FPrintF(self->response->out->stream,
-      "Content-Type: text/html\r\n"
       "Status: 500 Internal Server Error\r\n"
+      "Content-Type: text/html\r\n"
       "Content-Length: %ld\r\n"
        "\r\n"
        "%s%s%s\r\n",
@@ -491,13 +495,16 @@ PyDoc_STRVAR(smisk_Application_DOC,
 
 // Methods
 static PyMethodDef smisk_Application_methods[] = {
+  // Static
+  {"current", (PyCFunction)smisk_Application_current, METH_STATIC|METH_NOARGS, smisk_Application_current_DOC},
+  
+  // Instance
   {"run",     (PyCFunction)smisk_Application_run,     METH_VARARGS, smisk_Application_run_DOC},
   {"service", (PyCFunction)smisk_Application_service, METH_VARARGS, smisk_Application_service_DOC},
   {"error",   (PyCFunction)smisk_Application_error,   METH_VARARGS, smisk_Application_error_DOC},
   {"exit",    (PyCFunction)smisk_Application_exit,    METH_NOARGS,  smisk_Application_exit_DOC},
-  {"current", (PyCFunction)smisk_Application_current, METH_STATIC|METH_NOARGS, smisk_Application_current_DOC},
   
-  // Notifications
+  // Instance (Notifications)
   {"application_will_start",  (PyCFunction)smisk_Application_application_will_start,
     METH_NOARGS,  smisk_Application_application_will_start_DOC},
   {"application_did_stop",    (PyCFunction)smisk_Application_application_did_stop,

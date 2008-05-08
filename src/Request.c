@@ -309,8 +309,8 @@ PyObject * smisk_Request_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     }
   
     // Construct a new Stream for err
-    self->err = (smisk_Stream*)smisk_Stream_new(&smisk_StreamType, NULL, NULL);
-    if (self->err == NULL) {
+    self->errors = (smisk_Stream*)smisk_Stream_new(&smisk_StreamType, NULL, NULL);
+    if (self->errors == NULL) {
       Py_DECREF(self);
       return NULL;
     }
@@ -331,7 +331,7 @@ void smisk_Request_dealloc(smisk_Request* self) {
   smisk_Request_reset(self);
   
   Py_XDECREF(self->input);
-  Py_XDECREF(self->err);
+  Py_XDECREF(self->errors);
   
   // free envp buf
   if(self->envp_buf) {
@@ -358,8 +358,8 @@ PyDoc_STRVAR(smisk_Request_log_error_DOC,
 PyObject* smisk_Request_log_error(smisk_Request* self, PyObject* msg) {
   static const char format[] = "%s[%d] %s";
   
-  if(!self->err->stream || ((PyObject *)self->err->stream == Py_None)) {
-    PyErr_SetString(smisk_IOError, "request.err stream not initialized. Only makes sense during an active request.");
+  if(!self->errors->stream || ((PyObject *)self->errors->stream == Py_None)) {
+    PyErr_SetString(smisk_IOError, "request.errors stream not initialized. Only makes sense during an active request.");
     return NULL;
   }
   
@@ -368,7 +368,7 @@ PyObject* smisk_Request_log_error(smisk_Request* self, PyObject* msg) {
     return NULL;
   }
   
-  if(FCGX_FPrintF(self->err->stream, format, Py_GetProgramName(), getpid(), PyString_AsString(msg)) == -1) {
+  if(FCGX_FPrintF(self->errors->stream, format, Py_GetProgramName(), getpid(), PyString_AsString(msg)) == -1) {
     fprintf(stderr, format, Py_GetProgramName(), getpid(), PyString_AsString(msg));
     return PyErr_SET_FROM_ERRNO;
   }
@@ -910,7 +910,7 @@ static struct PyMemberDef smisk_Request_members[] = {
     "``curl --data-binary '{\"Url\": \"http://www.example.com/image/481989943\", \"Position\": [125, \"100\"]}' http://localhost:8080/``"
     },
   
-  {"err",   T_OBJECT_EX, offsetof(smisk_Request, err),   RO, ":type: `Stream`"},
+  {"errors",   T_OBJECT_EX, offsetof(smisk_Request, errors),   RO, ":type: `Stream`"},
   
   {NULL}
 };

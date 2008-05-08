@@ -40,8 +40,8 @@ typedef struct {
 } smisk_Response;
 
 // Internal functions
-int smisk_Response_reset (smisk_Response* self); // returns -1 on error
-void smisk_Response_finish (smisk_Response* self);
+int smisk_Response_reset (smisk_Response* self); // returns != 0 on error
+int smisk_Response_finish (smisk_Response* self); // returns != 0 on error
 
 // Type setup
 extern PyTypeObject smisk_ResponseType;

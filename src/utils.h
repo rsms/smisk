@@ -55,14 +55,21 @@ double smisk_microtime (void);
 /** KB, GB, etc */
 char smisk_size_unit (double *bytes);
 
-/*
-Encode bytes into printable ASCII characters.
-Returns a pointer to the byte after the last valid character in out.
-
-nbits=4: out need to fit 40+1 bytes (base 16) (0-9, a-f)
-nbits=5: out need to fit 32+1 bytes (base 32) (0-9, a-v)
-nbits=6: out need to fit 27+1 bytes (base 64) (0-9, a-z, A-Z, "-", ",")
-*/
+/**
+ * Encode bytes into printable ASCII characters.
+ * Returns a pointer to the byte after the last valid character in out.
+ * 
+ * nbits=4: out need to fit 40+1 bytes (base 16) (0-9, a-f)
+ * nbits=5: out need to fit 32+1 bytes (base 32) (0-9, a-v)
+ * nbits=6: out need to fit 27+1 bytes (base 64) (0-9, a-z, A-Z, "-", ",")
+ */
 char *smisk_encode_bin (char *in, size_t inlen, char *out, char bits_per_byte);
+
+/**
+ * @param  list    list
+ * @param  prefix  string
+ * @return int
+ */
+PyObject* smisk_find_string_by_prefix_in_dict(PyObject* list, PyObject *prefix);
 
 #endif
