@@ -97,7 +97,7 @@ def coll_ordered_unique(seq, idfun=None):
 
 repo_has_changed = not os.path.exists('src/version.h') or os.path.getmtime('src/version.h') < os.path.getmtime('.hg')
 if repo_has_changed:
-  revision = shell_cmd("hg id -bi | awk '{printf(\"%s-%s\", $2, $1)}'")
+  revision = shell_cmd("hg id -i")
 else:
   revision = revision_from_version_h()
 
@@ -382,7 +382,7 @@ if '--debug' in sys.argv or '--debug-smisk' in sys.argv:
 setup (
   distclass=SmiskDistribution,
   name = 'smisk',
-  version = version + '-r' + revision,
+  version = version + '-' + revision,
   description = "High-performance web service framework",
   long_description = """
 Smisk is a simple, high-performance and scalable web service framework
