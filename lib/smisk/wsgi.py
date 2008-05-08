@@ -95,9 +95,9 @@ class SmiskWSGI(smisk.Application):
     self.response.headers = [status]
     # Append each of the headers provided by wsgi
     self.response.headers += [": ".join(header) for header in headers]
-    # Add the X-SMISK header to show off SMISK
-    self.response.headers.append("X-Smisk: Check.")
-    self.response.headers.append("X-Smisk-WSGI: Check. Check.")
+    # Add the X-Powered-By header to show off Smisk
+    self.response.headers.append("X-Powered-By: smisk/%s smisk+wsgi/%s" %
+      (smisk.__version__, __version__))
     # Return the write function as required by the WSGI spec
     return self.response.write
 
