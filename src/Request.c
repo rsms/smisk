@@ -347,9 +347,9 @@ void smisk_Request_dealloc(smisk_Request* self) {
 
 
 PyDoc_STRVAR(smisk_Request_log_error_DOC,
-  "Log something through `err` including process name and id.\n"
+  "Log something through `errors` including process name and id.\n"
   "\n"
-  "Normally, `err` ends up in the host server error log.\n"
+  "Normally, `errors` ends up in the host server error log.\n"
   "\n"
   ":param  message: Message\n"
   ":type   message: string\n"
