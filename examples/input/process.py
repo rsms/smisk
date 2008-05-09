@@ -12,6 +12,15 @@ class MyApp(Application):
   def service(self):
     self.response.headers = ["Content-Type: text/plain"]
     
+    # Dump raw input?
+    if 'dump' in self.request.get:
+      while 1:
+        chunk = self.request.input.read(8192)
+        self.response.out.write(repr(chunk).strip("'").replace(r'\n', "\\n\n"))
+        if len(chunk) < 8192:
+          break
+      return
+    
     # Set a cookie
     if self.request.get.has_key('set_cookie'):
       self.response.set_cookie('a_cookie', self.request.get['set_cookie'], max_age=20)
