@@ -25,7 +25,12 @@ ensure_clean_working_revision() {
 
 
 is_local_host() {
-  if [ "$(host -t A $1|cut -f 3)" == "$(host -t A $(hostname --fqdn)|cut -f 3)" ]; then
+  if (uname|grep 'Darwin' > /dev/null); then
+    hostname=$(hostname)
+  else
+    hostname=$(hostname --fqdn)
+  fi
+  if [ "$(host -t A $1|cut -f 3)" == "$(host -t A $hostname|cut -f 3)" ]; then
     return 0
   fi
   return 1
