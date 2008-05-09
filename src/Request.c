@@ -446,9 +446,8 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
         
         k = PyString_FromStringAndSize(*envp, value-*envp);
         if(k) PyString_InternInPlace(&k);
-        if(k == NULL) {
+        if(k == NULL)
           return NULL;
-        }
         
         v = PyString_InternFromString(++value);
         if(v == NULL) {
@@ -483,9 +482,8 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
   PyObject *old;
   
   if(self->url == NULL) {
-    if( (self->url = (smisk_URL *)smisk_URL_new(&smisk_URLType, NULL, NULL)) == NULL ) {
+    if( (self->url = (smisk_URL *)smisk_URL_new(&smisk_URLType, NULL, NULL)) == NULL )
       return NULL;
-    }
     
     // Scheme
     if((s = FCGX_GetParam("SERVER_PROTOCOL", self->envp))) {
@@ -495,17 +493,18 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
       if( ((s[0]=='H')&&(s[1]=='T')&&(s[2]=='T')&&(s[3]=='P')) 
         ||((s[0]=='h')&&(s[1]=='t')&&(s[2]=='t')&&(s[3]=='p')) ) {
         if( (s[4]=='S'||s[4]=='s') ) { // what about if the interface spec is less than 5 chars?
-          self->url->scheme = kString_https; Py_INCREF(kString_https);
+          self->url->scheme = kString_https;
+          Py_INCREF(kString_https);
         }
         else {
-          self->url->scheme = kString_http; Py_INCREF(kString_http);
+          self->url->scheme = kString_http;
+          Py_INCREF(kString_http);
         }
       }
       else {
         Py_ssize_t len = strlen(s); 
-        if((p = strchr(s, '/'))) {
+        if((p = strchr(s, '/')))
           len = (Py_ssize_t)(p-s);
-        }
         self->url->scheme = PyString_FromStringAndSize(_strtolower(s), len);
       }
       
@@ -534,9 +533,8 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
       self->url->host = PyString_FromString(s);
     }
     PyString_InternInPlace(&self->url->host);
-    if(self->url->host == NULL) {
+    if(self->url->host == NULL)
       return PyErr_NoMemory();
-    }
     Py_CLEAR(old);
     
     // Path & querystring
@@ -568,9 +566,8 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
         // May not always give the same results as the above implementation
         // because the CGI specification does claim "This information should be
         // decoded by the server if it comes from a URL" which is a bit vauge.
-        if((s = FCGX_GetParam("PATH_INFO", self->envp))) {
+        if((s = FCGX_GetParam("PATH_INFO", self->envp)))
           PyString_ConcatAndDel(&self->url->path, PyString_FromString(s));
-        }
       }
       if((s = FCGX_GetParam("QUERY_STRING", self->envp))) {
         old = self->url->query;
