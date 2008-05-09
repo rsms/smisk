@@ -25,7 +25,7 @@ ensure_clean_working_revision() {
 
 
 is_local_host() {
-  if [ "$(host -Qt A $1|cut -f 3)" == "$(host -Qt A $(hostname --fqdn)|cut -f 3)" ]; then
+  if [ "$(host -t A $1|cut -f 3)" == "$(host -t A $(hostname --fqdn)|cut -f 3)" ]; then
     return 0
   fi
   return 1
