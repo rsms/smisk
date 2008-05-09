@@ -4,7 +4,7 @@ from smisk import Application
 
 class MyApp(Application):
   def service(self):
-    self.response.write("<h1>Hello World!</h1>")
+    self.response.write("Hello World!")
 
 try:
   MyApp().run()
