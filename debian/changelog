@@ -9,7 +9,7 @@ python-smisk (1.0b-3cd977fa701e-7) unstable; urgency=low
   * Incorporated WSGI module by Eric Moritz <eric@themoritzfamily.com>
   * Some bug fixes, one possible bug that might have caused a segfault
 
- -- Rasmus Andersson <rasmus@flajm.se> Fri, 09 May 2008 01:36:48 +0200
+ -- Rasmus Andersson <rasmus@flajm.se>  Fri, 09 May 2008 01:36:48 +0200
 
 python-smisk (1.0b-r113-7) unstable; urgency=low
 
@@ -17,14 +17,14 @@ python-smisk (1.0b-r113-7) unstable; urgency=low
   * Complete set of functionality
   * Has gone through testing on different platforms
 
- -- Rasmus Andersson <rasmus@flajm.se> Sun, 16 Mar 2008 00:40:04 +0100
+ -- Rasmus Andersson <rasmus@flajm.se>  Sun, 16 Mar 2008 00:40:04 +0100
 
 python-smisk (0.1r74-6) unstable; urgency=low
 
   * Adjusted naming convention to be consistent lower_case.
   * Fixed content-length too-short-bug in automated 500 error responses.
 
- -- Rasmus Andersson <rasmus@flajm.se> Sat, 16 Feb 2008 22:15:06 +0100
+ -- Rasmus Andersson <rasmus@flajm.se>  Sat, 16 Feb 2008 22:15:06 +0100
 
 python-smisk (0.1r65-5) unstable; urgency=low
 
@@ -32,7 +32,7 @@ python-smisk (0.1r65-5) unstable; urgency=low
     would go too low and result in strange replacement in a multi-value
     parameter.
 
- -- Rasmus Andersson <rasmus@flajm.se> Fri, 15 Feb 2008 11:10:30 +0100
+ -- Rasmus Andersson <rasmus@flajm.se>  Fri, 15 Feb 2008 11:10:30 +0100
 
 python-smisk (0.1r55-4) unstable; urgency=low
 
@@ -40,19 +40,19 @@ python-smisk (0.1r55-4) unstable; urgency=low
   * Added multipart stream parser.
   * Fixed alot of faulty refcounts, means almost no leaks.
 
- -- Rasmus Andersson <rasmus@flajm.se> Wed, 13 Feb 2008 03:08:33 +0100
+ -- Rasmus Andersson <rasmus@flajm.se>  Wed, 13 Feb 2008 03:08:33 +0100
 
 python-smisk (0.1r50-3) unstable; urgency=low
 
   * Fixed virtual package dep.
 
- -- Rasmus Andersson <rasmus@flajm.se> Mon, 11 Feb 2008 01:37:49 +0100
+ -- Rasmus Andersson <rasmus@flajm.se>  Mon, 11 Feb 2008 01:37:49 +0100
 
 python-smisk (0.1r48-2) unstable; urgency=low
 
   * Cleaner debian structure. No change of program code.
 
- -- Rasmus Andersson <rasmus@flajm.se> Mon, 11 Feb 2008 00:46:37 +0100
+ -- Rasmus Andersson <rasmus@flajm.se>  Mon, 11 Feb 2008 00:46:37 +0100
 
 python-smisk (0.1r32-1) unstable; urgency=low
 
