@@ -100,7 +100,7 @@ class Gateway(smisk.Application):
     """`start_response()` callable as specified by `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`__"""
     if exc_info:
       try:
-        if self.response.has_begun():
+        if self.response.has_begun:
           raise exc_info[0],exc_info[1],exc_info[2]
         else:
           # In this case of response not being initiated yet, this will replace 
