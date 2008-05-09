@@ -98,7 +98,7 @@ def coll_ordered_unique(seq, idfun=None):
 revision = shell_cmd("hg id -i")
 repo_has_changed = not os.path.exists('src/version.h') \
   or os.path.getmtime('src/version.h') < os.path.getmtime('.hg') \
-  or revision =! revision_from_version_h()
+  or revision != revision_from_version_h()
 
 #---------------------------------------
 # Commands
