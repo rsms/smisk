@@ -1,3 +1,9 @@
+python-smisk (1.0b-fab839178d3f-8) unstable; urgency=low
+
+  * Bumped up the version
+
+ -- Rasmus Andersson <rasmus@flajm.se>  Fri, 09 May 2008 03:17:26 +0200
+
 python-smisk (1.0b-3cd977fa701e-7) unstable; urgency=low
 
   * Incorporated WSGI module by Eric Moritz <eric@themoritzfamily.com>
