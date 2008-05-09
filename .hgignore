@@ -17,3 +17,9 @@ doc/api*
 _config.py
 src/system_config.h
 src/version.h
+
+# Debian
+debian/*.debhelper
+debian/*.substvars
+debian/python-smisk/*
+debian/files

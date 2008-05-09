@@ -1,3 +1,10 @@
+python-smisk (1.0b-3cd977fa701e-7) unstable; urgency=low
+
+  * Incorporated WSGI module by Eric Moritz <eric@themoritzfamily.com>
+  * Some bug fixes, one possible bug that might have caused a segfault
+
+ -- Rasmus Andersson <rasmus@flajm.se> Fri, 09 May 2008 01:36:48 +0200
+
 python-smisk (1.0b-r113-7) unstable; urgency=low
 
   * Release candidate 2
