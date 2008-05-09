@@ -6,7 +6,4 @@ class MyApp(Application):
   def service(self):
     self.response.write("Hello World!")
 
-try:
-  MyApp().run()
-except KeyboardInterrupt:
-  pass
+MyApp().run()

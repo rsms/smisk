@@ -1,6 +1,8 @@
 """This module exposes the post bug that Eric Moritz is experiences
 
 where smisk segfaults
+
+:See: Fixed in 77188bce80d5 <http://hg.hunch.se/smisk/diff/77188bce80d5/src/Stream.c>
 """
 from smisk import wsgi
 import smisk
