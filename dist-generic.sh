@@ -33,32 +33,32 @@ rm -vf dist/*.tar.gz
 rm -vf dist/ready/*.tar.gz
 mkdir -vp dist/ready
 
-
 # Execute for each python environment
 for PYTHON in $@; do
   
   # Find package name & version if not found already.
   # Also, create source distribution:
   if [ "$HAS_PERFORMED_SDIST" == "" ]; then
-    $PYTHON setup.py sdist --formats=gztar
+    $PYTHON setup.py sdist --formats=gztar || exit 1
     mv -v dist/$PACKAGE-$VER.tar.gz dist/ready/
     HAS_PERFORMED_SDIST=y
   fi
 
   # Run distutils
-  $PYTHON setup.py build --force
-  $PYTHON setup.py bdist --formats=gztar
+  $PYTHON setup.py build --force || exit 1
+  $PYTHON setup.py bdist --formats=gztar || exit 1
 
   # Add python version
-  PY_VER=$(echo $($PYTHON -V 2>&1)|sed 's/[^0-9\.]//g'|cut -d . -f 1,2)
-  BDIST_FILE_ORG=$(echo dist/$PACKAGE-$VER???????*.tar.gz)
-  BDIST_FILE=$(echo "$BDIST_FILE_ORG"|sed 's/\.tar\.gz$/-py'$PY_VER'.tar.gz/g');
-  mv -v $BDIST_FILE_ORG $BDIST_FILE
+  PY_VER=$(echo $($PYTHON -V 2>&1) | sed 's/[^0-9\.]//g' | cut -d . -f 1,2)
+  BDIST_FILE_ORG=$(echo dist/$PACKAGE-$VERV*.tar.gz)
+  BDIST_FILE="$(echo "$BDIST_FILE_ORG" | sed 's/\.tar\.gz$/-py'$PY_VER'.tar.gz/g')"
+  BDIST_FILE="$(echo "$BDIST_FILE" | sed 's/'$PACKAGE'-'$VERV'-/'$PACKAGE'-'$VERV'-'$(date '+%y%m%d')'-/g')"
+  mv -v $BDIST_FILE_ORG $BDIST_FILE || exit 1
   if [ $? -ne 0 ]; then
     echo "Failed to mv $BDIST_FILE_ORG $BDIST_FILE" >&2
     exit 1
   fi
-  mv -v $BDIST_FILE dist/ready/
+  mv -v $BDIST_FILE dist/ready/ || exit 1
   
 done # end of each python env
 
@@ -82,8 +82,8 @@ if is_local_host $REMOTE_HOST; then
     cp -rf doc/api $REMOTE_PATH_DOCS
   fi
 else
-  scp -qC dist/ready/$PACKAGE-$VER*.tar.gz $REMOTE_HOST:$REMOTE_PATH
-  ssh $REMOTE_HOST $CMD
+  scp -qC dist/ready/$PACKAGE-$VER*.tar.gz $REMOTE_HOST:$REMOTE_PATH || exit 1
+  ssh $REMOTE_HOST $CMD || exit 1
   if [ -d doc/api ]; then
     echo "Uploading doc/api to $REMOTE_HOST"
     scp -qCr doc/api $REMOTE_HOST:$REMOTE_PATH_DOCS
