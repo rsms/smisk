@@ -333,10 +333,8 @@ void smisk_Request_dealloc(smisk_Request* self) {
   Py_XDECREF(self->input);
   Py_XDECREF(self->errors);
   
-  // free envp buf
-  if(self->envp_buf) {
+  if(self->envp_buf)
     free(self->envp_buf);
-  }
   
   self->ob_type->tp_free((PyObject*)self);
 }
