@@ -69,13 +69,13 @@ echo "Uploading dist/ready/$PACKAGE-$BDIST_ID*.tar.gz to $REMOTE_HOST"
 CMD="cd $REMOTE_PATH;\
 for f in $PACKAGE-$BDIST_ID*.tar.gz;do \
   if [ -f \"\$f\" ]; then\
-    lname=\`echo \"\$f\"|sed 's/$VER/latest/g'\`;\
+    lname=\`echo \"\$f\"|sed 's/$BDIST_ID/latest/g'\`;\
     ln -sf \"\$f\" \"\$lname\";\
   fi;\
 done"
 if is_local_host $REMOTE_HOST; then
   cp dist/ready/$PACKAGE-$BDIST_ID*.tar.gz $REMOTE_PATH
-  sh -c $CMD
+  $CMD
   if [ -d doc/api ]; then
     echo "Copying doc/api"
     cp -rf doc/api $REMOTE_PATH_DOCS
