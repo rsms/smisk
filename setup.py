@@ -95,11 +95,10 @@ def coll_ordered_unique(seq, idfun=None):
   seen = set()
   return [x for x in seq if x not in seen and not seen.add(x)]
 
-repo_has_changed = not os.path.exists('src/version.h') or os.path.getmtime('src/version.h') < os.path.getmtime('.hg')
-if repo_has_changed:
-  revision = shell_cmd("hg id -i")
-else:
-  revision = revision_from_version_h()
+revision = shell_cmd("hg id -i")
+repo_has_changed = not os.path.exists('src/version.h') \
+  or os.path.getmtime('src/version.h') < os.path.getmtime('.hg') \
+  or revision =! revision_from_version_h()
 
 #---------------------------------------
 # Commands
