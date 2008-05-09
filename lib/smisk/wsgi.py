@@ -1,34 +1,50 @@
-"""This module provides a way to tie Smisk to a wsgi app
+'''
+This module provides a way to use Smisk as a WSGI backend.
 
-Copyright (c) 2008, Eric Moritz <eric@themoritzfamily.com>
-All rights reserved.
+Conforms to `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`__
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
+Simple example:
 
-  * Redistributions of source code must retain the above copyright
-  * notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above
-  * copyright notice, this list of conditions and the following
-  * disclaimer in the documentation and/or other materials provided
-  * with the distribution.  Neither the name of the <ORGANIZATION>
-  * nor the names of its contributors may be used to endorse or
-  * promote products derived from this software without specific
-  * prior written permission.
+>>> from smisk.wsgi import Gateway
+>>> def hello_app(env, start_response):
+>>>   start_response("200 OK", [])
+>>>   return ["Hello, World"]
+>>> 
+>>> Gateway(hello_app).run()
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-"""
+:see: http://www.python.org/dev/peps/pep-0333/
+:author: Eric Moritz
+:author: Rasmus Andersson
+'''
+# Copyright (c) 2008, Eric Moritz <eric@themoritzfamily.com>
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+# 
+#   * Redistributions of source code must retain the above copyright
+#   * notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above
+#   * copyright notice, this list of conditions and the following
+#   * disclaimer in the documentation and/or other materials provided
+#   * with the distribution.  Neither the name of the <ORGANIZATION>
+#   * nor the names of its contributors may be used to endorse or
+#   * promote products derived from this software without specific
+#   * prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 import smisk
 
 __version__ = (0,1,0)
@@ -67,8 +83,8 @@ class Request(smisk.Request):
     raise NotImplementedError('unprepared request does not have a valid send_file')
   
 
-class Application(smisk.Application):
-  """This is the Smisk Wsgi adapter."""
+class Gateway(smisk.Application):
+  """This is the Smisk WSGI adapter"""
   # Configuration parameters; can override per-subclass or per-instance
   wsgi_version = (1,0)
   wsgi_multithread = False
@@ -76,15 +92,15 @@ class Application(smisk.Application):
   wsgi_run_once = False
   
   def __init__(self, wsgi_app):
-    smisk.Application.__init__(self)
+    super(Gateway, self).__init__()
     self.request_class = Request
     self.wsgi_app = wsgi_app
   
   def start_response(self, status, headers, exc_info=None):
-    """'start_response()' callable as specified by PEP 333"""
+    """`start_response()` callable as specified by `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`__"""
     if exc_info:
       try:
-        if self.response.has_begun:
+        if self.response.has_begun():
           raise exc_info[0],exc_info[1],exc_info[2]
         else:
           # In this case of response not being initiated yet, this will replace 
@@ -133,7 +149,8 @@ class Application(smisk.Application):
 
 if __name__ == '__main__':
   import sys
-  
+  from wsgiref.validate import validator # Import the wsgi validator app
+
   def hello_app(env, start_response):
     start_response("200 OK", [])
     return ["Hello, World"]
@@ -144,4 +161,6 @@ if __name__ == '__main__':
     print "port given in argv[1]"
 
   smisk.bind(sys.argv[1])
-  Application(hello_app).run()
+
+  app = validator(hello_app)
+  Gateway(app).run()

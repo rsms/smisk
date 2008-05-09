@@ -1,0 +1,311 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-us" xml:lang="en-us" >
+<head>
+<title>Change feed | Django site admin</title>
+<link rel="stylesheet" type="text/css" href="/admin/media/css/forms.css" />
+
+
+
+<script type="text/javascript" src="../../../jsi18n/"></script>
+<script type="text/javascript" src="/admin/media/js/core.js"></script><script type="text/javascript" src="/admin/media/js/admin/RelatedObjectLookups.js"></script><script type="text/javascript" src="/admin/media/js/calendar.js"></script><script type="text/javascript" src="/admin/media/js/admin/DateTimeShortcuts.js"></script><script type="text/javascript" src="/admin/media/js/admin/CollapsedFieldsets.js"></script>
+
+<meta name="robots" content="NONE,NOARCHIVE" />
+</head>
+
+
+<body class="feedjack-feed change-form">
+
+<!-- Container -->
+<div id="container">
+
+    
+    <!-- Header -->
+    <div id="header">
+        <div id="branding">
+        
+
+<h1 id="site-name">Django administration</h1>
+
+        </div>
+        
+        <div id="user-tools">
+        Welcome, <strong>eric</strong>.
+        
+        <a href="/admin/doc/">Documentation</a>
+        / <a href="/admin/password_change/">Change password</a>
+
+        / <a href="/admin/logout/">Log out</a>
+        
+        </div>
+        
+        
+    </div>
+    <!-- END Header -->
+    
+<div class="breadcrumbs">
+     <a href="../../../">Home</a> &rsaquo;
+     <a href="../">Feeds</a> &rsaquo;
+
+     Blog (http://eric.themoritzfamily.com/feed/rss/)
+</div>
+
+    
+
+        
+
+    <!-- Content -->
+    <div id="content" class="colM">
+        
+        <h1>Change feed</h1>
+        <div id="content-main">
+
+
+  <ul class="object-tools"><li><a href="history/" class="historylink">History</a></li>
+
+  
+  </ul>
+
+
+<form enctype="multipart/form-data" action="" method="post" id="feed_form">
+<div>
+
+
+
+
+   <fieldset class="module aligned ()">
+    
+    
+    
+        
+<div class="form-row" >
+
+
+  <label for="id_feed_url" class="required">Feed url:</label> 
+  <input type="text" id="id_feed_url" class="vURLField required" name="feed_url" size="50" value="http://eric.themoritzfamily.com/feed/rss/" maxlength="200" />
+
+  
+  
+
+</div>
+
+        
+            
+        
+    
+        
+<div class="form-row" >
+
+
+  <label for="id_name" class="required">Name:</label> 
+  <input type="text" id="id_name" class="vTextField required" name="name" size="30" value="Blog" maxlength="100" />
+
+  
+  
+
+</div>
+
+        
+            
+        
+    
+        
+
+<div class="form-row" >
+
+
+  <label for="id_shortname" class="required">Shortname:</label> 
+  <input type="text" id="id_shortname" class="vTextField required" name="shortname" size="30" value="blog" maxlength="50" />
+
+  
+  
+
+</div>
+
+        
+            
+        
+    
+        
+<div class="form-row checkbox-row" >
+
+
+  
+  <input type="checkbox" id="id_is_active" class="vCheckboxField" name="is_active" checked="checked" />
+
+  <label for="id_is_active" class="vCheckboxLabel">Is active</label> 
+  <p class="help">If disabled, this feed will not be further updated.</p>
+
+</div>
+
+        
+            
+        
+    
+        
+<div class="form-row" >
+ 
+
+  <label for="id_icon_file">Feed image:</label> 
+  
+Currently: <a href="/media/feeds/favicon.png" > feeds/favicon.png </a><br />
+
+Change:<input type="file" id="id_icon_file" class="vImageUploadField" name="icon_file" /><input type="hidden" id="id_icon" name="icon" value="feeds/favicon.png" />
+
+
+  
+  
+
+</div>
+
+        
+            
+        
+    
+   </fieldset>
+
+   <fieldset class="module aligned collapse">
+    <h2>Fields updated automatically by Feedjack</h2>
+    
+    
+        
+<div class="form-row" >
+
+
+  <label for="id_title">Title:</label> 
+  <input type="text" id="id_title" class="vTextField" name="title" size="30" value="eric.themoritzfamily.com&#39;s Weblog" maxlength="200" />
+
+  
+  
+
+</div>
+
+        
+            
+        
+    
+        
+<div class="form-row" >
+
+
+  <label for="id_tagline">Tagline:</label> 
+  <textarea id="id_tagline" class="vLargeTextField" name="tagline" rows="10" cols="40">Latest entries on Weblog</textarea>
+
+  
+  
+
+</div>
+
+        
+            
+        
+    
+        
+<div class="form-row" >
+
+
+  <label for="id_link">Link:</label> 
+  <input type="text" id="id_link" class="vURLField" name="link" size="50" value="http://eric.themoritzfamily.com/" maxlength="200" />
+
+  
+  
+
+</div>
+
+        
+            
+        
+    
+        
+
+<div class="form-row" >
+
+
+  <label for="id_etag">Etag:</label> 
+  <input type="text" id="id_etag" class="vTextField" name="etag" size="30" value="" maxlength="50" />
+
+  
+  
+
+</div>
+
+        
+            
+        
+    
+        
+<div class="form-row" >
+ 
+
+  <label for="id_last_modified_date">Last modified:</label> 
+  
+<p class="datetime"> 
+   Date: <input type="text" id="id_last_modified_date" class="vDateField" name="last_modified_date" size="10" value="" maxlength="10" /><br />
+
+   Time: <input type="text" id="id_last_modified_time" class="vTimeField" name="last_modified_time" size="8" value="" maxlength="8" />
+</p>
+
+  
+  
+
+</div>
+
+        
+            
+        
+    
+        
+<div class="form-row" >
+ 
+
+  <label for="id_last_checked_date">Last checked:</label> 
+  
+<p class="datetime"> 
+   Date: <input type="text" id="id_last_checked_date" class="vDateField" name="last_checked_date" size="10" value="2008-04-15" maxlength="10" /><br />
+   Time: <input type="text" id="id_last_checked_time" class="vTimeField" name="last_checked_time" size="8" value="16:36:02" maxlength="8" />
+
+</p>
+
+  
+  
+
+</div>
+
+        
+            
+        
+    
+   </fieldset>
+
+
+
+   
+
+
+
+
+<div class="submit-row">
+<p class="float-left"><a href="delete/" class="deletelink">Delete</a></p>
+
+<input type="submit" value="Save and add another" name="_addanother"  />
+<input type="submit" value="Save and continue editing" name="_continue" />
+
+<input type="submit" value="Save" class="default" />
+</div>
+
+
+
+</div>
+</form></div>
+
+        
+        <br class="clear" />
+    </div>
+    <!-- END Content -->
+
+    <div id="footer"></div>
+
+</div>
+<!-- END Container -->
+
+</body>
+</html>

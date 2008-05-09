@@ -69,20 +69,20 @@ PyDoc_STRVAR(smisk_Stream_readline_DOC,
   ":rtype: string\n"
   ":returns: the line read or None if EOF");
 PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* args) {
-  PyObject *str, *arg1;
+  PyObject *str, *arg0;
   Py_ssize_t length;
   
   // Get length
   if (args && PyTuple_GET_SIZE(args) > 0) {
-    if( (arg1 = PyTuple_GET_ITEM(args, 1)) == NULL ) {
+    if( (arg0 = PyTuple_GET_ITEM(args, 0)) == NULL ) {
       length = SMISK_STREAM_READLINE_LENGTH;
     }
-    else if(!PyInt_Check(arg1)) {
+    else if(!PyInt_Check(arg0)) {
       PyErr_Format(PyExc_TypeError, "length argument must be an integer");
       return NULL;
     }
     else {
-      length = PyInt_AS_LONG(arg1);
+      length = PyInt_AS_LONG(arg0);
     }
   }
   else {
@@ -146,21 +146,21 @@ PyDoc_STRVAR(smisk_Stream_read_DOC,
   ":rtype: string");
 PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args) {
   //log_debug("ENTER smisk_Stream_read");
-  PyObject *str, *arg1;
+  PyObject *str, *arg0;
   Py_ssize_t length;
   int rc;
   
   // Get length
   if (PyTuple_GET_SIZE(args) > 0) {
-    if( (arg1 = PyTuple_GET_ITEM(args, 1)) == NULL ) { // None
+    if( (arg0 = PyTuple_GET_ITEM(args, 0)) == NULL ) { // None
       length = -1;
     }
-    else if(!PyInt_Check(arg1)) {
+    else if(!PyInt_Check(arg0)) {
       PyErr_Format(PyExc_TypeError, "length argument must be an integer");
       return NULL;
     }
     else {
-      length = PyInt_AS_LONG(arg1);
+      length = PyInt_AS_LONG(arg0);
     }
   }
   else {

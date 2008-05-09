@@ -119,6 +119,14 @@ char *smisk_xml_encode (const char *s, size_t len) {
 PyDoc_STRVAR(smisk_xml_encode_DOC,
   "Encode reserved and unsafe characters for use in XML or HTML context.\n"
   "\n"
+  "Example:\n"
+  "\n"
+  ">>> from smisk.core.xml import encode\n"
+  ">>> s = \"Your's & not mine <says> \\\"you\\\"\"\n"
+  ">>> encode(s)\n"
+  "\"Your's &#x26; not mine &#x3C;says&#x3E; &#x22;you&#x22;\"\n"
+  ">>> \n"
+  "\n"
   ":param s: Raw string to be encoded"
   ":type  s: string\n"
   ":rtype: string");
