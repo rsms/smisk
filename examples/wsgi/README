@@ -1,0 +1,7 @@
+Shows how to use Smisk as a backend for a WSGI application.
+
+The example handler is very simplistic, but is interchangable
+with a handler in a real application.
+
+Run it like this:
+lighttpd -Df lighttpd.conf

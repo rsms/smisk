@@ -24,7 +24,7 @@ for r in $(grep -E '\([0-9\.]+r[0-9]+-[0-9]+\)' debian/changelog|cut -d ' ' -f 2
     PREV_DEB_DEBV=$(echo $r|cut -d - -f 2)
   fi
 done
-if [ $PREV_DEB_REV -lt $(expr $REV - 1) ]; then
+#if [ $PREV_DEB_REV -lt $(expr $REV - 1) ]; then
   LESS=$(which less)
   if [ "$LESS" == "" ]; then LESS=$(which more); fi
   if [ "$LESS" == "" ]; then LESS=$(which cat); fi
@@ -38,8 +38,7 @@ if [ $PREV_DEB_REV -lt $(expr $REV - 1) ]; then
   while [ $NEED_ANSWER -eq 1 ]; do
     echo "[1] Review changes between r${REV} and r$(expr $PREV_DEB_REV - 1), then return here."
     echo '[2] Help me edit debian/changelog and continue.'
-    echo -n 'Enter your choice [1-2]: (2) '
-    read ANSWER
+    read -n 1 -p 'Enter your choice [1-2]: (2) ' ANSWER
     if [ "$ANSWER" == "" ]; then ANSWER=2; fi
     case $ANSWER in
       1) curl --silent "${CHANGELOG_URL}&format=changelog"|$LESS ;;
@@ -57,7 +56,7 @@ if [ $PREV_DEB_REV -lt $(expr $REV - 1) ]; then
   echo >> debian/changelog.tmp
   echo '  * '>> debian/changelog.tmp
   echo >> debian/changelog.tmp
-  echo " -- $PREV_DEB_CONTACT $(date --rfc-2822)">> debian/changelog.tmp
+  echo " -- $PREV_DEB_CONTACT  $(date --rfc-2822)">> debian/changelog.tmp
   echo >> debian/changelog.tmp
   cat debian/changelog >> debian/changelog.tmp
   NEED_ANSWER=1
@@ -67,8 +66,7 @@ if [ $PREV_DEB_REV -lt $(expr $REV - 1) ]; then
     SUM_AFTER=$(md5sum debian/changelog.tmp|cut -d ' ' -f 1)
     if [ "$SUM_AFTER" == "$SUM_BEFORE" ]; then
       echo 'The debian/changelog message unchanged or not specified.'
-      echo -n 'a)bort, c)ontinue, e)dit: (e) '
-      read ANSWER
+      read -n 1 -p 'a)bort, c)ontinue, e)dit: (e) ' ANSWER
       case $ANSWER in
         a) rm debian/changelog.tmp ; exit 2 ;;
         c) NEED_ANSWER=0 ;;
@@ -81,12 +79,15 @@ if [ $PREV_DEB_REV -lt $(expr $REV - 1) ]; then
   mv debian/changelog.tmp debian/changelog
   echo 'debian/changelog updated.'
   if [ -d .svn ]; then
-    echo 'Committing changelog update to subversion'
-    svn ci -m 'Debian changelog message added' debian/changelog
+    echo 'Committing changelog update'
+    svn ci -m 'Debian changelog message added (dist-debian.sh)' debian/changelog
     svn up
+  elif [ -d .hg ]; then
+    echo 'Committing changelog update'
+    hg ci -m 'Debian changelog message added (dist-debian.sh)' debian/changelog
   fi
   ensure_clean_working_revision
-fi
+#fi
 
 
 # Build
