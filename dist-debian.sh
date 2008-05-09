@@ -38,8 +38,7 @@ done
   while [ $NEED_ANSWER -eq 1 ]; do
     echo "[1] Review changes between r${REV} and r$(expr $PREV_DEB_REV - 1), then return here."
     echo '[2] Help me edit debian/changelog and continue.'
-    echo -n 'Enter your choice [1-2]: (2) '
-    read ANSWER
+    read -n 1 -p 'Enter your choice [1-2]: (2) ' ANSWER
     if [ "$ANSWER" == "" ]; then ANSWER=2; fi
     case $ANSWER in
       1) curl --silent "${CHANGELOG_URL}&format=changelog"|$LESS ;;
@@ -67,8 +66,7 @@ done
     SUM_AFTER=$(md5sum debian/changelog.tmp|cut -d ' ' -f 1)
     if [ "$SUM_AFTER" == "$SUM_BEFORE" ]; then
       echo 'The debian/changelog message unchanged or not specified.'
-      echo -n 'a)bort, c)ontinue, e)dit: (e) '
-      read ANSWER
+      read -n 1 -p 'a)bort, c)ontinue, e)dit: (e) ' ANSWER
       case $ANSWER in
         a) rm debian/changelog.tmp ; exit 2 ;;
         c) NEED_ANSWER=0 ;;
