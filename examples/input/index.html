@@ -18,14 +18,11 @@
         }
         f.submit();
       }
-      window.onload = function(evt) {
-        document.getElementById('url').value = "http://"+document.location.host+":"+document.location.port+"/receive"
-      }
     </script>
   </head>
   <body>
     <b>Target URL:</b>
-    <input type="text" id="url" style="width:400px" value="http://localhost:8080/" />
+    <input type="text" id="url" style="width:400px" value="/receive" />
     <hr />
     <h3>GET</h3>
     <form method="get" id="f3" action="http://localhost:8080/">
