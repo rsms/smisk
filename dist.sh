@@ -10,8 +10,7 @@ GREP=$(which grep)
 DEFAULT_PYTHON=$(which python)
 PACKAGE=$($DEFAULT_PYTHON setup.py --name)
 VER=$($DEFAULT_PYTHON setup.py --version)
-VERV=$(echo "$VER"|cut -d - -f 1)
-REV=$(echo "$VER"|cut -d - -f 2)
+REV=$(hg id -i)
 
 
 # Confirm working revision is synchronized with repository

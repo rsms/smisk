@@ -193,7 +193,7 @@ PyMODINIT_FUNC initcore(void) {
   
   // Constants: Special variables
   if(PyModule_AddStringConstant(module, "__version__", SMISK_VERSION) != 0) return;
-  if(PyModule_AddStringConstant(module, "__build__", SMISK_REVISION) != 0) return;
+  if(PyModule_AddStringConstant(module, "__build__", SMISK_BUILD_ID) != 0) return;
   if(PyModule_AddStringConstant(module, "__doc__", smisk_module_DOC) != 0) return;
   
   // Register types
