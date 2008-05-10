@@ -283,7 +283,8 @@ PyDoc_STRVAR(smisk_Response_find_header_DOC,
   ":returns: Index in 'headers' or -1 if not found.\n"
   ":rtype:   int");
 PyObject* smisk_Response_find_header(smisk_Response* self, PyObject *prefix) {
-  ENSURE_BY_GETTER(self->headers, smisk_Response_get_headers(self), return NULL; );
+  if(self->headers == NULL)
+    return PyInt_FromLong(-1L);
   return smisk_find_string_by_prefix_in_dict(self->headers, prefix);
 }
 
