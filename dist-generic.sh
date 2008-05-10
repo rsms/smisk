@@ -62,7 +62,7 @@ cd `dirname $0`
 . dist.sh || exit 1
 
 
-#ensure_clean_working_revision
+ensure_clean_working_revision
 
 
 # Construct dev extension for filenames
