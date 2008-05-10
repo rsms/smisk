@@ -465,11 +465,6 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
         Py_DECREF(v);
       }
     }
-    
-    // Make read-only
-    //PyObject *mutable_env = (PyObject*)self->env;
-    //self->env = (PyDictObject*)PyDictProxy_New(mutable_env);
-    //Py_DECREF(mutable_env);
   }
   
   Py_INCREF(self->env);
