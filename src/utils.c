@@ -283,6 +283,9 @@ PyObject* smisk_find_string_by_prefix_in_dict(PyObject* list, PyObject *prefix) 
   char *item_ptr, *prefix_ptr, *prefix_it;
   PyObject* item;
   
+  if(list == NULL)
+    return PyErr_Format(PyExc_TypeError, "smisk_find_string_by_prefix_in_dict() called with list=NULL");
+  
   if(!prefix || !PyString_Check(prefix))
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
