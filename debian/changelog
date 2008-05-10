@@ -1,3 +1,10 @@
+python-smisk (1.0b-892bd351f424-7) unstable; urgency=low
+
+  * Fixed a serious bug in smisk.core.Stream.read() which was found and
+    patched by Eric Moritz <eric@themoritzfamily.com>
+
+ -- Rasmus Andersson <rasmus@flajm.se>  Sat, 10 May 2008 02:15:51 +0200
+
 python-smisk (1.0b-fab839178d3f-8) unstable; urgency=low
 
   * Bumped up the version
