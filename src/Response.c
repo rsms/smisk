@@ -52,11 +52,8 @@ typedef struct FCGX_Stream_Data {
 
 
 static int _begin_if_needed(smisk_Response *self) {
-  if(!self->has_begun) {
-    if(PyObject_CallMethod((PyObject *)self, "begin", NULL) == NULL) {
-      return -1;
-    }
-  }
+  if ( (self->has_begun == Py_False) && (PyObject_CallMethod((PyObject *)self, "begin", NULL) == NULL) )
+    return -1;
   return 0;
 }
 
@@ -64,7 +61,7 @@ static int _begin_if_needed(smisk_Response *self) {
 // Called by Application.run just after a successful accept() 
 // and just before calling service().
 int smisk_Response_reset (smisk_Response *self) {
-  self->has_begun = 0;
+  REPLACE_OBJ(self->has_begun, Py_False, PyObject);
   Py_XDECREF(self->headers);
   self->headers = NULL;
   return 0;
@@ -85,19 +82,19 @@ PyObject * smisk_Response_new(PyTypeObject *type, PyObject *args, PyObject *kwds
   log_debug("ENTER smisk_Response_new");
   smisk_Response *self;
   
-  self = (smisk_Response *)type->tp_alloc(type, 0);
-  if (self != NULL) {
-    if(smisk_Response_reset(self) != 0) {
-      Py_DECREF(self);
-      return NULL;
-    }
+  if ((self = (smisk_Response *)type->tp_alloc(type, 0)) == NULL)
+    return NULL;  
   
-    // Construct a new Stream for out
-    self->out = (smisk_Stream*)smisk_Stream_new(&smisk_StreamType, NULL, NULL);
-    if (self->out == NULL) {
-      Py_DECREF(self);
-      return NULL;
-    }
+  if(smisk_Response_reset(self) != 0) {
+    Py_DECREF(self);
+    return NULL;
+  }
+  
+  // Construct a new Stream for out
+  self->out = (smisk_Stream*)smisk_Stream_new(&smisk_StreamType, NULL, NULL);
+  if (self->out == NULL) {
+    Py_DECREF(self);
+    return NULL;
   }
   
   return (PyObject *)self;
@@ -112,6 +109,8 @@ void smisk_Response_dealloc(smisk_Response* self) {
   
   smisk_Response_reset(self);
   
+  Py_XDECREF(self->has_begun);
+  Py_XDECREF(self->headers);
   Py_XDECREF(self->out);
   
   self->ob_type->tp_free((PyObject*)self);
@@ -160,7 +159,7 @@ PyObject* smisk_Response_send_file(smisk_Response* self, PyObject* filename) {
   
   FCGX_PutStr(PyString_AsString(filename), PyString_Size(filename), self->out->stream);
   rc = FCGX_PutStr("\r\n\r\n", 4, self->out->stream);
-  self->has_begun = 1;
+  REPLACE_OBJ(self->has_begun, Py_True, PyObject);
   
   // Check for errors
   if(rc == -1) {
@@ -228,7 +227,7 @@ PyObject* smisk_Response_begin(smisk_Response* self) {
   FCGX_PutChar('\r', self->out->stream);
   rc = FCGX_PutChar('\n', self->out->stream);
   
-  self->has_begun = 1;
+  REPLACE_OBJ(self->has_begun, Py_True, PyObject);
   
   // Errors?
   if(rc == -1) {
@@ -372,10 +371,8 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
   
   PyObject *s;
   
-  if(self->has_begun) {
-    return PyErr_Format(PyExc_EnvironmentError,
-      "Cookies can not be set when output has already begun.");
-  }
+  if(self->has_begun == Py_True)
+    return PyErr_Format(PyExc_EnvironmentError, "Cookies can not be set when output has already begun.");
   
   if(!PyArg_ParseTupleAndKeywords(args, kwargs, "ss|zzziiii", kwlist,
       &name, &value, &comment, &domain, &path, &secure, &version, &max_age, &http_only)) {
@@ -496,9 +493,9 @@ static struct PyMemberDef smisk_Response_members[] = {
   {"has_begun", T_OBJECT_EX, offsetof(smisk_Response, has_begun), RO,
     "Check if output (http headers & possible body content) has been sent to the client.\n"
     "\n"
-    "1 if `begin()` has been called and output has started, otherwise 0.\n"
+    "True if `begin()` has been called and output has started, otherwise False.\n"
     "\n"
-    ":type:   int"},
+    ":type:   bool"},
   
   {NULL}
 };

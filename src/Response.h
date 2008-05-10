@@ -33,9 +33,7 @@ typedef struct {
   // Public Python & C
   smisk_Stream *out;
   PyObject     *headers; // lazy list
-  
-  // Private
-  int has_begun;
+  PyObject     *has_begun;
   
 } smisk_Response;
 

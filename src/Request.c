@@ -728,7 +728,7 @@ static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
       self->session = Py_None;
       Py_INCREF(Py_None);
       self->initial_session_hash = 0;
-      if(smisk_current_app->response->has_begun) {
+      if(smisk_current_app->response->has_begun == Py_True) {
         PyErr_SetString(smisk_Error, "Output already started - too late to send session id with response");
         return NULL;
       }
@@ -750,7 +750,7 @@ static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
 
 static int smisk_Request_set_session_id(smisk_Request* self, PyObject *session_id) {
   log_debug("ENTER smisk_Request_set_session_id");
-  if(smisk_current_app->response->has_begun) {
+  if(smisk_current_app->response->has_begun == Py_True) {
     PyErr_SetString(smisk_Error, "Output already started - too late to set session id");
     return -1;
   }
@@ -807,7 +807,7 @@ static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
     return 0;
   }
   // else: actually set session
-  log_debug("REPLACE_OBJ(self->session, val, PyObject)");
+  log_debug("Setting self->session = val");
   REPLACE_OBJ(self->session, val, PyObject);
   return self->session ? 0 : -1;
 }

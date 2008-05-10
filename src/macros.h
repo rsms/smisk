@@ -51,11 +51,13 @@ THE SOFTWARE.
 #endif
 
 // Replace a PyObject while counting references
-#define REPLACE_OBJ(to, expr, type) \
-  do { type *__replace_obj = (type *)(to); \
-  (to) = (type *)(expr); \
-  Py_XINCREF(to); \
-  Py_XDECREF(__replace_obj); } while(0)
+#define REPLACE_OBJ(destination, new_value, type) \
+  do { \
+    type *__old_ ## type ## __LINE__ = (type *)(destination); \
+    (destination) = (type *)(new_value); \
+    Py_XINCREF(destination); \
+    Py_XDECREF(__old_ ## type ## __LINE__); \
+  } while(0)
 
 // Ensure a lazy instance variable is available
 #define ENSURE_BY_GETTER(direct, getter, ...) \

@@ -323,7 +323,7 @@ PyDoc_STRVAR(smisk_Application_error_DOC,
   ">>> \n"
   "\n"
   "What is sent as response depends on if output has started or not: If "
-    "output has started, if `Response.has_begun` is ``1``, calling this "
+    "output has started, if `Response.has_begun` is ``True``, calling this "
     "method will insert a HTML formatted error message at the end of what "
     "has already been sent. If output has not yet begun, any headers set "
     "will be discarded and a complete HTTP response will be sent, including "
@@ -418,7 +418,7 @@ PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
   
   Py_DECREF(exc_str);
   
-  if(!self->response->has_begun) {
+  if(self->response->has_begun == Py_False) {
     // Include headers if response has not yet been sent
     static char *header = "<html><head>"
       "<title>Service Error</title>"
