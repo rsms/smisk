@@ -266,7 +266,31 @@ fi
 if [ $GENERATE_DOCS -eq 1 ]; then
   echo '------------------------'
   echo 'Generating documentation'
-  $dry $DEFAULT_PYTHON setup.py apidocs
+  
+  PY_VER=$(echo $($DEFAULT_PYTHON -V 2>&1) | sed 's/[^0-9\.]//g' | cut -d . -f 1,2)
+  BUILT_SMISK_DIR=$($DEFAULT_PYTHON -c "import os; print os.path.realpath('$(echo build/lib.*${PY_VER}/smisk)')")
+  
+  if ! ($DEFAULT_PYTHON -c 'import smisk,os,sys; sys.exit(not os.path.samefile(os.path.dirname(smisk.__file__), "'"$BUILT_SMISK_DIR"'"))' 2>/dev/null); then
+    echo "$0: Warning: $BUILT_SMISK_DIR is not installed thus generating" >&2
+    echo "  documentation would result in documentation for possibly another version." >&2
+    if ! SMISK_DIR=$($DEFAULT_PYTHON -c 'import smisk,os; print os.path.dirname(smisk.__file__)' 2>/dev/null); then
+      SMISK_DIR=$($DEFAULT_PYTHON -c 'import sys; print '%s/lib/python%s/smisk' % (sys.prefix, sys.version[:3])' 2>/dev/null)
+    fi
+    echo "  I suggest you:" >&2
+    echo "    sudo ln -vfs \"$BUILT_SMISK_DIR\" \"$SMISK_DIR\"" >&2
+    echo -n "$0: Warning: disabling generation" >&2
+    GENERATE_DOCS=0
+    if [ $DISTRIBUTE_DOCS -eq 1 ]; then
+      echo -n " and distribution" >&2
+      DISTRIBUTE_DOCS=0
+    fi
+    echo " of documentation." >&2
+  fi
+  
+  if [ $GENERATE_DOCS -eq 1 ]; then
+    # test again 'cus it might have changed in the test above
+    $dry $DEFAULT_PYTHON setup.py apidocs
+  fi
 fi
 
 
