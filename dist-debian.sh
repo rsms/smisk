@@ -170,7 +170,7 @@ dpkg-buildpackage -rfakeroot || exit 1
 # Move files to a better location
 # XXX: This should dpkg-buildpackage be able to do. Checked it up quickly but did not find anything.
 FNPATTERN="${DEB_PACKAGE_NAME}_${CURRENT_VER}-${DEB_PACKAGE_VER}"
-mkdir -fp dist/debian
+mkdir -vp dist/debian
 mv -v ../$FNPATTERN.* dist/debian/
 
 
