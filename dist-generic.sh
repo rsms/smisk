@@ -49,6 +49,7 @@ Options:
  Global options:
   -b   Do NOT build binary package(s).
   -s   Do NOT build source package.
+  -l   Do NOT link as latest on distribution side.
   -r   Dry run. Show what would happen without actually doing anything.
   -p   Print configuration and exit.
   -h   Display detailed help and exit.
@@ -95,9 +96,11 @@ GENERATE_SOURCE=1
 GENERATE_DOCS=
 DISTRIBUTE_PKGS=
 DISTRIBUTE_DOCS=
+# the link is to be considered as "latest snapshot" so default on for both milestone and snapshot:
+DISTRIBUTE_LINK_LATEST=1
 
 # Parse options
-while getopts 'mnoudcbsrph' OPTION; do
+while getopts 'mnoudcbslrph' OPTION; do
   case $OPTION in
     # Milestone options
     m)  IS_MILESTONE=1 ;;
@@ -112,6 +115,7 @@ while getopts 'mnoudcbsrph' OPTION; do
     s)  GENERATE_SOURCE=0 ;;
     r)  DRY_RUN=1 ;;
     p)  PRINT_CONF_AND_EXIT=1 ;;
+    l)  DISTRIBUTE_LINK_LATEST=0 ;;
     h)  usage y ; exit 2 ;;
     *)  usage ; exit 2 ;;
   esac
@@ -281,22 +285,26 @@ if [ $DISTRIBUTE_PKGS -eq 1 ]; then
   for f in ${PKG_ID}*.tar.gz;do \
     if [ -f \"\$f\" ]; then\
       lname=\`echo \"\$f\" | sed 's/${PKG_VER}/latest/g'\`;\
-      echo ln -sf \"\$f\" \"\$lname\";\
+      ln -sf \"\$f\" \"\$lname\";\
     fi;\
   done"
   echo -n "Copying dist/ready/${PKG_ID}*.tar.gz to "
   if [ $ISLOCALHOST -eq 1 ]; then
     echo $REMOTE_PATH
     $dry cp dist/ready/$PKG_ID*.tar.gz $REMOTE_PATH
-    if [ $DRY_RUN -eq 1 ]; then
-      $dry "echo $CMD | sh --verbose"
-    else
-      echo $CMD | sh --verbose || exit 1
+    if [ $DISTRIBUTE_LINK_LATEST -eq 1 ]; then
+      if [ $DRY_RUN -eq 1 ]; then
+        $dry "echo $CMD | sh --verbose"
+      else
+        echo $CMD | sh --verbose || exit 1
+      fi
     fi
   else
     echo "$REMOTE_HOST:$REMOTE_PATH"
     $dry scp -qC dist/ready/$PKG_ID*.tar.gz $REMOTE_HOST:$REMOTE_PATH || exit 1
-    $dry ssh $REMOTE_HOST $CMD || exit 1
+    if [ $DISTRIBUTE_LINK_LATEST -eq 1 ]; then
+      $dry ssh $REMOTE_HOST $CMD || exit 1
+    fi
   fi
 fi
 
