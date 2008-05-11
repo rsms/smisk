@@ -141,7 +141,6 @@ class smisk_build_core(build_ext):
     ('debug-smisk', None, "compile Smisk with debugging information. Implies --debug"),
   ]
   def run(self):
-    print 'ENTER build_ext.run'
     self._update_version_h()
     self._run_config_if_needed()
     self._configure_compiler()
@@ -246,7 +245,7 @@ class smisk_config(config):
     log._global_log.threshold = log.WARN
     self.macros = {}
     
-    #self._include_dirs()
+    self._include_dirs()
     self._machine()
     self._headers()
     self._check_libs()
@@ -421,15 +420,16 @@ class smisk_test(Command):
       print 'All %d tests passed' % test_result.testsRun
   
 
+from distutils.dir_util import remove_tree
 class smisk_clean(builtin_clean):
   def remove_file(self, path):
     if os.access(path, os.F_OK):
-      #os.remove(path)
+      os.remove(path)
       print ' removed', path
   
   def remove_dir(self, path):
     if os.access(path, os.F_OK):
-      #os.rmdir(path)
+      remove_tree(path)
       print ' removed', path
   
   def run(self):
@@ -486,8 +486,8 @@ written in C, but controlled by Python.
 It is designed to widen the common bottle necks common in heavy-duty web
 services.
 
-The latest development version is available in
-<a href="http://svn.hunch.se/smisk/trunk">the Smisk subversion repository</a>.
+The latest version is available from
+<a href="http://trac.hunch.se/smisk/wiki/Download">the Smisk website</a>.
 """,
   url = 'http://trac.hunch.se/smisk',
   download_url = 'http://trac.hunch.se/smisk/wiki/Download',
