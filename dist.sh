@@ -17,8 +17,14 @@ REV=$(hg id -i)
 ensure_clean_working_revision() {
   RREV=$REV
   if (echo "$RREV"|$GREP '+' > /dev/null); then
-    echo "Working revision $RREV is not up-to-date. You need to sort things out first."
-    exit 1
+    MSG="Working revision $RREV is not clean. You need to sort things out first."
+    if [ -n $DRY_RUN ] && [ $DRY_RUN -eq 1 ]; then
+      echo "$0: Warning: $MSG"
+      echo "$0: Notice: In a non-dry run the above warning would be an error and exit 1"
+    else
+      echo "$0: Error: $MSG"
+      exit 1
+    fi
   fi
 }
 
@@ -30,6 +36,10 @@ is_local_host() {
     hostname=$(hostname --fqdn)
   fi
   if [ "$(host -t A $1|cut -f 3)" == "$(host -t A $hostname|cut -f 3)" ]; then
+    if [ $? -ne 0 ]; then
+      echo "$0: Error: Failed to look up host $hostname"
+      exit 1
+    fi
     return 0
   fi
   return 1
