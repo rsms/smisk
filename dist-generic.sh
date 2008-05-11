@@ -232,7 +232,7 @@ if [ $GENERATE_BINARY -eq 1 ]; then
     ($PYTHON -V) || exit 1
   
     # Run distutils
-    $dry $PYTHON setup.py --quiet build --force || exit 1
+    $dry $PYTHON setup.py --quiet clean || exit 1
     $dry $PYTHON setup.py --quiet bdist --formats=gztar || exit 1
 
     # Rename resulting file
