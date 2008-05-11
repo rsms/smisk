@@ -51,15 +51,16 @@ ensure_clean_working_revision
 
 # Get info about the latest version from the changelog
 for r in $(grep -E "${DEB_PACKAGE_NAME} "'\(.+-[0-9]+\)' debian/changelog | cut -d ' ' -f 2 | sed -r 's/(\(|\))//g'); do
-  if [ "$PREV_REV" == "" ]; then
+  if [ "$PREV_VER" == "" ]; then
     PREV_VER=$(echo $r|cut -d - -f 1)
     PREV_PKGVER=$(echo $r|cut -d - -f 3)
   fi
 done
 
-if [ "$PREV_VER" == "$CURRENT_VER" ] && [ "$PREV_PKGVER" == "$DEB_PACKAGE_VER" ]; then
+if [ "$PREV_VER" == "$CURRENT_VER" ]; then
   echo 'The program version AND package version seems to be up to date in '
-  echo 'the changelog. Make sure you have updated it.'
+  echo 'the changelog. Make sure you have updated it. (For example the '
+  echo "debian package version which is now ${PREV_PKGVER})"
   read -n 1 -p 'Build package with current changelog? [Y/n] ' ANSWER
   if [ "$ANSWER" != "" ] && [ "$ANSWER" != "y" ] && [ "$ANSWER" != "Y" ]; then
     echo 'Aborted by user' >&2
