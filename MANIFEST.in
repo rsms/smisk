@@ -1,5 +1,6 @@
 include LICENSE
 include README
+
 graft doc
 graft debug
 graft examples
@@ -7,5 +8,9 @@ graft src
 graft tests
 
 prune doc/api
-exclude doc/*.psd
+
+exclude examples/*/*.log
+exclude examples/*/*.sock
+exclude examples/*/*.crash
+
 global-exclude .DS_Store *.log
