@@ -397,11 +397,17 @@ class smisk_test(Command):
   def initialize_options(self): pass
   def finalize_options(self): pass
   def run(self):
-    import smisk.test
+    try:
+      import smisk.test
+    except ImportError:
+      sys.stderr.write("%s: Warning: smisk.test module not found\n" % sys.argv[0])
+      return
+    
     try:
       from cStringIO import StringIO
     except:
       from StringIO import StringIO
+    
     global test_result
     st = StringIO()
     runner = unittest.TextTestRunner(stream=st, verbosity=0)
