@@ -20,7 +20,7 @@ USAGE
 
 # Take care of arguments
 if [ $# -gt 0 ]; then
-  if [ "$1" == "-u" ]; then
+  if [ "$1" = "-u" ]; then
     DISTRIBUTE=1
   else
     usage ; exit 1
@@ -46,18 +46,19 @@ PREV_PKGVER=      # 7
 DEB_PACKAGE_VER=  # 1
 
 
-ensure_clean_working_revision
-
-
 # Get info about the latest version from the changelog
 for r in $(grep -E "${DEB_PACKAGE_NAME} "'\(.+-[0-9]+\)' debian/changelog | cut -d ' ' -f 2 | sed -r 's/(\(|\))//g'); do
-  if [ "$PREV_VER" == "" ]; then
+  if [ -z $PREV_VER ]; then
     PREV_VER=$(echo $r|cut -d - -f 1)
     PREV_PKGVER=$(echo $r|cut -d - -f 3)
   fi
 done
 
-if [ "$PREV_VER" == "$CURRENT_VER" ]; then
+
+ensure_clean_working_revision
+
+
+if [ "$PREV_VER" = "$CURRENT_VER" ]; then
   echo 'The program version AND package version seems to be up to date in '
   echo 'the changelog. Make sure you have updated it. (For example the '
   echo "debian package version which is now ${PREV_PKGVER})"
@@ -72,8 +73,8 @@ else
   # changelog probably out of date - ensure it's updated
   SKIP_CHANGELOG=0
   LESS=$(which less)
-  if [ "$LESS" == "" ]; then LESS=$(which more); fi
-  if [ "$LESS" == "" ]; then LESS=$(which cat); fi
+  if [ "$LESS" = "" ]; then LESS=$(which more); fi
+  if [ "$LESS" = "" ]; then LESS=$(which cat); fi
 
   echo <<MSG
 The debian/changelog needs to be updated.
@@ -91,7 +92,7 @@ MSG
 CTRL+C to abort.
 MSG
     read -n 1 -p 'Enter your choice [1-2]: (1) ' ANSWER
-    if [ "$ANSWER" == "" ]; then ANSWER=1; fi
+    if [ "$ANSWER" = "" ]; then ANSWER=1; fi
     case $ANSWER in
       1) NEED_ANSWER=0 ;;
       2) NEED_ANSWER=0; SKIP_CHANGELOG=1 ;;
@@ -112,7 +113,7 @@ MSG
     
     # Construct a changelog message
     for r in $(grep -E '^ -- ' debian/changelog|sed -r 's/ -- (.+<[^>]+>).+/\1/g'|sed 's/ /___/g'); do
-      if [ "$PREV_DEB_CONTACT" == "" ]; then
+      if [ "$PREV_DEB_CONTACT" = "" ]; then
         PREV_DEB_CONTACT=$(echo "$r"|sed 's/___/ /g');
       fi
     done
@@ -131,7 +132,7 @@ MSG
       SUM_BEFORE=$(md5sum debian/changelog.tmp|cut -d ' ' -f 1)
       $EDITOR debian/changelog.tmp
       SUM_AFTER=$(md5sum debian/changelog.tmp|cut -d ' ' -f 1)
-      if [ "$SUM_AFTER" == "$SUM_BEFORE" ]; then
+      if [ "$SUM_AFTER" = "$SUM_BEFORE" ]; then
         echo 'The debian/changelog message unchanged or not specified.'
         read -n 1 -p 'a)bort, c)ontinue, e)dit: (e) ' ANSWER
         case $ANSWER in
@@ -160,7 +161,7 @@ MSG
     
   fi # [ $SKIP_CHANGELOG -eq 0 ]
   
-fi # [ "$PREV_VER" == "$CURRENT_VER" ] && [ "$PREV_PKGVER" == "$DEB_PACKAGE_VER" ] else
+fi # [ "$PREV_VER" = "$CURRENT_VER" ] && [ "$PREV_PKGVER" = "$DEB_PACKAGE_VER" ] else
 
 
 # Build
