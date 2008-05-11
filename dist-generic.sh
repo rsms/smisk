@@ -26,8 +26,7 @@ usage() {
   
   # Always print this
   (cat <<USAGE
-Usage: $0 [options] python ...
-       $0 -b [options]
+Usage: $0 [options] [python ...]
 USAGE
   ) >&2
   
@@ -59,9 +58,10 @@ Milestone exaples:
     Builds binary and source packages, generates documentation and pushes
     everything to appropriate distribution channels.
 
-  $0 -mn python2.{4,5}
+  $0 -mn
     Builds binary and source packages, but does NOT generate or distribute
     documentation. Pushes everything to appropriate distribution channels.
+    Here, the python interpreters are guessed since they are not specified.
 
   $0 -mbs
     Generates and distributes milestone documentation.
@@ -139,10 +139,28 @@ else
   if [ -z $DISTRIBUTE_DOCS ]; then DISTRIBUTE_DOCS=0; fi
 fi
 
-# Some options need explicit python binaries
+# Some options need python binaries
 if [ $GENERATE_BINARY -eq 1 ] && [ $# -eq 0 ]; then
-  echo "$0: Error: no python interpreters specified" >&2
-  usage ; exit 3
+  PYTHONS=
+  # "python" must be last in this list:
+  for n in python2.4 python2.5 python; do
+    if ($n -V 2>/dev/null); then
+      if [ "$n" = "python" ] && [ "$PYTHONS" = "" ]; then
+        # only add python if no pythonX.X was found or we get duplicates
+        PYTHONS="$PYTHONS$n "
+      elif [ $n != "python" ]; then
+        PYTHONS="$PYTHONS$n "
+      fi
+    fi
+  done
+  if [ "$PYTHONS" = "" ]; then
+    echo "$0: Error: no python interpreters specified and none found." >&2
+    usage ; exit 3
+  else
+    echo "$0: Waring: no python interpreters specified. Using: $PYTHONS" >&2
+  fi
+else
+  PYTHONS="$@"
 fi
 
 
@@ -182,7 +200,7 @@ if [ $GENERATE_SOURCE -eq 1 ] || [ $GENERATE_BINARY -eq 1 ]; then
   fi
 fi
 echo "  Generating:"
-if [ $GENERATE_BINARY -eq 1 ]; then echo "    + Binaries for $@"; fi
+if [ $GENERATE_BINARY -eq 1 ]; then echo "    + Binaries for $PYTHONS"; fi
 if [ $GENERATE_SOURCE -eq 1 ]; then echo "    + Source"; fi
 if [ $GENERATE_DOCS -eq 1 ];   then echo "    + Documentation"; fi
 if [ $DISTRIBUTE_PKGS -eq 1 ] || [ $DISTRIBUTE_DOCS -eq 1 ]; then
@@ -190,6 +208,7 @@ if [ $DISTRIBUTE_PKGS -eq 1 ] || [ $DISTRIBUTE_DOCS -eq 1 ]; then
   if [ $DISTRIBUTE_PKGS -eq 1 ]; then
     if [ $GENERATE_BINARY -eq 1 ]; then echo "    + Binaries"; fi
     if [ $GENERATE_SOURCE -eq 1 ]; then echo "    + Source"; fi
+    if [ $DISTRIBUTE_LINK_LATEST -eq 1 ]; then echo "    + Linking binaries and source as latest"; fi
   fi
   if [ $DISTRIBUTE_DOCS -eq 1 ]; then echo "    + Documentation"; fi
 fi
@@ -229,7 +248,7 @@ fi
 
 # Build binary packages
 if [ $GENERATE_BINARY -eq 1 ]; then
-  for PYTHON in $@; do
+  for PYTHON in $PYTHONS; do
     # Simple sanity check
     echo '------------------------'
     echo -n 'Building with '
