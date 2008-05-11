@@ -203,6 +203,12 @@ export SMISK_BUILD_VERSION="$PKG_VER"
 PKG_ID="${PACKAGE}-${PKG_VER}"
 
 
+# Disable dist if neither bin nor src is to be produced
+if [ $IS_MILESTONE -eq 1 ] && [ $GENERATE_BINARY -eq 0 ] && [ $GENERATE_SOURCE -eq 0 ]; then
+  DISTRIBUTE_PKGS=0
+fi
+
+
 # Print configuration
 echo "Configuration:"
 echo -n "  Type:       "
@@ -227,11 +233,6 @@ if [ $DISTRIBUTE_PKGS -eq 1 ] || [ $DISTRIBUTE_DOCS -eq 1 ]; then
     if [ $DISTRIBUTE_LINK_LATEST -eq 1 ]; then echo "    + Linking binaries and source as latest"; fi
   fi
   if [ $DISTRIBUTE_DOCS -eq 1 ]; then echo "    + Documentation"; fi
-fi
-
-# Disable dist if neither bin nor src is to be produced
-if [ $IS_MILESTONE -eq 1 ] && [ $GENERATE_BINARY -eq 0 ] && [ $GENERATE_SOURCE -eq 0 ]; then
-  DISTRIBUTE_PKGS=0
 fi
 
 # Only print configuration? If so, exit cleanly here
@@ -373,15 +374,16 @@ if [ $DISTRIBUTE_DOCS -eq 1 ]; then
   if [ $GENERATE_DOCS -eq 1 ] && [ ! -f doc/api/index.html ] && [ $DRY_RUN -eq 0 ]; then
     echo "$0: Warning: Documentation will not be distributed -- doc/api does not exist but was intended to be created." >&2
   else
+    MVCMD="rm -rf ${REMOTE_PATH_DOCS}api && mv -vf ${REMOTE_PATH_DOCS}api-new ${REMOTE_PATH_DOCS}api"
     echo -n "Copying doc/api to "
     if [ $ISLOCALHOST -eq 1 ]; then
       echo "${REMOTE_PATH_DOCS}api"
       $dry cp -rf doc/api "${REMOTE_PATH_DOCS}api-new"
-      $dry mv -vf "${REMOTE_PATH_DOCS}api-new" "${REMOTE_PATH_DOCS}api"
+      $dry $MVCMD
     else
       echo "$REMOTE_HOST:${REMOTE_PATH_DOCS}api"
       $dry scp -qCr doc/api "$REMOTE_HOST:${REMOTE_PATH_DOCS}api-new"
-      $dry ssh $REMOTE_HOST "mv -vf ${REMOTE_PATH_DOCS}api-new ${REMOTE_PATH_DOCS}api"
+      $dry ssh $REMOTE_HOST "$MVCMD"
     fi
   fi
 fi
