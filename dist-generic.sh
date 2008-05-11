@@ -38,6 +38,7 @@ Options:
  Milestone options:
   -m   Milestone release. Implies -u, -d and -c.
   -n   Do NOT generate documentation. Effective in combination with -m.
+  -k   Do NOT distribute packages. Effective in combination with -m.
   -o   Do NOT distribute documentation. Effective in combination with -m.
  
  Snapshot options:
@@ -65,6 +66,10 @@ Milestone exaples:
 
   $0 -mbs
     Generates and distributes milestone documentation.
+
+  $0 -mnko
+    Builds binary and source packages, but does NOT generate documentation
+    and does NOT distribute anything.
 
 Snapshot examples:
   $0 -u python2.{4,5}
@@ -100,11 +105,12 @@ DISTRIBUTE_DOCS=
 DISTRIBUTE_LINK_LATEST=1
 
 # Parse options
-while getopts 'mnoudcbslrph' OPTION; do
+while getopts 'mnkoudcbslrph' OPTION; do
   case $OPTION in
     # Milestone options
     m)  IS_MILESTONE=1 ;;
     n)  GENERATE_DOCS=0 ;;
+    k)  DISTRIBUTE_PKGS=0 ;;
     o)  DISTRIBUTE_DOCS=0 ;;
     # Snapshot options
     u)  DISTRIBUTE_PKGS=1 ;;
