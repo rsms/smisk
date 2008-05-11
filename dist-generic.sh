@@ -50,6 +50,7 @@ Options:
   -b   Do NOT build binary package(s).
   -s   Do NOT build source package.
   -l   Do NOT link as latest on distribution side.
+  -e   Do NOT register with PyPI. Effective if distributing packages.
   -r   Dry run. Show what would happen without actually doing anything.
   -p   Print configuration and exit.
   -h   Display detailed help and exit.
@@ -79,6 +80,10 @@ Snapshot examples:
   $0 python2.{4,5}
     Builds binary and source packages but does NOT distribute anything.
 
+  $0 -ue python2.{4,5}
+    Builds binary and source packages pushes everything to appropriate
+    distribution channels EXCEPT from registering with PyPI.
+
   $0 -ub
     Creates and distributes a snapshot source package.
 
@@ -96,6 +101,7 @@ USAGE
 IS_MILESTONE=0
 DRY_RUN=0
 PRINT_CONF_AND_EXIT=0
+REGISTER_WITH_PYPI=1
 GENERATE_BINARY=1
 GENERATE_SOURCE=1
 GENERATE_DOCS=
@@ -105,7 +111,7 @@ DISTRIBUTE_DOCS=
 DISTRIBUTE_LINK_LATEST=1
 
 # Parse options
-while getopts 'mnkoudcbslrph' OPTION; do
+while getopts 'mnkoudcbslerph' OPTION; do
   case $OPTION in
     # Milestone options
     m)  IS_MILESTONE=1 ;;
@@ -119,9 +125,10 @@ while getopts 'mnkoudcbslrph' OPTION; do
     # Global options
     b)  GENERATE_BINARY=0 ;;
     s)  GENERATE_SOURCE=0 ;;
+    l)  DISTRIBUTE_LINK_LATEST=0 ;;
+    e)  REGISTER_WITH_PYPI=0 ;;
     r)  DRY_RUN=1 ;;
     p)  PRINT_CONF_AND_EXIT=1 ;;
-    l)  DISTRIBUTE_LINK_LATEST=0 ;;
     h)  usage y ; exit 2 ;;
     *)  usage ; exit 2 ;;
   esac
@@ -353,6 +360,9 @@ if [ $DISTRIBUTE_PKGS -eq 1 ]; then
     if [ $DISTRIBUTE_LINK_LATEST -eq 1 ]; then
       $dry ssh $REMOTE_HOST $CMD || exit 1
     fi
+  fi
+  if [ $REGISTER_WITH_PYPI -eq 1 ]; then
+    $dry $DEFAULT_PYTHON setup.py register
   fi
 fi
 
