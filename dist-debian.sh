@@ -61,7 +61,7 @@ if [ "$PREV_VER" == "$CURRENT_VER" ] && [ "$PREV_PKGVER" == "$DEB_PACKAGE_VER" ]
   echo 'The program version AND package version seems to be up to date in '
   echo 'the changelog. Make sure you have updated it.'
   read -n 1 -p 'Build package with current changelog? [Y/n] ' ANSWER
-  if [ "$ANSWER" != "y" ] && [ "$ANSWER" != "Y" ]; then
+  if [ "$ANSWER" != "" ] && [ "$ANSWER" != "y" ] && [ "$ANSWER" != "Y" ]; then
     echo 'Aborted by user' >&2
     exit 1
   fi
