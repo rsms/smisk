@@ -4,6 +4,9 @@ from smisk import Application
 
 class MyApp(Application):
   def service(self):
-    self.response.write("Hello World!")
+    self.response("Hello World!")
 
-MyApp().run()
+try:
+  MyApp().run()
+except KeyboardInterrupt:
+  pass
