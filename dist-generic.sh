@@ -40,17 +40,18 @@ Options:
   -n   Do NOT generate documentation. Effective in combination with -m.
   -k   Do NOT distribute packages. Effective in combination with -m.
   -o   Do NOT distribute documentation. Effective in combination with -m.
+  -e   Do NOT register with PyPI. Effective if distributing packages.
  
  Snapshot options:
   -u   Distribute/upload the resulting packages excluding documentation.
   -d   Generate documentation.
   -c   Distribute documentation. Effective in combination with -d.
+  -y   Register with PyPI. Effective if combination with -u.
  
  Global options:
   -b   Do NOT build binary package(s).
   -s   Do NOT build source package.
   -l   Do NOT link as latest on distribution side.
-  -e   Do NOT register with PyPI. Effective if distributing packages.
   -r   Dry run. Show what would happen without actually doing anything.
   -p   Print configuration and exit.
   -h   Display detailed help and exit.
@@ -80,9 +81,9 @@ Snapshot examples:
   $0 python2.{4,5}
     Builds binary and source packages but does NOT distribute anything.
 
-  $0 -ue python2.{4,5}
+  $0 -uy python2.{4,5}
     Builds binary and source packages pushes everything to appropriate
-    distribution channels EXCEPT from registering with PyPI.
+    distribution channels AND register with PyPI.
 
   $0 -ub
     Creates and distributes a snapshot source package.
@@ -101,32 +102,33 @@ USAGE
 IS_MILESTONE=0
 DRY_RUN=0
 PRINT_CONF_AND_EXIT=0
-REGISTER_WITH_PYPI=1
 GENERATE_BINARY=1
 GENERATE_SOURCE=1
 GENERATE_DOCS=
+REGISTER_WITH_PYPI=
 DISTRIBUTE_PKGS=
 DISTRIBUTE_DOCS=
 # the link is to be considered as "latest snapshot" so default on for both milestone and snapshot:
 DISTRIBUTE_LINK_LATEST=1
 
 # Parse options
-while getopts 'mnkoudcbslerph' OPTION; do
+while getopts 'mnkoeudcybslrph' OPTION; do
   case $OPTION in
     # Milestone options
     m)  IS_MILESTONE=1 ;;
     n)  GENERATE_DOCS=0 ;;
     k)  DISTRIBUTE_PKGS=0 ;;
     o)  DISTRIBUTE_DOCS=0 ;;
+    e)  REGISTER_WITH_PYPI=0 ;;
     # Snapshot options
     u)  DISTRIBUTE_PKGS=1 ;;
     d)  GENERATE_DOCS=1 ;;
     c)  DISTRIBUTE_DOCS=1 ;;
+    y)  REGISTER_WITH_PYPI=1 ;;
     # Global options
     b)  GENERATE_BINARY=0 ;;
     s)  GENERATE_SOURCE=0 ;;
     l)  DISTRIBUTE_LINK_LATEST=0 ;;
-    e)  REGISTER_WITH_PYPI=0 ;;
     r)  DRY_RUN=1 ;;
     p)  PRINT_CONF_AND_EXIT=1 ;;
     h)  usage y ; exit 2 ;;
@@ -138,6 +140,7 @@ shift $(($OPTIND - 1))
 # Adjust options
 if [ $IS_MILESTONE -eq 1 ]; then
   if [ -z $DISTRIBUTE_PKGS ]; then DISTRIBUTE_PKGS=1; fi
+  if [ -z $REGISTER_WITH_PYPI ]; then REGISTER_WITH_PYPI=1; fi
   if [ -z $GENERATE_DOCS ];   then GENERATE_DOCS=1; fi
   if [ -z $DISTRIBUTE_DOCS ]; then
     if [ $GENERATE_DOCS -eq 0 ]; then
@@ -150,6 +153,7 @@ else
   if [ -z $DISTRIBUTE_PKGS ]; then DISTRIBUTE_PKGS=0; fi
   if [ -z $GENERATE_DOCS ];   then GENERATE_DOCS=0; fi
   if [ -z $DISTRIBUTE_DOCS ]; then DISTRIBUTE_DOCS=0; fi
+  if [ -z $REGISTER_WITH_PYPI ]; then REGISTER_WITH_PYPI=0; fi
 fi
 
 # Some options need python binaries
@@ -230,6 +234,7 @@ if [ $DISTRIBUTE_PKGS -eq 1 ] || [ $DISTRIBUTE_DOCS -eq 1 ]; then
   if [ $DISTRIBUTE_PKGS -eq 1 ]; then
     if [ $GENERATE_BINARY -eq 1 ]; then echo "    + Binaries"; fi
     if [ $GENERATE_SOURCE -eq 1 ]; then echo "    + Source"; fi
+    if [ $REGISTER_WITH_PYPI -eq 1 ]; then echo "    + Registering with PyPI"; fi
     if [ $DISTRIBUTE_LINK_LATEST -eq 1 ]; then echo "    + Linking binaries and source as latest"; fi
   fi
   if [ $DISTRIBUTE_DOCS -eq 1 ]; then echo "    + Documentation"; fi
