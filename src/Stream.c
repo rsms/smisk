@@ -24,6 +24,25 @@ THE SOFTWARE.
 #include <structmember.h>
 
 
+#pragma mark Private C
+
+
+
+
+#pragma mark -
+#pragma mark Public C
+
+
+int smisk_Stream_perform_write(smisk_Stream* self, PyObject* str, Py_ssize_t length) {
+  if( FCGX_PutStr(PyString_AS_STRING(str), length, self->stream) == -1 ) {
+    PyErr_SET_FROM_ERRNO;
+    return -1;
+  }
+  return 0;
+}
+
+
+#pragma mark -
 #pragma mark Initialization & deallocation
 
 
@@ -47,13 +66,38 @@ int smisk_Stream_init(smisk_Stream* self, PyObject* args, PyObject* kwargs) {
 
 void smisk_Stream_dealloc(smisk_Stream* self) {
   log_debug("ENTER smisk_Stream_dealloc");
-  
   self->ob_type->tp_free((PyObject*)self);
 }
 
 
 #pragma mark -
 #pragma mark Methods
+
+
+
+// DRY helper for methods accepting an optional Py_ssize_t arg
+// Return 1 (true) on success, 0 (false) on failure
+// If len is NULL, length will get the value of default
+static int _get_opt_ssize_arg(Py_ssize_t *length, PyObject *args, Py_ssize_t pos, Py_ssize_t def) {
+  PyObject *len;
+  if (args && PyTuple_GET_SIZE(args) > pos) {
+    if( (len = PyTuple_GET_ITEM(args, pos)) == NULL )
+      return 0;
+    
+    if(!PyInt_Check(len)) {
+      PyErr_Format(PyExc_TypeError, "first argument must be an integer");
+      return 0;
+    }
+    else {
+      *length = PyInt_AS_LONG(len);
+    }
+  }
+  else {
+    *length = SMISK_STREAM_READLINE_LENGTH;
+  }
+  return 1;
+}
+
 
 
 PyDoc_STRVAR(smisk_Stream_readline_DOC,
@@ -69,30 +113,15 @@ PyDoc_STRVAR(smisk_Stream_readline_DOC,
   ":rtype: string\n"
   ":returns: the line read or None if EOF");
 PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* args) {
-  PyObject *str, *arg0;
+  PyObject *str;
   Py_ssize_t length;
   
-  // Get length
-  if (args && PyTuple_GET_SIZE(args) > 0) {
-    if( (arg0 = PyTuple_GET_ITEM(args, 0)) == NULL ) {
-      length = SMISK_STREAM_READLINE_LENGTH;
-    }
-    else if(!PyInt_Check(arg0)) {
-      PyErr_Format(PyExc_TypeError, "length argument must be an integer");
-      return NULL;
-    }
-    else {
-      length = PyInt_AS_LONG(arg0);
-    }
-  }
-  else {
-    length = SMISK_STREAM_READLINE_LENGTH;
-  }
+  if(!_get_opt_ssize_arg(&length, args, 0, SMISK_STREAM_READLINE_LENGTH))
+    return NULL;
   
   // Init string
-  if((str = PyString_FromStringAndSize(NULL, length)) == NULL) {
+  if((str = PyString_FromStringAndSize(NULL, length)) == NULL)
     return NULL;
-  }
   
   // Setup vars for the acctual read loop
   int c;
@@ -136,6 +165,65 @@ PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* args) {
 }
 
 
+PyDoc_STRVAR(smisk_Stream_readlines_DOC,
+  "Read until EOF using readline() and return a list containing the lines thus read.\n"
+  "\n"
+  "If the optional sizehint argument is present, instead of reading up to EOF, whole lines totalling approximately sizehint bytes (possibly after rounding up to an internal buffer size) are read.\n"
+  "\n"
+  ":type   length: int\n"
+  ":param  length: sizehint\n"
+  ":rtype: list");
+PyObject* smisk_Stream_readlines(smisk_Stream* self, PyObject* args) {
+  Py_ssize_t sizehint, linecount;
+  PyObject *lines, *line, *readline_args;
+  
+  if (!_get_opt_ssize_arg(&sizehint, args, 0, -1))
+    return NULL;
+  
+  // We hold the reference until we return
+  lines = PyList_New(sizehint);
+  
+  // Euhm, we were asked to read nothing -- let's read nothing then.
+  if (sizehint == 0)
+    return lines;
+  
+  // Temporary args list
+  readline_args = PyList_New(0);
+  
+  for (linecount = 0; linecount < sizehint; linecount++) {
+    // Discussion:  Here, we are calling readline directly. If the user
+    //              overrides Stream.readline the original implementation will
+    //              still be called. However, calling this using "message 
+    //              passing" is considerably slower. One way of getting the
+    //              best of both worlds might be to somehow "detect" that
+    //              readline has been overridden and if so, use an alternative
+    //              loop which uses "message passing".
+    //             
+    if ((line = smisk_Stream_readline(self, readline_args)) == NULL) {
+      Py_DECREF(readline_args);
+      return NULL;
+    }
+    // Assign to list
+    PyList_SET_ITEM(lines, linecount, line);
+  }
+  
+  // We do not need to run smisk_Stream_readline anymore
+  Py_DECREF(readline_args);
+  
+  // Slice the list to get rid of stale NULLs
+  if (linecount < sizehint) {
+    PyObject *old_lines = lines;
+    lines = PyList_GetSlice(lines, 0, linecount-1);
+    Py_DECREF(old_lines);
+    // At this point, lines may be NULL if PyList_GetSlice failed, but we
+    // return lines now, so things are handled just fine. But be careful if
+    // adding code below.
+  }
+  
+  return lines;
+}
+
+
 PyDoc_STRVAR(smisk_Stream_read_DOC,
   "Read at most size bytes from the file (less if the read hits EOF before "
   "obtaining size bytes). If the size  argument is negative or omitted, "
@@ -145,27 +233,12 @@ PyDoc_STRVAR(smisk_Stream_read_DOC,
   ":param  length: read up to length bytes. If not specified or negative, read until EOF.\n"
   ":rtype: string");
 PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args) {
-  //log_debug("ENTER smisk_Stream_read");
-  PyObject *str, *arg0;
+  PyObject *str;
   Py_ssize_t length;
   int rc;
   
-  // Get length
-  if (PyTuple_GET_SIZE(args) > 0) {
-    if( (arg0 = PyTuple_GET_ITEM(args, 0)) == NULL ) { // None
-      length = -1;
-    }
-    else if(!PyInt_Check(arg0)) {
-      PyErr_Format(PyExc_TypeError, "length argument must be an integer");
-      return NULL;
-    }
-    else {
-      length = PyInt_AS_LONG(arg0);
-    }
-  }
-  else {
-    length = -1;
-  }
+  if(!_get_opt_ssize_arg(&length, args, 0, -1))
+    return NULL;
   
   // Read n bytes
   if(length > 0)  {
@@ -185,9 +258,8 @@ PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args) {
   }
   // Zero is Zero!
   else if(length == 0) {
-    if((str = PyString_FromStringAndSize("", 0)) == NULL) {
+    if((str = PyString_FromStringAndSize("", 0)) == NULL)
       return NULL;
-    }
   }
   // Read all
   else {
@@ -200,9 +272,8 @@ PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args) {
     rc = 0;
     
     // Create string
-    if((str = PyString_FromStringAndSize(NULL, bufsize)) == NULL) {
+    if((str = PyString_FromStringAndSize(NULL, bufsize)) == NULL)
       return NULL;
-    }
     
     // Start reading
     while(1) {
@@ -251,9 +322,8 @@ PyObject* smisk_Stream_write_byte(smisk_Stream* self, PyObject* ch) {
     return NULL;
   }
   
-  if(FCGX_PutChar((int)PyInt_AS_LONG(ch), self->stream) == -1) {
+  if(FCGX_PutChar((int)PyInt_AS_LONG(ch), self->stream) == -1)
     return PyErr_SET_FROM_ERRNO;
-  }
   
   Py_RETURN_NONE;
 }
@@ -279,22 +349,19 @@ PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args) {
   argc = PyTuple_GET_SIZE(args);
   
   // Did we get enough arguments?
-  if(argc == 0) {
+  if(argc == 0)
     return PyErr_Format(PyExc_TypeError, "write takes at least 1 argument (0 given)");
-  }
   
   // Save reference to first argument and type check it
   str = PyTuple_GET_ITEM(args, 0);
-  if(!PyString_Check(str)) {
-    return PyErr_Format(PyExc_TypeError, "First argument must be a string");
-  }
+  if(!PyString_Check(str))
+    return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
   // Figure out length
   if (argc > 1) {
     PyObject* arg1 = PyTuple_GET_ITEM(args, 1);
-    if(!PyInt_Check(arg1)) {
-      return PyErr_Format(PyExc_TypeError, "Second argument must be an integer");
-    }
+    if(!PyInt_Check(arg1))
+      return PyErr_Format(PyExc_TypeError, "second argument must be an integer");
     length = PyInt_AS_LONG(arg1);
   }
   else {
@@ -302,20 +369,10 @@ PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args) {
   }
   
   // Write to stream
-  if( length && smisk_Stream_perform_write(self, str, length) == -1 ) {
+  if( length && smisk_Stream_perform_write(self, str, length) == -1 )
     return NULL;
-  }
   
   Py_RETURN_NONE;
-}
-
-
-int smisk_Stream_perform_write(smisk_Stream* self, PyObject* str, Py_ssize_t length) {
-  if( FCGX_PutStr(PyString_AS_STRING(str), length, self->stream) == -1 ) {
-    PyErr_SET_FROM_ERRNO;
-    return -1;
-  }
-  return 0;
 }
 
 
@@ -326,9 +383,8 @@ PyDoc_STRVAR(smisk_Stream_flush_DOC,
   "\n"
   ":rtype: None");
 PyObject* smisk_Stream_flush(smisk_Stream* self) {
-  if(FCGX_FFlush(self->stream) == -1) {
+  if(FCGX_FFlush(self->stream) == -1)
     return PyErr_SET_FROM_ERRNO;
-  }
   Py_RETURN_NONE;
 }
 
@@ -340,9 +396,8 @@ PyDoc_STRVAR(smisk_Stream_close_DOC,
   "\n"
   ":rtype: None");
 PyObject* smisk_Stream_close(smisk_Stream* self) {
-  if(FCGX_FClose(self->stream) == -1) {
+  if(FCGX_FClose(self->stream) == -1)
     return PyErr_SET_FROM_ERRNO;
-  }
   Py_RETURN_NONE;
 }
 
@@ -352,17 +407,15 @@ PyObject* smisk_Stream_close(smisk_Stream* self) {
 
 
 PyObject* smisk_Stream_iter(smisk_Stream *self) {
-  Py_INCREF(self);
-  return (PyObject*)self;
+  return Py_INCREF(self), (PyObject*)self;
 }
 
 PyObject* smisk_Stream_iternext(smisk_Stream *self) {
+  // Conforms to PEP 234 <http://www.python.org/dev/peps/pep-0234/>
   PyObject* str = smisk_Stream_readline(self, NULL);
-  if(PyString_GET_SIZE(str) == 0) {
-    // End iteration
-    // XXX I think we need to raise a EndIteration exception here, don't we?
+  if (PyString_GET_SIZE(str) == 0) {
     Py_DECREF(str);
-    return NULL;
+    return NULL; // End iteration
   }
   return str;
 }
@@ -379,6 +432,7 @@ static PyMethodDef smisk_Stream_methods[] = {
   {"flush", (PyCFunction)smisk_Stream_flush,            METH_NOARGS,  smisk_Stream_flush_DOC},
   {"read", (PyCFunction)smisk_Stream_read,              METH_VARARGS, smisk_Stream_read_DOC},
   {"readline", (PyCFunction)smisk_Stream_readline,      METH_VARARGS, smisk_Stream_readline_DOC},
+  {"readlines", (PyCFunction)smisk_Stream_readlines,    METH_VARARGS, smisk_Stream_readlines_DOC},
   {"write", (PyCFunction)smisk_Stream_write,            METH_VARARGS, smisk_Stream_write_DOC},
   {"write_byte", (PyCFunction)smisk_Stream_write_byte,  METH_O,       smisk_Stream_write_byte_DOC},
   {NULL}
