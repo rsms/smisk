@@ -217,13 +217,11 @@ fi
 echo "Configuration:"
 echo -n "  Type:       "
 if [ $IS_MILESTONE -eq 1 ]; then echo "Milestone"; else echo "Snapshot"; fi
-if [ $GENERATE_SOURCE -eq 1 ] || [ $GENERATE_BINARY -eq 1 ]; then
-  echo -n "  Identifier: $PKG_ID"
-  if ([ $DRY_RUN -eq 1 ] || [ $PRINT_CONF_AND_EXIT -eq 1 ]) && [ $IS_MILESTONE -eq 0 ]; then
-    echo "  (may change)"
-  else
-    echo
-  fi
+echo -n "  Identifier: $PKG_ID"
+if ([ $DRY_RUN -eq 1 ] || [ $PRINT_CONF_AND_EXIT -eq 1 ]) && [ $IS_MILESTONE -eq 0 ]; then
+  echo "  (may change)"
+else
+  echo
 fi
 echo "  Generating:"
 if [ $GENERATE_BINARY -eq 1 ]; then echo "    + Binaries for $PYTHONS"; fi
