@@ -172,18 +172,19 @@ dpkg-buildpackage -rfakeroot || exit 1
 # Move files to a better location
 # XXX: This should dpkg-buildpackage be able to do. Checked it up quickly but did not find anything.
 FNPATTERN="${DEB_PACKAGE_NAME}_${CURRENT_VER}-${DEB_PACKAGE_VER}"
+rm -rf dist/debian
 mkdir -vp dist/debian
-mv -v ../$FNPATTERN.* dist/debian/
+mv -v ../$FNPATTERN* dist/debian/
 
 
 # Distribute
 if [ $DISTRIBUTE -eq 1 ]; then
-  echo -n "Copying dist/debian/${FNPATTERN}.* to "
+  echo -n "Copying dist/debian/${FNPATTERN}* to "
   if is_local_host $DEB_REMOTE_HOST; then
     echo "$DEB_REMOTE_PATH"
-    cp -vf dist/debian/$FNPATTERN.* $DEB_REMOTE_PATH
+    cp -vf dist/debian/$FNPATTERN* $DEB_REMOTE_PATH
   else
     echo "${DEB_REMOTE_HOST}:${DEB_REMOTE_PATH}"
-    scp -qC dist/debian/$FNPATTERN.* $DEB_REMOTE_HOST:$DEB_REMOTE_PATH
+    scp -qC dist/debian/$FNPATTERN* $DEB_REMOTE_HOST:$DEB_REMOTE_PATH
   fi
 fi
