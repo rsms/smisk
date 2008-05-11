@@ -224,7 +224,10 @@ class smisk_build(build):
   def run(self):
     build.run(self)
     self.run_command('test')
-    sys.exit(1) # abort
+    global test_result
+    if test_result is not None:
+      if test_result.errors or test_result.failures:
+        sys.exit(1) # abort
   
 
 class smisk_config(config):
