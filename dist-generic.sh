@@ -188,9 +188,12 @@ cd `dirname $0`
 PKG_VER="${VER}${DEVEXT}"
 if [ $IS_MILESTONE -eq 0 ]; then
   PKG_VER="${PKG_VER}-dev-$(date '+%y%m%d%H%M')-$REV"
+  export SMISK_BUILD_TYPE=snapshot
+else
+  export SMISK_BUILD_TYPE=milestone
 fi
+export SMISK_BUILD_VERSION="$PKG_VER"
 PKG_ID="${PACKAGE}-${PKG_VER}"
-PKG_DISTUTILS_ID="${PACKAGE}-${VER}"
 
 
 # Print configuration
@@ -246,7 +249,7 @@ ensure_clean_working_revision
 if [ $GENERATE_BINARY -eq 1 ] || [ $GENERATE_SOURCE -eq 1 ]; then
   echo '------------------------'
   echo 'Cleaning dist dir...'
-  $dry rm -vf dist/$PKG_DISTUTILS_ID*.tar.gz
+  $dry rm -vf dist/$PKG_ID*.tar.gz
   $dry rm -vf dist/ready/$PKG_ID*.tar.gz
   $dry mkdir -vp dist/ready
 fi
@@ -266,13 +269,9 @@ if [ $GENERATE_BINARY -eq 1 ]; then
 
     # Rename resulting file
     PY_VER=$(echo $($PYTHON -V 2>&1) | sed 's/[^0-9\.]//g' | cut -d . -f 1,2)
-    BDIST_FILE_ORG="$(basename "$(echo dist/${PKG_DISTUTILS_ID}*.tar.gz)")"
+    BDIST_FILE_ORG="$(basename "$(echo dist/${PKG_ID}*.tar.gz)")"
     # Convert smisk-1.0.0.system --> smisk-1.0.0-system and Add python version
-    BDIST_FILE="$(echo "$BDIST_FILE_ORG" | sed 's/-'$VER'./-'$VER'-/' | sed 's/\.tar\.gz$/-py'$PY_VER'.tar.gz/')"
-    if [ $IS_MILESTONE -eq 0 ]; then
-      # smisk-1.0.0  -->  smisk-$PKG_VER
-      BDIST_FILE="$(echo "$BDIST_FILE" | sed 's/-'$VER'/-'${PKG_VER}'/')"
-    fi
+    BDIST_FILE="$(echo "$BDIST_FILE_ORG" | sed 's/-'$PKG_VER'./-'$PKG_VER'-/' | sed 's/\.tar\.gz$/-py'$PY_VER'.tar.gz/')"
     $dry mv -v "dist/$BDIST_FILE_ORG" "dist/ready/$BDIST_FILE" || exit 1
   done # end of each python env
 fi
@@ -283,7 +282,7 @@ if [ $GENERATE_SOURCE -eq 1 ]; then
   echo '------------------------'
   echo 'Generating source package'
   $dry $DEFAULT_PYTHON setup.py --quiet sdist --formats=gztar || exit 1
-  $dry mv -v "dist/${PKG_DISTUTILS_ID}.tar.gz" "dist/ready/${PKG_ID}.tar.gz"
+  $dry mv -v "dist/${PKG_ID}.tar.gz" "dist/ready/${PKG_ID}.tar.gz"
 fi
 
 

@@ -12,7 +12,9 @@ from distutils import log
 from subprocess import Popen, PIPE
 import os, sys, time, platform, unittest
 
-version = "1.0.0"
+# This is where the version is defined. The dist scripts
+# may override this by exporting SMISK_BUILD_VERSION.
+version = os.environ.get('SMISK_BUILD_VERSION', '1.0.0')
 
 sources = ['src/__init__.c',
            
@@ -152,10 +154,16 @@ class smisk_build_core(build_ext):
     if not repo_has_changed:
       return
     f = open('src/version.h', "w")
+    ver = version
+    build_id = time.strftime('%y%m%d%H%M') + '-' + revision
+    p = version.find('-')
+    if p != -1:
+      # version overridden by dist script
+      ver = version[:p]
+      build_id = version[p+1:]
     try:
-      f.write("#ifndef SMISK_VERSION\n#define SMISK_VERSION \"%s\"\n#endif\n" % version)
-      f.write("#ifndef SMISK_BUILD_ID\n#define SMISK_BUILD_ID \"%s-%s\"\n#endif\n" %\
-        (time.strftime('%y%m%d%H%M'), revision) )
+      f.write("#ifndef SMISK_VERSION\n#define SMISK_VERSION \"%s\"\n#endif\n" % ver)
+      f.write("#ifndef SMISK_BUILD_ID\n#define SMISK_BUILD_ID \"%s\"\n#endif\n" % build_id )
       print 'wrote version info to src/version.h'
     finally:
       f.close()
@@ -471,6 +479,24 @@ if '--debug' in sys.argv or '--debug-smisk' in sys.argv:
 
 #build.user_options.append(('debug-smisk', None, "compile Smisk with debugging information. Implies --debug"))
 
+classifiers = [
+  'Environment :: Console',
+  'Intended Audience :: Developers',
+  'License :: OSI Approved :: MIT License',
+  'Operating System :: MacOS :: MacOS X',
+  'Operating System :: POSIX',
+  'Operating System :: Unix',
+  'Programming Language :: C',
+  'Programming Language :: Python',
+  'Topic :: Internet :: WWW/HTTP',
+  'Topic :: Software Development :: Libraries :: Python Modules'
+]
+
+if os.environ.get('SMISK_BUILD_TYPE', '?').lower() == 'milestone':
+  classifiers.append('Development Status :: 5 - Production/Stable')
+else:
+  classifiers.append('Development Status :: 4 - Beta')
+
 #---------------------------------------
 setup (
   distclass=SmiskDistribution,
@@ -481,29 +507,15 @@ setup (
 Smisk is a simple, high-performance and scalable web service framework
 written in C, but controlled by Python.
 
-It is designed to widen the common bottle necks common in heavy-duty web
-services.
-
-The latest version is available from
-<a href="http://trac.hunch.se/smisk/wiki/Download">the Smisk website</a>.
+It is designed to widen the common bottle necks in heavy-duty web services.
 """,
   url = 'http://trac.hunch.se/smisk',
-  download_url = 'http://trac.hunch.se/smisk/wiki/Download',
+  download_url = "http://trac.hunch.se/smisk/dist/smisk-%s.tar.gz" % version,
   author = 'Rasmus Andersson',
   author_email = 'rasmus@flajm.se',
   license = 'MIT',
-  classifiers = [
-    'Development Status :: 4 - Beta',
-    'Environment :: Console',
-    'Intended Audience :: Developers',
-    'License :: OSI Approved :: MIT License',
-    'Operating System :: MacOS :: MacOS X',
-    'Operating System :: POSIX :: Linux',
-    'Operating System :: Unix',
-    'Programming Language :: C',
-    'Programming Language :: Python',
-    'Topic :: Internet :: WWW/HTTP',
-    'Topic :: Software Development :: Libraries :: Python Modules'],
+  platforms = "ALL",
+  classifiers = classifiers,
   package_dir = {'': 'lib'},
   packages = [
     'smisk',
