@@ -12,6 +12,10 @@ PACKAGE=$($DEFAULT_PYTHON setup.py --name)
 VER=$($DEFAULT_PYTHON setup.py --version)
 REV=$(hg id -i)
 
+# Security measure to make sure we don't end up with version-version
+if (echo "$VER" | grep '-' >/dev/null); then
+  VER=$(echo "$VER" | cut -d'-' -f 1 )
+fi
 
 # Confirm working revision is synchronized with repository
 ensure_clean_working_revision() {
