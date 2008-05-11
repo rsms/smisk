@@ -50,7 +50,7 @@ DEB_PACKAGE_VER=  # 1
 for r in $(grep -E "${DEB_PACKAGE_NAME} "'\(.+-[0-9]+\)' debian/changelog | cut -d ' ' -f 2 | sed -r 's/(\(|\))//g'); do
   if [ -z $PREV_VER ]; then
     PREV_VER=$(echo $r|cut -d - -f 1)
-    PREV_PKGVER=$(echo $r|cut -d - -f 3)
+    PREV_PKGVER=$(echo $r|cut -d - -f 2)
   fi
 done
 
