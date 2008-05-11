@@ -298,7 +298,7 @@ class smisk_config(config):
     sys.stdout.write('checking machine endianess ... ')
     sys.stdout.flush()
     test = self._run('''
-    int main() {
+    int main (int argc, const char * argv[]) {
       int i = 0x11223344;
       char *p = (char *) &i;
       if (*p == 0x44) return 0;
@@ -450,12 +450,6 @@ class smisk_clean(builtin_clean):
     
     print 'Removing generated documentation'
     self.remove_dir('doc/api')
-    
-    print 'Removing built products'
-    self.remove_dir('build')
-    
-    print 'Removing assebled distributions'
-    self.remove_dir('dist')
   
 
 class SmiskDistribution(Distribution):
