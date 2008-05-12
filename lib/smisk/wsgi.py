@@ -152,7 +152,7 @@ if __name__ == '__main__':
   from wsgiref.validate import validator # Import the wsgi validator app
 
   def hello_app(env, start_response):
-    start_response("200 OK", [])
+    start_response("200 OK", [('Content-Type', 'text/plain')])
     return ["Hello, World"]
   
   if len(sys.argv) != 2:
