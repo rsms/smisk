@@ -537,6 +537,14 @@ PyObject* smisk_URL_escape(PyObject* self, PyObject* str) {
 }
 
 
+PyDoc_STRVAR(smisk_URL_unescape_DOC,
+  "Alias of `decode()`.\n"
+  "\n"
+  ":param  str:\n"
+  ":type   str: string\n"
+  ":rtype: string\n"
+  ":raises TypeError: if str is not a string");
+
 PyDoc_STRVAR(smisk_URL_decode_DOC,
   "Restore data previously encoded by `encode()` or `escape()`.\n"
   "\n"
@@ -584,49 +592,119 @@ PyObject* smisk_URL_decode(PyObject* self, PyObject* str) {
   return (PyObject *)newstr_py;
 }
 
-PyDoc_STRVAR(smisk_URL_unescape_DOC,
-  "Alias of `decode()`.\n"
-  "\n"
-  ":param  str:\n"
-  ":type   str: string\n"
-  ":rtype: string\n"
-  ":raises TypeError: if str is not a string");
 
-PyObject *smisk_URL___str__(smisk_URL* self) {
+PyDoc_STRVAR(smisk_URL_to_str_DOC,
+  "Alias of `to_s()`.\n"
+  "\n"
+  ":param  scheme:\n"
+  ":param  user:\n"
+  ":param  password:\n"
+  ":param  host:\n"
+  ":param  port:\n"
+  ":param  path:\n"
+  ":param  query:\n"
+  ":param  fragment:\n"
+  ":type   scheme:    bool\n"
+  ":type   user:      bool\n"
+  ":type   password:  bool\n"
+  ":type   host:      bool\n"
+  ":type   port:      bool\n"
+  ":type   path:      bool\n"
+  ":type   query:     bool\n"
+  ":type   fragment:  bool\n"
+  ":rtype: string");
+PyDoc_STRVAR(smisk_URL_to_s_DOC,
+  "String representation.\n"
+  "\n"
+  "By passing ``False`` for any of the arguments, you can omit certain parts from being included in the string produced. This can come in handy when for example you want to sanitize away password or maybe not include any path, query or fragment.\n"
+  "\n"
+  ":param  scheme:\n"
+  ":param  user:\n"
+  ":param  password:\n"
+  ":param  host:\n"
+  ":param  port:\n"
+  ":param  path:\n"
+  ":param  query:\n"
+  ":param  fragment:\n"
+  ":type   scheme:    bool\n"
+  ":type   user:      bool\n"
+  ":type   password:  bool\n"
+  ":type   host:      bool\n"
+  ":type   port:      bool\n"
+  ":type   path:      bool\n"
+  ":type   query:     bool\n"
+  ":type   fragment:  bool\n"
+  ":rtype: string");
+PyObject *smisk_URL_to_s(smisk_URL* self, PyObject* args, PyObject *kwargs) {
+  PyObject *scheme, *user, *password, *host, *port, *path, *query, *fragment;
+  PyObject *one;
+  static char *kwlist[] = {"scheme", "user", "password", "host", "port",
+                           "path", "query", "fragment", NULL};
+  scheme = user = password = host = port = path = query = fragment = NULL;
+  if(!PyArg_ParseTupleAndKeywords(args, kwargs, "|OOOOOOOO", kwlist,
+      &scheme, &user, &password, &host, &port, &path, &query, &fragment))
+    return NULL;
+  
+  // Here we exploit the fact that python caches everything between -5 and 256, so
+  // "1" anywhere in the world will be the same object in memory. Yay.
+  one = PyInt_FromLong(1);
+  
+  // DRY or you'll suffer
+  #define ENABLED(x) ( self->x != Py_None && (x == NULL || x == Py_True || x == one) )
+  
   PyObject *s = PyString_FromStringAndSize("", 0);
   
-  if(self->scheme != Py_None) {
+  if(ENABLED(scheme)) {
     PyString_Concat(&s, self->scheme);
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("://", 3));
   }
-  if( (self->user != Py_None) || (self->password != Py_None) ) {
-    if(self->user != Py_None) {
+  
+  if( ENABLED(user) || ENABLED(password) ) {
+    if(ENABLED(user)) {
       PyString_Concat(&s, self->user);
     }
-    if(self->password != Py_None) {
+    if(ENABLED(password)) {
       PyString_ConcatAndDel(&s, PyString_FromStringAndSize(":", 1));
       PyString_Concat(&s, self->password);
     }
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("@", 1));
   }
-  if(self->host != Py_None) {
+  
+  if(ENABLED(host))
     PyString_Concat(&s, self->host);
-  }
-  if( (self->port > 0) && (self->port != 80) ) { // should we really skip 80?
+  
+  // port is an int, so we can't use our pretty ENABLED macro here
+  if( (port == NULL || port == Py_True || port == one) && (self->port > 0) )
     PyString_ConcatAndDel(&s, PyString_FromFormat(":%d", self->port));
-  }
-  if(self->path != Py_None) {
+  
+  if(ENABLED(path))
     PyString_Concat(&s, self->path);
-  }
-  if(self->query != Py_None) {
+  
+  if(ENABLED(query)) {
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("?", 1));
     PyString_Concat(&s, self->query);
   }
-  if(self->fragment != Py_None) {
+  
+  if(ENABLED(fragment)) {
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("#", 1));
     PyString_Concat(&s, self->fragment);
   }
   
+  #undef ENABLED
+  
+  Py_DECREF(one);
+  return s;
+}
+
+
+// XXX: missing documentation
+PyObject *smisk_URL___str__(smisk_URL* self) {
+  PyObject *args, *kwargs, *s;
+  args = PyTuple_New(0);
+  kwargs = PyDict_New();
+  s = smisk_URL_to_s(self, args, kwargs);
+  Py_DECREF(args);
+  Py_DECREF(kwargs);
   return s;
 }
 
@@ -643,6 +721,9 @@ static PyMethodDef smisk_URL_methods[] = {
   {"escape", (PyCFunction)smisk_URL_escape,   METH_STATIC|METH_O, smisk_URL_escape_DOC},
   {"decode", (PyCFunction)smisk_URL_decode,   METH_STATIC|METH_O, smisk_URL_decode_DOC},
   {"unescape", (PyCFunction)smisk_URL_decode, METH_STATIC|METH_O, smisk_URL_unescape_DOC},
+  // Instance methods
+  {"to_s",    (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, smisk_URL_to_s_DOC},
+  {"to_str",  (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, smisk_URL_to_str_DOC}, // alias of to_s
   {NULL}
 };
 
@@ -677,7 +758,7 @@ PyTypeObject smisk_URLType = {
   0,                         /*tp_as_mapping*/
   0,                         /*tp_hash */
   0,                         /*tp_call*/
-  (reprfunc)smisk_URL___str__,         /*tp_str*/
+  (reprfunc)smisk_URL___str__,  /*tp_str*/
   0,                         /*tp_getattro*/
   0,                         /*tp_setattro*/
   0,                         /*tp_as_buffer*/
