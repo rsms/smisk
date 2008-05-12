@@ -519,7 +519,7 @@ PyObject *smisk_Application_application_did_stop(smisk_Application *self) {
 PyObject* smisk_Application_get_sessions(smisk_Application* self) {
   log_debug("ENTER smisk_Application_get_sessions");
   if(self->sessions == NULL) {
-    DUMP_REPR(self->sessions_class);
+    IFDEBUG(DUMP_REPR(self->sessions_class));
     if((self->sessions = PyObject_Call((PyObject*)self->sessions_class, NULL, NULL)) == NULL) {
       return NULL;
     }

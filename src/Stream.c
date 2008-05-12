@@ -27,6 +27,28 @@ THE SOFTWARE.
 #pragma mark Private C
 
 
+// DRY helper for methods accepting an optional Py_ssize_t arg
+// Return 1 (true) on success, 0 (false) on failure
+// If len is NULL, length will get the value of default
+static int _get_opt_ssize_arg(Py_ssize_t *length, PyObject *args, Py_ssize_t pos, Py_ssize_t def) {
+  PyObject *len;
+  if (args && PyTuple_GET_SIZE(args) > pos) {
+    if( (len = PyTuple_GET_ITEM(args, pos)) == NULL )
+      return 0;
+    
+    if(!PyInt_Check(len)) {
+      PyErr_Format(PyExc_TypeError, "first argument must be an integer");
+      return 0;
+    }
+    else {
+      *length = PyInt_AS_LONG(len);
+    }
+  }
+  else {
+    *length = SMISK_STREAM_READLINE_LENGTH;
+  }
+  return 1;
+}
 
 
 #pragma mark -
@@ -74,34 +96,9 @@ void smisk_Stream_dealloc(smisk_Stream* self) {
 #pragma mark Methods
 
 
-
-// DRY helper for methods accepting an optional Py_ssize_t arg
-// Return 1 (true) on success, 0 (false) on failure
-// If len is NULL, length will get the value of default
-static int _get_opt_ssize_arg(Py_ssize_t *length, PyObject *args, Py_ssize_t pos, Py_ssize_t def) {
-  PyObject *len;
-  if (args && PyTuple_GET_SIZE(args) > pos) {
-    if( (len = PyTuple_GET_ITEM(args, pos)) == NULL )
-      return 0;
-    
-    if(!PyInt_Check(len)) {
-      PyErr_Format(PyExc_TypeError, "first argument must be an integer");
-      return 0;
-    }
-    else {
-      *length = PyInt_AS_LONG(len);
-    }
-  }
-  else {
-    *length = SMISK_STREAM_READLINE_LENGTH;
-  }
-  return 1;
-}
-
-
-
 PyDoc_STRVAR(smisk_Stream_readline_DOC,
-  "Read one entire line from the file. "
+  "Read one entire line from the file.\n"
+  "\n"
   "A trailing newline character is kept in the string (but may be absent when "
   "a file ends with an incomplete line) If the size argument is present and "
   "non-negative, it is a maximum byte count (including the trailing newline) "
@@ -343,8 +340,7 @@ PyDoc_STRVAR(smisk_Stream_write_DOC,
   ":raises smisk.IOError:");
 PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args) {
   PyObject* str;
-  Py_ssize_t length;
-  int argc;
+  Py_ssize_t length, argc;
   
   argc = PyTuple_GET_SIZE(args);
   
@@ -369,10 +365,66 @@ PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args) {
   }
   
   // Write to stream
-  if( length && smisk_Stream_perform_write(self, str, length) == -1 )
+  if( length && smisk_Stream_perform_write(self, str, length) != 0 )
     return NULL;
   
   Py_RETURN_NONE;
+}
+
+
+// If first_write_cb is specified, it's called before first line is written.
+// If first_write_cb returns other than 0, an error has occured and this function returns NULL.
+PyObject* smisk_Stream_perform_writelines(smisk_Stream *self,
+                                          PyObject *sequence, 
+                                          smisk_Stream_perform_writelines_cb *first_write_cb,
+                                          void *cb_user_data)
+{
+  PyObject *iterator, *string;
+  Py_ssize_t string_length;
+  
+  if ((iterator = PyObject_GetIter(sequence)) == NULL)
+    return NULL;
+  
+  while ( (string = PyIter_Next(iterator)) ) {
+    if(!PyString_Check(string)) {
+      PyErr_Format(PyExc_TypeError, "iteration on sequence returned non-string object");
+      Py_DECREF(string);
+      break;
+    }
+    
+    // We save length, so we can skip calling smisk_Stream_perform_write at all if
+    // the string is empty.
+    string_length = PyString_GET_SIZE(string);
+    if( string_length ) {
+      if (first_write_cb && first_write_cb(cb_user_data) != 0)
+        return NULL;
+      if (smisk_Stream_perform_write(self, string, string_length) != 0)
+        return NULL;
+    }
+    
+    Py_DECREF(string);
+  }
+  
+  Py_DECREF(iterator);
+  
+  if (PyErr_Occurred())
+    return NULL;
+  
+  Py_RETURN_NONE;
+}
+
+
+PyDoc_STRVAR(smisk_Stream_writelines_DOC,
+  "Write a sequence of strings to the stream.\n"
+  "\n"
+  "The sequence can be any iterable object producing strings, typically a ''list'' of strings. There is no return value. (The name is intended to match readlines(); writelines() and alike does not add line separators.)\n"
+  "\n"
+  ":type   sequence: list\n"
+  ":param  sequence: A sequence of strings\n"
+  ":rtype: None\n"
+  ":raises IOError:");
+PyObject* smisk_Stream_writelines(smisk_Stream* self, PyObject* sequence) {
+  return smisk_Stream_perform_writelines(self, sequence, NULL, NULL);
 }
 
 
@@ -406,11 +458,11 @@ PyObject* smisk_Stream_close(smisk_Stream* self) {
 #pragma mark Iteration
 
 
-PyObject* smisk_Stream_iter(smisk_Stream *self) {
+PyObject* smisk_Stream___iter__(smisk_Stream *self) {
   return Py_INCREF(self), (PyObject*)self;
 }
 
-PyObject* smisk_Stream_iternext(smisk_Stream *self) {
+PyObject* smisk_Stream___iternext__(smisk_Stream *self) {
   // Conforms to PEP 234 <http://www.python.org/dev/peps/pep-0234/>
   PyObject* str = smisk_Stream_readline(self, NULL);
   if (PyString_GET_SIZE(str) == 0) {
@@ -434,6 +486,7 @@ static PyMethodDef smisk_Stream_methods[] = {
   {"readline", (PyCFunction)smisk_Stream_readline,      METH_VARARGS, smisk_Stream_readline_DOC},
   {"readlines", (PyCFunction)smisk_Stream_readlines,    METH_VARARGS, smisk_Stream_readlines_DOC},
   {"write", (PyCFunction)smisk_Stream_write,            METH_VARARGS, smisk_Stream_write_DOC},
+  {"writelines", (PyCFunction)smisk_Stream_writelines,  METH_O,       smisk_Stream_writelines_DOC},
   {"write_byte", (PyCFunction)smisk_Stream_write_byte,  METH_O,       smisk_Stream_write_byte_DOC},
   {NULL}
 };
@@ -469,10 +522,10 @@ PyTypeObject smisk_StreamType = {
   0,                                              /* tp_clear */
   0,                                              /* tp_richcompare */
   0,                                              /* tp_weaklistoffset */
-  (getiterfunc)smisk_Stream_iter,                  /* tp_iter */
-  (iternextfunc)smisk_Stream_iternext,             /* tp_iternext */
-  smisk_Stream_methods,                      /* tp_methods */
-  smisk_Stream_members,                      /* tp_members */
+  (getiterfunc)smisk_Stream___iter__,       /* tp_iter */
+  (iternextfunc)smisk_Stream___iternext__,  /* tp_iternext */
+  smisk_Stream_methods,                     /* tp_methods */
+  smisk_Stream_members,                     /* tp_members */
   0,                                              /* tp_getset */
   0,                                              /* tp_base */
   0,                                              /* tp_dict */

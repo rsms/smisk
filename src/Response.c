@@ -51,7 +51,8 @@ typedef struct FCGX_Stream_Data {
 } FCGX_Stream_Data;
 
 
-static int _begin_if_needed(smisk_Response *self) {
+static int _begin_if_needed(void *_self) {
+  smisk_Response *self = (smisk_Response *)_self;
   if ( (self->has_begun == Py_False) && (PyObject_CallMethod((PyObject *)self, "begin", NULL) == NULL) )
     return -1;
   return 0;
@@ -70,7 +71,7 @@ int smisk_Response_reset (smisk_Response *self) {
 
 // Called by Application.run() after a successful call to service()
 int smisk_Response_finish(smisk_Response *self) {
-  return _begin_if_needed(self);
+  return _begin_if_needed((void *)self);
 }
 
 
@@ -162,9 +163,8 @@ PyObject* smisk_Response_send_file(smisk_Response* self, PyObject* filename) {
   REPLACE_OBJ(self->has_begun, Py_True, PyObject);
   
   // Check for errors
-  if(rc == -1) {
+  if(rc == -1)
     return PyErr_SET_FROM_ERRNO;
-  }
   
   Py_RETURN_NONE;
 }
@@ -230,9 +230,8 @@ PyObject* smisk_Response_begin(smisk_Response* self) {
   REPLACE_OBJ(self->has_begun, Py_True, PyObject);
   
   // Errors?
-  if(rc == -1) {
+  if(rc == -1)
     return PyErr_SET_FROM_ERRNO;
-  }
   
   log_debug("EXIT smisk_Response_begin");
   Py_RETURN_NONE;
@@ -252,27 +251,55 @@ PyDoc_STRVAR(smisk_Response_write_DOC,
 PyObject* smisk_Response_write(smisk_Response* self, PyObject* str) {
   Py_ssize_t length;
   
-  if(!str || !PyString_Check(str)) {
+  if(!str || !PyString_Check(str))
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
-  }
   
   // TODO: make this method accept a length argument and use that instead if available
   length = PyString_GET_SIZE(str);
-  if(!length) {
-    // No data/Empty string
+  if(!length) // No data/Empty string
     Py_RETURN_NONE;
-  }
   
   // Send HTTP headers
-  if(_begin_if_needed(self) != 0)
+  if (_begin_if_needed((void *)self) != 0)
     return NULL;
   
   // Write data
-  if( smisk_Stream_perform_write(self->out, str, PyString_GET_SIZE(str)) == -1 ) {
+  if ( smisk_Stream_perform_write(self->out, str, PyString_GET_SIZE(str)) == -1 )
     return NULL;
-  }
   
   Py_RETURN_NONE;
+}
+
+
+PyDoc_STRVAR(smisk_Response_writelines_DOC,
+  "Write a sequence of strings to the stream.\n"
+  "\n"
+  "The sequence can be any iterable object producing strings, typically a ''list'' of strings. There is no return value. (The name is intended to match readlines(); writelines() and alike does not add line separators.)\n"
+  "\n"
+  "This method esentially calls self.begin() if not has_begun, then calls self.out.writelines(sequence). Which means the difference between calling self.writelines (this method) and self.out.writelines is that the latter will not call begin() if needed. You should always use this method instead of self.out.writelines, unless you are certain begin() has been called. (begin() is automatically called upon after a service() call if it has not been called, so you can not count on it not being called at all.)"
+  "\n"
+  ":type   sequence: list\n"
+  ":param  sequence: A sequence of strings\n"
+  ":rtype: None\n"
+  ":raises IOError:");
+PyObject* smisk_Response_writelines(smisk_Response* self, PyObject* sequence) {
+  return smisk_Stream_perform_writelines(self->out, sequence, &_begin_if_needed, (void *)self);
+}
+
+/* XXX: How do we add documentation for __call__?
+PyDoc_STRVAR(smisk_Response___call___DOC,
+  "Respond with a series of strings.\n"
+  "\n"
+  "This is equivalent of calling `writelines((arg1, arg2 ...))`, thus if `begin()` has not yet been called, it will be. Calling without any arguments has no effect. Note that the arguments must be strings, as this method actually uses writelines."
+  "\n"
+  ":type     string: string\n"
+  ":raises   `IOError`:\n"
+  ":rtype:   None");*/
+PyObject* smisk_Response___call__(smisk_Response* self, PyObject* args, PyObject* kwargs) {
+  // As we can get the length here, we return directly if nothing is to be written.
+  if(PyTuple_GET_SIZE(args) < 1)
+    Py_RETURN_NONE;
+  return smisk_Stream_perform_writelines(self->out, args, &_begin_if_needed, (void *)self);
 }
 
 
@@ -443,6 +470,10 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
 }
 
 
+#pragma mark -
+#pragma mark Get- and Setters
+
+
 PyObject* smisk_Response_get_headers(smisk_Response* self) {
   if(self->headers == NULL) {
     if( (self->headers = PyList_New(0)) == NULL ) {
@@ -465,16 +496,24 @@ static int smisk_Response_set_headers(smisk_Response* self, PyObject *headers) {
 #pragma mark Type construction
 
 PyDoc_STRVAR(smisk_Response_DOC,
-  "A HTTP response");
+  "A HTTP response\n"
+  "\n"
+  "Documentation for `__call__()`:\n"
+  "\n"
+  "Respond with a series of strings.\n"
+  "\n"
+  "This is equivalent of calling `writelines((arg1, arg2 ...))`, thus if `begin()` has not yet been called, it will be. Calling without any arguments has no effect. Note that the arguments must be strings, as this method actually uses writelines."
+  );
 
 // Methods
 static PyMethodDef smisk_Response_methods[] = {
-  {"send_file",  (PyCFunction)smisk_Response_send_file,  METH_O, smisk_Response_send_file_DOC},
-  {"begin",      (PyCFunction)smisk_Response_begin,      METH_NOARGS,  smisk_Response_begin_DOC},
-  {"write",      (PyCFunction)smisk_Response_write,      METH_O,       smisk_Response_write_DOC},
-  {"set_cookie", (PyCFunction)smisk_Response_set_cookie, METH_VARARGS|METH_KEYWORDS,
-                 smisk_Response_set_cookie_DOC},
-  {"find_header",(PyCFunction)smisk_Response_find_header,METH_O,       smisk_Response_find_header_DOC},
+  {"send_file",   (PyCFunction)smisk_Response_send_file,    METH_O,       smisk_Response_send_file_DOC},
+  {"begin",       (PyCFunction)smisk_Response_begin,        METH_NOARGS,  smisk_Response_begin_DOC},
+  {"write",       (PyCFunction)smisk_Response_write,        METH_O,       smisk_Response_write_DOC},
+  {"writelines",  (PyCFunction)smisk_Response_writelines,   METH_O,       smisk_Response_writelines_DOC},
+  {"set_cookie",  (PyCFunction)smisk_Response_set_cookie,   METH_VARARGS|METH_KEYWORDS,
+                  smisk_Response_set_cookie_DOC},
+  {"find_header", (PyCFunction)smisk_Response_find_header,  METH_O,       smisk_Response_find_header_DOC},
   {NULL}
 };
 
@@ -517,7 +556,7 @@ PyTypeObject smisk_ResponseType = {
   0,                         /*tp_as_sequence*/
   0,                         /*tp_as_mapping*/
   0,                         /*tp_hash */
-  0,                         /*tp_call*/
+  (ternaryfunc)smisk_Response___call__,                         /*tp_call*/
   0,                         /*tp_str*/
   0,                         /*tp_getattro*/
   0,                         /*tp_setattro*/
@@ -545,8 +584,7 @@ PyTypeObject smisk_ResponseType = {
 };
 
 int smisk_Response_register_types(PyObject *module) {
-  if(PyType_Ready(&smisk_ResponseType) == 0) {
+  if(PyType_Ready(&smisk_ResponseType) == 0)
     return PyModule_AddObject(module, "Response", (PyObject *)&smisk_ResponseType);
-  }
   return -1;
 }

@@ -100,7 +100,15 @@ THE SOFTWARE.
   #define assert_refcount(o, count_test) 
   #define IFDEBUG(x) 
   #define DUMP_REFCOUNT(o) 
-  #define DUMP_REPR(o) 
+  #define DUMP_REPR(o) \
+    do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
+      if(repr) {\
+        log_error("repr(%s) = %s", #o, PyString_AS_STRING(repr));\
+        Py_DECREF(repr);\
+      } else {\
+        log_error("repr(%s) = <NULL>", #o);\
+      }\
+    } while(0);
 #endif
 
 

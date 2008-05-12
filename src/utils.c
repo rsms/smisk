@@ -99,11 +99,12 @@ int PyDict_assoc_val_with_key(PyObject *dict, PyObject *val, PyObject* key) {
       new_val = PyList_New(2);
       PyList_SET_ITEM(new_val, 0, existing_val);
       PyList_SET_ITEM(new_val, 1, val);
-      Py_INCREF(existing_val);
-      Py_INCREF(val);
-      if(PyDict_SetItem(dict, key, new_val) != 0) {
+      Py_INCREF(existing_val); // Since we want to keep it and PyList_SET_ITEM did not INCREF
+      Py_INCREF(val); // Since we want to keep it and PyList_SET_ITEM did not INCREF
+      
+      if(PyDict_SetItem(dict, key, new_val) != 0)
         return -1;
-      }
+      
       assert_refcount(new_val, == 2);
       Py_DECREF(new_val); // we don't own it anymore
     }

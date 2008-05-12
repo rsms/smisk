@@ -14,7 +14,7 @@ import os, sys, time, platform, unittest
 
 # This is where the version is defined. The dist scripts
 # may override this by exporting SMISK_BUILD_VERSION.
-version = os.environ.get('SMISK_BUILD_VERSION', '1.0.0')
+version = os.environ.get('SMISK_BUILD_VERSION', '1.0.1')
 
 sources = ['src/__init__.c',
            

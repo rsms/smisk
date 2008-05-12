@@ -784,7 +784,7 @@ static PyObject* smisk_Request_get_session(smisk_Request* self) {
 
 static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
   log_debug("ENTER smisk_Request_set_session val=%p", val);
-  DUMP_REPR(val);
+  IFDEBUG(DUMP_REPR(val));
   ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
     return -1;
   );
@@ -814,7 +814,17 @@ static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
 
 
 #pragma mark -
+#pragma mark Iteration
+
+
+PyObject* smisk_Request___iter__(smisk_Request *self) {
+  return Py_INCREF(self->input), (PyObject*)self->input;
+}
+
+
+#pragma mark -
 #pragma mark Type construction
+
 
 PyDoc_STRVAR(smisk_Request_DOC,
   "A HTTP request");
@@ -933,7 +943,7 @@ PyTypeObject smisk_RequestType = {
   0,                         /* tp_clear */
   0,                         /* tp_richcompare */
   0,                         /* tp_weaklistoffset */
-  0,                         /* tp_iter */
+  (getiterfunc)smisk_Request___iter__,  /* tp_iter -- Returns self->input which in turn has tp_iternext over readline */
   0,                         /* tp_iternext */
   smisk_Request_methods,      /* tp_methods */
   smisk_Request_members,      /* tp_members */
