@@ -1,12 +1,8 @@
 # encoding: utf-8
-"""
-Minimal FastCGI-based web application framework.
+"Minimal FastCGI-based web application framework"
 
-`<http://trac.hunch.se/smisk>`__
+from smisk.release import version   as __version__, author  as __author__, \
+                          email     as __email__,   license as __license__, \
+                          copyright as __copyright__
 
-:Author: Rasmus Andersson http://hunch.se/
-"""
-import smisk.core
-__version__ = smisk.core.__version__
-__build__ = smisk.core.__build__
 from smisk.core import *

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007-2008, Rasmus Andersson
+Copyright (c) 2007-2008 Rasmus Andersson and contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -114,7 +114,7 @@ static PyMethodDef smisk_SessionStore_methods[] = {
   {"write", (PyCFunction)smisk_SessionStore_write, METH_VARARGS, smisk_SessionStore_write_DOC},
   {"refresh", (PyCFunction)smisk_SessionStore_refresh, METH_O, smisk_SessionStore_refresh_DOC},
   {"destroy", (PyCFunction)smisk_SessionStore_destroy, METH_O, smisk_SessionStore_destroy_DOC},
-  {NULL}
+  {NULL, NULL, 0, NULL}
 };
 
 // Class members
@@ -127,7 +127,7 @@ static struct PyMemberDef smisk_SessionStore_members[] = {
     ":type: string\n\n"
     "Name used to identify the session id cookie. Defaults to \"SID\""},
   
-  {NULL}
+  {NULL, 0, NULL, 0, NULL}
 };
 
 // Type definition

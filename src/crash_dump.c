@@ -192,7 +192,7 @@ static void smisk_crash_sighandler(int signum, siginfo_t* info, void*ptr) {
   fprintf(out, "Process:            %d\n", getpid());
   fprintf(out, "Working directory:  %s\n", cwd ? cwd : "?");
   fprintf(out, "Python:             %s %s\n", Py_GetProgramFullPath(), Py_GetVersion());
-  fprintf(out, "Smisk:              %s (%s %s %s)\n", SMISK_VERSION, SMISK_BUILD_ID, __DATE__, __TIME__);
+  fprintf(out, "Smisk:              %s (%s)\n", SMISK_VERSION, SMISK_BUILD_ID);
   #if HAVE_SYS_UTSNAME_H
     struct utsname un;
     if(uname(&un) == 0) {

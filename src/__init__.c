@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007-2008, Rasmus Andersson
+Copyright (c) 2007-2008 Rasmus Andersson and contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#include "version.h"
+#include <Python.h>
 #include "__init__.h"
 #include "Application.h"
 #include "Request.h"
@@ -192,7 +192,6 @@ PyMODINIT_FUNC initcore(void) {
   kString_https = PyString_FromString("https");
   
   // Constants: Special variables
-  if(PyModule_AddStringConstant(module, "__version__", SMISK_VERSION) != 0) return;
   if(PyModule_AddStringConstant(module, "__build__", SMISK_BUILD_ID) != 0) return;
   if(PyModule_AddStringConstant(module, "__doc__", smisk_module_DOC) != 0) return;
   

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007-2008, Rasmus Andersson
+Copyright (c) 2007-2008 Rasmus Andersson and contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -438,7 +438,7 @@ static PyMethodDef smisk_FileSessionStore_methods[] = {
   {"destroy", (PyCFunction)smisk_FileSessionStore_destroy, METH_O, smisk_FileSessionStore_destroy_DOC},
   
   {"path", (PyCFunction)smisk_FileSessionStore_path, METH_O, smisk_FileSessionStore_path_DOC},
-  {NULL}
+  {NULL, NULL, 0, NULL}
 };
 
 // Class members
@@ -449,7 +449,7 @@ static struct PyMemberDef smisk_FileSessionStore_members[] = {
     "\n"
     "Defaults to ``tempfile.tempdir + \"smisk-sess.\"`` - for example: ``/tmp/smisk-sess.``"},
   
-  {NULL}
+  {NULL, 0, NULL, 0, NULL}
 };
 
 // Type definition
