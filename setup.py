@@ -272,33 +272,6 @@ class config(_config):
       raise
   
 
-class test(Command):
-  description = 'Builds the documentation'
-  user_options = []
-  def initialize_options(self): pass
-  def finalize_options(self): pass
-  def run(self):
-    try:
-      import smisk.test
-    except ImportError:
-      sys.stderr.write("smisk_test: smisk.test module not found -- not running tests.\n" % sys.argv[0])
-      return
-    
-    try:
-      from cStringIO import StringIO
-    except:
-      from StringIO import StringIO
-    
-    global test_result
-    st = StringIO()
-    runner = unittest.TextTestRunner(stream=st, verbosity=0)
-    test_result = runner.run(smisk.test.suite())
-    if test_result.errors or test_result.failures:
-      sys.stderr.write(st.getvalue())
-    else:
-      print 'All %d tests passed' % test_result.testsRun
-  
-
 class apidocs(Command):
   description = 'Builds the documentation'
   user_options = []
