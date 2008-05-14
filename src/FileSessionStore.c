@@ -57,7 +57,7 @@ static time_t _is_garbage(smisk_FileSessionStore *self, const char *fn, int fd) 
 
 
 static int _gc_run(smisk_FileSessionStore *self) {
-  log_debug("ENTER _gc_run");
+  log_trace("ENTER");
   // XXX Some non-windows compliant code here.
   //     ...but who cares about Windows anyway?
   DIR *d;
@@ -111,7 +111,7 @@ static int _gc_run(smisk_FileSessionStore *self) {
 
 
 static void _gc_thread(void *_self) {
-  log_debug("_gc_thread started on thread #%ld", PyThread_get_thread_ident());
+  log_trace("ENTER started on thread #%ld", PyThread_get_thread_ident());
   unsigned int sleeptime;
   int r;
   
@@ -152,6 +152,7 @@ static PyObject *tempfile_mod = NULL;
 
 
 int smisk_FileSessionStore_init(smisk_FileSessionStore *self, PyObject* args, PyObject* kwargs) {
+  log_trace("ENTER");
   PyObject *s;
   
   // Load required modules
@@ -195,7 +196,7 @@ int smisk_FileSessionStore_init(smisk_FileSessionStore *self, PyObject* args, Py
 
 
 void smisk_FileSessionStore_dealloc(smisk_FileSessionStore *self) {
-  log_debug("ENTER smisk_FileSessionStore_dealloc");
+  log_trace("ENTER");
   
   // Stop GC thread
   if(self->gc_tid != -1) {
@@ -221,6 +222,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_path_DOC,
   ":type   session_id: string\n"
   ":rtype: string");
 static PyObject *smisk_FileSessionStore_path(smisk_FileSessionStore *self, PyObject* session_id) {
+  log_trace("ENTER");
   PyObject *fn;
   fn = PyString_FromStringAndSize(PyString_AS_STRING(self->file_prefix), PyString_GET_SIZE(self->file_prefix));
   if(fn == NULL) {
@@ -237,7 +239,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_read_DOC,
   ":raises smisk.core.InvalidSessionError: if there is no actual session associated with ``session_id``.\n"
   ":rtype: object");
 PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* session_id) {
-  log_debug("ENTER smisk_FileSessionStore_read");
+  log_trace("ENTER");
   PyObject *fn, *data = NULL;
   char *pathname;
   FILE *fp = NULL;
@@ -308,7 +310,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_write_DOC,
   ":type   data:       object\n"
   ":rtype: None");
 PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore *self, PyObject* args) {
-  log_debug("ENTER smisk_FileSessionStore_write");
+  log_trace("ENTER");
   PyObject *session_id, *data, *fn;
   char *pathname;
   FILE *fp;
@@ -373,7 +375,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_refresh_DOC,
   ":type   session_id: string\n"
   ":rtype: None");
 PyObject* smisk_FileSessionStore_refresh(smisk_FileSessionStore *self, PyObject* session_id) {
-  log_debug("ENTER smisk_FileSessionStore_refresh %s", PyString_AS_STRING(session_id));
+  log_trace("ENTER %s", PyString_AS_STRING(session_id));
   PyObject *fn;
   
   if( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL ) {
@@ -403,7 +405,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_destroy_DOC,
   ":type   session_id: string\n"
   ":rtype: None");
 PyObject* smisk_FileSessionStore_destroy(smisk_FileSessionStore *self, PyObject* session_id) {
-  log_debug("ENTER smisk_FileSessionStore_destroy");
+  log_trace("ENTER");
   PyObject *fn;
   char *pathname;
   
@@ -438,7 +440,7 @@ static PyMethodDef smisk_FileSessionStore_methods[] = {
   {"destroy", (PyCFunction)smisk_FileSessionStore_destroy, METH_O, smisk_FileSessionStore_destroy_DOC},
   
   {"path", (PyCFunction)smisk_FileSessionStore_path, METH_O, smisk_FileSessionStore_path_DOC},
-  {NULL, NULL, 0, NULL}
+  {NULL}
 };
 
 // Class members
@@ -449,7 +451,7 @@ static struct PyMemberDef smisk_FileSessionStore_members[] = {
     "\n"
     "Defaults to ``tempfile.tempdir + \"smisk-sess.\"`` - for example: ``/tmp/smisk-sess.``"},
   
-  {NULL, 0, NULL, 0, NULL}
+  {NULL}
 };
 
 // Type definition
@@ -497,6 +499,7 @@ PyTypeObject smisk_FileSessionStoreType = {
 };
 
 int smisk_FileSessionStore_register_types(PyObject *module) {
+  log_trace("ENTER");
   smisk_FileSessionStoreType.tp_base = &smisk_SessionStoreType;
   if(PyType_Ready(&smisk_FileSessionStoreType) == 0) {
     return PyModule_AddObject(module, "FileSessionStore", (PyObject *)&smisk_FileSessionStoreType);

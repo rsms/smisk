@@ -62,6 +62,7 @@ static int _begin_if_needed(void *_self) {
 // Called by Application.run just after a successful accept() 
 // and just before calling service().
 int smisk_Response_reset (smisk_Response *self) {
+  log_trace("ENTER");
   REPLACE_OBJ(self->has_begun, Py_False, PyObject);
   Py_XDECREF(self->headers);
   self->headers = NULL;
@@ -71,6 +72,7 @@ int smisk_Response_reset (smisk_Response *self) {
 
 // Called by Application.run() after a successful call to service()
 int smisk_Response_finish(smisk_Response *self) {
+  log_trace("ENTER");
   return _begin_if_needed((void *)self);
 }
 
@@ -80,7 +82,7 @@ int smisk_Response_finish(smisk_Response *self) {
 
 
 PyObject * smisk_Response_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-  log_debug("ENTER smisk_Response_new");
+  log_trace("ENTER");
   smisk_Response *self;
   
   if ((self = (smisk_Response *)type->tp_alloc(type, 0)) == NULL)
@@ -102,11 +104,12 @@ PyObject * smisk_Response_new(PyTypeObject *type, PyObject *args, PyObject *kwds
 }
 
 int smisk_Response_init(smisk_Response* self, PyObject* args, PyObject* kwargs) {
+  log_trace("ENTER");
   return 0;
 }
 
 void smisk_Response_dealloc(smisk_Response* self) {
-  log_debug("ENTER smisk_Response_dealloc");
+  log_trace("ENTER");
   
   smisk_Response_reset(self);
   
@@ -134,6 +137,7 @@ PyDoc_STRVAR(smisk_Response_send_file_DOC,
   ":raises `IOError`:\n"
   ":rtype: None");
 PyObject* smisk_Response_send_file(smisk_Response* self, PyObject* filename) {
+  log_trace("ENTER");
   int rc;
   
   if(!filename || !PyString_Check(filename)) {
@@ -177,7 +181,7 @@ PyDoc_STRVAR(smisk_Response_begin_DOC,
   "\n"
   ":rtype: None");
 PyObject* smisk_Response_begin(smisk_Response* self) {
-  log_debug("ENTER smisk_Response_begin");
+  log_trace("ENTER");
   int rc;
   Py_ssize_t num_headers, i;
   
@@ -249,6 +253,7 @@ PyDoc_STRVAR(smisk_Response_write_DOC,
   ":raises   `IOError`:\n"
   ":rtype:   None");
 PyObject* smisk_Response_write(smisk_Response* self, PyObject* str) {
+  log_trace("ENTER");
   Py_ssize_t length;
   
   if(!str || !PyString_Check(str))
@@ -283,6 +288,7 @@ PyDoc_STRVAR(smisk_Response_writelines_DOC,
   ":rtype: None\n"
   ":raises IOError:");
 PyObject* smisk_Response_writelines(smisk_Response* self, PyObject* sequence) {
+  log_trace("ENTER");
   return smisk_Stream_perform_writelines(self->out, sequence, &_begin_if_needed, (void *)self);
 }
 
@@ -296,6 +302,7 @@ PyDoc_STRVAR(smisk_Response___call___DOC,
   ":raises   `IOError`:\n"
   ":rtype:   None");*/
 PyObject* smisk_Response___call__(smisk_Response* self, PyObject* args, PyObject* kwargs) {
+  log_trace("ENTER");
   // As we can get the length here, we return directly if nothing is to be written.
   if(PyTuple_GET_SIZE(args) < 1)
     Py_RETURN_NONE;
@@ -309,6 +316,7 @@ PyDoc_STRVAR(smisk_Response_find_header_DOC,
   ":returns: Index in 'headers' or -1 if not found.\n"
   ":rtype:   int");
 PyObject* smisk_Response_find_header(smisk_Response* self, PyObject *prefix) {
+  log_trace("ENTER");
   if(self->headers == NULL)
     return PyInt_FromLong(-1L);
   return smisk_find_string_by_prefix_in_dict(self->headers, prefix);
@@ -382,6 +390,7 @@ PyDoc_STRVAR(smisk_Response_set_cookie_DOC,
   "\n"
   ":rtype:         None");
 PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObject *kwargs) {
+  log_trace("ENTER");
   static char *kwlist[] = {"name", "value", /* required */
                            "comment", "domain", "path",
                            "secure", "version", "max_age", "http_only", NULL};
@@ -475,6 +484,7 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
 
 
 PyObject* smisk_Response_get_headers(smisk_Response* self) {
+  log_trace("ENTER");
   if(self->headers == NULL) {
     if( (self->headers = PyList_New(0)) == NULL ) {
       return NULL;
@@ -487,6 +497,7 @@ PyObject* smisk_Response_get_headers(smisk_Response* self) {
 
 
 static int smisk_Response_set_headers(smisk_Response* self, PyObject *headers) {
+  log_trace("ENTER");
   REPLACE_OBJ(self->headers, headers, PyObject);
   return self->headers ? 0 : -1;
 }
@@ -584,6 +595,7 @@ PyTypeObject smisk_ResponseType = {
 };
 
 int smisk_Response_register_types(PyObject *module) {
+  log_trace("ENTER");
   if(PyType_Ready(&smisk_ResponseType) == 0)
     return PyModule_AddObject(module, "Response", (PyObject *)&smisk_ResponseType);
   return -1;

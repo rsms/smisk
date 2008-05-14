@@ -37,6 +37,7 @@ THE SOFTWARE.
 smisk_Application *smisk_current_app = NULL;
 
 int smisk_require_app (void) {
+  log_trace("ENTER");
   if(!smisk_current_app || (smisk_current_app == (smisk_Application *)Py_None)) {
     PyErr_SetString(PyExc_EnvironmentError, "Application not initialized");
     return -1;
@@ -49,7 +50,7 @@ int smisk_require_app (void) {
 #pragma mark Internal
 
 static int _setup_transaction_context(smisk_Application *self) {
-  log_debug("ENTER _setup_transaction_context");
+  log_trace("ENTER");
   PyObject *request, *response;
   
   // Request
@@ -77,6 +78,7 @@ static int _setup_transaction_context(smisk_Application *self) {
 int smisk_Application_trapped_signal = 0;
 
 static void smisk_Application_sighandler_close_fcgi(int sig) {
+  log_trace("ENTER");
   log_debug("Caught signal %d", sig);
   smisk_Application_trapped_signal = sig;
   FCGX_ShutdownPending();
@@ -87,7 +89,7 @@ static void smisk_Application_sighandler_close_fcgi(int sig) {
 #pragma mark Initialization & deallocation
 
 PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-  log_debug("ENTER smisk_Application_new");
+  log_trace("ENTER");
   smisk_Application *self;
   
   self = (smisk_Application *)type->tp_alloc(type, 0);
@@ -121,7 +123,7 @@ int smisk_Application_init(smisk_Application *self, PyObject* args, PyObject* kw
 
 
 void smisk_Application_dealloc(smisk_Application *self) {
-  log_debug("ENTER smisk_Application_dealloc");
+  log_trace("ENTER");
   if(smisk_current_app == self) {
     REPLACE_OBJ(smisk_current_app, Py_None, smisk_Application);
   }
@@ -143,7 +145,7 @@ PyDoc_STRVAR(smisk_Application_run_DOC,
   "\n"
   ":rtype: None");
 PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
-  log_debug("ENTER smisk_Application_run");
+  log_trace("ENTER");
   
   PyOS_sighandler_t orig_int_handler, orig_hup_handler, orig_term_handler;
   PyObject *ret = Py_None;
@@ -291,7 +293,7 @@ PyDoc_STRVAR(smisk_Application_service_DOC,
   "\n"
   ":rtype: None");
 PyObject* smisk_Application_service(smisk_Application *self, PyObject* args) {
-  log_debug("ENTER smisk_Application_service");
+  log_trace("ENTER");
   
   FCGX_FPrintF(self->response->out->stream,
      "Content-type: text/html\r\n"
@@ -342,7 +344,7 @@ PyDoc_STRVAR(smisk_Application_error_DOC,
   ":type  tb:  object\n"
   ":rtype: None");
 PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
-  log_debug("ENTER smisk_Application_error");
+  log_trace("ENTER");
   
   int rc, free_hostname = 0;
   PyObject *msg, *exc_str, *type, *value, *tb;
@@ -472,6 +474,7 @@ PyDoc_STRVAR(smisk_Application_exit_DOC,
   "\n"
   ":rtype: None");
 PyObject *smisk_Application_exit(smisk_Application *self) {
+  log_trace("ENTER");
   raise(2); // SIG_INT
   Py_RETURN_NONE;
 }
@@ -482,6 +485,7 @@ PyDoc_STRVAR(smisk_Application_current_DOC,
   "\n"
   ":rtype: Application");
 PyObject *smisk_Application_current(void) {
+  log_trace("ENTER");
   Py_INCREF(smisk_current_app);
   return (PyObject *)smisk_current_app;
 }
@@ -498,6 +502,7 @@ PyDoc_STRVAR(smisk_Application_application_will_start_DOC,
   "\n"
   ":rtype: None");
 PyObject *smisk_Application_application_will_start(smisk_Application *self) {
+  log_trace("ENTER");
   Py_RETURN_NONE;
 }
 
@@ -509,6 +514,7 @@ PyDoc_STRVAR(smisk_Application_application_did_stop_DOC,
   "\n"
   ":rtype: None");
 PyObject *smisk_Application_application_did_stop(smisk_Application *self) {
+  log_trace("ENTER");
   Py_RETURN_NONE;
 }
 
@@ -517,7 +523,7 @@ PyObject *smisk_Application_application_did_stop(smisk_Application *self) {
 #pragma mark Properties
 
 PyObject* smisk_Application_get_sessions(smisk_Application* self) {
-  log_debug("ENTER smisk_Application_get_sessions");
+  log_trace("ENTER");
   if(self->sessions == NULL) {
     IFDEBUG(DUMP_REPR(self->sessions_class));
     if((self->sessions = PyObject_Call((PyObject*)self->sessions_class, NULL, NULL)) == NULL) {
@@ -532,7 +538,7 @@ PyObject* smisk_Application_get_sessions(smisk_Application* self) {
 
 
 static int smisk_Application_set_sessions(smisk_Application* self, PyObject *sessions) {
-  log_debug("ENTER smisk_Application_set_sessions  sessions=%p", sessions);
+  log_trace("ENTER  sessions=%p", sessions);
   REPLACE_OBJ(self->sessions, sessions, PyObject);
   return self->sessions ? 0 : -1;
 }
@@ -688,6 +694,7 @@ PyTypeObject smisk_ApplicationType = {
 };
 
 int smisk_Application_register_types(PyObject *module) {
+  log_trace("ENTER");
   if(smisk_current_app == NULL) {
     smisk_current_app = (smisk_Application *)Py_None;
     Py_INCREF(Py_None);

@@ -432,7 +432,7 @@ static int _parse(smisk_URL* self, const char *s, size_t len) {
 
 
 PyObject *smisk_URL_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-  log_debug("ENTER smisk_URL_new");
+  log_trace("ENTER");
   smisk_URL *self;
   
   self = (smisk_URL *)type->tp_alloc(type, 0);
@@ -452,7 +452,7 @@ PyObject *smisk_URL_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 
 
 int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs) {
-  log_debug("ENTER smisk_URL_init");
+  log_trace("ENTER");
   PyObject* str;
   
   // No arguments? (new empty url)
@@ -479,7 +479,8 @@ int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs) {
 
 
 void smisk_URL_dealloc(smisk_URL* self) {
-  log_debug("ENTER smisk_URL_dealloc");
+  log_trace("ENTER");
+  
   Py_DECREF(self->scheme);
   Py_DECREF(self->user);
   Py_DECREF(self->password);
@@ -517,6 +518,7 @@ PyDoc_STRVAR(smisk_URL_encode_DOC,
   ":rtype: string\n"
   ":raises TypeError: if str is not a string");
 PyObject* smisk_URL_encode(PyObject* self, PyObject* str) {
+  log_trace("ENTER");
   return encode_or_escape(self, str, urlchr_reserved|urlchr_unsafe);
 }
 
@@ -533,6 +535,7 @@ PyDoc_STRVAR(smisk_URL_escape_DOC,
   ":rtype: string\n"
   ":raises TypeError: if str is not a string");
 PyObject* smisk_URL_escape(PyObject* self, PyObject* str) {
+  log_trace("ENTER");
   return encode_or_escape(self, str, urlchr_unsafe);
 }
 
@@ -556,6 +559,7 @@ PyDoc_STRVAR(smisk_URL_decode_DOC,
   ":rtype: string\n"
   ":raises TypeError: if str is not a string");
 PyObject* smisk_URL_decode(PyObject* self, PyObject* str) {
+  log_trace("ENTER");
   char *orgstr;
   Py_ssize_t orglen, newlen;
   register PyStringObject *newstr_py;
@@ -636,6 +640,7 @@ PyDoc_STRVAR(smisk_URL_to_s_DOC,
   ":type   fragment:  bool\n"
   ":rtype: string");
 PyObject *smisk_URL_to_s(smisk_URL* self, PyObject* args, PyObject *kwargs) {
+  log_trace("ENTER");
   PyObject *scheme, *user, *password, *host, *port, *path, *query, *fragment;
   PyObject *one;
   static char *kwlist[] = {"scheme", "user", "password", "host", "port",
@@ -699,6 +704,7 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject* args, PyObject *kwargs) {
 
 // XXX: missing documentation
 PyObject *smisk_URL___str__(smisk_URL* self) {
+  log_trace("ENTER");
   PyObject *args, *kwargs, *s;
   args = PyTuple_New(0);
   kwargs = PyDict_New();
@@ -785,8 +791,8 @@ PyTypeObject smisk_URLType = {
 };
 
 int smisk_URL_register_types(PyObject *module) {
-  if(PyType_Ready(&smisk_URLType) == 0) {
+  log_trace("ENTER");
+  if(PyType_Ready(&smisk_URLType) == 0)
     return PyModule_AddObject(module, "URL", (PyObject *)&smisk_URLType);
-  }
   return -1;
 }

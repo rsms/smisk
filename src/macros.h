@@ -80,11 +80,12 @@ THE SOFTWARE.
 
 // Log to stderr, but only in debug builds
 #if SMISK_DEBUG
+  #define SMISK_TRACE 1
   #define log_debug(fmt, ...) fprintf(stderr, "DEBUG %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
   #define IFDEBUG(x) x
   #define assert_refcount(o, count_test) \
-    if(!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test); }\
-    assert((o)->ob_refcnt count_test)
+    do { if(!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld, %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test); }\
+      assert((o)->ob_refcnt count_test); } while(0);
   #define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
   #define DUMP_REPR(o) \
     do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
@@ -109,6 +110,14 @@ THE SOFTWARE.
         log_error("repr(%s) = <NULL>", #o);\
       }\
     } while(0);
+#endif
+
+#if SMISK_TRACE
+  #define log_trace(fmt, ...) fprintf(stderr, "TRACE %s:%d in %s " fmt "\n", __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+  #define IFTRACE(x) x
+#else
+  #define log_trace(fmt, ...) ((void)0)
+  #define IFTRACE(x)
 #endif
 
 

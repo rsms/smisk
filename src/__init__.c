@@ -19,7 +19,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#include <Python.h>
 #include "__init__.h"
 #include "Application.h"
 #include "Request.h"
@@ -67,6 +66,7 @@ PyDoc_STRVAR(smisk_bind_DOC,
   ":raises smisk.IOError: On failure.\n"
   ":rtype: None");
 PyObject* smisk_bind(PyObject *self, PyObject *args) {
+  log_trace("ENTER");
   //int FCGX_OpenSocket(const char *path, int backlog)
   int fd, backlog;
   PyObject* path;
@@ -123,6 +123,7 @@ PyDoc_STRVAR(smisk_listening_DOC,
   ":raises smisk.IOError: On failure.\n"
   ":rtype: string");
 PyObject* smisk_listening(PyObject *self, PyObject *args) {
+  log_trace("ENTER");
   PyObject *s = Py_None;
   socklen_t addrlen;
   struct sockaddr *addr;
@@ -170,6 +171,7 @@ PyDoc_STRVAR(smisk_module_DOC,
   "Smisk core library");
 
 PyMODINIT_FUNC initcore(void) {
+  log_trace("ENTER");
   PyObject* module;
   module = Py_InitModule("smisk.core", module_methods);
   
