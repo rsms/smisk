@@ -1,16 +1,54 @@
+Smisk
++++++
+
+.. contents ::
+
+Summary
+=======
+
 Smisk is a simple, high-performance and scalable web service framework
 written in C, but controlled by Python.
 
-It is designed to widen the common bottle necks common in heavy-duty web
-services.
+It is designed to widen the common bottle necks in heavy-duty web services.
 
-The latest version is available from the Smisk website:
-http://trac.hunch.se/smisk/wiki/Download
+More information at the `Smisk website <http://trac.hunch.se/smisk>`_
 
 
-Authors:
-  Rasmus Andersson <rasmus flajm.se>
-  Eric Moritz <eric themoritzfamily.com>
+Getting Started
+===============
 
-License:
-  See the LICENSE document
+* Install with ``easy_install smisk``.
+* Download from the `Smisk website <http://trac.hunch.se/smisk>`_
+* Download from the `Smisk PyPI page <http://pypi.python.org/pypi/smisk>`_
+
+
+Examples
+========
+
+This is a minimal Smisk service::
+
+  from smisk import Application
+  class MyApp(Application):
+    def service(self):
+      self.response.headers = ['Content-Type: text/plain']
+      self.response("Hello World!")
+
+  MyApp().run()
+
+And here we have a WSGI compatible application::
+
+  import smisk, sys
+  from smisk.wsgi import Gateway
+  def hello_app(env, start_response):
+    start_response("200 OK", [('Content-Type', 'text/plain')])
+    return ["Hello, World!"]
+
+  Gateway(hello_app).run()
+
+More examples `available here... <http://trac.hunch.se/smisk/browser/examples>`_
+
+
+Authors
+=======
+* `Rasmus Andersson <http://hunch.se/>`_ rasmus•flajm.se
+* `Eric Moritz <http://themoritzfamily.com/>`_ eric•themoritzfamily.com
