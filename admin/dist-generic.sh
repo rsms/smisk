@@ -182,8 +182,8 @@ fi
 
 
 # Include shared stuff
-cd `dirname $0`
-. dist.sh || exit 1
+cd "$(dirname "$0")/.."
+. admin/dist-base.sh || exit 1
 
 
 # Package id and version

@@ -36,8 +36,8 @@ fi
 
 
 # Properties
-cd `dirname $0`
-. dist.sh
+cd "$(dirname "$0")/.."
+. admin/dist-base.sh || exit 1
 
 DEB_PACKAGE_NAME="python-$PACKAGE"
 CURRENT_VER=$VER  # just gives this a better name
