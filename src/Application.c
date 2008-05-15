@@ -117,7 +117,7 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
 }
 
 
-int smisk_Application_init(smisk_Application *self, PyObject* args, PyObject* kwargs) {
+int smisk_Application_init(smisk_Application *self, PyObject *args, PyObject *kwargs) {
   return 0;
 }
 
@@ -144,14 +144,14 @@ PyDoc_STRVAR(smisk_Application_run_DOC,
   "Run application.\n"
   "\n"
   ":rtype: None");
-PyObject* smisk_Application_run(smisk_Application *self, PyObject* args) {
+PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
   log_trace("ENTER");
   
   PyOS_sighandler_t orig_int_handler, orig_hup_handler, orig_term_handler;
   PyObject *ret = Py_None;
   
   // Set program name to argv[0]
-  PyObject* argv = PySys_GetObject("argv");
+  PyObject *argv = PySys_GetObject("argv");
   if(PyList_GET_SIZE(argv)) {
     Py_SetProgramName(basename(PyString_AsString(PyList_GetItem(argv, 0))));
   }
@@ -292,7 +292,7 @@ PyDoc_STRVAR(smisk_Application_service_DOC,
   "Service a request.\n"
   "\n"
   ":rtype: None");
-PyObject* smisk_Application_service(smisk_Application *self, PyObject* args) {
+PyObject *smisk_Application_service(smisk_Application *self, PyObject *args) {
   log_trace("ENTER");
   
   FCGX_FPrintF(self->response->out->stream,
@@ -343,7 +343,7 @@ PyDoc_STRVAR(smisk_Application_error_DOC,
   ":param tb:  Traceback\n"
   ":type  tb:  object\n"
   ":rtype: None");
-PyObject* smisk_Application_error(smisk_Application *self, PyObject* args) {
+PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
   log_trace("ENTER");
   
   int rc, free_hostname = 0;
@@ -522,7 +522,7 @@ PyObject *smisk_Application_application_did_stop(smisk_Application *self) {
 #pragma mark -
 #pragma mark Properties
 
-PyObject* smisk_Application_get_sessions(smisk_Application* self) {
+PyObject *smisk_Application_get_sessions(smisk_Application* self) {
   log_trace("ENTER");
   if(self->sessions == NULL) {
     IFDEBUG(DUMP_REPR(self->sessions_class));

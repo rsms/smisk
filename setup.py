@@ -220,8 +220,9 @@ class config(_config):
   
   def check_header(self, *args, **kwargs):
     self._silence()
-    _config.check_header(self, *args, **kwargs)
+    r = _config.check_header(self, *args, **kwargs)
     self._unsilence()
+    return r
   
   def _machine(self):
     # Alignment
@@ -252,13 +253,11 @@ class config(_config):
     defname_re = re.compile('[^a-zA-Z_]')
     for fn in HAVE_HEADERS:
       log.info('checking for header %s', fn)
-      sys.stdout.flush()
       if self.check_header(header=fn):
-        log.debug("found")
+        log.debug("found %s", fn)
         self.macros['HAVE_%s' % defname_re.sub('_', fn).upper()] = 1
       else:
         log.debug("missing")
-      sys.stdout.flush()
   
   def _libraries(self):
     global required_libraries, libraries

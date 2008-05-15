@@ -103,7 +103,7 @@ static const unsigned char urlchr_table[256] =
 /* The core of url_escape_* functions.  Escapes the characters that
    match the provided mask in urlchr_table.*/
 
-static void _url_encode (const char *s, char *newstr, unsigned char mask) {
+static void _url_encode (const char *s, char *newstr, int mask) {
   const char *p1;
   char *p2;
   
@@ -130,7 +130,7 @@ static void _url_encode (const char *s, char *newstr, unsigned char mask) {
 char *smisk_url_encode(const char *s, int full) {
   const char *p1;
   char *new_s;
-  unsigned char mask = full ? urlchr_reserved|urlchr_unsafe : urlchr_unsafe;
+  int mask = full ? urlchr_reserved|urlchr_unsafe : urlchr_unsafe;
   size_t len = strlen(s);
   size_t new_len = len;
   
@@ -176,11 +176,11 @@ size_t smisk_url_decode(char *str, size_t len) {
 }
 
 
-static PyObject* encode_or_escape(PyObject* self, PyObject* str, unsigned char mask) {
+static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   char *orgstr, *newstr;
   Py_ssize_t orglen;
   Py_ssize_t newlen;
-  PyObject* newstr_py;
+  PyObject *newstr_py;
   int should_decref_str = 0;
   
   if(!PyString_CheckExact(str)) {
@@ -252,8 +252,8 @@ static PyObject* encode_or_escape(PyObject* self, PyObject* str, unsigned char m
   return newstr_py;
 }
 
-static int _parse(smisk_URL* self, const char *s, size_t len) {
-  struct vec { int len; const void *ptr; };
+static int _parse(smisk_URL* self, const char *s, ssize_t len) {
+  struct vec { ssize_t len; const void *ptr; };
   struct url { struct vec proto; struct vec user; struct vec pass;
                struct vec host;  struct vec port; struct vec uri; };
 
@@ -338,7 +338,7 @@ static int _parse(smisk_URL* self, const char *s, size_t len) {
   }
 
   if (v == &u->proto && v->len > 0) {
-    v = ((char *) v->ptr)[0] == '/' ? &u->uri : &u->host;
+    v = ( ((char *)v->ptr)[0] == '/' ) ? &u->uri : &u->host;
     *v = u->proto;
     u->proto = nil;
   } else if (v == &u->user) {
@@ -376,14 +376,14 @@ static int _parse(smisk_URL* self, const char *s, size_t len) {
     self->host = PyString_FromStringAndSize((char*)u->host.ptr, u->host.len);
 
   if( u->port.len ) {
-    self->port = atoin((char*)u->port.ptr, u->port.len);
+    self->port = atoin((char*)u->port.ptr, (size_t)u->port.len);
     if(self->port < 0)
       self->port = -self->port;
   }
   if( u->uri.len ) {
     // Find query and frag parts
-    void *q_start = memchr(u->uri.ptr, '?', u->uri.len);
-    void *f_start = memchr(u->uri.ptr, '#', u->uri.len);
+    void *q_start = memchr(u->uri.ptr, '?', (size_t)u->uri.len);
+    void *f_start = memchr(u->uri.ptr, '#', (size_t)u->uri.len);
     
     // Both qery and frag
     if( (q_start != NULL) && (f_start != NULL) ) {
@@ -451,9 +451,9 @@ PyObject *smisk_URL_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 }
 
 
-int smisk_URL_init(smisk_URL* self, PyObject* args, PyObject* kwargs) {
+int smisk_URL_init(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
-  PyObject* str;
+  PyObject *str;
   
   // No arguments? (new empty url)
   if( (args == NULL) || (PyTuple_GET_SIZE(args) == 0) ) {
@@ -517,7 +517,7 @@ PyDoc_STRVAR(smisk_URL_encode_DOC,
   ":type   str: string\n"
   ":rtype: string\n"
   ":raises TypeError: if str is not a string");
-PyObject* smisk_URL_encode(PyObject* self, PyObject* str) {
+PyObject *smisk_URL_encode(PyObject *self, PyObject *str) {
   log_trace("ENTER");
   return encode_or_escape(self, str, urlchr_reserved|urlchr_unsafe);
 }
@@ -534,7 +534,7 @@ PyDoc_STRVAR(smisk_URL_escape_DOC,
   ":type   str: string\n"
   ":rtype: string\n"
   ":raises TypeError: if str is not a string");
-PyObject* smisk_URL_escape(PyObject* self, PyObject* str) {
+PyObject *smisk_URL_escape(PyObject *self, PyObject *str) {
   log_trace("ENTER");
   return encode_or_escape(self, str, urlchr_unsafe);
 }
@@ -558,7 +558,7 @@ PyDoc_STRVAR(smisk_URL_decode_DOC,
   ":type   str: string\n"
   ":rtype: string\n"
   ":raises TypeError: if str is not a string");
-PyObject* smisk_URL_decode(PyObject* self, PyObject* str) {
+PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
   log_trace("ENTER");
   char *orgstr;
   Py_ssize_t orglen, newlen;
@@ -580,7 +580,7 @@ PyObject* smisk_URL_decode(PyObject* self, PyObject* str) {
     return NULL;
   }
   
-  newlen = smisk_url_decode(PyString_AS_STRING(newstr_py), orglen);
+  newlen = smisk_url_decode(PyString_AS_STRING(newstr_py), (size_t)orglen);
   
   if(orglen == newlen) {
     // Did not need decoding
@@ -639,7 +639,7 @@ PyDoc_STRVAR(smisk_URL_to_s_DOC,
   ":type   query:     bool\n"
   ":type   fragment:  bool\n"
   ":rtype: string");
-PyObject *smisk_URL_to_s(smisk_URL* self, PyObject* args, PyObject *kwargs) {
+PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   PyObject *scheme, *user, *password, *host, *port, *path, *query, *fragment;
   PyObject *one;
@@ -730,7 +730,7 @@ static PyMethodDef smisk_URL_methods[] = {
   // Instance methods
   {"to_s",    (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, smisk_URL_to_s_DOC},
   {"to_str",  (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, smisk_URL_to_str_DOC}, // alias of to_s
-  {NULL}
+  {NULL, NULL, 0, NULL}
 };
 
 // Class Members
@@ -743,7 +743,7 @@ static struct PyMemberDef smisk_URL_members[] = {
   {"path",      T_OBJECT_EX, offsetof(smisk_URL, path),     RO, ":type: string"},
   {"query",     T_OBJECT_EX, offsetof(smisk_URL, query),    RO, ":type: string"},
   {"fragment",  T_OBJECT_EX, offsetof(smisk_URL, fragment), RO, ":type: string"},
-  {NULL}
+  {NULL, 0, 0, 0, NULL}
 };
 
 // Type definition

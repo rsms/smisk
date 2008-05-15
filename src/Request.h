@@ -68,8 +68,8 @@ int smisk_Request_register_types(PyObject *module);
 
 // Methods
 PyObject *smisk_Request_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
-int smisk_Request_init (smisk_Request* self, PyObject* args, PyObject* kwargs);
+int smisk_Request_init (smisk_Request* self, PyObject *args, PyObject *kwargs);
 void smisk_Request_dealloc (smisk_Request* self);
-PyObject* smisk_Request_get_env (smisk_Request* self);
+PyObject *smisk_Request_get_env (smisk_Request* self);
 
 #endif

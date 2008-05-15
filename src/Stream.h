@@ -40,7 +40,7 @@ PyObject *smisk_Stream_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
 int smisk_Stream_init (smisk_Stream *self, PyObject *args, PyObject *kwargs);
 void smisk_Stream_dealloc (smisk_Stream *self);
 
-PyObject* smisk_Stream_writelines (smisk_Stream* self, PyObject* sequence);
+PyObject *smisk_Stream_writelines (smisk_Stream* self, PyObject *sequence);
 
 // Public C
 int smisk_Stream_perform_write (smisk_Stream *self, PyObject *str, Py_ssize_t length); // returns -1 on error
@@ -50,7 +50,7 @@ typedef int smisk_Stream_perform_writelines_cb(void *user_data);
 
 // If first_write_cb is specified, it's called before first line is written.
 // If first_write_cb returns other than 0, an error has occured and this function returns NULL.
-PyObject* smisk_Stream_perform_writelines(smisk_Stream *self,
+PyObject *smisk_Stream_perform_writelines(smisk_Stream *self,
                                           PyObject *sequence, 
                                           smisk_Stream_perform_writelines_cb *first_write_cb,
                                           void *cb_user_data);

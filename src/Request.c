@@ -144,7 +144,7 @@ static int _valid_sid(const char *uid, size_t len) {
 }
 
 
-static PyObject* _generate_sid(smisk_Request* self) {
+static PyObject *_generate_sid(smisk_Request* self) {
   PyObject *uid;
   struct timeval tv;
   char *remote_info;
@@ -320,7 +320,7 @@ PyObject * smisk_Request_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 
-int smisk_Request_init(smisk_Request* self, PyObject* args, PyObject* kwargs) {
+int smisk_Request_init(smisk_Request* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   return 0;
 }
@@ -354,7 +354,7 @@ PyDoc_STRVAR(smisk_Request_log_error_DOC,
   ":type   message: string\n"
   ":raises `IOError`:\n"
   ":rtype: None");
-PyObject* smisk_Request_log_error(smisk_Request* self, PyObject* msg) {
+PyObject *smisk_Request_log_error(smisk_Request* self, PyObject *msg) {
   log_trace("ENTER");
   static const char format[] = "%s[%d] %s";
   
@@ -377,15 +377,15 @@ PyObject* smisk_Request_log_error(smisk_Request* self, PyObject* msg) {
 }
 
 
-PyObject* smisk_Request_is_active(smisk_Request* self) {
+PyObject *smisk_Request_is_active(smisk_Request* self) {
   log_trace("ENTER");
-  PyObject* b = self->env ? Py_True : Py_False;
+  PyObject *b = self->env ? Py_True : Py_False;
   Py_INCREF(b);
   return b;
 }
 
 
-PyObject* smisk_Request_get_env(smisk_Request* self) {
+PyObject *smisk_Request_get_env(smisk_Request* self) {
   log_trace("ENTER");
   //log_debug("ENTER smisk_Request_get_env");
   static PyObject *_cached_SERVER_SOFTWARE_k = NULL;
@@ -476,7 +476,7 @@ PyObject* smisk_Request_get_env(smisk_Request* self) {
 }
 
 
-PyObject* smisk_Request_get_url(smisk_Request* self) {
+PyObject *smisk_Request_get_url(smisk_Request* self) {
   log_trace("ENTER");
   char *s, *p, *s2;
   PyObject *old;
@@ -583,7 +583,7 @@ PyObject* smisk_Request_get_url(smisk_Request* self) {
 }
 
 
-PyObject* smisk_Request_get_get(smisk_Request* self) {
+PyObject *smisk_Request_get_get(smisk_Request* self) {
   log_trace("ENTER");
   if(self->get == NULL) {
     if((self->get = PyDict_New()) == NULL) {
@@ -609,7 +609,7 @@ PyObject* smisk_Request_get_get(smisk_Request* self) {
 }
 
 
-PyObject* smisk_Request_get_post(smisk_Request* self) {
+PyObject *smisk_Request_get_post(smisk_Request* self) {
   log_trace("ENTER");
   if(self->post == NULL) {
     if(_parse_request_body(self) != 0) {
@@ -621,7 +621,7 @@ PyObject* smisk_Request_get_post(smisk_Request* self) {
 }
 
 
-PyObject* smisk_Request_get_files(smisk_Request* self) {
+PyObject *smisk_Request_get_files(smisk_Request* self) {
   log_trace("ENTER");
   if(self->files == NULL) {
     if(_parse_request_body(self) != 0) {
@@ -633,7 +633,7 @@ PyObject* smisk_Request_get_files(smisk_Request* self) {
 }
 
 
-PyObject* smisk_Request_get_cookies(smisk_Request* self) {
+PyObject *smisk_Request_get_cookies(smisk_Request* self) {
   log_trace("ENTER");
   char *http_cookie;
   
@@ -658,7 +658,7 @@ PyObject* smisk_Request_get_cookies(smisk_Request* self) {
 }
 
 
-static PyObject* smisk_Request_get_session_id(smisk_Request* self) {
+static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
   log_trace("ENTER");
   if(self->session_id == NULL) {
     if(smisk_require_app() != 0) {
@@ -778,7 +778,7 @@ static int smisk_Request_set_session_id(smisk_Request* self, PyObject *session_i
 }
 
 
-static PyObject* smisk_Request_get_session(smisk_Request* self) {
+static PyObject *smisk_Request_get_session(smisk_Request* self) {
   log_trace("ENTER");
   if(self->session == NULL) {
     // get_session_id will take it from here
@@ -826,7 +826,7 @@ static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
 #pragma mark Iteration
 
 
-PyObject* smisk_Request___iter__(smisk_Request *self) {
+PyObject *smisk_Request___iter__(smisk_Request *self) {
   log_trace("ENTER");
   return Py_INCREF(self->input), (PyObject*)self->input;
 }

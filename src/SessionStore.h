@@ -37,12 +37,12 @@ extern PyTypeObject smisk_SessionStoreType;
 int smisk_SessionStore_register_types (PyObject *module);
 
 PyObject *smisk_SessionStore_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
-int       smisk_SessionStore_init (smisk_SessionStore* self, PyObject* args, PyObject* kwargs);
+int       smisk_SessionStore_init (smisk_SessionStore* self, PyObject *args, PyObject *kwargs);
 void      smisk_SessionStore_dealloc (smisk_SessionStore* self);
 
-PyObject *smisk_SessionStore_read (smisk_SessionStore* self, PyObject* session_id);
-PyObject *smisk_SessionStore_write (smisk_SessionStore* self, PyObject* args);
-PyObject *smisk_SessionStore_refresh (smisk_SessionStore* self, PyObject* session_id);
-PyObject *smisk_SessionStore_destroy (smisk_SessionStore* self, PyObject* session_id);
+PyObject *smisk_SessionStore_read (smisk_SessionStore* self, PyObject *session_id);
+PyObject *smisk_SessionStore_write (smisk_SessionStore* self, PyObject *args);
+PyObject *smisk_SessionStore_refresh (smisk_SessionStore* self, PyObject *session_id);
+PyObject *smisk_SessionStore_destroy (smisk_SessionStore* self, PyObject *session_id);
 
 #endif

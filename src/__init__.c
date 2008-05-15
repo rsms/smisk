@@ -65,11 +65,11 @@ PyDoc_STRVAR(smisk_bind_DOC,
   ":type  backlog: int\n"
   ":raises smisk.IOError: On failure.\n"
   ":rtype: None");
-PyObject* smisk_bind(PyObject *self, PyObject *args) {
+PyObject *smisk_bind(PyObject *self, PyObject *args) {
   log_trace("ENTER");
   //int FCGX_OpenSocket(const char *path, int backlog)
   int fd, backlog;
-  PyObject* path;
+  PyObject *path;
   
   // Set default backlog size (<=0 = let system implementation decide)
   backlog = 0;
@@ -89,7 +89,7 @@ PyObject* smisk_bind(PyObject *self, PyObject *args) {
   
   // Did we get excplicit backlog size?
   if(PyTuple_GET_SIZE(args) > 1) {
-    PyObject* arg1 = PyTuple_GET_ITEM(args, 1);
+    PyObject *arg1 = PyTuple_GET_ITEM(args, 1);
     if(arg1 != NULL) {
       if(!PyInt_Check(arg1)) {
         PyErr_SetString(PyExc_TypeError, "second argument must be an integer");
@@ -122,7 +122,7 @@ PyDoc_STRVAR(smisk_listening_DOC,
   "\n"
   ":raises smisk.IOError: On failure.\n"
   ":rtype: string");
-PyObject* smisk_listening(PyObject *self, PyObject *args) {
+PyObject *smisk_listening(PyObject *self, PyObject *args) {
   log_trace("ENTER");
   PyObject *s = Py_None;
   socklen_t addrlen;
@@ -172,7 +172,7 @@ PyDoc_STRVAR(smisk_module_DOC,
 
 PyMODINIT_FUNC initcore(void) {
   log_trace("ENTER");
-  PyObject* module;
+  PyObject *module;
   module = Py_InitModule("smisk.core", module_methods);
   
   // Seed random

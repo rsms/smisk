@@ -55,7 +55,7 @@ static int _get_opt_ssize_arg(Py_ssize_t *length, PyObject *args, Py_ssize_t pos
 #pragma mark Public C
 
 
-int smisk_Stream_perform_write(smisk_Stream* self, PyObject* str, Py_ssize_t length) {
+int smisk_Stream_perform_write(smisk_Stream* self, PyObject *str, Py_ssize_t length) {
   if( FCGX_PutStr(PyString_AS_STRING(str), length, self->stream) == -1 ) {
     PyErr_SET_FROM_ERRNO;
     return -1;
@@ -81,7 +81,7 @@ PyObject * smisk_Stream_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
 }
 
 
-int smisk_Stream_init(smisk_Stream* self, PyObject* args, PyObject* kwargs) {
+int smisk_Stream_init(smisk_Stream* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   return 0;
 }
@@ -110,7 +110,7 @@ PyDoc_STRVAR(smisk_Stream_readline_DOC,
   ":param  length: read up to length bytes.\n"
   ":rtype: string\n"
   ":returns: the line read or None if EOF");
-PyObject* smisk_Stream_readline(smisk_Stream* self, PyObject* args) {
+PyObject *smisk_Stream_readline(smisk_Stream* self, PyObject *args) {
   log_trace("ENTER");
   PyObject *str;
   Py_ssize_t length;
@@ -172,7 +172,7 @@ PyDoc_STRVAR(smisk_Stream_readlines_DOC,
   ":type   length: int\n"
   ":param  length: sizehint\n"
   ":rtype: list");
-PyObject* smisk_Stream_readlines(smisk_Stream* self, PyObject* args) {
+PyObject *smisk_Stream_readlines(smisk_Stream* self, PyObject *args) {
   log_trace("ENTER");
   Py_ssize_t sizehint, linecount;
   PyObject *lines, *line, *readline_args;
@@ -232,7 +232,7 @@ PyDoc_STRVAR(smisk_Stream_read_DOC,
   ":type   length: int\n"
   ":param  length: read up to length bytes. If not specified or negative, read until EOF.\n"
   ":rtype: string");
-PyObject* smisk_Stream_read(smisk_Stream* self, PyObject* args) {
+PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
   log_trace("ENTER");
   PyObject *str;
   Py_ssize_t length;
@@ -317,7 +317,7 @@ PyDoc_STRVAR(smisk_Stream_write_byte_DOC,
   ":type   b: int\n"
   ":rtype: None\n"
   ":raises smisk.IOError: if the byte could not be written");
-PyObject* smisk_Stream_write_byte(smisk_Stream* self, PyObject* ch) {
+PyObject *smisk_Stream_write_byte(smisk_Stream* self, PyObject *ch) {
   log_trace("ENTER");
   if(!ch || !PyInt_Check(ch)) {
     PyErr_Format(PyExc_TypeError, "first argument must be an integer");
@@ -343,9 +343,9 @@ PyDoc_STRVAR(smisk_Stream_write_DOC,
   ":param  length: write length bytes from str (optional)\n"
   ":rtype: None\n"
   ":raises smisk.IOError:");
-PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args) {
+PyObject *smisk_Stream_write(smisk_Stream* self, PyObject *args) {
   log_trace("ENTER");
-  PyObject* str;
+  PyObject *str;
   Py_ssize_t length, argc;
   
   argc = PyTuple_GET_SIZE(args);
@@ -361,7 +361,7 @@ PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args) {
   
   // Figure out length
   if (argc > 1) {
-    PyObject* arg1 = PyTuple_GET_ITEM(args, 1);
+    PyObject *arg1 = PyTuple_GET_ITEM(args, 1);
     if(!PyInt_Check(arg1))
       return PyErr_Format(PyExc_TypeError, "second argument must be an integer");
     length = PyInt_AS_LONG(arg1);
@@ -380,7 +380,7 @@ PyObject* smisk_Stream_write(smisk_Stream* self, PyObject* args) {
 
 // If first_write_cb is specified, it's called before first line is written.
 // If first_write_cb returns other than 0, an error has occured and this function returns NULL.
-PyObject* smisk_Stream_perform_writelines(smisk_Stream *self,
+PyObject *smisk_Stream_perform_writelines(smisk_Stream *self,
                                           PyObject *sequence, 
                                           smisk_Stream_perform_writelines_cb *first_write_cb,
                                           void *cb_user_data)
@@ -430,7 +430,7 @@ PyDoc_STRVAR(smisk_Stream_writelines_DOC,
   ":param  sequence: A sequence of strings\n"
   ":rtype: None\n"
   ":raises IOError:");
-PyObject* smisk_Stream_writelines(smisk_Stream* self, PyObject* sequence) {
+PyObject *smisk_Stream_writelines(smisk_Stream* self, PyObject *sequence) {
   log_trace("ENTER");
   return smisk_Stream_perform_writelines(self, sequence, NULL, NULL);
 }
@@ -442,7 +442,7 @@ PyDoc_STRVAR(smisk_Stream_flush_DOC,
   "always implicitly flushes all it's streams upon finishing the request.\n"
   "\n"
   ":rtype: None");
-PyObject* smisk_Stream_flush(smisk_Stream* self) {
+PyObject *smisk_Stream_flush(smisk_Stream* self) {
   log_trace("ENTER");
   if(FCGX_FFlush(self->stream) == -1)
     return PyErr_SET_FROM_ERRNO;
@@ -456,7 +456,7 @@ PyDoc_STRVAR(smisk_Stream_close_DOC,
   "object.\n"
   "\n"
   ":rtype: None");
-PyObject* smisk_Stream_close(smisk_Stream* self) {
+PyObject *smisk_Stream_close(smisk_Stream* self) {
   log_trace("ENTER");
   if(FCGX_FClose(self->stream) == -1)
     return PyErr_SET_FROM_ERRNO;
@@ -468,15 +468,15 @@ PyObject* smisk_Stream_close(smisk_Stream* self) {
 #pragma mark Iteration
 
 
-PyObject* smisk_Stream___iter__(smisk_Stream *self) {
+PyObject *smisk_Stream___iter__(smisk_Stream *self) {
   log_trace("ENTER");
   return Py_INCREF(self), (PyObject*)self;
 }
 
-PyObject* smisk_Stream___iternext__(smisk_Stream *self) {
+PyObject *smisk_Stream___iternext__(smisk_Stream *self) {
   log_trace("ENTER");
   // Conforms to PEP 234 <http://www.python.org/dev/peps/pep-0234/>
-  PyObject* str = smisk_Stream_readline(self, NULL);
+  PyObject *str = smisk_Stream_readline(self, NULL);
   if (PyString_GET_SIZE(str) == 0) {
     Py_DECREF(str);
     return NULL; // End iteration

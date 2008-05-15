@@ -27,14 +27,14 @@ typedef struct {
   PyObject_HEAD;
   
   // Public Python & C
-  PyObject* scheme;
-  PyObject* user;
-  PyObject* password;
-  PyObject* host;
+  PyObject *scheme;
+  PyObject *user;
+  PyObject *password;
+  PyObject *host;
   int port;
-  PyObject* path;
-  PyObject* query;
-  PyObject* fragment;
+  PyObject *path;
+  PyObject *query;
+  PyObject *fragment;
   
 } smisk_URL;
 
@@ -48,7 +48,7 @@ int smisk_URL_register_types (PyObject *module);
 
 // Methods
 PyObject *smisk_URL_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
-int smisk_URL_init (smisk_URL* self, PyObject* args, PyObject* kwargs);
+int smisk_URL_init (smisk_URL* self, PyObject *args, PyObject *kwargs);
 void smisk_URL_dealloc (smisk_URL* self);
 
 #endif

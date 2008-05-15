@@ -151,7 +151,7 @@ static void _gc_thread(void *_self) {
 static PyObject *tempfile_mod = NULL;
 
 
-int smisk_FileSessionStore_init(smisk_FileSessionStore *self, PyObject* args, PyObject* kwargs) {
+int smisk_FileSessionStore_init(smisk_FileSessionStore *self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   PyObject *s;
   
@@ -221,7 +221,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_path_DOC,
   ":param  session_id: Session ID\n"
   ":type   session_id: string\n"
   ":rtype: string");
-static PyObject *smisk_FileSessionStore_path(smisk_FileSessionStore *self, PyObject* session_id) {
+static PyObject *smisk_FileSessionStore_path(smisk_FileSessionStore *self, PyObject *session_id) {
   log_trace("ENTER");
   PyObject *fn;
   fn = PyString_FromStringAndSize(PyString_AS_STRING(self->file_prefix), PyString_GET_SIZE(self->file_prefix));
@@ -238,7 +238,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_read_DOC,
   ":type   session_id: string\n"
   ":raises smisk.core.InvalidSessionError: if there is no actual session associated with ``session_id``.\n"
   ":rtype: object");
-PyObject* smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject* session_id) {
+PyObject *smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject *session_id) {
   log_trace("ENTER");
   PyObject *fn, *data = NULL;
   char *pathname;
@@ -309,7 +309,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_write_DOC,
   ":param  data:       Data to be associated with ``session_id``\n"
   ":type   data:       object\n"
   ":rtype: None");
-PyObject* smisk_FileSessionStore_write(smisk_FileSessionStore *self, PyObject* args) {
+PyObject *smisk_FileSessionStore_write(smisk_FileSessionStore *self, PyObject *args) {
   log_trace("ENTER");
   PyObject *session_id, *data, *fn;
   char *pathname;
@@ -374,7 +374,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_refresh_DOC,
   ":param  session_id: Session ID\n"
   ":type   session_id: string\n"
   ":rtype: None");
-PyObject* smisk_FileSessionStore_refresh(smisk_FileSessionStore *self, PyObject* session_id) {
+PyObject *smisk_FileSessionStore_refresh(smisk_FileSessionStore *self, PyObject *session_id) {
   log_trace("ENTER %s", PyString_AS_STRING(session_id));
   PyObject *fn;
   
@@ -404,7 +404,7 @@ PyDoc_STRVAR(smisk_FileSessionStore_destroy_DOC,
   ":param  session_id: Session ID\n"
   ":type   session_id: string\n"
   ":rtype: None");
-PyObject* smisk_FileSessionStore_destroy(smisk_FileSessionStore *self, PyObject* session_id) {
+PyObject *smisk_FileSessionStore_destroy(smisk_FileSessionStore *self, PyObject *session_id) {
   log_trace("ENTER");
   PyObject *fn;
   char *pathname;
@@ -440,7 +440,7 @@ static PyMethodDef smisk_FileSessionStore_methods[] = {
   {"destroy", (PyCFunction)smisk_FileSessionStore_destroy, METH_O, smisk_FileSessionStore_destroy_DOC},
   
   {"path", (PyCFunction)smisk_FileSessionStore_path, METH_O, smisk_FileSessionStore_path_DOC},
-  {NULL}
+  {NULL, NULL, 0, NULL}
 };
 
 // Class members
@@ -451,7 +451,7 @@ static struct PyMemberDef smisk_FileSessionStore_members[] = {
     "\n"
     "Defaults to ``tempfile.tempdir + \"smisk-sess.\"`` - for example: ``/tmp/smisk-sess.``"},
   
-  {NULL}
+  {NULL, 0, 0, 0, NULL}
 };
 
 // Type definition

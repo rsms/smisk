@@ -34,11 +34,11 @@ THE SOFTWARE.
 
 
 // Returns PyStringObject (borrowed reference)
-PyObject* smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
-  PyObject* msg = NULL;
-  PyObject* lines = NULL;
-  PyObject* traceback = NULL;
-  PyObject* format_exception = NULL;
+PyObject *smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
+  PyObject *msg = NULL;
+  PyObject *lines = NULL;
+  PyObject *traceback = NULL;
+  PyObject *format_exception = NULL;
   
   if(type == NULL) {
     log_debug("No error occured. type == NULL");
@@ -81,7 +81,7 @@ PyObject* smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
 }
 
 
-int PyDict_assoc_val_with_key(PyObject *dict, PyObject *val, PyObject* key) {
+int PyDict_assoc_val_with_key(PyObject *dict, PyObject *val, PyObject *key) {
   PyObject *existing_val, *new_val;
   
   if(PyDict_Contains(dict, key)) {
@@ -279,10 +279,10 @@ char *smisk_encode_bin(char *in, size_t inlen, char *out, char nbits) {
 }
 
 
-PyObject* smisk_find_string_by_prefix_in_dict(PyObject* list, PyObject *prefix) {
+PyObject *smisk_find_string_by_prefix_in_dict(PyObject *list, PyObject *prefix) {
   Py_ssize_t num_items, prefix_len, item_len, i, x;
   char *item_ptr, *prefix_ptr, *prefix_it;
-  PyObject* item;
+  PyObject *item;
   
   if(list == NULL)
     return PyErr_Format(PyExc_TypeError, "smisk_find_string_by_prefix_in_dict() called with list=NULL");

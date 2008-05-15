@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 
 /** @return PyStringObject (borrowed reference). Does NOT clear exception. */
-PyObject* smisk_format_exc (PyObject *type, PyObject *value, PyObject *tb);
+PyObject *smisk_format_exc (PyObject *type, PyObject *value, PyObject *tb);
 
 /**
  * Associate value with key - if the key exists, the keys value is a list of
@@ -70,6 +70,6 @@ char *smisk_encode_bin (char *in, size_t inlen, char *out, char bits_per_byte);
  * @param  prefix  string
  * @return int
  */
-PyObject* smisk_find_string_by_prefix_in_dict(PyObject* list, PyObject *prefix);
+PyObject *smisk_find_string_by_prefix_in_dict(PyObject *list, PyObject *prefix);
 
 #endif

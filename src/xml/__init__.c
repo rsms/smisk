@@ -130,7 +130,7 @@ PyDoc_STRVAR(smisk_xml_encode_DOC,
   ":param s: Raw string to be encoded"
   ":type  s: string\n"
   ":rtype: string");
-PyObject* smisk_xml_encode_py(PyObject *self, PyObject *pys) {
+PyObject *smisk_xml_encode_py(PyObject *self, PyObject *pys) {
   size_t len, nlen;
   PyObject *npys;
   char *s, *dest;
@@ -159,7 +159,7 @@ PyObject* smisk_xml_encode_py(PyObject *self, PyObject *pys) {
     return pys;
   }
   
-  npys = PyString_FromStringAndSize(NULL, nlen);
+  npys = PyString_FromStringAndSize(NULL,(Py_ssize_t)nlen);
   if(npys == NULL) {
     if(should_decref_pys) {
       Py_DECREF(pys);

@@ -44,7 +44,7 @@ PyObject *smisk_SessionStore_new(PyTypeObject *type, PyObject *args, PyObject *k
 }
 
 
-int smisk_SessionStore_init(smisk_SessionStore *self, PyObject* args, PyObject* kwargs) {  
+int smisk_SessionStore_init(smisk_SessionStore *self, PyObject *args, PyObject *kwargs) {  
   log_trace("ENTER");
   return 0;
 }
@@ -64,7 +64,7 @@ PyDoc_STRVAR(smisk_SessionStore_read_DOC,
   ":param  session_id: Session ID\n"
   ":type   session_id: string\n"
   ":rtype: object");
-PyObject* smisk_SessionStore_read(smisk_SessionStore *self, PyObject* session_id) {
+PyObject *smisk_SessionStore_read(smisk_SessionStore *self, PyObject *session_id) {
   log_trace("ENTER");
   PyErr_SetString(PyExc_NotImplementedError, "read");
   return NULL;
@@ -77,7 +77,7 @@ PyDoc_STRVAR(smisk_SessionStore_write_DOC,
   ":param  data:       Data to be associated with ``session_id``\n"
   ":type   data:       object\n"
   ":rtype: None");
-PyObject* smisk_SessionStore_write(smisk_SessionStore *self, PyObject* args) {
+PyObject *smisk_SessionStore_write(smisk_SessionStore *self, PyObject *args) {
   log_trace("ENTER");
   PyErr_SetString(PyExc_NotImplementedError, "write");
   return NULL;
@@ -88,7 +88,7 @@ PyDoc_STRVAR(smisk_SessionStore_refresh_DOC,
   ":param  session_id: Session ID\n"
   ":type   session_id: string\n"
   ":rtype: None");
-PyObject* smisk_SessionStore_refresh(smisk_SessionStore *self, PyObject* session_id) {
+PyObject *smisk_SessionStore_refresh(smisk_SessionStore *self, PyObject *session_id) {
   log_trace("ENTER");
   PyErr_SetString(PyExc_NotImplementedError, "refresh");
   return NULL;
@@ -99,7 +99,7 @@ PyDoc_STRVAR(smisk_SessionStore_destroy_DOC,
   ":param  session_id: Session ID\n"
   ":type   session_id: string\n"
   ":rtype: None");
-PyObject* smisk_SessionStore_destroy(smisk_SessionStore *self, PyObject* session_id) {
+PyObject *smisk_SessionStore_destroy(smisk_SessionStore *self, PyObject *session_id) {
   log_trace("ENTER");
   PyErr_SetString(PyExc_NotImplementedError, "destroy");
   return NULL;
@@ -118,7 +118,7 @@ static PyMethodDef smisk_SessionStore_methods[] = {
   {"write", (PyCFunction)smisk_SessionStore_write, METH_VARARGS, smisk_SessionStore_write_DOC},
   {"refresh", (PyCFunction)smisk_SessionStore_refresh, METH_O, smisk_SessionStore_refresh_DOC},
   {"destroy", (PyCFunction)smisk_SessionStore_destroy, METH_O, smisk_SessionStore_destroy_DOC},
-  {NULL}
+  {NULL, NULL, 0, NULL}
 };
 
 // Class members
@@ -131,7 +131,7 @@ static struct PyMemberDef smisk_SessionStore_members[] = {
     ":type: string\n\n"
     "Name used to identify the session id cookie. Defaults to \"SID\""},
   
-  {NULL}
+  {NULL, 0, 0, 0, NULL}
 };
 
 // Type definition

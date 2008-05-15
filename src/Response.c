@@ -103,7 +103,7 @@ PyObject * smisk_Response_new(PyTypeObject *type, PyObject *args, PyObject *kwds
   return (PyObject *)self;
 }
 
-int smisk_Response_init(smisk_Response* self, PyObject* args, PyObject* kwargs) {
+int smisk_Response_init(smisk_Response* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   return 0;
 }
@@ -136,7 +136,7 @@ PyDoc_STRVAR(smisk_Response_send_file_DOC,
     "the current host server.\n"
   ":raises `IOError`:\n"
   ":rtype: None");
-PyObject* smisk_Response_send_file(smisk_Response* self, PyObject* filename) {
+PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   log_trace("ENTER");
   int rc;
   
@@ -180,7 +180,7 @@ PyDoc_STRVAR(smisk_Response_begin_DOC,
   "Automatically called on by mechanisms like `write()` and `Application.run()`."
   "\n"
   ":rtype: None");
-PyObject* smisk_Response_begin(smisk_Response* self) {
+PyObject *smisk_Response_begin(smisk_Response* self) {
   log_trace("ENTER");
   int rc;
   Py_ssize_t num_headers, i;
@@ -211,7 +211,7 @@ PyObject* smisk_Response_begin(smisk_Response* self) {
   // Headers?
   if(self->headers && PyList_Check(self->headers) && (num_headers = PyList_GET_SIZE(self->headers))) {
     // Iterate over headers
-    PyObject* str;
+    PyObject *str;
     for(i=0;i<num_headers;i++) {
       str = PyList_GET_ITEM(self->headers, i);
       if(str && PyString_Check(str)) {
@@ -252,7 +252,7 @@ PyDoc_STRVAR(smisk_Response_write_DOC,
   ":type     string: string\n"
   ":raises   `IOError`:\n"
   ":rtype:   None");
-PyObject* smisk_Response_write(smisk_Response* self, PyObject* str) {
+PyObject *smisk_Response_write(smisk_Response* self, PyObject *str) {
   log_trace("ENTER");
   Py_ssize_t length;
   
@@ -287,7 +287,7 @@ PyDoc_STRVAR(smisk_Response_writelines_DOC,
   ":param  sequence: A sequence of strings\n"
   ":rtype: None\n"
   ":raises IOError:");
-PyObject* smisk_Response_writelines(smisk_Response* self, PyObject* sequence) {
+PyObject *smisk_Response_writelines(smisk_Response* self, PyObject *sequence) {
   log_trace("ENTER");
   return smisk_Stream_perform_writelines(self->out, sequence, &_begin_if_needed, (void *)self);
 }
@@ -301,7 +301,7 @@ PyDoc_STRVAR(smisk_Response___call___DOC,
   ":type     string: string\n"
   ":raises   `IOError`:\n"
   ":rtype:   None");*/
-PyObject* smisk_Response___call__(smisk_Response* self, PyObject* args, PyObject* kwargs) {
+PyObject *smisk_Response___call__(smisk_Response* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   // As we can get the length here, we return directly if nothing is to be written.
   if(PyTuple_GET_SIZE(args) < 1)
@@ -315,7 +315,7 @@ PyDoc_STRVAR(smisk_Response_find_header_DOC,
   "\n"
   ":returns: Index in 'headers' or -1 if not found.\n"
   ":rtype:   int");
-PyObject* smisk_Response_find_header(smisk_Response* self, PyObject *prefix) {
+PyObject *smisk_Response_find_header(smisk_Response* self, PyObject *prefix) {
   log_trace("ENTER");
   if(self->headers == NULL)
     return PyInt_FromLong(-1L);
@@ -389,7 +389,7 @@ PyDoc_STRVAR(smisk_Response_set_cookie_DOC,
     "supported by all browsers).\n"
   "\n"
   ":rtype:         None");
-PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObject *kwargs) {
+PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   static char *kwlist[] = {"name", "value", /* required */
                            "comment", "domain", "path",
@@ -483,7 +483,7 @@ PyObject* smisk_Response_set_cookie(smisk_Response* self, PyObject* args, PyObje
 #pragma mark Get- and Setters
 
 
-PyObject* smisk_Response_get_headers(smisk_Response* self) {
+PyObject *smisk_Response_get_headers(smisk_Response* self) {
   log_trace("ENTER");
   if(self->headers == NULL) {
     if( (self->headers = PyList_New(0)) == NULL ) {
