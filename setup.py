@@ -76,10 +76,10 @@ classifiers = [
   'Topic :: Internet :: WWW/HTTP',
   'Topic :: Software Development :: Libraries :: Python Modules'
 ]
-if v[3] == '*final':
-  classifiers.append('Development Status :: 5 - Production/Stable')
-if v[3] == '*c' or v[3] == '*b':
-  classifiers.append('Development Status :: 4 - Beta')
+#if v[3] == '*final':
+#  classifiers.append('Development Status :: 5 - Production/Stable')
+#if v[3] == '*c' or v[3] == '*b':
+#  classifiers.append('Development Status :: 4 - Beta')
 
 
 # -----------------------------------------
