@@ -1,0 +1,14 @@
+Changes
+=======
+
+1.0.1 (**dev**)
+
+* Full WSGI support – passes the wsgiref validation tests
+* Iterable request makes reading input data simple
+* Stream implements writelines for optimized sending of chunks of strings.
+* Response implements a Stream.writelines proxy, automatically calling begin()
+* Callable response makes responses simpler. Based on writelines
+
+1.0.0
+
+* First stable version
