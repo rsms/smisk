@@ -78,9 +78,22 @@ fi
 # Main
 
 if [ $DIST_BINARY -eq 1 ] || [ $DIST_SOURCE -eq 1 ]; then
+  
+  SETUP_UPLOAD=
+  if [ $UPLOAD -eq 1 ]; then
+    SETUP_UPLOAD="upload --sign --identity=rasmus --show-response"
+  fi
 
   rm $VERBOSE_V -rf dist/* || exit 1
   rm $VERBOSE_V -rf doc/api || exit 1
+
+  if [ $DIST_SOURCE -eq 1 ]; then
+    echo "Creating source package"
+    # Build source archive
+    $DEFAULT_PYTHON setup.py $VERBOSE_SETUP_PY $QUIET_SETUP_PY sdist $SETUP_UPLOAD || exit 1
+    # smisk-M.m.b[tag].tar.gz
+    # smisk-1.0.1dev.tar.gz
+  fi
 
   if [ $DIST_BINARY -eq 1 ]; then
     for PYTHON in $PYTHONS; do
@@ -96,7 +109,8 @@ if [ $DIST_BINARY -eq 1 ] || [ $DIST_SOURCE -eq 1 ]; then
       rm $VERBOSE_V -rf build/* || exit 1
       
       # Build binary egg
-      $PYTHON setup.py $VERBOSE_SETUP_PY $QUIET_SETUP_PY bdist_egg || exit 1
+      $PYTHON setup.py $VERBOSE_SETUP_PY $QUIET_SETUP_PY bdist_egg $SETUP_UPLOAD || exit 1
+      # xxx: uploading fails here with setuptools 0.6c8 as of 080516
       # smisk-M.m.b[tag]-pyM.m-system-arch.egg
       # smisk-1.0.1dev-py2.5-macosx-10.3-i386.egg
       
@@ -107,24 +121,13 @@ if [ $DIST_BINARY -eq 1 ] || [ $DIST_SOURCE -eq 1 ]; then
       NN=$(echo $N | sed 's/smisk-'$V'./smisk-'$V'-py'$PY_VER'-/')
       mv $VERBOSE_V dist/bdist-py$PY_VER/$N dist/$NN
       rm $VERBOSE_V -r dist/bdist-py$PY_VER
+      # xxx: todo: upload
       # smisk-M.m.b[tag]-pyM.m-system-arch.tar.gz
       # smisk-1.0.1dev-py2.5-macosx-10.3-i386.tar.gz
       
     done
   fi
-
-  if [ $DIST_SOURCE -eq 1 ]; then
-    echo "Creating source package"
-    # Build source archive
-    $DEFAULT_PYTHON setup.py $VERBOSE_SETUP_PY $QUIET_SETUP_PY sdist || exit 1
-    # smisk-M.m.b[tag].tar.gz
-    # smisk-1.0.1dev.tar.gz
-  fi
   
-fi
-
-if [ $UPLOAD -eq 1 ]; then
-  $DEFAULT_PYTHON setup.py $VERBOSE_SETUP_PY upload --sign --identity=rasmus --show-response || exit 1
 fi
 
 exit 0
