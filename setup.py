@@ -76,6 +76,7 @@ classifiers = [
   'Topic :: Internet :: WWW/HTTP',
   'Topic :: Software Development :: Libraries :: Python Modules'
 ]
+# xxx: need to detect this in another way, since version never has a tag (we set tags at build time)
 #if v[3] == '*final':
 #  classifiers.append('Development Status :: 5 - Production/Stable')
 #if v[3] == '*c' or v[3] == '*b':
