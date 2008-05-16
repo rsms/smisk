@@ -75,23 +75,23 @@ PyObject *smisk_bind(PyObject *self, PyObject *args) {
   backlog = 0;
   
   // Did we get enough arguments?
-  if(!args || PyTuple_GET_SIZE(args) < 1) {
+  if (!args || PyTuple_GET_SIZE(args) < 1) {
     PyErr_SetString(PyExc_TypeError, "bind takes at least 1 argument");
     return NULL;
   }
   
   // Save reference to first argument and type check it
   path = PyTuple_GET_ITEM(args, 0);
-  if(path == NULL || !PyString_Check(path)) {
+  if (path == NULL || !PyString_Check(path)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }
   
   // Did we get excplicit backlog size?
-  if(PyTuple_GET_SIZE(args) > 1) {
+  if (PyTuple_GET_SIZE(args) > 1) {
     PyObject *arg1 = PyTuple_GET_ITEM(args, 1);
-    if(arg1 != NULL) {
-      if(!PyInt_Check(arg1)) {
+    if (arg1 != NULL) {
+      if (!PyInt_Check(arg1)) {
         PyErr_SetString(PyExc_TypeError, "second argument must be an integer");
         return NULL;
       }
@@ -101,7 +101,7 @@ PyObject *smisk_bind(PyObject *self, PyObject *args) {
   
   // Bind/listen
   fd = FCGX_OpenSocket(PyString_AS_STRING(path), backlog);
-  if(fd < 0) {
+  if (fd < 0) {
     log_debug("ERROR: FCGX_OpenSocket(\"%s\", %d) returned %d. errno: %d", 
       PyString_AS_STRING(path), backlog, fd, errno);
     return PyErr_SET_FROM_ERRNO;
@@ -128,33 +128,31 @@ PyObject *smisk_listening(PyObject *self, PyObject *args) {
   socklen_t addrlen;
   struct sockaddr *addr;
   
-  if(smisk_listensock_fileno == FCGI_LISTENSOCK_FILENO) {
+  if (smisk_listensock_fileno == FCGI_LISTENSOCK_FILENO)
     Py_RETURN_NONE;
-  }
   
   addrlen = sizeof(struct sockaddr_in); // Assume INET
   addr = (struct sockaddr *)malloc(addrlen);
-  if(getsockname(smisk_listensock_fileno, addr, &addrlen) != 0) {
+  if (getsockname(smisk_listensock_fileno, addr, &addrlen) != 0)
     return PyErr_SET_FROM_ERRNO;
-  }
   
-  if(addr->sa_family == AF_INET || addr->sa_family == AF_INET6) {
+  if (addr->sa_family == AF_INET || addr->sa_family == AF_INET6) {
     char *saddr = "*";
-    if(((struct sockaddr_in *)addr)->sin_addr.s_addr != (in_addr_t)0) {
+    if (((struct sockaddr_in *)addr)->sin_addr.s_addr != (in_addr_t)0) {
       saddr = (char *)inet_ntoa(((struct sockaddr_in *)addr)->sin_addr);
     }
     s = PyString_FromFormat("%s:%d",
       saddr, 
       htons(((struct sockaddr_in *)addr)->sin_port) );
   }
-  else if(addr->sa_family == AF_UNIX) {
+  else if (addr->sa_family == AF_UNIX) {
     // This may be a bit risky...
     s = PyString_FromString(((struct sockaddr_un *)addr)->sun_path);
   }
   
-  if(s == Py_None) {
+  if (s == Py_None)
     Py_INCREF(s);
-  }
+  
   return s;
 }
 
@@ -185,17 +183,18 @@ PyMODINIT_FUNC initcore(void) {
   PyObject *os_str = PyString_FromString("os");
   os_module = PyImport_Import(os_str);
   Py_DECREF(os_str);
-  if(os_module == NULL) {
+  if (os_module == NULL)
     return;
-  }
   
   // Constants: Other static strings (only used in C API)
   kString_http = PyString_FromString("http");
   kString_https = PyString_FromString("https");
   
   // Constants: Special variables
-  if(PyModule_AddStringConstant(module, "__build__", SMISK_BUILD_ID) != 0) return;
-  if(PyModule_AddStringConstant(module, "__doc__", smisk_module_DOC) != 0) return;
+  if (PyModule_AddStringConstant(module, "__build__", SMISK_BUILD_ID) != 0)
+    return;
+  if (PyModule_AddStringConstant(module, "__doc__", smisk_module_DOC) != 0)
+    return;
   
   // Register types
   if (!module ||

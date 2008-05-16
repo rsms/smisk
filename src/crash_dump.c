@@ -55,7 +55,7 @@ static void smisk_crash_write_backtrace(siginfo_t *info, void *ptr, FILE *out) {
 #if defined(SIGSEGV_STACK_X86) || defined(SIGSEGV_STACK_IA64)
   ucontext_t *ucontext = (ucontext_t*)ptr;
   
-  for(i = 0; i < NGREG; i++)
+  for (i = 0; i < NGREG; i++)
     fprintf(out, "reg[%02lu]     = 0x" REGFORMAT "\n", i, (unsigned long)ucontext->uc_mcontext.gregs[i]);
 # if defined(SIGSEGV_STACK_IA64)
   ip = (void*)ucontext->uc_mcontext.gregs[REG_RIP];
@@ -66,8 +66,8 @@ static void smisk_crash_write_backtrace(siginfo_t *info, void *ptr, FILE *out) {
 # endif
 
   fprintf(out, "Stack trace:\n");
-  while(bp && ip) {
-    if(!dladdr(ip, &dlinfo))
+  while (bp && ip) {
+    if (!dladdr(ip, &dlinfo))
       break;
 
     const char *symname = dlinfo.dli_sname;
@@ -79,7 +79,7 @@ static void smisk_crash_write_backtrace(siginfo_t *info, void *ptr, FILE *out) {
         (unsigned)(ip - dlinfo.dli_saddr),
         dlinfo.dli_fname);
 
-    if(dlinfo.dli_sname && smisk_str4cmp(dlinfo.dli_sname, 'm','a','i','n'))
+    if (dlinfo.dli_sname && smisk_str4cmp(dlinfo.dli_sname, 'm','a','i','n'))
       break;
 
     ip = bp[1];
@@ -89,7 +89,7 @@ static void smisk_crash_write_backtrace(siginfo_t *info, void *ptr, FILE *out) {
   fprintf(out, "Stack trace (non-dedicated):\n");
   sz = backtrace(bt, 1000);
   strings = backtrace_symbols(bt, sz);
-  for(i = 0; i < sz; ++i)
+  for (i = 0; i < sz; ++i)
     fprintf(out, "%s\n", strings[i]);
 #endif
   fprintf(out, "End of stack trace\n");
@@ -183,7 +183,7 @@ static void smisk_crash_sighandler(int signum, siginfo_t* info, void*ptr) {
   // Open file
   fprintf(stderr, "Writing crash dump to %s...\n", out_fn);
   out = fopen(out_fn, "w");
-  if(!out)
+  if (!out)
     out = stderr;
   
   // Basic info
@@ -195,7 +195,7 @@ static void smisk_crash_sighandler(int signum, siginfo_t* info, void*ptr) {
   fprintf(out, "Smisk:              %s (%s)\n", SMISK_VERSION, SMISK_BUILD_ID);
   #if HAVE_SYS_UTSNAME_H
     struct utsname un;
-    if(uname(&un) == 0) {
+    if (uname(&un) == 0) {
       fprintf(out, "System:             %s, %s, %s, %s\n",
         un.sysname, un.release, un.version, un.machine);
       fprintf(out, "Hostname:           %s\n", un.nodename);
@@ -213,7 +213,7 @@ static void smisk_crash_sighandler(int signum, siginfo_t* info, void*ptr) {
   i = 0;
   found_gdb_path = NULL;
   do {
-    if(access(*(gdb_path+i), R_OK) == 0) {
+    if (access(*(gdb_path+i), R_OK) == 0) {
       found_gdb_path = *(gdb_path+i);
       log_debug("found gdb at %s", found_gdb_path);
       break;
@@ -222,7 +222,7 @@ static void smisk_crash_sighandler(int signum, siginfo_t* info, void*ptr) {
   
   // Write backtrace
   fprintf(out, "\nBacktrace:\n");
-  if(found_gdb_path) {
+  if (found_gdb_path) {
     fclose(out);
     system("/bin/echo 'backtrace' > /tmp/smisk_gdb_args");
     sprintf(cmd, "%s -batch -x /tmp/smisk_gdb_args %s %d >> %s",
@@ -246,18 +246,17 @@ void smisk_crash_dump_init(void) {
   action.sa_flags = SA_SIGINFO;
   // Important: Only register for signals which have
   //            its codes in the si_codes table above.
-  if(sigaction(SIGILL, &action, NULL) < 0) {
+  if (sigaction(SIGILL, &action, NULL) < 0)
     perror("sigaction"); return;
-  }
-  if(sigaction(SIGFPE, &action, NULL) < 0) {
+  
+  if (sigaction(SIGFPE, &action, NULL) < 0)
     perror("sigaction"); return;
-  }
-  if(sigaction(SIGBUS, &action, NULL) < 0) {
+  
+  if (sigaction(SIGBUS, &action, NULL) < 0)
     perror("sigaction"); return;
-  }
-  if(sigaction(SIGSEGV, &action, NULL) < 0) {
+  
+  if (sigaction(SIGSEGV, &action, NULL) < 0)
     perror("sigaction");
-  }
 }
 
 #else /* SMISK_NO_CRASH_REPORTING */

@@ -45,10 +45,10 @@ static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
   char *s;
   int bytes_read;
   
-  if(length == 0) {
+  if (length == 0) {
     return strdup("");
   }
-  else if(length > 0) {
+  else if (length > 0) {
     s = (char *)malloc(length+1);
     bytes_read = FCGX_GetStr(s, length, stream);
     s[(bytes_read < length) ? bytes_read : length] = '\0';
@@ -58,9 +58,9 @@ static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
     size_t size = SMISK_STREAM_READ_CHUNKSIZE;
     s = (char *)malloc(size);
     
-    while(1) {
+    while (1) {
       bytes_read = FCGX_GetStr(s, SMISK_STREAM_READ_CHUNKSIZE, stream);
-      if(bytes_read < SMISK_STREAM_READ_CHUNKSIZE) {
+      if (bytes_read < SMISK_STREAM_READ_CHUNKSIZE) {
         s[(size - SMISK_STREAM_READ_CHUNKSIZE) + bytes_read] = '\0';
         break; // EOF
       }
@@ -77,31 +77,30 @@ static int _parse_request_body(smisk_Request* self) {
   char *content_type;
   long content_length;
   
-  if((self->post = PyDict_New()) == NULL) {
+  if ((self->post = PyDict_New()) == NULL)
     return -1;
-  }
   
-  if((self->files = PyDict_New()) == NULL) {
+  if ((self->files = PyDict_New()) == NULL)
     return -1;
-  }
   
-  if((content_type = FCGX_GetParam("CONTENT_TYPE", self->envp))) {
+  if ((content_type = FCGX_GetParam("CONTENT_TYPE", self->envp))) {
     // Parse content-length if available
     char *t = FCGX_GetParam("CONTENT_LENGTH", self->envp);
     content_length = (t != NULL) ? atol(t) : -1;
     
-    if(strstr(content_type, "multipart/")) {
-      if(smisk_multipart_parse_stream(self->input->stream, content_length, self->post, self->files) != 0) {
+    if (strstr(content_type, "multipart/")) {
+      
+      if (smisk_multipart_parse_stream(self->input->stream, content_length, self->post, self->files) != 0)
         return -1;
-      }
+      
     }
-    else if(strstr(content_type, "/x-www-form-urlencoded")) {
+    else if (strstr(content_type, "/x-www-form-urlencoded")) {
       char *s = smisk_read_fcgxstream(self->input->stream, content_length);
       int parse_status = smisk_parse_input_data(s, "&", 0, self->post);
       free(s);
-      if(parse_status != 0) {
+      
+      if (parse_status != 0)
         return -1;
-      }
     }
     // else, leave it as raw input
   }
@@ -116,15 +115,15 @@ inline char *_strtolower(char *s) {
   char *p = s;
   do {
     *p = tolower(*p);
-  } while( *p++ );
+  } while ( *p++ );
   return s;
 }
 
 
-static int _valid_sid(const char *uid, size_t len) {
+static inline int _valid_sid(const char *uid, size_t len) {
   size_t i;
-  for(i=0;i<len;i++) {
-    if( ((uid[i] < '0') || (uid[i] > '9')) 
+  for (i=0;i<len;i++) {
+    if ( ((uid[i] < '0') || (uid[i] > '9')) 
 #if (SMISK_SESSION_NBITS == 6)
       &&((uid[i] < 'a') || (uid[i] > 'f')) 
       &&((uid[i] < 'A') || (uid[i] > 'F'))
@@ -163,12 +162,13 @@ static PyObject *_generate_sid(smisk_Request* self) {
   unsigned char digest[21];
   sha1_init(&sha1_ctx);
   sha1_update(&sha1_ctx, (unsigned char *)buf, strlen(buf));
-  if((remote_info = FCGX_GetParam("REMOTE_ADDR", self->envp))) {
+  
+  if ((remote_info = FCGX_GetParam("REMOTE_ADDR", self->envp)))
     sha1_update(&sha1_ctx, (unsigned char *)remote_info, strlen(remote_info));
-  }
-  if((remote_info = FCGX_GetParam("REMOTE_PORT", self->envp))) {
+  
+  if ((remote_info = FCGX_GetParam("REMOTE_PORT", self->envp)))
     sha1_update(&sha1_ctx, (unsigned char *)remote_info, strlen(remote_info));
-  }
+  
   sha1_final(&sha1_ctx, digest);
   
 #if (SMISK_SESSION_NBITS == 6)
@@ -188,7 +188,7 @@ static PyObject *_generate_sid(smisk_Request* self) {
 static int _cleanup_session(smisk_Request* self) {
   log_trace("ENTER");
   // Write modified session
-  if(self->session_id) {
+  if (self->session_id) {
     long h = 0;
     
     log_debug("self->session_id = %s", self->session_id ? PyString_AS_STRING(self->session_id) : "NULL");
@@ -197,29 +197,28 @@ static int _cleanup_session(smisk_Request* self) {
     log_debug("PyObject_Hash(self->session) = %lu", self->session ? PyObject_Hash(self->session) : 0);
     assert(self->session);
     
-    if(smisk_require_app() != 0) {
+    if (smisk_require_app() != 0)
       return -1;
-    }
+    
     ENSURE_BY_GETTER(smisk_current_app->sessions, smisk_Application_get_sessions(smisk_current_app),
       return -1;
     );
     
-    if( ((self->initial_session_hash == 0) && (self->session != Py_None)) 
+    if ( ((self->initial_session_hash == 0) && (self->session != Py_None)) 
       || (self->initial_session_hash != (h = PyObject_Hash(self->session))) )
     {
       // Session data was changed. Write it.
       DUMP_REFCOUNT(self->session);
       DUMP_REFCOUNT(self->session_id);
-      if(PyObject_CallMethod(smisk_current_app->sessions, "write", "OO", self->session_id, self->session) == NULL) {
+      if (PyObject_CallMethod(smisk_current_app->sessions, "write", "OO", self->session_id, self->session) == NULL) {
         log_debug("sessions.write() returned NULL");
         return -1;
       }
     }
-    else if(self->initial_session_hash == h) {
+    else if (self->initial_session_hash == h) {
       // Session data was unchanged. Give the session store the opportunity to refresh this sessions' TTL:
-      if(PyObject_CallMethod(smisk_current_app->sessions, "refresh", "O", self->session_id) == NULL) {
+      if (PyObject_CallMethod(smisk_current_app->sessions, "refresh", "O", self->session_id) == NULL)
         return -1;
-      }
     }
     
   }
@@ -231,17 +230,17 @@ static int _cleanup_uploads(smisk_Request* self) {
   log_trace("ENTER");
   // Delete unused uploaded files
   int st = 0;
-  if(self->files) {
+  if (self->files) {
     PyObject *files = PyDict_Values(self->files);
     size_t i, count = PyList_GET_SIZE(files);
-    for(i=0;i<count;i++) {
+    for (i=0;i<count;i++) {
       PyObject *file = PyList_GET_ITEM(files, i);
-      if(file != Py_None) {
+      if (file != Py_None) {
         PyObject *path = PyDict_GetItemString(file, "path");
-        if(path) {
+        if (path) {
           char *fn = PyString_AsString(path);
           log_debug("Trying to unlink file '%s' (%s)", fn, smisk_file_exist(fn) ? "exists" : "not found - skipping");
-          if(smisk_file_exist(fn) && (unlink(fn) != 0)) {
+          if (smisk_file_exist(fn) && (unlink(fn) != 0)) {
             log_debug("Failed to unlink temporary file %s", fn);
             PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
             st = -1;
@@ -263,13 +262,11 @@ static int _cleanup_uploads(smisk_Request* self) {
 int smisk_Request_reset (smisk_Request* self) {
   log_trace("ENTER");
   
-  if(_cleanup_session(self) != 0) {
+  if (_cleanup_session(self) != 0)
     return -1;
-  }
   
-  if(_cleanup_uploads(self) != 0) {
+  if (_cleanup_uploads(self) != 0)
     return -1;
-  }
   
   Py_CLEAR(self->env);
   Py_CLEAR(self->url);
@@ -296,7 +293,7 @@ PyObject * smisk_Request_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
   
   self = (smisk_Request *)type->tp_alloc(type, 0);
   if (self != NULL) {
-    if(smisk_Request_reset(self) != 0) {
+    if (smisk_Request_reset(self) != 0) {
       Py_DECREF(self);
       return NULL;
     }
@@ -334,7 +331,7 @@ void smisk_Request_dealloc(smisk_Request* self) {
   Py_XDECREF(self->input);
   Py_XDECREF(self->errors);
   
-  if(self->envp_buf)
+  if (self->envp_buf)
     free(self->envp_buf);
   
   self->ob_type->tp_free((PyObject*)self);
@@ -358,17 +355,17 @@ PyObject *smisk_Request_log_error(smisk_Request* self, PyObject *msg) {
   log_trace("ENTER");
   static const char format[] = "%s[%d] %s";
   
-  if(!self->errors->stream || ((PyObject *)self->errors->stream == Py_None)) {
+  if (!self->errors->stream || ((PyObject *)self->errors->stream == Py_None)) {
     PyErr_SetString(smisk_IOError, "request.errors stream not initialized. Only makes sense during an active request.");
     return NULL;
   }
   
-  if(!msg || !PyString_Check(msg)) {
+  if (!msg || !PyString_Check(msg)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }
   
-  if(FCGX_FPrintF(self->errors->stream, format, Py_GetProgramName(), getpid(), PyString_AsString(msg)) == -1) {
+  if (FCGX_FPrintF(self->errors->stream, format, Py_GetProgramName(), getpid(), PyString_AsString(msg)) == -1) {
     fprintf(stderr, format, Py_GetProgramName(), getpid(), PyString_AsString(msg));
     return PyErr_SET_FROM_ERRNO;
   }
@@ -392,47 +389,47 @@ PyObject *smisk_Request_get_env(smisk_Request* self) {
   static PyObject *_cached_SERVER_SOFTWARE_v = NULL;
   
   // Lazy initializer
-  if(self->env == NULL) {
+  if (self->env == NULL) {
     
     // Alloc new dict
     self->env = PyDict_New();
-    if(self->env == NULL) {
+    if (self->env == NULL) {
       log_debug("self->env == NULL");
       return NULL;
     }
     
     // Transcribe envp to dict
-    if(self->envp != NULL) {
+    if (self->envp != NULL) {
       
       PyObject *k, *v;
       char **envp = self->envp;
       
       // Parse env into dict
-      for( ; *envp; envp++) {
+      for ( ; *envp; envp++) {
         
         char *value = strchr(*envp, '=');
         
-        if(!value) {
+        if (!value) {
           log_debug("Strange item in ENV (missing '=')");
           continue;
         }
         
         // SERVER_SOFTWARE will most likely not change during the process lifetime,
         // or at least, we done really care, so lets cache it.
-        if(smisk_str8cmp(*envp, 'S','E','R','V','E','R','_','S') &&
+        if (smisk_str8cmp(*envp, 'S','E','R','V','E','R','_','S') &&
           (*envp)[8]=='O'  && (*envp)[9]=='F'  && (*envp)[10]=='T' && (*envp)[11]=='W' && 
           (*envp)[12]=='A' && (*envp)[13]=='R' && (*envp)[14]=='E')
         {
           
-          if(_cached_SERVER_SOFTWARE_k == NULL) {
+          if (_cached_SERVER_SOFTWARE_k == NULL) {
             
             k = PyString_FromStringAndSize(*envp, value-*envp);
-            if(k) PyString_InternInPlace(&k);
-            if(k == NULL)
+            if (k) PyString_InternInPlace(&k);
+            if (k == NULL)
               return NULL;
             
             v = PyString_FromFormat("%s smisk/%s", ++value, SMISK_VERSION);
-            if(v == NULL) {
+            if (v == NULL) {
               Py_DECREF(k);
               return NULL;
             }
@@ -442,24 +439,24 @@ PyObject *smisk_Request_get_env(smisk_Request* self) {
             
           }
           
-          if( PyDict_SetItem(self->env, _cached_SERVER_SOFTWARE_k, _cached_SERVER_SOFTWARE_v) != 0 )
+          if ( PyDict_SetItem(self->env, _cached_SERVER_SOFTWARE_k, _cached_SERVER_SOFTWARE_v) != 0 )
             return NULL;
           
           continue;
         }
         
         k = PyString_FromStringAndSize(*envp, value-*envp);
-        if(k) PyString_InternInPlace(&k);
-        if(k == NULL)
+        if (k) PyString_InternInPlace(&k);
+        if (k == NULL)
           return NULL;
         
         v = PyString_InternFromString(++value);
-        if(v == NULL) {
+        if (v == NULL) {
           Py_DECREF(k);
           return NULL;
         }
         
-        if( PyDict_SetItem(self->env, (PyObject *)k, (PyObject *)v) != 0 )
+        if ( PyDict_SetItem(self->env, (PyObject *)k, (PyObject *)v) != 0 )
           return NULL;
         
         // Release ownership
@@ -481,18 +478,18 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
   char *s, *p, *s2;
   PyObject *old;
   
-  if(self->url == NULL) {
-    if( (self->url = (smisk_URL *)smisk_URL_new(&smisk_URLType, NULL, NULL)) == NULL )
+  if (self->url == NULL) {
+    if ( (self->url = (smisk_URL *)smisk_URL_new(&smisk_URLType, NULL, NULL)) == NULL )
       return NULL;
     
     // Scheme
-    if((s = FCGX_GetParam("SERVER_PROTOCOL", self->envp))) {
+    if ((s = FCGX_GetParam("SERVER_PROTOCOL", self->envp))) {
       old = self->url->scheme;
       
       // As this is called MANY times, this op is really worth it...
-      if( ((s[0]=='H')&&(s[1]=='T')&&(s[2]=='T')&&(s[3]=='P')) 
+      if ( ((s[0]=='H')&&(s[1]=='T')&&(s[2]=='T')&&(s[3]=='P')) 
         ||((s[0]=='h')&&(s[1]=='t')&&(s[2]=='t')&&(s[3]=='p')) ) {
-        if( (s[4]=='S'||s[4]=='s') ) { // what about if the interface spec is less than 5 chars?
+        if ( (s[4]=='S'||s[4]=='s') ) { // what about if the interface spec is less than 5 chars?
           self->url->scheme = kString_https;
           Py_INCREF(kString_https);
         }
@@ -503,7 +500,7 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
       }
       else {
         Py_ssize_t len = strlen(s); 
-        if((p = strchr(s, '/')))
+        if ((p = strchr(s, '/')))
           len = (Py_ssize_t)(p-s);
         self->url->scheme = PyString_FromStringAndSize(_strtolower(s), len);
       }
@@ -512,7 +509,7 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
     }
     
     // User
-    if((s = FCGX_GetParam("REMOTE_USER", self->envp))) {
+    if ((s = FCGX_GetParam("REMOTE_USER", self->envp))) {
       old = self->url->user;
       self->url->user = PyString_FromString(s);
       Py_CLEAR(old);
@@ -521,11 +518,11 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
     // Host & port
     s = FCGX_GetParam("SERVER_NAME", self->envp);
     old = self->url->host;
-    if((p = strchr(s, ':'))) {
+    if ((p = strchr(s, ':'))) {
       self->url->host = PyString_FromStringAndSize(s, p-s);
       self->url->port = atoi(p+1);
     }
-    else if((s2 = FCGX_GetParam("SERVER_PORT", self->envp))) {
+    else if ((s2 = FCGX_GetParam("SERVER_PORT", self->envp))) {
       self->url->host = PyString_FromString(s);
       self->url->port = atoi(s2);
     }
@@ -533,14 +530,14 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
       self->url->host = PyString_FromString(s);
     }
     PyString_InternInPlace(&self->url->host);
-    if(self->url->host == NULL)
+    if (self->url->host == NULL)
       return PyErr_NoMemory();
     Py_CLEAR(old);
     
     // Path & querystring
     // Not in RFC, but considered standard
-    if((s = FCGX_GetParam("REQUEST_URI", self->envp))) {
-      if((p = strchr(s, '?'))) {
+    if ((s = FCGX_GetParam("REQUEST_URI", self->envp))) {
+      if ((p = strchr(s, '?'))) {
         *p = '\0';
         
         old = self->url->path;
@@ -559,17 +556,17 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
     }
     // Non-REQUEST_URI compliant fallback
     else {
-      if((s = FCGX_GetParam("SCRIPT_NAME", self->envp))) {
+      if ((s = FCGX_GetParam("SCRIPT_NAME", self->envp))) {
         old = self->url->path;
         self->url->path = PyString_FromString(s);
         Py_DECREF(old);
         // May not always give the same results as the above implementation
         // because the CGI specification does claim "This information should be
         // decoded by the server if it comes from a URL" which is a bit vauge.
-        if((s = FCGX_GetParam("PATH_INFO", self->envp)))
+        if ((s = FCGX_GetParam("PATH_INFO", self->envp)))
           PyString_ConcatAndDel(&self->url->path, PyString_FromString(s));
       }
-      if((s = FCGX_GetParam("QUERY_STRING", self->envp))) {
+      if ((s = FCGX_GetParam("QUERY_STRING", self->envp))) {
         old = self->url->query;
         self->url->query = PyString_FromString(s);
         Py_DECREF(old);
@@ -585,18 +582,18 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
 
 PyObject *smisk_Request_get_get(smisk_Request* self) {
   log_trace("ENTER");
-  if(self->get == NULL) {
-    if((self->get = PyDict_New()) == NULL) {
+  if (self->get == NULL) {
+    
+    if ((self->get = PyDict_New()) == NULL)
       return NULL;
-    }
     
     ENSURE_BY_GETTER(self->url, smisk_Request_get_url(self),
       return NULL;
     );
     
-    if(self->url->query && (self->url->query != Py_None) && (PyString_GET_SIZE(self->url->query) > 0)) {
+    if (self->url->query && (self->url->query != Py_None) && (PyString_GET_SIZE(self->url->query) > 0)) {
       assert_refcount(self->get, == 1);
-      if(smisk_parse_input_data(PyString_AS_STRING(self->url->query), "&", 0, self->get) != 0) {
+      if (smisk_parse_input_data(PyString_AS_STRING(self->url->query), "&", 0, self->get) != 0) {
         Py_DECREF(self->get);
         self->get = NULL;
         return NULL;
@@ -611,11 +608,10 @@ PyObject *smisk_Request_get_get(smisk_Request* self) {
 
 PyObject *smisk_Request_get_post(smisk_Request* self) {
   log_trace("ENTER");
-  if(self->post == NULL) {
-    if(_parse_request_body(self) != 0) {
-      return NULL;
-    }
-  }
+  
+  if ( (self->post == NULL) && ((_parse_request_body(self) != 0)) )
+    return NULL;
+  
   Py_INCREF(self->post); // callers reference
   return self->post;
 }
@@ -623,11 +619,10 @@ PyObject *smisk_Request_get_post(smisk_Request* self) {
 
 PyObject *smisk_Request_get_files(smisk_Request* self) {
   log_trace("ENTER");
-  if(self->files == NULL) {
-    if(_parse_request_body(self) != 0) {
-      return NULL;
-    }
-  }
+  
+  if ( (self->files == NULL) && (_parse_request_body(self) != 0) )
+    return NULL;
+  
   Py_INCREF(self->files); // callers reference
   return self->files;
 }
@@ -637,14 +632,14 @@ PyObject *smisk_Request_get_cookies(smisk_Request* self) {
   log_trace("ENTER");
   char *http_cookie;
   
-  if(self->cookies == NULL) {
-    if((self->cookies = PyDict_New()) == NULL) {
-      return NULL;
-    }
+  if (self->cookies == NULL) {
     
-    if((http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp))) {
+    if ((self->cookies = PyDict_New()) == NULL)
+      return NULL;
+    
+    if ((http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp))) {
       log_debug("Parsing input data");
-      if(smisk_parse_input_data(http_cookie, ";", 1, self->cookies) != 0) {
+      if (smisk_parse_input_data(http_cookie, ";", 1, self->cookies) != 0) {
         Py_DECREF(self->cookies);
         self->cookies = NULL;
         return NULL;
@@ -660,10 +655,10 @@ PyObject *smisk_Request_get_cookies(smisk_Request* self) {
 
 static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
   log_trace("ENTER");
-  if(self->session_id == NULL) {
-    if(smisk_require_app() != 0) {
+  if (self->session_id == NULL) {
+    
+    if (smisk_require_app() != 0)
       return NULL;
-    }
     
     ENSURE_BY_GETTER(self->cookies, smisk_Request_get_cookies(self),
       return NULL;
@@ -678,14 +673,14 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
     // Has SID in cookie? - if so, validate
     self->session_id = PyDict_GetItem(self->cookies,
       ((smisk_SessionStore *)smisk_current_app->sessions)->name);
-    if( self->session_id != NULL ) {
-      if(!PyString_Check(self->session_id)) {
-        if(PyList_Check(self->session_id)) {
+    if ( self->session_id != NULL ) {
+      if (!PyString_Check(self->session_id)) {
+        if (PyList_Check(self->session_id)) {
           log_debug("Ambiguous: Multiple SID supplied in request. Will use first one.");
-          if( (self->session_id = PyList_GetItem(self->session_id, 0)) == NULL ) {
+          if ( (self->session_id = PyList_GetItem(self->session_id, 0)) == NULL ) {
             return NULL;
           }
-          else if(!PyString_Check(self->session_id)) {
+          else if (!PyString_Check(self->session_id)) {
             PyErr_SetString(PyExc_TypeError, "self.session_id is not a string");
             self->session_id = NULL;
             return NULL;
@@ -701,15 +696,15 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
       log_debug("SID '%s' provided by request", PyString_AS_STRING(self->session_id));
       // As this is the first time we aquire the SID and it was provided by the user,
       // we will also read up the session to validate wherethere this SID is valid.
-      if(!_valid_sid(PyString_AS_STRING(self->session_id), PyString_GET_SIZE(self->session_id))) {
+      if (!_valid_sid(PyString_AS_STRING(self->session_id), PyString_GET_SIZE(self->session_id))) {
         log_debug("Invalid SID provided by request (illegal format)");
         self->session_id = NULL;
       }
       else {
         self->session = PyObject_CallMethod(smisk_current_app->sessions, "read", "O", self->session_id);
         
-        if(self->session == NULL) {
-          if(PyErr_ExceptionMatches(smisk_InvalidSessionError)) {
+        if (self->session == NULL) {
+          if (PyErr_ExceptionMatches(smisk_InvalidSessionError)) {
             PyErr_Clear();
             log_debug("Invalid SID provided by request (no data)");
             self->session_id = NULL;
@@ -728,16 +723,16 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
     }
     
     // No SID-cookie or incorrect SID?
-    if(self->session_id == NULL) {
+    if (self->session_id == NULL) {
       assert(self->session == NULL);
-      if( (self->session_id = _generate_sid(self)) == NULL ) {
+      if ( (self->session_id = _generate_sid(self)) == NULL )
         return NULL;
-      }
+      
       // We do not call sessions.read() here because we *know* there is no data available.
       self->session = Py_None;
       Py_INCREF(Py_None);
       self->initial_session_hash = 0;
-      if(smisk_current_app->response->has_begun == Py_True) {
+      if (smisk_current_app->response->has_begun == Py_True) {
         PyErr_SetString(smisk_Error, "Output already started - too late to send session id with response");
         return NULL;
       }
@@ -759,18 +754,19 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
 
 static int smisk_Request_set_session_id(smisk_Request* self, PyObject *session_id) {
   log_trace("ENTER");
-  if(smisk_current_app->response->has_begun == Py_True) {
+  
+  if (smisk_current_app->response->has_begun == Py_True) {
     PyErr_SetString(smisk_Error, "Output already started - too late to set session id");
     return -1;
   }
+  
   ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
     return -1;
   );
   
   // Delete old session data (a copy of it is still in this apps memory)
-  if(PyObject_CallMethod(smisk_current_app->sessions, "destroy", "O", self->session_id) == NULL) {
+  if (PyObject_CallMethod(smisk_current_app->sessions, "destroy", "O", self->session_id) == NULL)
     return -1;
-  }
   
   REPLACE_OBJ(self->session_id, session_id, PyObject);
   self->initial_session_hash = 0; // Causes "sessions.write()" and "Set-Cookie: SID="
@@ -780,7 +776,7 @@ static int smisk_Request_set_session_id(smisk_Request* self, PyObject *session_i
 
 static PyObject *smisk_Request_get_session(smisk_Request* self) {
   log_trace("ENTER");
-  if(self->session == NULL) {
+  if (self->session == NULL) {
     // get_session_id will take it from here
     ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
       return NULL;
@@ -794,19 +790,21 @@ static PyObject *smisk_Request_get_session(smisk_Request* self) {
 static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
   log_trace("ENTER val=%p", val);
   IFDEBUG(DUMP_REPR(val));
+  
   ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
     return -1;
   );
   
   // Passing None causes the current session to be destroyed
-  if(val == Py_None) {
-    if(self->session != Py_None) {
+  if (val == Py_None) {
+    if (self->session != Py_None) {
       log_debug("Destroying session '%s'", PyString_AS_STRING(self->session_id));
       assert(smisk_current_app);
       assert(smisk_current_app->sessions);
-      if(PyObject_CallMethod(smisk_current_app->sessions, "destroy", "O", self->session_id) == NULL) {
+      
+      if (PyObject_CallMethod(smisk_current_app->sessions, "destroy", "O", self->session_id) == NULL)
         return -1;
-      }
+      
       self->initial_session_hash = 0;
       REPLACE_OBJ(self->session, Py_None, PyObject);
     }
@@ -842,7 +840,7 @@ PyDoc_STRVAR(smisk_Request_DOC,
 // Methods
 static PyMethodDef smisk_Request_methods[] = {
   {"log_error", (PyCFunction)smisk_Request_log_error, METH_O, smisk_Request_log_error_DOC},
-  {NULL}
+  {NULL, NULL, 0, NULL}
 };
 
 // Properties
@@ -886,7 +884,7 @@ static PyGetSetDef smisk_Request_getset[] = {
     "Indicates if the request is active, if we are in the middle of a "
     "*HTTP transaction*", NULL},
   
-  {NULL}
+  {NULL, NULL, NULL, NULL, NULL}
 };
 
 // Class members
@@ -922,7 +920,7 @@ static struct PyMemberDef smisk_Request_members[] = {
   
   {"errors",   T_OBJECT_EX, offsetof(smisk_Request, errors),   RO, ":type: `Stream`"},
   
-  {NULL}
+  {NULL, 0, 0, 0, NULL}
 };
 
 // Type definition
@@ -971,8 +969,9 @@ PyTypeObject smisk_RequestType = {
 
 int smisk_Request_register_types(PyObject *module) {
   log_trace("ENTER");
-  if(PyType_Ready(&smisk_RequestType) == 0) {
+  
+  if (PyType_Ready(&smisk_RequestType) == 0)
     return PyModule_AddObject(module, "Request", (PyObject *)&smisk_RequestType);
-  }
+  
   return -1;
 }

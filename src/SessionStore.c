@@ -33,9 +33,8 @@ PyObject *smisk_SessionStore_new(PyTypeObject *type, PyObject *args, PyObject *k
   log_trace("ENTER");
   smisk_SessionStore *self;
   
-  if ( (self = (smisk_SessionStore *)type->tp_alloc(type, 0)) == NULL ) {
+  if ( (self = (smisk_SessionStore *)type->tp_alloc(type, 0)) == NULL )
     return NULL;
-  }
   
   self->ttl = 900;
   self->name = PyString_FromString("SID");
@@ -180,7 +179,7 @@ PyTypeObject smisk_SessionStoreType = {
 
 int smisk_SessionStore_register_types(PyObject *module) {
   log_trace("ENTER");
-  if(PyType_Ready(&smisk_SessionStoreType) == 0)
+  if (PyType_Ready(&smisk_SessionStoreType) == 0)
     return PyModule_AddObject(module, "SessionStore", (PyObject *)&smisk_SessionStoreType);
   return -1;
 }

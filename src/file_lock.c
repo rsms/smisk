@@ -56,9 +56,9 @@ int smisk_file_lock(FILE *fh, int type) {
        * of EAGAIN; we don't want APR_STATUS_IS_EAGAIN() matching EACCES
        * since that breaks other things, so fix up the retcode here
        */
-      if (errno == EACCES) {
+      if (errno == EACCES)
         return EAGAIN;
-      }
+      
       return errno;
     }
   }

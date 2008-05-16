@@ -66,12 +66,12 @@ void smisk_multipart_ctx_reset(multipart_ctx_t *ctx) {
 
 // return 0 on success, !0 on malloc() failure
 int smisk_multipart_ctx_init(multipart_ctx_t *ctx) {
-  if(cstr_init(&ctx->buf, SMISK_STREAM_READLINE_LENGTH+1, 0) != 0) return -1;
-  if((ctx->lbuf2 = (char *)malloc(SMISK_STREAM_READLINE_LENGTH+1)) == NULL) return -1;
-  if((ctx->boundary = (char *)malloc(SMISK_STREAM_READLINE_LENGTH+1)) == NULL) return -1;
-  if((ctx->filename = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
-  if((ctx->content_type = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
-  if((ctx->part_name = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
+  if (cstr_init(&ctx->buf, SMISK_STREAM_READLINE_LENGTH+1, 0) != 0) return -1;
+  if ((ctx->lbuf2 = (char *)malloc(SMISK_STREAM_READLINE_LENGTH+1)) == NULL) return -1;
+  if ((ctx->boundary = (char *)malloc(SMISK_STREAM_READLINE_LENGTH+1)) == NULL) return -1;
+  if ((ctx->filename = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
+  if ((ctx->content_type = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
+  if ((ctx->part_name = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
   smisk_multipart_ctx_reset(ctx);
   return 0;
 }
@@ -79,17 +79,17 @@ int smisk_multipart_ctx_init(multipart_ctx_t *ctx) {
 
 void smisk_multipart_ctx_free(multipart_ctx_t *ctx) {
   cstr_free(&ctx->buf);
-  if(ctx->boundary) free(ctx->boundary);
-  if(ctx->content_type) free(ctx->content_type);
-  if(ctx->part_name) free(ctx->part_name);
-  if(ctx->lbuf2) free(ctx->lbuf2);
+  if (ctx->boundary) free(ctx->boundary);
+  if (ctx->content_type) free(ctx->content_type);
+  if (ctx->part_name) free(ctx->part_name);
+  if (ctx->lbuf2) free(ctx->lbuf2);
 }
 
 
 char *smisk_multipart_mktmpfile(multipart_ctx_t *ctx) {
   char *fn = tempnam(SMISK_FILE_UPLOAD_DIR, SMISK_FILE_UPLOAD_PREFIX);
   log_debug("Creating temporary file '%s'", fn);
-  if(fn == NULL) {
+  if (fn == NULL) {
     PyErr_Format(smisk_IOError, "Failed to create temporary file at dir '%s' with prefix '%s'",
       SMISK_FILE_UPLOAD_DIR, SMISK_FILE_UPLOAD_PREFIX);
     return NULL;
@@ -119,12 +119,12 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
   lbuf2_len = 0;
   boundary_hit = 0;
   
-  while( (!boundary_hit) && 
+  while ( (!boundary_hit) && 
          (lbuf1_len = smisk_stream_readline(lbuf1, SMISK_STREAM_READLINE_LENGTH, ctx->stream)) )
   {
-    if(BOUNDARY_HIT_TEST(lbuf1)) {
-      e = ctx->buf.ptr; for(;( (*e != '\r') && (*e != '\0') ); e++); // find end
-      if( (e > ctx->buf.ptr+2) && (*(e-1) == '-') && (*(e-2) == '-') ) {
+    if (BOUNDARY_HIT_TEST(lbuf1)) {
+      e = ctx->buf.ptr; for (;( (*e != '\r') && (*e != '\0') ); e++); // find end
+      if ( (e > ctx->buf.ptr+2) && (*(e-1) == '-') && (*(e-2) == '-') ) {
         //print("  > hit end boundary - end of message");
         ctx->eof = 1;
       }
@@ -135,22 +135,22 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
     }
     
     // write prev line
-    if(lbuf2_len > 1) {
+    if (lbuf2_len > 1) {
       
-      if(boundary_hit) {
+      if (boundary_hit) {
         // last line includes \r\n which is not part of the file
         lbuf2_len -= 2;
       }
       
-      if(lbuf2_len) {
+      if (lbuf2_len) {
         
         // Lazy tempfile creation
-        if(f == NULL) {
-          if( (fn = smisk_multipart_mktmpfile(ctx)) == NULL ) {
+        if (f == NULL) {
+          if ( (fn = smisk_multipart_mktmpfile(ctx)) == NULL ) {
             // PyErr has been set by smisk_multipart_mktmpfile
             return 1;
           }
-          if((f = fopen(fn, "w")) == NULL) {
+          if ((f = fopen(fn, "w")) == NULL) {
             PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
             return 1;
           }
@@ -158,7 +158,7 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
         
         bw = fwrite((const void *)lbuf2, 1, lbuf2_len, f);
         
-        if(bw == -1) {
+        if (bw == -1) {
           fclose(f);
           PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
           return 1;
@@ -175,7 +175,7 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
     lbuf2_len = lbuf1_len;
   }
   
-  IFDEBUG(if(bytes) {
+  IFDEBUG(if (bytes) {
     timer = smisk_microtime()-timer;
     double adjusted_size = (double)bytes;
     char size_unit = smisk_size_unit(&adjusted_size);
@@ -188,11 +188,11 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
   });
   
   // Close file -- might be NULL, since it's lazy initialized.
-  if(f)
+  if (f)
     fclose(f);
   
   // Add dict with file information to the ctx->files dict
-  if(bytes) {
+  if (bytes) {
     PyObject *py_key = PyString_FromString(ctx->part_name);
     PyObject *m = PyDict_New();
     
@@ -201,7 +201,7 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
     PyDict_SetItemString(m, "path",         PyString_FromString(fn));
     PyDict_SetItemString(m, "size",         PyLong_FromUnsignedLong(bytes));
     
-    if(PyDict_assoc_val_with_key(ctx->files, m, py_key) != 0)
+    if (PyDict_assoc_val_with_key(ctx->files, m, py_key) != 0)
       return -1;
   }
   
@@ -216,10 +216,10 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
   
   // Read line and write line
   p = ctx->buf.ptr;
-  while((bytes_read = smisk_stream_readline(p, SMISK_STREAM_READLINE_LENGTH, ctx->stream))) {
-    if(BOUNDARY_HIT_TEST(p)) {
-      e = p; for(;( (*e != '\r') && (*e != '\0') ); e++); // find end
-      if( (e > p+2) && (*(e-1) == '-') && (*(e-2) == '-') ) {
+  while ((bytes_read = smisk_stream_readline(p, SMISK_STREAM_READLINE_LENGTH, ctx->stream))) {
+    if (BOUNDARY_HIT_TEST(p)) {
+      e = p; for (;( (*e != '\r') && (*e != '\0') ); e++); // find end
+      if ( (e > p+2) && (*(e-1) == '-') && (*(e-2) == '-') ) {
         //print("  > hit end boundary - end of message");
         ctx->eof = 1;
       }
@@ -230,22 +230,22 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
       break;
     }
     p += bytes_read;
-    if(cstr_ensure_freespace(&ctx->buf, SMISK_STREAM_READLINE_LENGTH) != 0) {
+    if (cstr_ensure_freespace(&ctx->buf, SMISK_STREAM_READLINE_LENGTH) != 0) {
       PyErr_NoMemory();
       return 1;
     }
   }
   
   PyObject *py_key = PyString_FromString(ctx->part_name);
-  if( (len = (p - ctx->buf.ptr)) > 2 ) {
+  if ( (len = (p - ctx->buf.ptr)) > 2 ) {
     *(p-2) = '\0'; // \r\n -> \0\n
     len -= 2; // because above line
-    if(PyDict_assoc_val_with_key(ctx->post, PyString_FromString(ctx->buf.ptr), py_key) != 0)
+    if (PyDict_assoc_val_with_key(ctx->post, PyString_FromString(ctx->buf.ptr), py_key) != 0)
       return -1;
   }
   else {
     // no value, only key
-    if(PyDict_assoc_val_with_key(ctx->post, Py_None, py_key) != 0)
+    if (PyDict_assoc_val_with_key(ctx->post, Py_None, py_key) != 0)
       return -1;
   }
   
@@ -263,53 +263,53 @@ int smisk_multipart_parse_part(multipart_ctx_t *ctx) {
   ctx->content_type[0] = 0;
   
   // Parse headers
-  while( FCGX_GetLine(buf, SMISK_STREAM_READLINE_LENGTH, ctx->stream) ) {
-    if(buf[0] == '\r' && buf[1] == '\n' && buf[2] == '\0') {
+  while ( FCGX_GetLine(buf, SMISK_STREAM_READLINE_LENGTH, ctx->stream) ) {
+    if (buf[0] == '\r' && buf[1] == '\n' && buf[2] == '\0') {
       // end of headers
       break;
     }
-    if(buf[0] == 'C' || buf[0] == 'c') {
-      if(strncasecmp(buf, "Content-Disposition:", 20) == 0) {
+    if (buf[0] == 'C' || buf[0] == 'c') {
+      if (strncasecmp(buf, "Content-Disposition:", 20) == 0) {
         char *ssp = buf+20;
         char *key, *val, *p;
         int keylen;
-        while( (val = strsep(&ssp, ";")) ) {
+        while ( (val = strsep(&ssp, ";")) ) {
           STR_LTRIM_S(val);
-          if((p = strchr(val, '='))) { // key=value
+          if ((p = strchr(val, '='))) { // key=value
             *p = 0; // terminate part where val begin
             keylen = p-val;
             key = val;
             val = p;
             val++;
-            if(*val == '"') { // value is quoted
+            if (*val == '"') { // value is quoted
               val++;
-              p = val; for(;(*p != '"') && (*p != '\r'); p++); *p = 0; // rterm
+              p = val; for (;(*p != '"') && (*p != '\r'); p++); *p = 0; // rterm
             }
             // tests
-            if(smisk_str4cmp(key, 'n','a','m','e')) {
+            if (smisk_str4cmp(key, 'n','a','m','e')) {
               strncpy(ctx->part_name, val, FILENAME_MAX);
             }
-            else if(smisk_str8cmp(key, 'f','i','l','e','n','a','m','e')) {
+            else if (smisk_str8cmp(key, 'f','i','l','e','n','a','m','e')) {
               strncpy(ctx->filename, val, FILENAME_MAX);
               is_file = 1;
             }
           }
         }
       }
-      else if(strncasecmp(buf, "Content-Type:", 13) == 0) {
+      else if (strncasecmp(buf, "Content-Type:", 13) == 0) {
         buf += 13;
         STR_LTRIM_S(buf);
-        if( (p = strchr(buf, '\r')) ) {
+        if ( (p = strchr(buf, '\r')) ) {
           *p = 0;
           strncpy(ctx->content_type, buf, FILENAME_MAX);
         }
-      } // end if(strncasecmp(buf, "Content-Disposition:", 20) == 0)
+      } // end if (strncasecmp(buf, "Content-Disposition:", 20) == 0)
     }
   }
   
   if ((ctx->part_name) && (*ctx->part_name)) {
     // Parse body
-    if (is_file) 
+    if (is_file) {
       // file
       if (smisk_multipart_parse_file(ctx) != 0)
         return 1;
@@ -340,13 +340,12 @@ int smisk_multipart_parse_stream (FCGX_Stream *stream, long content_length, PyOb
   int status = 0;
   size_t bytes_read;
   
-  if(content_length <= 0) {
+  if (content_length <= 0)
     return 0;
-  }
   
   // init context
-  if(__ctx.lbuf2 == NULL) {
-    if(smisk_multipart_ctx_init(&__ctx)) {
+  if (__ctx.lbuf2 == NULL) {
+    if (smisk_multipart_ctx_init(&__ctx)) {
       log_error("malloc() failed!");
       raise(9);
     }
@@ -362,16 +361,15 @@ int smisk_multipart_parse_stream (FCGX_Stream *stream, long content_length, PyOb
   __ctx.files = files;
   
   // find boundary
-  if((bytes_read = smisk_stream_readline(__ctx.boundary, SMISK_STREAM_READLINE_LENGTH, __ctx.stream))) {
+  if ((bytes_read = smisk_stream_readline(__ctx.boundary, SMISK_STREAM_READLINE_LENGTH, __ctx.stream))) {
     __ctx.boundary_len = bytes_read-2; // -2 = -\r\n
     __ctx.boundary[__ctx.boundary_len] = 0;
   
     // We got our first part, so let's get going
     int limit=9;
-    while((!__ctx.eof) && limit--) {
-      if((status = smisk_multipart_parse_part(&__ctx)) != 0) {
+    while ((!__ctx.eof) && limit--) {
+      if ((status = smisk_multipart_parse_part(&__ctx)) != 0)
         break;
-      }
     }
   }
   

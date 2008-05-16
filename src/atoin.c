@@ -26,13 +26,12 @@ int atoin(const char *s, size_t len) {
   char c;
   
   for (; (c = *s++) != '\0' && len > 0; len--) {
-    if (c >= '0' && c <= '9') {
+    if (c >= '0' && c <= '9')
       digit = (int)(c - '0');
-    }
-    else {
+    else
       break;
-    }
     value = (value * 10) + digit;
   }
+  
   return value;
 }

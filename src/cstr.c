@@ -33,13 +33,13 @@ typedef struct {
 */
 
 int cstr_init (cstr_t *s, size_t capacity, unsigned int growsize) {
-  if(growsize == 0) {
+  if (growsize == 0)
     growsize = capacity;
-  }
+  
   s->ptr = (char *)malloc(sizeof(char)*(capacity+1));
-  if(s->ptr != NULL) {
+  if (s->ptr != NULL)
     s->ptr[0] = 0;
-  }
+  
   s->growsize = growsize;
   s->size = capacity;
   s->length = 0;
@@ -47,9 +47,8 @@ int cstr_init (cstr_t *s, size_t capacity, unsigned int growsize) {
 }
 
 void cstr_free(cstr_t *s) {
-  if(s->ptr) {
+  if (s->ptr)
     free(s->ptr);
-  }
 }
 
 void cstr_reset(cstr_t *s) {
@@ -59,53 +58,53 @@ void cstr_reset(cstr_t *s) {
 
 int cstr_resize(cstr_t *s, const size_t increment) {
   size_t new_size;
-  if(increment < s->growsize) {
+  if (increment < s->growsize)
     new_size = s->size + s->growsize + 1;
-  } else {
+  else
     new_size = s->size + increment + 1;
-  }
+  
   char *new = (char *)realloc(s->ptr, sizeof(char)*new_size);
-  if(new != NULL) {
+  
+  if (new != NULL) {
     s->ptr = new;
     s->size = new_size;
-  } else {
+  }
+  else {
     return 1;
   }
+  
   return 0;
 }
 
 int cstr_ensure_freespace(cstr_t *s, const size_t space) {
-  if(s->size - s->length < space) {
+  if (s->size - s->length < space)
     return cstr_resize(s, space - (s->size - s->length));
-  }
   return 0;
 }
 
 int cstr_append(cstr_t *s, const char *src, const size_t srclen) {
-  if(s->size - s->length <= srclen) {
-    if(!cstr_resize(s, srclen)) {
-      return 1;
-    }
-  }
+  if ( (s->size - s->length <= srclen) && (!cstr_resize(s, srclen)) )
+    return 1;
+  
   memcpy(s->ptr + s->length, src, srclen);
   s->length += srclen;
   s->ptr[s->length] = 0;
+  
   return 0;
 }
 
 int cstr_appendc(cstr_t *s, const char ch) {
-  if(s->length >= s->size) {
-    if(cstr_resize(s, (size_t)1)) {
-      return 1;
-    }
-  }
+  if ( (s->length >= s->size) && cstr_resize(s, (size_t)1) )
+    return 1;
+  
   s->ptr[s->length++] = ch;
   s->ptr[s->length] = 0;
+  
   return 0;
 }
 
 char cstr_popc(cstr_t *s) {
-  if(s->length) {
+  if (s->length) {
     char ch = s->ptr[s->length--];
     s->ptr[s->length] = 0;
     return ch;

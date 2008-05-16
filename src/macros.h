@@ -57,13 +57,13 @@ THE SOFTWARE.
     (destination) = (type *)(new_value); \
     Py_XINCREF(destination); \
     Py_XDECREF(__old_ ## type ## __LINE__); \
-  } while(0)
+  } while (0)
 
 // Ensure a lazy instance variable is available
 #define ENSURE_BY_GETTER(direct, getter, ...) \
-  if(direct == NULL) {\
+  if (direct == NULL) {\
     PyObject *tmp = getter;\
-    if(tmp == NULL) {\
+    if (tmp == NULL) {\
       __VA_ARGS__ ;\
     } else {\
       Py_DECREF(tmp);\
@@ -84,18 +84,18 @@ THE SOFTWARE.
   #define log_debug(fmt, ...) fprintf(stderr, "DEBUG %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
   #define IFDEBUG(x) x
   #define assert_refcount(o, count_test) \
-    do { if(!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld, %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test); }\
-      assert((o)->ob_refcnt count_test); } while(0);
+    do { if (!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld, %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test); }\
+      assert((o)->ob_refcnt count_test); } while (0);
   #define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
   #define DUMP_REPR(o) \
     do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
-      if(repr) {\
+      if (repr) {\
         log_debug("repr(%s) = %s", #o, PyString_AS_STRING(repr));\
         Py_DECREF(repr);\
       } else {\
         log_debug("repr(%s) = <NULL>", #o);\
       }\
-    } while(0);
+    } while (0);
 #else
   #define log_debug(fmt, ...) ((void)0)
   #define assert_refcount(o, count_test) 
@@ -103,13 +103,13 @@ THE SOFTWARE.
   #define DUMP_REFCOUNT(o) 
   #define DUMP_REPR(o) \
     do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
-      if(repr) {\
+      if (repr) {\
         log_error("repr(%s) = %s", #o, PyString_AS_STRING(repr));\
         Py_DECREF(repr);\
       } else {\
         log_error("repr(%s) = <NULL>", #o);\
       }\
-    } while(0);
+    } while (0);
 #endif
 
 #if SMISK_TRACE
@@ -123,11 +123,11 @@ THE SOFTWARE.
 
 // String macros
 #define STR_LTRIM_S(s) \
-  for(; *(s)==' '; (s)++);
+  for (; *(s)==' '; (s)++);
 #define STR_LTRIM_ST(s) \
-  for(; (*(s)==' ')||(*(s) == '\t')); s++);
+  for (; (*(s)==' ')||(*(s) == '\t')); s++);
 #define STR_LTRIM_STRN(s) \
-  for(; (*(s)==' ')||(*(s) == '\t')||(*(s) == '\r')||(*(s) == '\n'); s++);
+  for (; (*(s)==' ')||(*(s) == '\t')||(*(s) == '\r')||(*(s) == '\n'); s++);
 
 // String comparison. Inspired by Igor Sysoev.
 #if (SMISK_SYS_LITTLE_ENDIAN && SMISK_SYS_NONALIGNED)

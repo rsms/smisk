@@ -38,7 +38,7 @@ THE SOFTWARE.
 
 // "returns" 0 on success or -1 on failure when an error has been set
 static int _unlink(char *fn) {
-  if(unlink((const char *)fn) != 0) {
+  if (unlink((const char *)fn) != 0) {
     PyErr_SET_FROM_ERRNO;
     return -1;
   }
@@ -49,7 +49,7 @@ static int _unlink(char *fn) {
 static time_t _is_garbage(smisk_FileSessionStore *self, const char *fn, int fd) {
   time_t n, m;
   m = smisk_file_mtime(fn, fd);
-  if(m == 0)
+  if (m == 0)
     return 0;
   n = time(NULL) - m;
   return ( n > ((smisk_SessionStore *)self)->ttl ) ? n : 0;
@@ -70,10 +70,10 @@ static int _gc_run(smisk_FileSessionStore *self) {
   fn_prefix = p+1;
   fn_prefix_len = strlen(fn_prefix);
   
-  if(p) {
+  if (p) {
     *p = '\0';
     d = opendir(path_p);
-    if(d) {
+    if (d) {
       path_p_len = strlen(path_p);
       path_buf = (char *)malloc(path_p_len + 1 + PATH_MAX + 1);
       strcpy(path_buf, path_p);
@@ -81,11 +81,11 @@ static int _gc_run(smisk_FileSessionStore *self) {
       path_buf[path_p_len+1] = 0;
       
       while ((f = readdir(d)) != NULL) {
-        if( (f->d_type == DT_REG)
+        if ( (f->d_type == DT_REG)
           && (strncmp(f->d_name, fn_prefix, min(strlen(f->d_name), fn_prefix_len)) == 0) )
         {
           strcpy(path_buf+path_p_len+1, f->d_name);
-          if(_is_garbage(self, path_buf, -1)) {
+          if (_is_garbage(self, path_buf, -1)) {
             #if SMISK_DEBUG
               log_debug("unlink %s %s", path_buf, (unlink(path_buf) == 0) ? "SUCCESS" : "FAILED");
             #else
@@ -118,17 +118,18 @@ static void _gc_thread(void *_self) {
   sleep(1);
   smisk_FileSessionStore *self = (smisk_FileSessionStore *)_self;
   
-  while(self->gc_run) {
+  while (self->gc_run) {
     Py_BEGIN_ALLOW_THREADS;
     r = _gc_run(self);
     Py_END_ALLOW_THREADS;
     
-    if(r != 0) {
+    // print errors to stdout since we're in another thread (not managed by Python!?)
+    if (r != 0)
       PyErr_Print();
-    }
-    if(((smisk_SessionStore *)self)->ttl > 0) {
+    
+    if (((smisk_SessionStore *)self)->ttl > 0) {
       sleeptime = (unsigned int)(((smisk_SessionStore *)self)->ttl / 2);
-      if(sleeptime < 2)
+      if (sleeptime < 2)
         sleeptime = 2;
       sleep(sleeptime); // will be interrupted by exit signal
     }
@@ -156,24 +157,25 @@ int smisk_FileSessionStore_init(smisk_FileSessionStore *self, PyObject *args, Py
   PyObject *s;
   
   // Load required modules
-  if(tempfile_mod == NULL) {
+  if (tempfile_mod == NULL) {
     // tempfile
     s = PyString_FromString("tempfile");
     tempfile_mod = PyImport_Import(s);
     Py_DECREF(s);
-    if(tempfile_mod == NULL) {
+    
+    if (tempfile_mod == NULL)
       tempfile_mod = Py_None;
-    }
+    
   }
   
-  if(tempfile_mod != Py_None) {
-    if( (self->file_prefix = PyObject_CallMethod(tempfile_mod, "gettempdir", NULL)) == NULL ) {
+  if (tempfile_mod != Py_None) {
+    if ( (self->file_prefix = PyObject_CallMethod(tempfile_mod, "gettempdir", NULL)) == NULL ) {
       log_debug("PyObject_CallMethod failed");
       Py_DECREF((PyObject *)self);
       return -1;
     }
     PyString_ConcatAndDel(&self->file_prefix, PyString_FromString("/smisk-sess."));
-    if(self->file_prefix == NULL) {
+    if (self->file_prefix == NULL) {
       log_debug("PyString_ConcatAndDel failed");
       Py_DECREF((PyObject *)self);
       return -1;
@@ -183,10 +185,12 @@ int smisk_FileSessionStore_init(smisk_FileSessionStore *self, PyObject *args, Py
     self->file_prefix = PyString_FromString("/tmp/smisk-sess.");
   }
   
+  
   // Start GC thread
   self->gc_run = 1;
   self->gc_tid = PyThread_start_new_thread(_gc_thread, (void *)self);
-  if(self->gc_tid == -1) {
+  
+  if (self->gc_tid == -1) {
     Py_DECREF((PyObject *)self);
     return -1;
   }
@@ -199,7 +203,7 @@ void smisk_FileSessionStore_dealloc(smisk_FileSessionStore *self) {
   log_trace("ENTER");
   
   // Stop GC thread
-  if(self->gc_tid != -1) {
+  if (self->gc_tid != -1) {
     self->gc_run = 0;
     // Note: Due to the level of abstraction in PyThread, this is as good as it gets.
     //       The gc thread might live beyond this point... However, sleep() in the thread
@@ -225,10 +229,10 @@ static PyObject *smisk_FileSessionStore_path(smisk_FileSessionStore *self, PyObj
   log_trace("ENTER");
   PyObject *fn;
   fn = PyString_FromStringAndSize(PyString_AS_STRING(self->file_prefix), PyString_GET_SIZE(self->file_prefix));
-  if(fn == NULL) {
-    return NULL;
-  }
-  PyString_Concat(&fn, session_id);
+  
+  if (fn)
+    PyString_Concat(&fn, session_id);
+  
   return fn;
 }
 
@@ -244,46 +248,44 @@ PyObject *smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject *se
   char *pathname;
   FILE *fp = NULL;
   
-  if( !PyString_Check(session_id) ) {
+  if ( !PyString_Check(session_id) ) {
     PyErr_SetString(PyExc_TypeError, "session_id must be a string");
     return NULL;
   }
   
-  if( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL ) {
+  if ( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL )
     return NULL;
-  }
   
   pathname = PyString_AS_STRING(fn);
   
   // Read file data
-  if(smisk_file_exist(pathname)) {
-    if( _is_garbage(self, pathname, -1) ) {
+  if (smisk_file_exist(pathname)) {
+    if ( _is_garbage(self, pathname, -1) ) {
       log_debug("Garbage session %s (older than ttl=%d)",
                 PyString_AS_STRING(session_id),
                 ((smisk_SessionStore *)self)->ttl);
-      if(_unlink(pathname) != 0) {
+      
+      if (_unlink(pathname) != 0)
         PyErr_SET_FROM_ERRNO;
-      }
-      else {
+      else
         PyErr_SetString(smisk_InvalidSessionError, "data too old");
-      }
     }
     else {
-      if( (fp = fopen(pathname, "rb")) == NULL ) {
+      if ( (fp = fopen(pathname, "rb")) == NULL ) {
         PyErr_SET_FROM_ERRNO;
         goto end_return;
       }
       
-      if(smisk_file_lock(fp, SMISK_FILE_LOCK_SHARED) != 0) {
+      if (smisk_file_lock(fp, SMISK_FILE_LOCK_SHARED) != 0) {
         PyErr_SET_FROM_ERRNO;
         goto end_return;
       }
       
-      if( (data = PyMarshal_ReadObjectFromFile(fp)) != NULL ) {
-        log_debug("Successfully read session data from %s", pathname);
-      }
+      data = PyMarshal_ReadObjectFromFile(fp);
       
-      if(smisk_file_unlock(fp) != 0) {
+      IFDEBUG(if (data) log_debug("Successfully read session data from %s", pathname));
+      
+      if (smisk_file_unlock(fp) != 0) {
         PyErr_SET_FROM_ERRNO;
         log_debug("Failed to unlock file opened from %s", pathname);
         goto end_return;
@@ -296,7 +298,7 @@ PyObject *smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject *se
   }
   
 end_return:
-  if(fp)
+  if (fp)
     fclose(fp);
   Py_DECREF(fn);
   return data;
@@ -315,32 +317,24 @@ PyObject *smisk_FileSessionStore_write(smisk_FileSessionStore *self, PyObject *a
   char *pathname;
   FILE *fp;
   
-  if( PyTuple_GET_SIZE(args) != 2 ) {
-    PyErr_Format(PyExc_TypeError, "this method takes exactly 2 arguments");
-    return NULL;
-  }
+  if ( PyTuple_GET_SIZE(args) != 2 )
+    return PyErr_Format(PyExc_TypeError, "this method takes exactly 2 arguments");
   
-  if( (session_id = PyTuple_GET_ITEM(args, 0)) == NULL ) {
+  if ( (session_id = PyTuple_GET_ITEM(args, 0)) == NULL )
     return NULL;
-  }
   
-  if( (data = PyTuple_GET_ITEM(args, 1)) == NULL ) {
+  if ( (data = PyTuple_GET_ITEM(args, 1)) == NULL )
     return NULL;
-  }
   
-  if( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL ) {
+  if ( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL )
     return NULL;
-  }
   
   pathname = PyString_AS_STRING(fn);
   
-  fp = fopen(pathname, "wb");
-  if(fp == NULL) {
-    PyErr_SET_FROM_ERRNO;
-    return NULL;
-  }
+  if ( (fp = fopen(pathname, "wb")) == NULL)
+    return PyErr_SET_FROM_ERRNO;
   
-  if(smisk_file_lock(fp, SMISK_FILE_LOCK_NONBLOCK) != 0) {
+  if (smisk_file_lock(fp, SMISK_FILE_LOCK_NONBLOCK) != 0) {
     // We want to fail silently here, because another process go to the session before we did.
     // Sorry, nothing we can do about it.
     log_debug("smisk_file_lock failed - probably because another process has locked the session");
@@ -355,7 +349,7 @@ PyObject *smisk_FileSessionStore_write(smisk_FileSessionStore *self, PyObject *a
       return NULL;
     }
     
-    if(smisk_file_unlock(fp) != 0) {
+    if (smisk_file_unlock(fp) != 0) {
       log_debug("Failed to unlock file opened from %s", pathname);
       PyErr_SET_FROM_ERRNO;
       return NULL;
@@ -378,12 +372,11 @@ PyObject *smisk_FileSessionStore_refresh(smisk_FileSessionStore *self, PyObject 
   log_trace("ENTER %s", PyString_AS_STRING(session_id));
   PyObject *fn;
   
-  if( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL ) {
+  if ( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL )
     return NULL;
-  }
   
-  if(smisk_file_mtime_set_now(PyString_AS_STRING(fn), -1) != 0) {
-    if(errno != ENOENT) {
+  if (smisk_file_mtime_set_now(PyString_AS_STRING(fn), -1) != 0) {
+    if (errno != ENOENT) {
       PyErr_SET_FROM_ERRNO;
       Py_DECREF(fn);
       return NULL;
@@ -409,18 +402,16 @@ PyObject *smisk_FileSessionStore_destroy(smisk_FileSessionStore *self, PyObject 
   PyObject *fn;
   char *pathname;
   
-  if( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL ) {
+  if ( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL )
     return NULL;
-  }
   
   pathname = PyString_AS_STRING(fn);
   
   int failed = smisk_file_exist(pathname) && (_unlink(pathname) != 0);
   Py_DECREF(fn);
   
-  if( failed ) {
+  if (failed)
     return NULL;
-  }
   
   Py_RETURN_NONE;
 }
@@ -501,7 +492,7 @@ PyTypeObject smisk_FileSessionStoreType = {
 int smisk_FileSessionStore_register_types(PyObject *module) {
   log_trace("ENTER");
   smisk_FileSessionStoreType.tp_base = &smisk_SessionStoreType;
-  if(PyType_Ready(&smisk_FileSessionStoreType) == 0) {
+  if (PyType_Ready(&smisk_FileSessionStoreType) == 0) {
     return PyModule_AddObject(module, "FileSessionStore", (PyObject *)&smisk_FileSessionStoreType);
   }
   return -1;

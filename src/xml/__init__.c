@@ -90,7 +90,7 @@ void smisk_xml_encode_p (const char *s, size_t len, char *dest) {
 size_t smisk_xml_encode_newlen(const char *s, size_t len) {
   size_t nlen = len;
   while (len--) {
-    if( IS_RESERVED(*s++) ) {
+    if ( IS_RESERVED(*s++) ) {
       nlen += 5;
     }
   }
@@ -103,12 +103,10 @@ char *smisk_xml_encode (const char *s, size_t len) {
   
   nlen = smisk_xml_encode_newlen(s, len);
   
-  if(nlen == len) {
+  if (nlen == len)
     return strdup(s);
-  }
-  else {
+  else
     dest = (char *)malloc(nlen+1);
-  }
   
   smisk_xml_encode_p(s, len, dest);
   
@@ -136,12 +134,12 @@ PyObject *smisk_xml_encode_py(PyObject *self, PyObject *pys) {
   char *s, *dest;
   int should_decref_pys = 0;
   
-  if(!PyString_CheckExact(pys)) {
-    if(PyUnicode_Check(pys)) {
-      pys = PyUnicode_AsUTF8String(pys);
-      if(pys == NULL) {
+  if (!PyString_CheckExact(pys)) {
+    if (PyUnicode_Check(pys)) {
+      // Unicode (UTF-16?) to UTF-8
+      if ( (pys = PyUnicode_AsUTF8String(pys)) == NULL)
         return NULL;
-      }
+      
       should_decref_pys = 1;
     }
     else {
@@ -154,14 +152,14 @@ PyObject *smisk_xml_encode_py(PyObject *self, PyObject *pys) {
   s = PyString_AS_STRING(pys);
   nlen = smisk_xml_encode_newlen(s, len);
   
-  if(nlen == len) {
+  if (nlen == len) {
     Py_INCREF(pys);
     return pys;
   }
   
   npys = PyString_FromStringAndSize(NULL,(Py_ssize_t)nlen);
-  if(npys == NULL) {
-    if(should_decref_pys) {
+  if (npys == NULL) {
+    if (should_decref_pys) {
       Py_DECREF(pys);
     }
     return NULL;
@@ -170,9 +168,10 @@ PyObject *smisk_xml_encode_py(PyObject *self, PyObject *pys) {
   
   smisk_xml_encode_p(s, len, dest);
   
-  if(should_decref_pys) {
+  if (should_decref_pys) {
     Py_DECREF(pys);
   }
+  
   return npys;
 }
 
@@ -193,7 +192,7 @@ PyObject *smisk_xml_register (PyObject *parent) {
   log_debug("ENTER smisk_xml_register");
   smisk_xml = Py_InitModule("smisk.core.xml", methods);
   PyModule_AddStringConstant(smisk_xml, "__doc__", smisk_xml_DOC);
-  if(PyModule_AddObject(parent, "xml", smisk_xml) != 0) {
+  if (PyModule_AddObject(parent, "xml", smisk_xml) != 0) {
     Py_DECREF(smisk_xml);
     return NULL;
   }

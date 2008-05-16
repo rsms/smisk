@@ -40,26 +40,26 @@ PyObject *smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
   PyObject *traceback = NULL;
   PyObject *format_exception = NULL;
   
-  if(type == NULL) {
+  if (type == NULL) {
     log_debug("No error occured. type == NULL");
     Py_RETURN_NONE;
   }
   assert(value != NULL);
   assert(tb != NULL);
   
-  if( (traceback = PyImport_ImportModule("traceback")) == NULL ) {
+  if ( (traceback = PyImport_ImportModule("traceback")) == NULL ) {
     log_debug("PyImport_ImportModule('traceback') == NULL");
     return NULL;
   }
   
-  if( (format_exception = PyObject_GetAttrString(traceback, "format_exception")) == NULL ) {
+  if ( (format_exception = PyObject_GetAttrString(traceback, "format_exception")) == NULL ) {
     log_debug("PyObject_GetAttrString(traceback, 'format_exception') == NULL");
     Py_DECREF(traceback);
     return NULL;
   }
   Py_DECREF(traceback);
   
-  if( (lines = PyObject_CallFunctionObjArgs(format_exception, type, value, tb, NULL)) == NULL ) {
+  if ( (lines = PyObject_CallFunctionObjArgs(format_exception, type, value, tb, NULL)) == NULL ) {
     log_debug("PyObject_CallFunctionObjArgs(format_exception...) == NULL");
     Py_DECREF(format_exception);
     return NULL;
@@ -68,9 +68,9 @@ PyObject *smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
   
   msg = PyString_FromString("");
   Py_ssize_t i = 0, lines_len = PyList_GET_SIZE(lines);
-  for(; i < lines_len; i++) {
+  for (; i < lines_len; i++) {
     PyString_ConcatAndDel(&msg, PyList_GET_ITEM(lines, i));
-    if(msg == NULL) {
+    if (msg == NULL) {
       log_debug("msg == NULL");
       Py_DECREF(lines);
       return NULL;
@@ -84,13 +84,13 @@ PyObject *smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
 int PyDict_assoc_val_with_key(PyObject *dict, PyObject *val, PyObject *key) {
   PyObject *existing_val, *new_val;
   
-  if(PyDict_Contains(dict, key)) {
+  if (PyDict_Contains(dict, key)) {
     // multi-value
     existing_val = PyDict_GetItem(dict, key);
     
-    if(PyList_CheckExact(existing_val)) {
+    if (PyList_CheckExact(existing_val)) {
       // just append
-      if(PyList_Append(existing_val, val) != 0) {
+      if (PyList_Append(existing_val, val) != 0) {
         return -1;
       }
     }
@@ -102,7 +102,7 @@ int PyDict_assoc_val_with_key(PyObject *dict, PyObject *val, PyObject *key) {
       Py_INCREF(existing_val); // Since we want to keep it and PyList_SET_ITEM did not INCREF
       Py_INCREF(val); // Since we want to keep it and PyList_SET_ITEM did not INCREF
       
-      if(PyDict_SetItem(dict, key, new_val) != 0)
+      if (PyDict_SetItem(dict, key, new_val) != 0)
         return -1;
       
       assert_refcount(new_val, == 2);
@@ -110,7 +110,7 @@ int PyDict_assoc_val_with_key(PyObject *dict, PyObject *val, PyObject *key) {
     }
   }
   else { // key is unique as far as we know
-    if(PyDict_SetItem(dict, key, val) != 0) {
+    if (PyDict_SetItem(dict, key, val) != 0) {
       return -1;
     }
   }
@@ -157,7 +157,7 @@ int smisk_parse_input_data(char *s, const char *separator, int is_cookie_data, P
     
     // save
     py_key = PyString_FromString(key);
-    if((status = PyDict_assoc_val_with_key(dict, py_val, py_key)) != 0) {
+    if ((status = PyDict_assoc_val_with_key(dict, py_val, py_key)) != 0) {
       break;
     }
     Py_DECREF(py_key);
@@ -165,7 +165,7 @@ int smisk_parse_input_data(char *s, const char *separator, int is_cookie_data, P
     
 next_cookie:
     key = strtok_r(NULL, separator, &strtok_ctx);
-  } // end while(var)
+  } // end while (var)
 
   free(scpy);
   
@@ -180,15 +180,15 @@ size_t smisk_stream_readline(char *str, int n, FCGX_Stream *stream) {
   n--;
   while (n > 0) {
     c = FCGX_GetChar(stream);
-    if(c == EOF) {
-      if(p == str)
+    if (c == EOF) {
+      if (p == str)
         return 0;
       else
         break;
     }
     *p++ = (char) c;
     n--;
-    if(c == '\n')
+    if (c == '\n')
       break;
   }
   *p = '\0';
@@ -199,9 +199,9 @@ size_t smisk_stream_readline(char *str, int n, FCGX_Stream *stream) {
 void smisk_frepr_bytes(FILE *f, const char *s, size_t len) {
   int c;
   fprintf(f, "bytes(%lu) '", (unsigned long int)len);
-  while(len--) {
+  while (len--) {
     c = *s++;
-    if( isgraph(c) || (c == ' ') ) {
+    if ( isgraph(c) || (c == ' ') ) {
       fputc(c, f);
     }
     else {
@@ -214,7 +214,7 @@ void smisk_frepr_bytes(FILE *f, const char *s, size_t len) {
 
 double smisk_microtime(void) {
   struct timeval tp;
-  if(gettimeofday(&tp, NULL) == 0) {
+  if (gettimeofday(&tp, NULL) == 0) {
     return ((double)tp.tv_usec / 1000000.0) + tp.tv_sec;
   }
   return 0.0;
@@ -222,15 +222,15 @@ double smisk_microtime(void) {
 
 
 char smisk_size_unit (double *bytes) {
-  if(*bytes > 1024000000.0) {
+  if (*bytes > 1024000000.0) {
     *bytes = *bytes/1024000000.0;
     return 'G';
   }
-  else if(*bytes > 1024000.0) {
+  else if (*bytes > 1024000.0) {
     *bytes = *bytes/1024000.0;
     return 'M';
   }
-  else if(*bytes > 1024.0) {
+  else if (*bytes > 1024.0) {
     *bytes = *bytes/1024.0;
     return 'K';
   }
@@ -284,10 +284,10 @@ PyObject *smisk_find_string_by_prefix_in_dict(PyObject *list, PyObject *prefix) 
   char *item_ptr, *prefix_ptr, *prefix_it;
   PyObject *item;
   
-  if(list == NULL)
+  if (list == NULL)
     return PyErr_Format(PyExc_TypeError, "smisk_find_string_by_prefix_in_dict() called with list=NULL");
   
-  if(!prefix || !PyString_Check(prefix))
+  if (!prefix || !PyString_Check(prefix))
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
   num_items = PyList_GET_SIZE(list);
@@ -295,21 +295,21 @@ PyObject *smisk_find_string_by_prefix_in_dict(PyObject *list, PyObject *prefix) 
   prefix_ptr = PyString_AS_STRING(prefix);
   
   // Iterate over headers
-  for(i=0; i<num_items; i++) {
-    if( (item = PyList_GET_ITEM(list, i)) && PyString_Check(item) ) {
+  for (i=0; i<num_items; i++) {
+    if ( (item = PyList_GET_ITEM(list, i)) && PyString_Check(item) ) {
       item_len = PyString_GET_SIZE(item);
-      if(item_len < prefix_len)
+      if (item_len < prefix_len)
         continue;
       item_ptr = PyString_AS_STRING(item);
       prefix_it = prefix_ptr;
       
-      for(x = 0; x < prefix_len; x++) {
-        if( toupper(*(prefix_it++)) != toupper(*(item_ptr++)) ) {
+      for (x = 0; x < prefix_len; x++) {
+        if ( toupper(*(prefix_it++)) != toupper(*(item_ptr++)) ) {
           prefix_it = NULL;
           break; // try next header...
         }
       }
-      if(prefix_it)
+      if (prefix_it)
         return PyInt_FromLong((long)i);
     }
   }

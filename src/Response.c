@@ -88,7 +88,7 @@ PyObject * smisk_Response_new(PyTypeObject *type, PyObject *args, PyObject *kwds
   if ((self = (smisk_Response *)type->tp_alloc(type, 0)) == NULL)
     return NULL;  
   
-  if(smisk_Response_reset(self) != 0) {
+  if (smisk_Response_reset(self) != 0) {
     Py_DECREF(self);
     return NULL;
   }
@@ -140,22 +140,20 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   log_trace("ENTER");
   int rc;
   
-  if(!filename || !PyString_Check(filename)) {
+  if (!filename || !PyString_Check(filename))
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
-  }
   
   char *server = NULL;
-  if(smisk_current_app) {
+  if (smisk_current_app)
     server = FCGX_GetParam( "SERVER_SOFTWARE", smisk_current_app->request->envp );
-  }
-  if(server == NULL) {
-    server = "unknown server software";
-  }
   
-  if(strstr(server, "lighttpd/1.4")) {
+  if (server == NULL)
+    server = "unknown server software";
+  
+  if (strstr(server, "lighttpd/1.4")) {
     FCGX_PutStr("X-LIGHTTPD-send-file: ", 22, self->out->stream);
   }
-  else if(strstr(server, "lighttpd/") || strstr(server, "Apache/2")) {
+  else if (strstr(server, "lighttpd/") || strstr(server, "Apache/2")) {
     FCGX_PutStr("X-Sendfile: ", 12, self->out->stream);
   }
   else {
@@ -167,7 +165,7 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   REPLACE_OBJ(self->has_begun, Py_True, PyObject);
   
   // Check for errors
-  if(rc == -1)
+  if (rc == -1)
     return PyErr_SET_FROM_ERRNO;
   
   Py_RETURN_NONE;
@@ -187,17 +185,17 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
   
   // Note: self->headers can be NULL at this point and that's by design.
   
-  IFDEBUG(if(self->headers) {
+  IFDEBUG(if (self->headers) 
     assert_refcount(self->headers, > 0);
-  })
+  )
   
   // Set session cookie?
-  if(smisk_current_app->request->session_id && (smisk_current_app->request->initial_session_hash == 0)) {
+  if (smisk_current_app->request->session_id && (smisk_current_app->request->initial_session_hash == 0)) {
     log_debug("New session - sending SID with Set-Cookie: %s=%s;Version=1;Path=/",
       PyString_AS_STRING(((smisk_SessionStore *)smisk_current_app->sessions)->name),
       PyString_AS_STRING(smisk_current_app->request->session_id));
     // First-time session!
-    if(!PyString_Check(((smisk_SessionStore *)smisk_current_app->sessions)->name)) {
+    if (!PyString_Check(((smisk_SessionStore *)smisk_current_app->sessions)->name)) {
       PyErr_SetString(PyExc_TypeError, "sessions.name is not a string");
       return NULL;
     }
@@ -209,12 +207,12 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
   }
   
   // Headers?
-  if(self->headers && PyList_Check(self->headers) && (num_headers = PyList_GET_SIZE(self->headers))) {
+  if (self->headers && PyList_Check(self->headers) && (num_headers = PyList_GET_SIZE(self->headers))) {
     // Iterate over headers
     PyObject *str;
-    for(i=0;i<num_headers;i++) {
+    for (i=0;i<num_headers;i++) {
       str = PyList_GET_ITEM(self->headers, i);
-      if(str && PyString_Check(str)) {
+      if (str && PyString_Check(str)) {
         FCGX_PutStr(PyString_AS_STRING(str), PyString_GET_SIZE(str), self->out->stream);
         FCGX_PutChar('\r', self->out->stream);
         FCGX_PutChar('\n', self->out->stream);
@@ -234,7 +232,7 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
   REPLACE_OBJ(self->has_begun, Py_True, PyObject);
   
   // Errors?
-  if(rc == -1)
+  if (rc == -1)
     return PyErr_SET_FROM_ERRNO;
   
   log_debug("EXIT smisk_Response_begin");
@@ -256,12 +254,12 @@ PyObject *smisk_Response_write(smisk_Response* self, PyObject *str) {
   log_trace("ENTER");
   Py_ssize_t length;
   
-  if(!str || !PyString_Check(str))
+  if (!str || !PyString_Check(str))
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
   // TODO: make this method accept a length argument and use that instead if available
   length = PyString_GET_SIZE(str);
-  if(!length) // No data/Empty string
+  if (!length) // No data/Empty string
     Py_RETURN_NONE;
   
   // Send HTTP headers
@@ -304,7 +302,7 @@ PyDoc_STRVAR(smisk_Response___call___DOC,
 PyObject *smisk_Response___call__(smisk_Response* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   // As we can get the length here, we return directly if nothing is to be written.
-  if(PyTuple_GET_SIZE(args) < 1)
+  if (PyTuple_GET_SIZE(args) < 1)
     Py_RETURN_NONE;
   return smisk_Stream_perform_writelines(self->out, args, &_begin_if_needed, (void *)self);
 }
@@ -317,7 +315,7 @@ PyDoc_STRVAR(smisk_Response_find_header_DOC,
   ":rtype:   int");
 PyObject *smisk_Response_find_header(smisk_Response* self, PyObject *prefix) {
   log_trace("ENTER");
-  if(self->headers == NULL)
+  if (self->headers == NULL)
     return PyInt_FromLong(-1L);
   return smisk_find_string_by_prefix_in_dict(self->headers, prefix);
 }
@@ -407,10 +405,10 @@ PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObje
   
   PyObject *s;
   
-  if(self->has_begun == Py_True)
+  if (self->has_begun == Py_True)
     return PyErr_Format(PyExc_EnvironmentError, "Cookies can not be set when output has already begun.");
   
-  if(!PyArg_ParseTupleAndKeywords(args, kwargs, "ss|zzziiii", kwlist,
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ss|zzziiii", kwlist,
       &name, &value, &comment, &domain, &path, &secure, &version, &max_age, &http_only)) {
     return NULL;
   }
@@ -426,25 +424,25 @@ PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObje
   
   // Optional fields
   
-  if(comment) {
+  if (comment) {
     comment = smisk_url_encode(comment, 1);
     PyString_ConcatAndDel(&s, PyString_FromFormat(";Comment=%s", comment));
     free(comment);
   }
   
-  if(domain) {
+  if (domain) {
     domain = smisk_url_encode(domain, 1);
     PyString_ConcatAndDel(&s, PyString_FromFormat(";Domain=%s", domain));
     free(domain);
   }
   
-  if(path) {
+  if (path) {
     path = smisk_url_encode(path, 1);
     PyString_ConcatAndDel(&s, PyString_FromFormat(";Path=%s", path));
     free(path);
   }
   
-  if(max_age > -1) {
+  if (max_age > -1) {
     PyString_ConcatAndDel(&s, PyString_FromFormat(";Max-Age=%d", max_age));
     // Add Expires for compatibility reasons
     // ;Expires=Wdy, DD-Mon-YY HH:MM:SS GMT
@@ -453,26 +451,25 @@ PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObje
     time_t t = time(NULL) + max_age;
     strftime(PyString_AS_STRING(expires), 36, ";Expires=%a, %d-%b-%g %H:%M:%S GMT", gmtime(&t));
     PyString_ConcatAndDel(&s, expires);
-  } else {
+  }
+  else {
     PyString_ConcatAndDel(&s, PyString_FromString(";Discard"));
   }
   
-  if(secure) {
+  if (secure)
     PyString_ConcatAndDel(&s, PyString_FromString(";Secure"));
-  }
-  
-  if(http_only) {
-    // More info: http://msdn2.microsoft.com/en-us/library/ms533046(VS.85).aspx
+    
+  // More info: http://msdn2.microsoft.com/en-us/library/ms533046(VS.85).aspx
+  if (http_only)
     PyString_ConcatAndDel(&s, PyString_FromString(";HttpOnly"));
-  }
   
   // Make sure self->headers is initialized
   ENSURE_BY_GETTER(self->headers, smisk_Response_get_headers(self), return NULL; );
   
   // Append the set-cookie header
-  if(PyList_Append(self->headers, s) != 0) {
+  if (PyList_Append(self->headers, s) != 0)
     return NULL;
-  }
+  
   Py_DECREF(s); // the list is the new owner
   
   Py_RETURN_NONE;
@@ -485,11 +482,9 @@ PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObje
 
 PyObject *smisk_Response_get_headers(smisk_Response* self) {
   log_trace("ENTER");
-  if(self->headers == NULL) {
-    if( (self->headers = PyList_New(0)) == NULL ) {
-      return NULL;
-    }
-  }
+  
+  if ( (self->headers == NULL) && ((self->headers = PyList_New(0)) == NULL) )
+    return NULL;
   
   Py_INCREF(self->headers); // callers reference
   return self->headers;
@@ -525,14 +520,14 @@ static PyMethodDef smisk_Response_methods[] = {
   {"set_cookie",  (PyCFunction)smisk_Response_set_cookie,   METH_VARARGS|METH_KEYWORDS,
                   smisk_Response_set_cookie_DOC},
   {"find_header", (PyCFunction)smisk_Response_find_header,  METH_O,       smisk_Response_find_header_DOC},
-  {NULL}
+  {NULL, NULL, 0, NULL}
 };
 
 // Properties
 static PyGetSetDef smisk_Response_getset[] = {
   {"headers", (getter)smisk_Response_get_headers, (setter)smisk_Response_set_headers,
     ":type: list", NULL},
-  {NULL}
+  {NULL, NULL, NULL, NULL, NULL}
 };
 
 // Members
@@ -547,7 +542,7 @@ static struct PyMemberDef smisk_Response_members[] = {
     "\n"
     ":type:   bool"},
   
-  {NULL}
+  {NULL, 0, 0, 0, NULL}
 };
 
 // Type definition
@@ -596,7 +591,7 @@ PyTypeObject smisk_ResponseType = {
 
 int smisk_Response_register_types(PyObject *module) {
   log_trace("ENTER");
-  if(PyType_Ready(&smisk_ResponseType) == 0)
+  if (PyType_Ready(&smisk_ResponseType) == 0)
     return PyModule_AddObject(module, "Response", (PyObject *)&smisk_ResponseType);
   return -1;
 }

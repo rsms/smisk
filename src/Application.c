@@ -38,7 +38,7 @@ smisk_Application *smisk_current_app = NULL;
 
 int smisk_require_app (void) {
   log_trace("ENTER");
-  if(!smisk_current_app || (smisk_current_app == (smisk_Application *)Py_None)) {
+  if (!smisk_current_app || (smisk_current_app == (smisk_Application *)Py_None)) {
     PyErr_SetString(PyExc_EnvironmentError, "Application not initialized");
     return -1;
   }
@@ -54,17 +54,17 @@ static int _setup_transaction_context(smisk_Application *self) {
   PyObject *request, *response;
   
   // Request
-  if((request = smisk_Request_new(self->request_class, NULL, NULL)) == NULL) {
+  if ((request = smisk_Request_new(self->request_class, NULL, NULL)) == NULL)
     return -1;
-  }
+  
   REPLACE_OBJ(self->request, request, smisk_Request);
   assert_refcount(self->request, > 0);
   
   
   // Response
-  if((response = smisk_Response_new(self->response_class, NULL, NULL)) == NULL) {
+  if ((response = smisk_Response_new(self->response_class, NULL, NULL)) == NULL)
     return -1;
-  }
+  
   REPLACE_OBJ(self->response, response, smisk_Response);
   assert_refcount(self->response, > 0);
   
@@ -124,9 +124,10 @@ int smisk_Application_init(smisk_Application *self, PyObject *args, PyObject *kw
 
 void smisk_Application_dealloc(smisk_Application *self) {
   log_trace("ENTER");
-  if(smisk_current_app == self) {
+  
+  if (smisk_current_app == self)
     REPLACE_OBJ(smisk_current_app, Py_None, smisk_Application);
-  }
+  
   Py_DECREF(self->request);
   Py_DECREF(self->response);
   Py_XDECREF(self->sessions);
@@ -152,16 +153,15 @@ PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
   
   // Set program name to argv[0]
   PyObject *argv = PySys_GetObject("argv");
-  if(PyList_GET_SIZE(argv)) {
+  if (PyList_GET_SIZE(argv))
     Py_SetProgramName(basename(PyString_AsString(PyList_GetItem(argv, 0))));
-  }
   
   // Initialize libfcgi
   FCGX_Request request;
   int rc = FCGX_Init();
-  if (rc) {
+  if (rc)
     return PyErr_SET_FROM_ERRNO;
-  }
+  
   FCGX_InitRequest(&request, smisk_listensock_fileno, FCGI_FAIL_ACCEPT_ON_INTR);
   
   // Register signal handlers
@@ -170,25 +170,23 @@ PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
   orig_term_handler = PyOS_setsig(SIGTERM, smisk_Application_sighandler_close_fcgi);
   
   // CGI test
-  if(FCGX_IsCGI() && (smisk_listensock_fileno == FCGI_LISTENSOCK_FILENO)) {
+  if (FCGX_IsCGI() && (smisk_listensock_fileno == FCGI_LISTENSOCK_FILENO))
     return PyErr_Format(smisk_Error, "Application must be run in a FastCGI environment");
-  }
   
   // Create transaction context
-  if(_setup_transaction_context(self) != 0) {
+  if (_setup_transaction_context(self) != 0)
     return NULL;
-  }
   
   // Notify ourselves we are about to start accepting requests
-  if(PyObject_CallMethod((PyObject *)self, "application_will_start", NULL) == NULL) {
+  if (PyObject_CallMethod((PyObject *)self, "application_will_start", NULL) == NULL)
     return NULL;
-  }
   
   // Enter accept loop
   while (FCGX_Accept_r(&request) != -1) {
-    if(smisk_Application_trapped_signal) {
+    
+    if (smisk_Application_trapped_signal)
       break;
-    }
+    
     log_debug("%s %s from %s:%s",
       FCGX_GetParam("REQUEST_METHOD", request.envp),
       FCGX_GetParam("REQUEST_URI", request.envp),
@@ -196,19 +194,19 @@ PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
       FCGX_GetParam("REMOTE_PORT", request.envp) );
     
     // Set streams
-    self->request->input->stream = request.in;
-    self->response->out->stream  = request.out;
-    self->request->errors->stream   = request.err;
-    self->request->envp          = request.envp;
+    self->request->input->stream  = request.in;
+    self->response->out->stream   = request.out;
+    self->request->errors->stream = request.err;
+    self->request->envp           = request.envp;
     
     // Service request
-    if(PyObject_CallMethod((PyObject *)self, "service", NULL) != NULL) {
+    if (PyObject_CallMethod((PyObject *)self, "service", NULL) != NULL) {
       // Finish response
       smisk_Response_finish(self->response);
       // We do not catch errors here because we PyErr_Occurred later
     }
     #if SMISK_DEBUG
-      else if(!smisk_Application_trapped_signal) {
+      else if (!smisk_Application_trapped_signal) {
         PyObject *repr = PyObject_Repr((PyObject *)self);
         log_debug("%s.service() failed", PyString_AS_STRING(repr));
         Py_DECREF(repr);
@@ -216,14 +214,16 @@ PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
     #endif
     
     // Exception raised?
-    if(PyErr_Occurred()) {
-      if(smisk_Application_trapped_signal) {
+    if (PyErr_Occurred()) {
+      if (smisk_Application_trapped_signal) {
         PyErr_Print();
         break;
       }
       else {
         PyObject *type, *value, *tb;
         PyErr_Fetch(&type, &value, &tb); // will also clear
+        
+        // log exception to stderr if debug
         #if SMISK_DEBUG
           PyObject *type_repr, *value_repr, *tb_repr;
           type_repr = PyObject_Repr((PyObject *)type);
@@ -235,11 +235,12 @@ PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
           Py_DECREF(value_repr);
           Py_DECREF(tb_repr);
         #endif
+        
         PyObject *err_ret = PyObject_CallMethod((PyObject *)self, "error", "OOO", type, value, tb);
         Py_DECREF(type);
         Py_DECREF(value);
         Py_DECREF(tb);
-        if(err_ret != NULL) {
+        if (err_ret != NULL) {
           Py_DECREF(err_ret);
         }
         else {
@@ -253,7 +254,7 @@ PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
     }
     
     // Reset request & response
-    if( (smisk_Request_reset(self->request) != 0) || (smisk_Response_reset(self->response) != 0) ) {
+    if ( (smisk_Request_reset(self->request) != 0) || (smisk_Response_reset(self->response) != 0) ) {
       log_debug("Reqeust.reset() or Response.reset() failed");
       PyErr_Print();
       raise(SIGINT);
@@ -261,9 +262,8 @@ PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
   }
   
   // Notify ourselves we have stopped accepting requests
-  if(PyObject_CallMethod((PyObject *)self, "application_did_stop", NULL) == NULL) {
+  if (PyObject_CallMethod((PyObject *)self, "application_did_stop", NULL) == NULL)
     return NULL;
-  }
   
   //FCGX_Finish();
   FCGX_Finish_r(&request);
@@ -274,16 +274,16 @@ PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
   PyOS_setsig(SIGTERM, orig_term_handler);
   
   // Now, raise the signal again if that was the reason for exiting the run loop
-  if(smisk_Application_trapped_signal) {
+  if (smisk_Application_trapped_signal) {
     log_debug("raising signal %d again", smisk_Application_trapped_signal);
     raise(smisk_Application_trapped_signal);
     smisk_Application_trapped_signal = 0;
   }
   
-  log_debug("EXIT smisk_Application_run");
-  if(ret == Py_None) {
+  if (ret == Py_None)
     Py_INCREF(ret);
-  }
+  
+  log_trace("EXIT");
   return ret;
 }
 
@@ -353,19 +353,18 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
        *hostname = NULL,
        *port = NULL;
   
-  if(!PyArg_UnpackTuple(args, "error", 3, 3, &type, &value, &tb)) {
+  if (!PyArg_UnpackTuple(args, "error", 3, 3, &type, &value, &tb))
     return NULL;
-  }
   
   // Format exception into string
-  if( (exc_str = smisk_format_exc(type, value, tb)) == NULL ) {
+  if ( (exc_str = smisk_format_exc(type, value, tb)) == NULL )
     return NULL;
-  }
   
-  if(!self->request) {
+  if (!self->request) {
     PyErr_SetString(PyExc_EnvironmentError, "self->request == NULL");
     return NULL;
   }
+  
   ENSURE_BY_GETTER(self->request->env, smisk_Request_get_env(self->request),
     return NULL;
   );
@@ -373,8 +372,8 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
   // Get reference to last line of trace, containing short message
   exc_strp = PyString_AS_STRING(exc_str);
   Py_ssize_t len = PyString_GET_SIZE(exc_str)-2;
-  for(; len; len-- ) {
-    if(exc_strp[len] == '\n') {
+  for (; len; len-- ) {
+    if (exc_strp[len] == '\n') {
       log_debug("%s", exc_strp+len);
       value_repr = exc_strp+len;
       break;
@@ -384,8 +383,8 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
   // Get SERVER_NAME and separate port if any
   // Beyond this point, you must not simply return, but check free_hostname
   // goto return_error_from_errno is available as a convenience.
-  if((hostname = FCGX_GetParam("SERVER_NAME", self->request->envp))) {
-    if( (port = strchr(hostname, (int)':')) ) {
+  if ((hostname = FCGX_GetParam("SERVER_NAME", self->request->envp))) {
+    if ( (port = strchr(hostname, (int)':')) ) {
       size_t len = port-hostname;
       char *buf = (char *)malloc(len+1);
       strncpy(buf, hostname, len);
@@ -397,7 +396,7 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
   }
   
   // Set port if not already set
-  if(!port)
+  if (!port)
     port = FCGX_GetParam("SERVER_PORT", self->request->envp);
   
   // Format error message
@@ -412,7 +411,7 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
     port ? port : "?");
   
   // Log exception throught fcgi error stream
-  if(FCGX_PutStr(PyString_AS_STRING(exc_str), PyString_GET_SIZE(exc_str), self->request->errors->stream) == -1) {
+  if (FCGX_PutStr(PyString_AS_STRING(exc_str), PyString_GET_SIZE(exc_str), self->request->errors->stream) == -1) {
     // Fall back to stderr
     log_error("Error in %s.error(): %s", PyString_AS_STRING(PyObject_Str((PyObject *)self)), PyString_AS_STRING(exc_str));
     goto return_error_from_errno;
@@ -420,7 +419,7 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
   
   Py_DECREF(exc_str);
   
-  if(self->response->has_begun == Py_False) {
+  if (self->response->has_begun == Py_False) {
     // Include headers if response has not yet been sent
     static char *header = "<html><head>"
       "<title>Service Error</title>"
@@ -455,15 +454,15 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
   
   Py_DECREF(msg);
   
-  if(rc == -1)
+  if (rc == -1)
     goto return_error_from_errno;
   
-  if(free_hostname)
+  if (free_hostname)
     free(hostname);
   Py_RETURN_NONE;
   
 return_error_from_errno:
-  if(free_hostname)
+  if (free_hostname)
     free(hostname);
   return PyErr_SET_FROM_ERRNO;
 }
@@ -524,11 +523,11 @@ PyObject *smisk_Application_application_did_stop(smisk_Application *self) {
 
 PyObject *smisk_Application_get_sessions(smisk_Application* self) {
   log_trace("ENTER");
-  if(self->sessions == NULL) {
+  if (self->sessions == NULL) {
     IFDEBUG(DUMP_REPR(self->sessions_class));
-    if((self->sessions = PyObject_Call((PyObject*)self->sessions_class, NULL, NULL)) == NULL) {
+    if ((self->sessions = PyObject_Call((PyObject*)self->sessions_class, NULL, NULL)) == NULL)
       return NULL;
-    }
+    
     log_debug("self->sessions=%p", self->sessions);
   }
   
@@ -609,7 +608,7 @@ static PyMethodDef smisk_Application_methods[] = {
   {"application_did_stop",    (PyCFunction)smisk_Application_application_did_stop,
     METH_NOARGS,  smisk_Application_application_did_stop_DOC},
   
-  {NULL}
+  {NULL, NULL, 0, NULL}
 };
 
 // Properties
@@ -619,7 +618,7 @@ static PyGetSetDef smisk_Application_getset[] = {
     (setter)smisk_Application_set_sessions,
     ":type: `smisk.session.Store`", NULL},
   
-  {NULL}
+  {NULL, NULL, NULL, NULL, NULL}
 };
 
 // Members
@@ -646,7 +645,7 @@ static struct PyMemberDef smisk_Application_members[] = {
     ":type: bool\n\n"
     "Defaults to True."},
   
-  {NULL}
+  {NULL, 0, 0, 0, NULL}
 };
 
 // Class
@@ -695,11 +694,11 @@ PyTypeObject smisk_ApplicationType = {
 
 int smisk_Application_register_types(PyObject *module) {
   log_trace("ENTER");
-  if(smisk_current_app == NULL) {
+  if (smisk_current_app == NULL) {
     smisk_current_app = (smisk_Application *)Py_None;
     Py_INCREF(Py_None);
   }
-  if(PyType_Ready(&smisk_ApplicationType) == 0) {
+  if (PyType_Ready(&smisk_ApplicationType) == 0) {
     return PyModule_AddObject(module, "Application", (PyObject *)&smisk_ApplicationType);
   }
   return -1;

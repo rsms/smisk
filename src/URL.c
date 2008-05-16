@@ -135,17 +135,14 @@ char *smisk_url_encode(const char *s, int full) {
   size_t new_len = len;
   
   for (p1 = s; *p1; p1++) {
-    if (urlchr_test(*p1, mask)) {
+    if (urlchr_test(*p1, mask))
       new_len += 2;
-    }
   }
   
-  if(new_len == len) {
+  if (new_len == len)
     return strdup(s);
-  }
-  else {
+  else
     new_s = (char *)malloc(new_len);
-  }
   
   _url_encode(s, new_s, mask);
   return new_s;
@@ -165,7 +162,8 @@ size_t smisk_url_decode(char *str, size_t len) {
       *dest = (char) X2DIGITS_TO_NUM(*(data + 1), *(data + 2));
       data += 2;
       len -= 2;
-    } else {
+    }
+    else {
       *dest = *data;
     }
     data++;
@@ -183,10 +181,10 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   PyObject *newstr_py;
   int should_decref_str = 0;
   
-  if(!PyString_CheckExact(str)) {
-    if(PyUnicode_Check(str)) {
+  if (!PyString_CheckExact(str)) {
+    if (PyUnicode_Check(str)) {
       str = PyUnicode_AsUTF8String(str);
-      if(str == NULL)
+      if (str == NULL)
         return NULL;
       should_decref_str = 1;
     }
@@ -196,8 +194,8 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
     }
   }
   
-  if((orgstr = PyString_AsString(str)) == NULL) {
-    if(should_decref_str) {
+  if ((orgstr = PyString_AsString(str)) == NULL) {
+    if (should_decref_str) {
       Py_DECREF(str);
     }
     return NULL; // TypeError was raised
@@ -205,9 +203,9 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   
   orglen = PyString_GET_SIZE(str);
   
-  if(orglen < 1) {
+  if (orglen < 1) {
     // Empty string
-    if(!should_decref_str) {
+    if (!should_decref_str) {
       Py_INCREF(str);
     }
     return str;
@@ -218,22 +216,21 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   // Check new length
   const char *p1;
   for (p1 = orgstr; *p1; p1++) {
-    if (urlchr_test (*p1, mask)) {
+    if (urlchr_test (*p1, mask))
       newlen += 2;  /* Two more characters (hex digits) */
-    }
+    
   }
   
-  if(orglen == newlen) {
+  if (orglen == newlen) {
     // No need to encode - return original string
-    if(!should_decref_str) {
+    if (!should_decref_str)
       Py_INCREF(str);
-    }
     return str;
   }
   
   // Initialize new PyString
-  if((newstr_py = PyString_FromStringAndSize(NULL, newlen)) == NULL) {
-    if(should_decref_str) {
+  if ((newstr_py = PyString_FromStringAndSize(NULL, newlen)) == NULL) {
+    if (should_decref_str) {
       Py_DECREF(str);
     }
     return NULL;
@@ -244,7 +241,7 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   _url_encode(orgstr, newstr, mask);
   
   
-  if(should_decref_str) {
+  if (should_decref_str) {
     Py_DECREF(str);
   }
   
@@ -276,19 +273,24 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
         if (&p[2] < e && p[1] == '/' && p[2] == '/') {
           p += 2;
           v = &u->user;
-        } else {
+        }
+        else {
           u->user = u->proto;
           u->proto = nil;
           v = &u->pass;
         }
-      } else if (v == &u->user) {
+      }
+      else if (v == &u->user) {
         v = &u->pass;
-      } else if (v == &u->host) {
+      }
+      else if (v == &u->host) {
         v = &u->port;
-      } else if (v == &u->uri) {
+      }
+      else if (v == &u->uri) {
         /* : is allowed in path or query */
         v->len++;
-      } else {
+      }
+      else {
         return (-1);
       }
       break;
@@ -298,12 +300,15 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
         u->user = u->proto;
         u->proto = nil;
         v = &u->host;
-      } else if (v == &u->pass || v == &u->user) {
+      }
+      else if (v == &u->pass || v == &u->user) {
         v = &u->host;
-      } else if (v == &u->uri) {
+      }
+      else if (v == &u->uri) {
         /* @ is allowed in path or query */
         v->len++;
-      } else {
+      }
+      else {
         return (-1);
       }
       break;
@@ -313,19 +318,23 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
       if ((v == &u->proto && u->proto.len == 0) ||
         v == &u->host || v == &u->port) {
         SETURI();
-      } else if (v == &u->user) {
+      }
+      else if (v == &u->user) {
         u->host = u->user;
         u->user = nil;
         SETURI();
-      } else if (v == &u->pass) {
+      }
+      else if (v == &u->pass) {
         u->host = u->user;
         u->port = u->pass;
         u->user = u->pass = nil;
         SETURI();
-      } else if (v == &u->uri) {
+      }
+      else if (v == &u->uri) {
         /* / is allowed in path or query */
         v->len++;
-      } else {
+      }
+      else {
         return (-1);
       }
       break;
@@ -341,16 +350,18 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
     v = ( ((char *)v->ptr)[0] == '/' ) ? &u->uri : &u->host;
     *v = u->proto;
     u->proto = nil;
-  } else if (v == &u->user) {
+  }
+  else if (v == &u->user) {
     u->host = u->user;
     u->user = nil;
-  } else if (v == &u->pass) {
+  }
+  else if (v == &u->pass) {
     u->host = u->user;
     u->port = u->pass;
     u->user = u->pass = nil;
   }
 
-  if((p - s) == -1)
+  if ((p - s) == -1)
     return 0;
   
   // Now, transfer valid parts to the URL instance
@@ -363,32 +374,32 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
   self->query = Py_None;
   self->fragment = Py_None;
   
-  if( u->proto.len )
+  if ( u->proto.len )
     self->scheme = PyString_FromStringAndSize((char*)u->proto.ptr, u->proto.len);
 
-  if( u->user.len )
+  if ( u->user.len )
     self->user = PyString_FromStringAndSize((char*)u->user.ptr, u->user.len);
 
-  if( u->pass.len )
+  if ( u->pass.len )
     self->password = PyString_FromStringAndSize((char*)u->pass.ptr, u->pass.len);
 
-  if( u->host.len )
+  if ( u->host.len )
     self->host = PyString_FromStringAndSize((char*)u->host.ptr, u->host.len);
 
-  if( u->port.len ) {
+  if ( u->port.len ) {
     self->port = atoin((char*)u->port.ptr, (size_t)u->port.len);
-    if(self->port < 0)
+    if (self->port < 0)
       self->port = -self->port;
   }
-  if( u->uri.len ) {
+  if ( u->uri.len ) {
     // Find query and frag parts
     void *q_start = memchr(u->uri.ptr, '?', (size_t)u->uri.len);
     void *f_start = memchr(u->uri.ptr, '#', (size_t)u->uri.len);
     
     // Both qery and frag
-    if( (q_start != NULL) && (f_start != NULL) ) {
+    if ( (q_start != NULL) && (f_start != NULL) ) {
       // Really both q & f? (The ? comes before the #)
-      if( q_start < f_start ) {
+      if ( q_start < f_start ) {
         self->path = PyString_FromStringAndSize((char*)u->uri.ptr, q_start - u->uri.ptr);
         self->query = PyString_FromStringAndSize((char*)q_start+1,  f_start - q_start -1);
         self->fragment = PyString_FromStringAndSize((char*)f_start+1, u->uri.len - (f_start - u->uri.ptr) -1);
@@ -400,12 +411,12 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
       }
     }
     // Only query
-    else if( q_start != NULL ) {
+    else if ( q_start != NULL ) {
       self->path = PyString_FromStringAndSize((char*)u->uri.ptr, q_start - u->uri.ptr);
       self->query = PyString_FromStringAndSize((char*)q_start+1,  u->uri.len - (q_start - u->uri.ptr) -1);
     }
     // Only frag
-    else if( f_start != NULL ) {
+    else if ( f_start != NULL ) {
       self->path = PyString_FromStringAndSize((char*)u->uri.ptr, f_start - u->uri.ptr);
       self->fragment = PyString_FromStringAndSize((char*)f_start+1,  u->uri.len - (f_start - u->uri.ptr) -1);
     }
@@ -415,13 +426,13 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
     }
   }
   
-  if(self->scheme == Py_None) Py_INCREF(self->scheme);
-  if(self->user == Py_None) Py_INCREF(self->user);
-  if(self->password == Py_None) Py_INCREF(self->password);
-  if(self->host == Py_None) Py_INCREF(self->host);
-  if(self->path == Py_None) Py_INCREF(self->path);
-  if(self->query == Py_None) Py_INCREF(self->query);
-  if(self->fragment == Py_None) Py_INCREF(self->fragment);
+  if (self->scheme == Py_None) Py_INCREF(self->scheme);
+  if (self->user == Py_None) Py_INCREF(self->user);
+  if (self->password == Py_None) Py_INCREF(self->password);
+  if (self->host == Py_None) Py_INCREF(self->host);
+  if (self->path == Py_None) Py_INCREF(self->path);
+  if (self->query == Py_None) Py_INCREF(self->query);
+  if (self->fragment == Py_None) Py_INCREF(self->fragment);
 
   free(u);
   return 1;
@@ -456,19 +467,18 @@ int smisk_URL_init(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   PyObject *str;
   
   // No arguments? (new empty url)
-  if( (args == NULL) || (PyTuple_GET_SIZE(args) == 0) ) {
+  if ( (args == NULL) || (PyTuple_GET_SIZE(args) == 0) )
     return 0;
-  }
   
   // Save reference to first argument (a string) and type check it
   str = PyTuple_GET_ITEM(args, 0);
-  if(!PyString_Check(str)) {
+  if (!PyString_Check(str)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     Py_DECREF(self);
     return -1;
   }
   
-  if(!_parse(self, PyString_AS_STRING(str), PyString_GET_SIZE(str))) {
+  if (!_parse(self, PyString_AS_STRING(str), PyString_GET_SIZE(str))) {
     PyErr_Format(PyExc_ValueError, "Failed to parse URL");
     Py_DECREF(self);
     return -1;
@@ -564,25 +574,23 @@ PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
   Py_ssize_t orglen, newlen;
   register PyStringObject *newstr_py;
   
-  if((orgstr = PyString_AsString(str)) == NULL) {
+  if ((orgstr = PyString_AsString(str)) == NULL)
     return NULL; // TypeError raised
-  }
   
   orglen = PyString_GET_SIZE(str);
-  if(orglen < 1) {
+  if (orglen < 1) {
     // Empty string
     Py_INCREF(str);
     return str;
   }
   
   // Initialize new PyString
-  if((newstr_py = (PyStringObject *)PyString_FromStringAndSize(orgstr, orglen)) == NULL) {
+  if ((newstr_py = (PyStringObject *)PyString_FromStringAndSize(orgstr, orglen)) == NULL)
     return NULL;
-  }
   
   newlen = smisk_url_decode(PyString_AS_STRING(newstr_py), (size_t)orglen);
   
-  if(orglen == newlen) {
+  if (orglen == newlen) {
     // Did not need decoding
     Py_DECREF(newstr_py);
     Py_INCREF(str);
@@ -646,7 +654,7 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   static char *kwlist[] = {"scheme", "user", "password", "host", "port",
                            "path", "query", "fragment", NULL};
   scheme = user = password = host = port = path = query = fragment = NULL;
-  if(!PyArg_ParseTupleAndKeywords(args, kwargs, "|OOOOOOOO", kwlist,
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OOOOOOOO", kwlist,
       &scheme, &user, &password, &host, &port, &path, &query, &fragment))
     return NULL;
   
@@ -659,38 +667,40 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   
   PyObject *s = PyString_FromStringAndSize("", 0);
   
-  if(ENABLED(scheme)) {
+  if (ENABLED(scheme)) {
     PyString_Concat(&s, self->scheme);
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("://", 3));
   }
   
-  if( ENABLED(user) || ENABLED(password) ) {
-    if(ENABLED(user)) {
+  if ( ENABLED(user) || ENABLED(password) ) {
+    
+    if (ENABLED(user))
       PyString_Concat(&s, self->user);
-    }
-    if(ENABLED(password)) {
+    
+    if (ENABLED(password)) {
       PyString_ConcatAndDel(&s, PyString_FromStringAndSize(":", 1));
       PyString_Concat(&s, self->password);
     }
+    
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("@", 1));
   }
   
-  if(ENABLED(host))
+  if (ENABLED(host))
     PyString_Concat(&s, self->host);
   
   // port is an int, so we can't use our pretty ENABLED macro here
-  if( (port == NULL || port == Py_True || port == one) && (self->port > 0) )
+  if ( (port == NULL || port == Py_True || port == one) && (self->port > 0) )
     PyString_ConcatAndDel(&s, PyString_FromFormat(":%d", self->port));
   
-  if(ENABLED(path))
+  if (ENABLED(path))
     PyString_Concat(&s, self->path);
   
-  if(ENABLED(query)) {
+  if (ENABLED(query)) {
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("?", 1));
     PyString_Concat(&s, self->query);
   }
   
-  if(ENABLED(fragment)) {
+  if (ENABLED(fragment)) {
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("#", 1));
     PyString_Concat(&s, self->fragment);
   }
@@ -792,7 +802,7 @@ PyTypeObject smisk_URLType = {
 
 int smisk_URL_register_types(PyObject *module) {
   log_trace("ENTER");
-  if(PyType_Ready(&smisk_URLType) == 0)
+  if (PyType_Ready(&smisk_URLType) == 0)
     return PyModule_AddObject(module, "URL", (PyObject *)&smisk_URLType);
   return -1;
 }
