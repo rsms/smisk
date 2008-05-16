@@ -181,8 +181,9 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
       );
   });
   
-  // Close file
-  fclose(f);
+  // Close file -- might be NULL, since it's lazy initialized.
+  if(f)
+    fclose(f);
   
   // Create file record
   PyObject *py_key = PyString_FromString(ctx->part_name);
