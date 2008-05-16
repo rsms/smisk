@@ -136,13 +136,16 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
     
     // write prev line
     if(lbuf2_len > 1) {
+      
       if(boundary_hit) {
         // last line includes \r\n which is not part of the file
         lbuf2_len -= 2;
       }
+      
       if(lbuf2_len) {
+        
+        // Lazy tempfile creation
         if(f == NULL) {
-          // Lazy tempfile creation
           if( (fn = smisk_multipart_mktmpfile(ctx)) == NULL ) {
             // PyErr has been set by smisk_multipart_mktmpfile
             return 1;
@@ -152,12 +155,15 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
             return 1;
           }
         }
+        
         bw = fwrite((const void *)lbuf2, 1, lbuf2_len, f);
+        
         if(bw == -1) {
           fclose(f);
           PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
           return 1;
         }
+        
         bytes += bw;
       }
     }
@@ -185,20 +191,18 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
   if(f)
     fclose(f);
   
-  // Create file record
-  PyObject *py_key = PyString_FromString(ctx->part_name);
-  
+  // Add dict with file information to the ctx->files list
   if(bytes) {
-    // XXX Until further fix, we create a dict with the information
+    PyObject *py_key = PyString_FromString(ctx->part_name);
     PyObject *m = PyDict_New();
+    
     PyDict_SetItemString(m, "filename",     PyString_FromString(ctx->filename));
     PyDict_SetItemString(m, "content_type", PyString_FromString(ctx->content_type));
     PyDict_SetItemString(m, "path",         PyString_FromString(fn));
     PyDict_SetItemString(m, "size",         PyLong_FromUnsignedLong(bytes));
     
-    if(PyDict_assoc_val_with_key(ctx->files, m, py_key) != 0) {
+    if(PyDict_assoc_val_with_key(ctx->files, m, py_key) != 0)
       return -1;
-    }
   }
   
   return 0;
@@ -301,23 +305,25 @@ int smisk_multipart_parse_part(multipart_ctx_t *ctx) {
           *p = 0;
           strncpy(ctx->content_type, buf, FILENAME_MAX);
         }
-      }
+      } // end if(strncasecmp(buf, "Content-Disposition:", 20) == 0)
     }
   }
   
-  if((ctx->part_name) && (*ctx->part_name)) {
+  if ((ctx->part_name) && (*ctx->part_name)) {
     // Parse body
-    if(is_file) {
+    if (is_file) 
       // file
-      if(smisk_multipart_parse_file(ctx) != 0) return 1;
+      if (smisk_multipart_parse_file(ctx) != 0)
+        return 1;
     }
     else {
       // form data
-      if(smisk_multipart_parse_form_data(ctx) != 0) return 1;
+      if (smisk_multipart_parse_form_data(ctx) != 0)
+        return 1;
     }
   }
   else {
-    log_error("One or several parts in multipart post data missing name-attribute. Skipping input body parsing.");
+    log_debug("One or several parts in multipart post data missing name-attribute. Skipping input body parsing.");
     ctx->eof = 1;
   }
   
