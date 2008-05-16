@@ -191,7 +191,7 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
   if(f)
     fclose(f);
   
-  // Add dict with file information to the ctx->files list
+  // Add dict with file information to the ctx->files dict
   if(bytes) {
     PyObject *py_key = PyString_FromString(ctx->part_name);
     PyObject *m = PyDict_New();
@@ -223,15 +223,15 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
         //print("  > hit end boundary - end of message");
         ctx->eof = 1;
       }
-      else {
-        //print("  > hit boundary - end of part ('%s')", p);
-      }
+      /*else {
+        print("  > hit boundary - end of part ('%s')", p);
+      }*/
       *p = 0; // terminate before boundary start
       break;
     }
     p += bytes_read;
     if(cstr_ensure_freespace(&ctx->buf, SMISK_STREAM_READLINE_LENGTH) != 0) {
-      log_error("malloc() failed!");
+      PyErr_NoMemory();
       return 1;
     }
   }
@@ -240,15 +240,13 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
   if( (len = (p - ctx->buf.ptr)) > 2 ) {
     *(p-2) = '\0'; // \r\n -> \0\n
     len -= 2; // because above line
-    if(PyDict_assoc_val_with_key(ctx->post, PyString_FromString(ctx->buf.ptr), py_key) != 0) {
+    if(PyDict_assoc_val_with_key(ctx->post, PyString_FromString(ctx->buf.ptr), py_key) != 0)
       return -1;
-    }
   }
   else {
     // no value, only key
-    if(PyDict_assoc_val_with_key(ctx->post, Py_None, py_key) != 0) {
+    if(PyDict_assoc_val_with_key(ctx->post, Py_None, py_key) != 0)
       return -1;
-    }
   }
   
   return 0;
