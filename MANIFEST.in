@@ -1,5 +1,6 @@
 include LICENSE
 include README
+include CHANGELOG
 
 graft doc
 graft debug
