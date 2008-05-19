@@ -1,0 +1,18 @@
+include LICENSE
+include README
+include CHANGELOG
+include MANIFEST.in.sdist
+
+graft doc
+graft debug
+graft examples
+graft src
+graft tests
+
+prune doc/api
+
+exclude examples/*/*.log
+exclude examples/*/*.sock
+exclude examples/*/*.crash
+
+global-exclude .DS_Store *.log

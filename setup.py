@@ -343,6 +343,22 @@ class clean(_clean):
     rm_dir('doc/api')
   
 
+from setuptools.command.sdist import sdist as _sdist
+class sdist(_sdist):
+  def run(self):
+    i = open('MANIFEST.in.sdist', 'r')
+    o = open('MANIFEST.in', 'w')
+    try:
+      o.write(i.read())
+    finally:
+      i.close()
+      o.close()
+    
+    _sdist.run(self)
+    
+    for path in ['MANIFEST', 'MANIFEST.in']:
+      rm_file(path)
+
 
 # -----------------------------------------
 
@@ -352,6 +368,7 @@ class SmiskDistribution(Distribution):
     self.cmdclass = {
       'build': build,
       'build_ext': build_ext,
+      'sdist': sdist,
       'config': config,
       'apidocs': apidocs,
       'clean': clean,
