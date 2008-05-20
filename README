@@ -17,9 +17,8 @@ More information at the `Smisk website <http://trac.hunch.se/smisk>`_
 Getting Started
 ===============
 
-* Install with ``easy_install smisk``.
-* Download from the `Smisk website <http://trac.hunch.se/smisk>`_
-* Download from the `Smisk PyPI page <http://pypi.python.org/pypi/smisk>`_
+* Install with ``easy_install smisk`` or download from `Smisk at PyPI <http://pypi.python.org/pypi/smisk>`_
+* Have a look at a few `examples <http://trac.hunch.se/smisk/browser/examples>`_
 
 
 Examples
