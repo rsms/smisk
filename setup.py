@@ -13,13 +13,24 @@ from setuptools import Extension, Distribution, Command
 from pkg_resources import parse_version
 from distutils import log
 from subprocess import Popen, PIPE
+from ConfigParser import SafeConfigParser as ConfigParser
 
 if sys.version_info < (2, 4):
   raise SystemExit("Python 2.4 or later is required")
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 execfile(os.path.join("lib", "smisk", "release.py"))
-v = parse_version(version)
+# Load config
+cfg = ConfigParser()
+cfg.read('setup.cfg')
+tag = ''
+v = None
+if cfg.has_option('egg_info', 'tag_build'):
+  tag = cfg.get('egg_info', 'tag_build')
+  print "%s%s" % (version, tag)
+  v = parse_version("%s%s" % (version, tag))
+else:
+  v = parse_version(version)
 
 # we just need to do this right here. sorry.
 undef_macros=[]
@@ -76,11 +87,13 @@ classifiers = [
   'Topic :: Internet :: WWW/HTTP',
   'Topic :: Software Development :: Libraries :: Python Modules'
 ]
+
+
 # xxx: need to detect this in another way, since version never has a tag (we set tags at build time)
-#if v[3] == '*final':
-#  classifiers.append('Development Status :: 5 - Production/Stable')
-#if v[3] == '*c' or v[3] == '*b':
-#  classifiers.append('Development Status :: 4 - Beta')
+if v[3] == '*final':
+  classifiers.append('Development Status :: 5 - Production/Stable')
+if v[3] == '*c' or v[3] == '*b':
+  classifiers.append('Development Status :: 4 - Beta')
 
 
 # -----------------------------------------
