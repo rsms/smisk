@@ -3,20 +3,9 @@ import sys, os
 
 class Singleton(object):
   def __new__(type):
-    if not '_the_instance' in type.__dict__:
-        type._the_instance = object.__new__(type)
-    return type._the_instance
-
-class Singleton2(object):
-  """Singleton base class. Not thread safe."""
-  def __new__(cls):
-    raise Exception("singleton %s can not be instantiated" % cls.__name__)
-  
-  @classmethod
-  def instance(cls):
-    if not hasattr(cls, '_instance'):
-      cls._instance = object.__new__(cls)
-    return cls._instance
+    if not '_instance' in type.__dict__:
+      type._instance = object.__new__(type)
+    return type._instance
   
 
 def list_python_filenames_in_dir(path, only_py=True):
@@ -32,6 +21,21 @@ def list_python_filenames_in_dir(path, only_py=True):
     names = list_unique_wild(names)
     names.sort()
   return names
+
+
+def find_modules_for_classtree(cls, exclude_root=True, unique=True):
+  '''
+  Returns a list of all modules in which cls and any subclasses are defined.
+  '''
+  if exclude_root:
+    modules = []
+  else:
+    modules = [sys.modules[cls.__module__]]
+  for subcls in cls.__subclasses__():
+    modules.extend(find_modules_for_classtree(subcls, False, False))
+  if unique:
+    modules = list_unique(modules)
+  return modules
 
 
 def list_unique_wild(seq):
