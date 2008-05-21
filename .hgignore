@@ -8,6 +8,7 @@ fcgi.so
 *.crash
 MANIFEST
 setuptools-*.egg
+* copy.*
 
 # Dirs
 build*
