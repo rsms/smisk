@@ -12,6 +12,22 @@ from smisk.mvc.control import Controller
 log = logging.getLogger(__name__)
 
 
+class Destination(object):
+  # These should not be modified directly from outside of a router,
+  # since routers might cache instances of Destination.
+  action = None
+  args = []
+  
+  def __call__(self, *args, **kwargs):
+    if args:
+      if self.args:
+        args.extend(self.args)
+      return self.action(*args, **kwargs)
+    else:
+      return self.action(*self.args, **kwargs)
+  
+
+
 class Router(object):
   """Abstract router"""
   def __init__(self, app=None):
@@ -79,9 +95,12 @@ class ClassTreeRouter(Router):
     
     # Cached?
     if raw_path in self.cache:
-      action = self.cache[raw_path]
-      log.debug('Found action in cache: %s', repr(action))
-      return action
+      destination = self.cache[raw_path]
+      log.debug('Found destination in cache: %s', destination)
+      return destination
+    
+    log.info('Resolving %s', raw_path)
+    destination = Destination()
     
     # Make sure we have a valid root
     if root is None:
@@ -99,7 +118,9 @@ class ClassTreeRouter(Router):
     # Find branch
     action = root
     end_of_branch = False
-    for part in path:
+    last_match_index = -1
+    for i in range(len(path)):
+      part = path[i]
       # 1. Find subclass  named <string part> of <class action>
       found_sub_cls = None
       #log.debug('R looking for part %s in %s.__subclasses__', part, repr(action))
@@ -111,10 +132,13 @@ class ClassTreeRouter(Router):
       
       if found_sub_cls is not None:
         action = found_sub_cls
+        last_match_index = i
       else:
-        # Aquire controller instance, as all controllers are Singletons, this is safe
+        # Aquire controller instance, as all controllers are singletons, this is safe
         action = action()
         # 2. find method  named <string part> of <class action>
+        # Note: we do search subclasses but we do NOT search for anything within methods or other
+        #       members which are not a class. Otherwise we would get problems.
         for member_name in dir(action):
           if member_name.lower() == part:
             member = getattr(action, member_name)
@@ -130,12 +154,13 @@ class ClassTreeRouter(Router):
                 member = None
               
               if member is not None:
-                log.debug('found member %s %s for part %s on %s', member_name, repr(member), part, repr(action))
+                log.debug('Found member %s %s for part %s on %s', member_name, repr(member), part, repr(action))
                 action = member
                 end_of_branch = True
+                last_match_index = i
                 break
               else:
-                log.debug('skipping member %s %s for part %s on %s', member_name, repr(member), part, repr(action))
+                log.debug('Skipping member %s %s for part %s on %s', member_name, repr(member), part, repr(action))
             
         # Revert to class if we are to continue
         if not end_of_branch:
@@ -148,16 +173,23 @@ class ClassTreeRouter(Router):
     # Did we just end up on a class branch?
     if not end_of_branch:
       # Set action to the instance of the class rather than the class itself
-      if isinstance(action, type):
+      if type(action) is TypeType:
         action = action()
       # Make sure the action (class instance) is callable
       if not callable(action):
         raise ActionNotFound('%s is not callable' % repr(action))
     
-    log.debug('Found action: %s', repr(action))
+    # Complete destination
+    destination.action = action
+    destination.args = path[last_match_index+1:]
+    log.debug('Found destination: %s', repr(destination))
     
     # Cache the results
-    self.cache[raw_path] = action
+    self.cache[raw_path] = destination
     
-    return action
+    return destination
   
+
+def query_to_dict():
+  """docstring for query_to_dict"""
+  pass

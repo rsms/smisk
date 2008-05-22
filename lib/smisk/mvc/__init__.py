@@ -4,6 +4,7 @@ import smisk, smisk.core
 from smisk.core import URL
 from smisk.util import *
 from control import Controller
+from model import Entity
 from exceptions import *
 from routing import ClassTreeRouter
 
@@ -27,8 +28,9 @@ class Application(smisk.core.Application):
     
     # Initialize modules which need access to app, request and response
     modules = find_modules_for_classtree(Controller)
-    log.debug('modules=%s', modules)
+    modules.extend(find_modules_for_classtree(Entity))
     for m in modules:
+      log.debug('Initializing app module %s', m.__name__)
       m.app = self
       m.request = self.request
       m.response = self.response
@@ -39,17 +41,20 @@ class Application(smisk.core.Application):
     from smisk.util.timing import Timer
     timer = Timer()
     
-    # Find and call action
-    action = self.router(self.request.url)
-    log.debug('Calling action %s', repr(action))
-    response_body = action.__call__()
+    # Find and call destination
+    destination = self.router(self.request.url)
+    log.debug('Calling destination %s', repr(destination))
+    kwargs = self.request.get
+    if self.request.env['REQUEST_METHOD'] == 'POST':
+      kwargs.update(self.request.post)
+    response_body = destination(**kwargs)
     
     # Handle response body
     if response_body is not None:
       # Serialize to string if not already a string
       if not isinstance(response_body, str):
         log.debug('xxx todo: render %s using a serializer. for example json, yaml, xml, plist or pickle', repr(response_body))
-        response_body = str(response_body)
+        response_body = str(response_body) + "\n"
       
       # At this point, response_body must be a string
       if not self.response.has_begun:
@@ -60,6 +65,9 @@ class Application(smisk.core.Application):
     timer.finish()
     log.info('Serviced in %.3fms', timer.time()*1000.0)
   
+  def error(self, typ, val, tb):
+    log.error('Request failed for %s', repr(self.request.url.path), exc_info=(typ, val, tb))
+    super(Application, self).error(typ, val, tb)
 
 def main(cls=Application):
   if 'SMISK_APP_DIR' not in os.environ:

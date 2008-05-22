@@ -5,28 +5,33 @@ from smisk.mvc.control import Controller
 log = logging.getLogger(__name__)
 
 class root(Controller):
-  def __call__(self, *args, **params):
+  def __call__(self, *args, **kwargs):
     return dict(
       title = "This is a title",
       message = "This message was created at %f" % time.time()
     )
   
-  def posts(self, *args, **params):
+  def posts(self, *args, **kwargs):
     pass
 
 
 class posts(root):
-  def __call__(self, *args, **params):
-    response("from root > %s.__call__()\n" % repr(self))
+  def __call__(self, named_arg=None, *args, **kwargs):
+    response(
+      "from root > %s.__call__()\n" % repr(self),
+      "  named_arg = %s\n" % repr(named_arg),
+      "  args      = %s\n" % repr(args),
+      "  kwargs    = %s\n" % repr(kwargs)
+    )
   
-  def show(self, post_id=0, *args, **params):
+  def show(self, post_id=0, *args, **kwargs):
     response("from root > %s.show(post_id=%s)\n" % (repr(self), str(post_id)))
   
   class edit(root):
-    def __call__(self, *args, **params):
+    def __call__(self, *args, **kwargs):
       response("from root > posts.%s.__call__()\n" % repr(self))
     
-    def save(self, *args, **params):
+    def save(self, *args, **kwargs):
       response("from root > posts.%s.save()\n" % repr(self))
     
   
