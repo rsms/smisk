@@ -134,12 +134,11 @@ int smisk_parse_input_data(char *s, const char *separator, int is_cookie_data, P
     if (is_cookie_data) {
       // Remove leading spaces from cookie names, needed for multi-cookie 
       // header where ; can be followed by a space
-      while (isspace(*key)) {
+      while (isspace(*key))
         key++;
-      }
-      if (key == val || *key == '\0') {
-        goto next_cookie;
-      }
+      
+      if (key == val || *key == '\0')
+        goto next_part;
     }
     
     PyObject *py_key, *py_val;
@@ -150,20 +149,21 @@ int smisk_parse_input_data(char *s, const char *separator, int is_cookie_data, P
       *val++ = '\0'; // '=' -> '\0'
       int val_len = smisk_url_decode(val, strlen(val));
       py_val = PyString_FromStringAndSize(val, val_len);
-    } else {
+    }
+    else {
       py_val = Py_None;
       Py_INCREF(Py_None);
     }
     
     // save
     py_key = PyString_FromString(key);
-    if ((status = PyDict_assoc_val_with_key(dict, py_val, py_key)) != 0) {
+    if ((status = PyDict_assoc_val_with_key(dict, py_val, py_key)) != 0)
       break;
-    }
+    
     Py_DECREF(py_key);
     Py_DECREF(py_val);
     
-next_cookie:
+next_part:
     key = strtok_r(NULL, separator, &strtok_ctx);
   } // end while (var)
 

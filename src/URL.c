@@ -605,6 +605,35 @@ PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
 }
 
 
+PyDoc_STRVAR(smisk_URL_decompose_query_DOC,
+  "Parses a query string into a dictionary.\n"
+  "\n"
+  ":param  str:\n"
+  ":type   str: string\n"
+  ":rtype: string\n"
+  ":raises TypeError: if str is not a string\n"
+  ":see:   smisk.core.Request.get\n"
+  ":see:   smisk.core.Request.post");
+PyObject *smisk_URL_decompose_query(PyObject *self, PyObject *str) {
+  log_trace("ENTER");
+  char *s;
+  PyObject *d;
+  
+  if ((s = PyString_AsString(str)) == NULL)
+    return NULL; // TypeError raised
+  
+  if ((d = PyDict_New()) == NULL)
+    return NULL;
+  
+  if (smisk_parse_input_data(s, "&", 0, d) != 0) {
+    Py_DECREF(d);
+    return NULL;
+  }
+  
+  return d;
+}
+
+
 PyDoc_STRVAR(smisk_URL_to_str_DOC,
   "Alias of `to_s()`.\n"
   "\n"
@@ -724,6 +753,7 @@ PyObject *smisk_URL___str__(smisk_URL* self) {
   return s;
 }
 
+
 #pragma mark -
 #pragma mark Type construction
 
@@ -732,14 +762,18 @@ PyDoc_STRVAR(smisk_URL_DOC,
 
 // Methods
 static PyMethodDef smisk_URL_methods[] = {
+  
   // Static methods
   {"encode", (PyCFunction)smisk_URL_encode,   METH_STATIC|METH_O, smisk_URL_encode_DOC},
   {"escape", (PyCFunction)smisk_URL_escape,   METH_STATIC|METH_O, smisk_URL_escape_DOC},
   {"decode", (PyCFunction)smisk_URL_decode,   METH_STATIC|METH_O, smisk_URL_decode_DOC},
   {"unescape", (PyCFunction)smisk_URL_decode, METH_STATIC|METH_O, smisk_URL_unescape_DOC},
+  {"decompose_query", (PyCFunction)smisk_URL_decompose_query, METH_STATIC|METH_O, smisk_URL_decompose_query_DOC},
+  
   // Instance methods
   {"to_s",    (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, smisk_URL_to_s_DOC},
   {"to_str",  (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, smisk_URL_to_str_DOC}, // alias of to_s
+  
   {NULL, NULL, 0, NULL}
 };
 
