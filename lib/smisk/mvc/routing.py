@@ -189,7 +189,3 @@ class ClassTreeRouter(Router):
     
     return destination
   
-
-def query_to_dict():
-  """docstring for query_to_dict"""
-  pass
