@@ -5,12 +5,13 @@ Conforms to `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`__
 
 Simple example:
 
->>> from smisk.wsgi import Gateway
->>> def hello_app(env, start_response):
->>>   start_response("200 OK", [])
->>>   return ["Hello, World"]
->>> 
->>> Gateway(hello_app).run()
+.. python::
+  from smisk.wsgi import Gateway
+  def hello_app(env, start_response):
+    start_response("200 OK", [])
+    return ["Hello, World"]
+  
+  Gateway(hello_app).run()
 
 :see: http://www.python.org/dev/peps/pep-0333/
 :author: Eric Moritz

@@ -52,35 +52,38 @@ class ClassTreeRouter(Router):
   
   Consider the following tree of controllers:
   
-  >>> class root(Controller):
-  >>>   def __call__(self, *args, **params):
-  >>>     return 'Welcome!'
-  >>>
-  >>> class employees(root):
-  >>>   def __call__(self, *args, **params):
-  >>>     return {'employees': Employee.query.all()}
-  >>>
-  >>>   def show(self, employee_id, *args, **params):
-  >>>     return {'employee': Employee.get_by(id=employee_id)}
-  >>>
-  >>>   class edit(employees):
-  >>>     def __call__(self, employee_id, *args, **params):
-  >>>       return employees.show(self, employee_id)
-  >>>
-  >>>     def save(self, employee_id, *args, **params):
-  >>>       Employee.get_by(id=employee_id).save_or_update(**params)
-  >>>
+  .. python::
+    class root(Controller):
+      def __call__(self, *args, **params):
+        return 'Welcome!'
+    
+    class employees(root):
+      def __call__(self, *args, **params):
+        return {'employees': Employee.query.all()}
+      
+      def show(self, employee_id, *args, **params):
+        return {'employee': Employee.get_by(id=employee_id)}
+      
+      class edit(employees):
+        def __call__(self, employee_id, *args, **params):
+          return employees.show(self, employee_id)
+        
+        def save(self, employee_id, *args, **params):
+          Employee.get_by(id=employee_id).save_or_update(**params)
+  
   
   Now, this list shows what URIs would map to what begin called:
   
-  /                             => root().__call__()
-  /employees                    => employees().__call__()
-  /employees/                   => employees().__call__()
-  /employees/show               => employees().show()
-  /employees/show/123           => employees().show(123)
-  /employees/show/123/456       => employees().show(123, 456)
-  /employees/show/123?other=456 => employees().show(123, other=456)
-  /employees/edit/123           => employees.edit().__call__(123)
+  .. python::
+    /                             => root().__call__()
+    /employees                    => employees().__call__()
+    /employees/                   => employees().__call__()
+    /employees/show               => employees().show()
+    /employees/show/123           => employees().show(123)
+    /employees/show/123/456       => employees().show(123, 456)
+    /employees/show/123?other=456 => employees().show(123, other=456)
+    /employees/edit/123           => employees.edit().__call__(123)
+    /employees/edit/save/123      => employees.edit().save(123)
   
   Of course, there is only one persistent instance of any controller.
   

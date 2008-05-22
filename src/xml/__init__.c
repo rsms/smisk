@@ -125,7 +125,7 @@ PyDoc_STRVAR(smisk_xml_encode_DOC,
   "\"Your's &#x26; not mine &#x3C;says&#x3E; &#x22;you&#x22;\"\n"
   ">>> \n"
   "\n"
-  ":param s: Raw string to be encoded"
+  ":param s: Raw string to be encoded\n"
   ":type  s: string\n"
   ":rtype: string");
 PyObject *smisk_xml_encode_py(PyObject *self, PyObject *pys) {
