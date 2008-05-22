@@ -50,9 +50,7 @@ def list_unique(seq, idfun=None):
 
 
 def format_exc(exc=None):
-  '''
-  :rtype string:
-  '''
+  ''':rtype: string'''
   if exc is None:
     exc = sys.exc_info()
   if exc == (None, None, None):
