@@ -1,7 +1,7 @@
 #!/bin/sh
 cd $(dirname "$0")
 if [ $# -eq 0 ]; then
-  cd examples/simple
+  cd examples/minimal
 else
   if [ ! -f "$1/lighttpd.conf" ]; then
     echo "$1 does not contain a lighttpd.conf file" >&2
