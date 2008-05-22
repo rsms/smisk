@@ -27,7 +27,6 @@ tag = ''
 v = None
 if cfg.has_option('egg_info', 'tag_build'):
   tag = cfg.get('egg_info', 'tag_build')
-  print "%s%s" % (version, tag)
   v = parse_version("%s%s" % (version, tag))
 else:
   v = parse_version(version)
