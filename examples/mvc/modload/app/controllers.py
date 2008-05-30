@@ -1,10 +1,13 @@
 # encoding: utf-8
 import sys, os, logging, time
 from smisk.mvc.control import Controller
+from smisk.serialization.json import Serializer
 
 log = logging.getLogger(__name__)
 
 class root(Controller):
+  serializer = Serializer
+  
   def __call__(self, *args, **kwargs):
     return dict(
       title = "This is a title",
