@@ -99,7 +99,7 @@ if v[3] == '*c' or v[3] == '*b':
 # Helpers
 
 def read(*rnames):
-  return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
+  return open(os.path.join(*rnames)).read()
 
 def rm_file(path):
   if os.access(path, os.F_OK):

@@ -889,7 +889,7 @@ static PyGetSetDef smisk_Request_getset[] = {
 
 // Class members
 static struct PyMemberDef smisk_Request_members[] = {
-  {"input", T_OBJECT_EX, offsetof(smisk_Request, input), RO, ":type: `Stream`\n\n"
+  {"input", T_OBJECT_EX, offsetof(smisk_Request, input), RO,
     "Input stream.\n"
     "\n"
     "If you send any data which is neither ``x-www-form-urlencoded`` nor ``multipart`` "
@@ -915,7 +915,9 @@ static struct PyMemberDef smisk_Request_members[] = {
     "\n"
     "You could then send a request using curl for example:\n"
     "\n"
-    "``curl --data-binary '{\"Url\": \"http://www.example.com/image/481989943\", \"Position\": [125, \"100\"]}' http://localhost:8080/``"
+    "``curl --data-binary '{\"Url\": \"http://www.example.com/image/481989943\", \"Position\": [125, \"100\"]}' http://localhost:8080/``\n"
+    ":type: `Stream`\n"
+    "\n"
     },
   
   {"errors",   T_OBJECT_EX, offsetof(smisk_Request, errors),   RO, ":type: `Stream`"},

@@ -7,65 +7,103 @@ except ImportError:
   from StringIO import StringIO
 
 
-class Serializer(object):
-  """Abstract baseclass for serializers"""
+serializers = {}
+'''
+Serializers keyed by lower case MIME types.
+'''
+
+class HTTPGateway(object):
+  '''Handles input and output over HTTP'''
   
-  mime_types = ['application/octet-stream']
+  def parse(self, request, response):
+    """
+    Read and decode a HTTP message
+    
+    :param request:
+    :type  request: smisk.core.Request
+    :rtype:         object
+    """
+    kwargs = self.request.get
+    if self.request.env['REQUEST_METHOD'] == 'POST':
+      kwargs.update(self.request.post)
+  
+  def send(self, st, response):
+    """
+    Encode and send a HTTP response
+    
+    :param st: Structure to de encoded and sent
+    :type  st: object
+    :param st:
+    :type  st: smisk.core.Response
+    :rtype:    None
+    """
+    
+    
+    # At this point, response_body must be a string
+    if not self.response.has_begun:
+      self.response.headers.append('Content-Length: %d' % len(response_body))
+    self.response.write(response_body)
+
+
+class BaseSerializer(object):
   '''
-  The MIME types for the serial format.
+  Abstract baseclass for serializers
+  '''
   
-  The list must be at least 1 item long.
-  The first item is used when producing output.
-  All items are tested when interpreting input.
+  output_type = 'application/octet-stream'
+  '''
+  MIME type of output.
+  
+  Should not include charset.
+  
+  Serializers register themselves in the module-level dictionary `serializers`
+  for any MIME types they can handle. This directive, mime_type, is only used
+  for output.
+  '''
+  
+  output_encoding = None
+  '''
+  Output character encoding
   '''
   
   @classmethod
-  def encode(cls, st, file):
+  def encode(cls, *args, **params):
     """
-    Serialize a structure and write it to file.
-    
-    :param st:   Structure to be serialized
-    :type  st:   object
-    :param file: Destination. A file-like object implementing at least the write(string, int) method.
-    :type  file: file
-    :rtype:      None
+    :param args: 
+    :type  args:   list
+    :param params: 
+    :type  params: dict
+    :rtype:        string
     """
     raise NotImplementedError('%s.encode' % cls.__name__)
   
   @classmethod
+  def encode_error(cls, typ, val, tb):
+    """
+    Encode an error.
+    
+    Might return None to indicate someone else should handle the error.
+    
+    :param typ: Error type
+    :type  typ: Type
+    :param val: Value
+    :type  val: object
+    :param tb:  Traceback
+    :type  tb:  object
+    :rtype:     string
+    """
+    return None
+  
+  @classmethod
   def decode(cls, file):
     """
-    Extract a previously serialized structure from file.
-    
     :param file: A file-like object implementing at least the read() method
-    :type  file: file
-    :rtype:      object
+    :type  file: object
+    :rtype:      tuple
+    :returns:    A tuple of (string methodname, list args, dict params)
     """
     raise NotImplementedError('%s.decode' % cls.__name__)
   
-  @classmethod
-  def encodes(cls, st):
-    """
-    Serialize a structure and return it as a string.
-    
-    :param st:   Structure to be serialized
-    :type  st:   object
-    :rtype:      string
-    """
-    # Defaults to using StringIO and using encode
-    f = StringIO()
-    cls.encode(st, f)
-    return f.getvalue()
-  
-  @classmethod
-  def decodes(cls, string):
-    """
-    Extract a previously serialized structure from a string.
-    
-    :param string: A file-like object implementing at least the read() method
-    :type  string: string
-    :rtype:        object
-    """
-    # Defaults to using StringIO and using decode
-    return cls.decode(StringIO(string))
-  
+
+# Load serializers
+import json, xmlrpc, xml_rest

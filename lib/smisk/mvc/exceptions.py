@@ -8,7 +8,7 @@ class NotFound(MVCError):
 class ControllerNotFound(NotFound):
   pass
 
-class ActionNotFound(NotFound):
+class MethodNotFound(NotFound):
   pass
 
 class TemplateNotFound(NotFound):

@@ -6,8 +6,9 @@ Path to structure routing.
 
 import logging
 from types import *
-from smisk.core import URL
-from smisk.mvc.control import Controller
+from exceptions import *
+from ..core import URL
+from control import Controller
 
 log = logging.getLogger(__name__)
 
@@ -16,15 +17,9 @@ class Destination(object):
   # These should not be modified directly from outside of a router,
   # since routers might cache instances of Destination.
   action = None
-  args = []
   
   def __call__(self, *args, **kwargs):
-    if args:
-      if self.args:
-        args.extend(self.args)
-      return self.action(*args, **kwargs)
-    else:
-      return self.action(*self.args, **kwargs)
+    return self.action(*args, **kwargs)
   
 
 
@@ -102,7 +97,7 @@ class ClassTreeRouter(Router):
       log.debug('Found destination in cache: %s', destination)
       return destination
     
-    log.info('Resolving %s', raw_path)
+    log.info('Resolving %s', repr(raw_path))
     destination = Destination()
     
     # Make sure we have a valid root
@@ -175,16 +170,17 @@ class ClassTreeRouter(Router):
     
     # Did we just end up on a class branch?
     if not end_of_branch:
+      if last_match_index+1 != len(path):
+        raise MethodNotFound('No such method: "%s"' % '.'.join(path))
       # Set action to the instance of the class rather than the class itself
       if type(action) is TypeType:
         action = action()
       # Make sure the action (class instance) is callable
       if not callable(action):
-        raise ActionNotFound('%s is not callable' % repr(action))
+        raise MethodNotFound('No such method: "%s"' % '.'.join(path))
     
     # Complete destination
     destination.action = action
-    destination.args = path[last_match_index+1:]
     log.debug('Found destination: %s', repr(destination))
     
     # Cache the results

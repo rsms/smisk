@@ -779,14 +779,14 @@ static PyMethodDef smisk_URL_methods[] = {
 
 // Class Members
 static struct PyMemberDef smisk_URL_members[] = {
-  {"scheme",    T_OBJECT_EX, offsetof(smisk_URL, scheme),   RO, ":type: string"},
-  {"user",      T_OBJECT_EX, offsetof(smisk_URL, user),     RO, ":type: string"},
-  {"password",  T_OBJECT_EX, offsetof(smisk_URL, password), RO, ":type: string"},
-  {"host",      T_OBJECT_EX, offsetof(smisk_URL, host),     RO, ":type: string"},
-  {"port",      T_UINT,      offsetof(smisk_URL, port),     RO, ":type: uint"},
-  {"path",      T_OBJECT_EX, offsetof(smisk_URL, path),     RO, ":type: string"},
-  {"query",     T_OBJECT_EX, offsetof(smisk_URL, query),    RO, ":type: string"},
-  {"fragment",  T_OBJECT_EX, offsetof(smisk_URL, fragment), RO, ":type: string"},
+  {"scheme",    T_OBJECT_EX, offsetof(smisk_URL, scheme),   0, ":type: string"},
+  {"user",      T_OBJECT_EX, offsetof(smisk_URL, user),     0, ":type: string"},
+  {"password",  T_OBJECT_EX, offsetof(smisk_URL, password), 0, ":type: string"},
+  {"host",      T_OBJECT_EX, offsetof(smisk_URL, host),     0, ":type: string"},
+  {"port",      T_UINT,      offsetof(smisk_URL, port),     0, ":type: uint"},
+  {"path",      T_OBJECT_EX, offsetof(smisk_URL, path),     0, ":type: string"},
+  {"query",     T_OBJECT_EX, offsetof(smisk_URL, query),    0, ":type: string"},
+  {"fragment",  T_OBJECT_EX, offsetof(smisk_URL, fragment), 0, ":type: string"},
   {NULL, 0, 0, 0, NULL}
 };
 

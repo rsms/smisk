@@ -1,17 +1,19 @@
 # encoding: utf-8
 import sys, os, logging, time
 from smisk.mvc.control import Controller
-from smisk.serialization.json import Serializer
 
 log = logging.getLogger(__name__)
 
 class root(Controller):
-  serializer = Serializer
-  
   def __call__(self, *args, **kwargs):
+    log.debug('root.__call__: got args: %s  kwargs: %s', repr(args), repr(kwargs))
     return dict(
       title = "This is a title",
-      message = "This message was created at %f" % time.time()
+      message = "This message was created at %f" % time.time(),
+      aset = {
+        "crazy<nyckel": "mos",
+        "en annan nyckel": [123, 45.72401, "You", u"Uniyou", ("A", "B", r'C')]
+      }
     )
   
   def posts(self, *args, **kwargs):
