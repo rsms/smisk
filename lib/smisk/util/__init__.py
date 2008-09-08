@@ -18,7 +18,8 @@ def list_python_filenames_in_dir(path, only_py=True):
       if fn4 == '.pyc' or fn4 == '.pyo':
         names.append(fn[:-4])
   if names:
-    names = list_unique_wild(names)
+    if not only_py:
+      names = list_unique_wild(names)
     names.sort()
   return names
 
