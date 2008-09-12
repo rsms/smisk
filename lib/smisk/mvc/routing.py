@@ -155,13 +155,15 @@ class ClassTreeRouter(Router):
               
               if member is not None:
                 if __debug__:
-                  log.debug('Found member %s %s for part %s on %s', member_name, repr(member), part, repr(action))
+                  log.debug('Found member %s %s for part %s on %s', 
+                            member_name, repr(member), part, repr(action))
                 action = member
                 end_of_branch = True
                 last_match_index = i
                 break
               elif __debug__:
-                log.debug('Skipping member %s %s for part %s on %s', member_name, repr(member), part, repr(action))
+                log.debug('Skipping member %s %s for part %s on %s', 
+                          member_name, repr(member), part, repr(action))
             
         # Revert to class if we are to continue
         if not end_of_branch:
