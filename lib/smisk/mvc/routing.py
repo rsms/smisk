@@ -94,10 +94,12 @@ class ClassTreeRouter(Router):
     # Cached?
     if raw_path in self.cache:
       destination = self.cache[raw_path]
-      log.debug('Found destination in cache: %s', destination)
+      if __debug__:
+        log.debug('Found destination in cache: %s', destination)
       return destination
     
-    log.info('Resolving %s', repr(raw_path))
+    if __debug__:
+      log.info('Resolving %s', repr(raw_path))
     destination = Destination()
     
     # Make sure we have a valid root
@@ -152,12 +154,13 @@ class ClassTreeRouter(Router):
                 member = None
               
               if member is not None:
-                log.debug('Found member %s %s for part %s on %s', member_name, repr(member), part, repr(action))
+                if __debug__:
+                  log.debug('Found member %s %s for part %s on %s', member_name, repr(member), part, repr(action))
                 action = member
                 end_of_branch = True
                 last_match_index = i
                 break
-              else:
+              elif __debug__:
                 log.debug('Skipping member %s %s for part %s on %s', member_name, repr(member), part, repr(action))
             
         # Revert to class if we are to continue
@@ -181,7 +184,8 @@ class ClassTreeRouter(Router):
     
     # Complete destination
     destination.action = action
-    log.debug('Found destination: %s', repr(destination))
+    if __debug__:
+      log.debug('Found destination: %s', repr(destination))
     
     # Cache the results
     self.cache[raw_path] = destination
