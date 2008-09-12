@@ -8,6 +8,7 @@ from xmlrpclib import dumps, loads, Fault
 class Serializer(BaseSerializer):
   '''XMLRPC serializer'''
   
+  extension = '.xmlrpc'
   output_type = 'application/rpc+xml'
   output_encoding = 'utf-8'
   

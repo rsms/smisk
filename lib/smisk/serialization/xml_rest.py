@@ -67,6 +67,7 @@ def encode_sequence(l, buf, level):
 class Serializer(BaseSerializer):
   '''XML REST serializer'''
   
+  extension = '.xml'
   output_type = 'application/rest+xml'
   output_encoding = 'utf-8'
   

@@ -19,7 +19,7 @@ class Serializer(BaseSerializer):
   WARNING: Do not use this in production as it is experimental and has some
            known issues.
   '''
-  
+  extension = '.pickle'
   output_type = 'application/x-python-pickle'
   
   @classmethod

@@ -8,41 +8,7 @@ except ImportError:
 
 
 serializers = {}
-'''
-Serializers keyed by lower case MIME types.
-'''
-
-class HTTPGateway(object):
-  '''Handles input and output over HTTP'''
-  
-  def parse(self, request, response):
-    """
-    Read and decode a HTTP message
-    
-    :param request:
-    :type  request: smisk.core.Request
-    :rtype:         object
-    """
-    kwargs = self.request.get
-    if self.request.env['REQUEST_METHOD'] == 'POST':
-      kwargs.update(self.request.post)
-  
-  def send(self, st, response):
-    """
-    Encode and send a HTTP response
-    
-    :param st: Structure to de encoded and sent
-    :type  st: object
-    :param st:
-    :type  st: smisk.core.Response
-    :rtype:    None
-    """
-    
-    
-    # At this point, response_body must be a string
-    if not self.response.has_begun:
-      self.response.headers.append('Content-Length: %d' % len(response_body))
-    self.response.write(response_body)
+'Serializers keyed by lower case MIME types.'
 
 
 class BaseSerializer(object):

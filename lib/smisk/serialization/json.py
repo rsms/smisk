@@ -15,7 +15,7 @@ except ImportError:
 
 class Serializer(BaseSerializer):
   '''JSON Serializer'''
-  
+  extension = '.json'
   output_type = 'application/json'
   output_encoding = 'utf-8'
     
