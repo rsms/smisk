@@ -23,20 +23,18 @@ def unique_sorted_modules_of_items(v):
   return s
 
 class Application(smisk.core.Application):
+  '''MVC application'''
   
-  default_content_type = 'application/json'
-  '''
-  Default output type must be a string.
-  '''
+  router_type = ClassTreeRouter
+  '''Default router type'''
+  
+  default_output_encoding = 'utf-8'
+  '''Default response character encoding'''
+  
+  default_media_type = 'application/xhtml+xml'
   
   serializer = None
-  '''Used at runtime'''
-  
-  output_type = None
-  '''Used at runtime'''
-  
-  output_encoding = None
-  '''Used at runtime'''
+  '''Used during runtime. Here because we want to use it in error()'''
   
   def __init__(self, *args, **kwargs):
     super(Application, self).__init__(*args, **kwargs)
@@ -45,7 +43,7 @@ class Application(smisk.core.Application):
       format = '%(levelname)-8s %(name)-20s %(message)s',
       datefmt = '%d %b %H:%M:%S'
     )
-    self.router = ClassTreeRouter()
+    self.router = self.router_type()
   
   def application_will_start(self):
     # Make sure the router has a reference to to app
@@ -60,27 +58,70 @@ class Application(smisk.core.Application):
       m.request = self.request
       m.response = self.response
     
+    # Check so the default media type really has an available serializer
+    serializer_media_types = serializers.media_types.keys()
+    if not self.default_media_type in serializer_media_types:
+      if len(serializers.media_types) == 0:
+        log.warn('No serializers available!')
+      else:
+        self.default_media_type = serializers.media_types.keys()[0]
+        log.warn('app.default_media_type is not available from current set of serializers'\
+                 ' -- setting to first registered serializer: %s', self.default_media_type)
+    
+    # Info about serializers
     if log.level <= logging.DEBUG:
-      log.debug('Active serializers: %s',
-        ', '.join(unique_sorted_modules_of_items(serializers.values())) )
-      log.debug('Managable types: %s', ', '.join(serializers.keys()))
+      log.debug('Active serializers: %s', ', '.join(unique_sorted_modules_of_items(serializers.values())) )
+      log.debug('Available media types: %s', repr(serializers.media_types.keys()))
+      log.debug('Available filename extensions: %s', repr(serializers.extensions.keys()))
+    
+    # When we return, accept() in smisk.core is called
     log.info('Accepting connections')
   
+  def get_serializer(self):
+    '''Return the most appropriate serializer for the current transaction'''
+    # Try filename extension
+    filename = os.path.basename(self.request.url.path)
+    p = filename.rfind('.')
+    if p != -1:
+      ext = filename[p+1:]
+      if ext in serializers.extensions.keys():
+        return serializers.extensions[ext]
+    # Try media type
+    accept_types = self.request.env.get('HTTP_ACCEPT', None)
+    if accept_types is not None:
+      available_types = serializers.media_types.keys()
+      vv = []
+      for media in accept_types.split(','):
+        p = media.find(';')
+        if p != -1:
+          pp = media.find('q=', p)
+          if pp != -1:
+            vv.append([media[:p], int(float(media[pp+2:])*100.0)])
+            continue
+        qual = 100
+        if media == '*/*':
+          qual = 0
+        elif '/*' in media:
+          qual = 50
+        vv.append([media, qual])
+      vv.sort(lambda a,b: b[1] - a[1])
+      for v in vv:
+        if v[0] in available_types:
+          return serializers.media_types[v[0]]
+    # Default serializer. Worst case scenario: return None
+    return serializers.media_types.get(self.default_media_type, None)
+  
   def service(self):
+    # Clear any old serializer
+    self.serializer = None
+    
     if log.level <= logging.INFO:
       timer = Timer()
     
-    # Reset
-    self.serializer = None
-    self.output_type = None
-    self.output_encoding = None
-    
-    # Find content type and an appropriate serializer
-    input_type = self.request.env.get('CONTENT_TYPE', None)
-    if input_type is not None:
-      input_type = input_type.lower()
-      self.serializer = serializers.get(input_type, None)
-    self.output_type = input_type
+    # Setup context
+    self.serializer = self.get_serializer()
+    if self.serializer is None:
+      raise Exception('No serializer available!')
     
     is_POST = False
     if self.request.env['REQUEST_METHOD'] == 'POST':
@@ -101,59 +142,48 @@ class Application(smisk.core.Application):
       else:
         params.update(self.request.post)
     
-    log.debug('Input: methodname=%s, args=%s, params=%s', methodname, repr(args), repr(params))
+    if log.level <= logging.DEBUG:
+      log.debug('Input: methodname=%s, args=%s, params=%s', methodname, repr(args), repr(params))
     
     # Find and call destination
     resolve_url = self.request.url
     if methodname is not None:
       resolve_url = URL()
       resolve_url.path = methodname.replace('.', '/')
+    else:
+      elen = len(self.serializer.extension)+1
+      if resolve_url.path[-elen:] == '.'+self.serializer.extension:
+        resolve_url.path = resolve_url.path[:-elen]
+      log.debug('resolve_url.path=%s', resolve_url.path)
     destination = self.router(resolve_url)
     log.debug('Calling destination %s', repr(destination))
     
     # Process -- call action
-    response_st = destination(*args, **params)
+    rsp = destination(*args, **params)
     
     # Send any response
-    if response_st is not None:
-      # Find out if destination did override the output_type
-      p = self.response.find_header('Content-Type:')
-      if p != -1:
-        self.output_type = self.response.headers[p][13:]
-        del self.response.headers[p]
-        p = self.output_type.find(';')
-        if p != -1:
-          self.output_type = self.output_type[0:p]
-        self.output_type = self.output_type.strip(' ')
+    if rsp is not None:
+      # Encode response
+      if isinstance(rsp, dict): 
+        rsp = self.serializer.encode(**rsp)
+      elif isinstance(rsp, list): 
+        rsp = self.serializer.encode(*rsp)
+      else:
+        rsp = self.serializer.encode(rsp)
       
-      # Set content type
-      if self.serializer is not None:
-        self.output_type = self.serializer.output_type
-      if self.output_type is None or self.output_type not in serializers:
-        self.output_type = self.default_content_type
+      # Make sure rsp is a string
+      assert(isinstance(rsp, basestring))
       
-      # Serialize the response
-      try:
-        # Make sure we can serialize the response
-        if self.serializer is None:
-          self.serializer = serializers[self.output_type]
-        
-        # Encode response
-        if isinstance(response_st, dict): 
-          response_s = self.serializer.encode(**response_st)
-        elif isinstance(response_st, list): 
-          response_s = self.serializer.encode(*response_st)
-        else:
-          response_s = self.serializer.encode(response_st)
-        
-        # Aquire output encoding
-        self.output_encoding = self.serializer.output_encoding
-      except KeyError:
-        log.warn('No serializer found for %s -- responding with repr() as text/plain', self.output_type)
-        self.output_type = 'text/plain'
-        response_s = repr(response_st)+"\n"
+      # Add headers if the response has not yet begun
+      if not self.response.has_begun:
+        # Add Content-Length header
+        if self.response.find_header('Content-Length:') == -1:
+          self.response.headers.append('Content-Length: %d' % len(rsp))
+        # Add Content-Type header
+        self.serializer.add_content_type_header(self.response)
       
-      self.respond(response_s)
+      # Write response
+      self.response.write(rsp)
     
     # Report performance
     if log.level <= logging.INFO:
@@ -161,40 +191,24 @@ class Application(smisk.core.Application):
       url = self.request.url.to_s(scheme=0, user=0, password=0, host=0, port=0)
       log.info('Processed %s in %.3fms', url, timer.time()*1000.0)
   
-  
-  def respond(self, body):
-    # Add headers if the response has not yet begun
-    if not self.response.has_begun:
-      # Add content-length
-      if self.response.find_header('Content-Length:') == -1:
-        self.response.headers.append('Content-Length: %d' % len(body))
-      # Add content-type
-      if self.output_encoding is not None:
-        self.response.headers.append('Content-Type: %s; charset=%s' % (self.output_type, self.output_encoding))
-      else:
-        self.response.headers.append('Content-Type: %s' % self.output_type)
-  
-    assert(isinstance(body, basestring))
-  
-    # Write response body
-    self.response.write(body)
-  
-  
   def error(self, typ, val, tb):
     if self.serializer is not None:
       try:
-        s = self.serializer.encode_error(typ, val, tb)
-        if s is not None:
+        rsp = self.serializer.encode_error(typ, val, tb)
+        if rsp is not None:
           status = getattr(val, 'http_code', 500)
-          status_name = "Internal Error"
-          if status in http.STATUS:
-            status_name = http.STATUS[status]
           if status % 500 < 500:
             log.error('Request failed for %s', repr(self.request.url.path), exc_info=(typ, val, tb))
           else:
             log.warn('Request failed for %s -- %s: %s', repr(self.request.url.path), typ.__name__, str(val))
-          self.response.headers.append('Status: %d %s' % (status, status_name))
-          self.respond(s)
+          if not self.response.has_begun:
+            status_name = "Internal Error"
+            if status in http.STATUS:
+              status_name = http.STATUS[status]
+            self.response.headers = ['Status: %d %s' % (status, status_name)]
+            self.response.headers.append('Content-Length: %d' % len(rsp))
+            self.serializer.add_content_type_header(self.response)
+          self.response.write(rsp)
           return
       except:
         log.error('Failed to send error using serializer %s', repr(self.serializer), exc_info=1)

@@ -15,9 +15,9 @@ except ImportError:
 
 class Serializer(BaseSerializer):
   '''JSON Serializer'''
-  extension = '.json'
-  output_type = 'application/json'
-  output_encoding = 'utf-8'
+  extension = 'json'
+  media_type = 'application/json'
+  encoding = 'utf-8'
     
   @classmethod
   def encode(cls, *args, **params):
@@ -43,6 +43,4 @@ class Serializer(BaseSerializer):
       return (None, (st,), None)
   
 
-
-serializers[Serializer.output_type] = Serializer
-serializers['application/x-json'] = Serializer
+serializers.register(Serializer, ['application/x-json'])

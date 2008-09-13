@@ -5,7 +5,6 @@ XML REST serialization
 import re, logging
 from . import serializers, BaseSerializer
 from smisk.core.xml import encode as xml_encode
-from xmlrpclib import dumps, loads, Fault
 
 log = logging.getLogger(__name__)
 NODENAME_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
@@ -16,8 +15,8 @@ class EncodeError(Exception):
 
 
 def start_rsp():
-  if Serializer.output_encoding is not None:
-    return ['<?xml version="1.0" encoding="%s" ?>' % Serializer.output_encoding, '<rsp>']
+  if Serializer.encoding is not None:
+    return ['<?xml version="1.0" encoding="%s" ?>' % Serializer.encoding, '<rsp>']
   else:
     return ['<?xml version="1.0"?>', '<rsp>']
 
@@ -67,9 +66,9 @@ def encode_sequence(l, buf, level):
 class Serializer(BaseSerializer):
   '''XML REST serializer'''
   
-  extension = '.xml'
-  output_type = 'application/rest+xml'
-  output_encoding = 'utf-8'
+  extension = 'xrest'
+  media_type = 'application/rest+xml'
+  encoding = 'utf-8'
   
   @classmethod
   def encode(cls, *args, **params):
@@ -90,4 +89,4 @@ class Serializer(BaseSerializer):
   
   #xxx todo implement decoder
 
-serializers[Serializer.output_type] = Serializer
+serializers.register(Serializer)

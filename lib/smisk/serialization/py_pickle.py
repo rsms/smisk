@@ -19,8 +19,8 @@ class Serializer(BaseSerializer):
   WARNING: Do not use this in production as it is experimental and has some
            known issues.
   '''
-  extension = '.pickle'
-  output_type = 'application/x-python-pickle'
+  extension = 'pickle'
+  media_type = 'application/x-python-pickle'
   
   @classmethod
   def encode(cls, *args, **params):
@@ -46,5 +46,4 @@ class Serializer(BaseSerializer):
       return (None, (st,), None)
   
 
-serializers['application/x-python-pickle'] = Serializer
-serializers['application/x-pickle'] = Serializer
+serializers.register(Serializer, ['application/x-pickle'])

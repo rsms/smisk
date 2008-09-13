@@ -7,7 +7,25 @@ except ImportError:
   from StringIO import StringIO
 
 
-serializers = {}
+class Serializers(object):
+  def __init__(self):
+    self.media_types = {}
+    self.extensions = {}
+  
+  def register(self, cls, additional_media_types=[], additional_extensions=[]):
+    '''Register a new serializer class'''
+    self.media_types[cls.media_type] = cls
+    for t in additional_media_types:
+      self.media_types[t] = cls
+    self.extensions[cls.extension] = cls
+    for ext in additional_extensions:
+      self.extensions[ext] = cls
+  
+  def values(self):
+    return self.media_types.values()
+  
+
+serializers = Serializers()
 'Serializers keyed by lower case MIME types.'
 
 
@@ -16,7 +34,10 @@ class BaseSerializer(object):
   Abstract baseclass for serializers
   '''
   
-  output_type = 'application/octet-stream'
+  extension = None
+  '''Filename extension'''
+  
+  media_type = 'application/octet-stream'
   '''
   MIME type of output.
   
@@ -27,9 +48,9 @@ class BaseSerializer(object):
   for output.
   '''
   
-  output_encoding = None
+  encoding = None
   '''
-  Output character encoding
+  Preferred character encoding
   '''
   
   @classmethod
@@ -70,6 +91,15 @@ class BaseSerializer(object):
     """
     raise NotImplementedError('%s.decode' % cls.__name__)
   
+  @classmethod
+  def add_content_type_header(cls, response):
+    '''Adds "Content-Type" header if missing'''
+    if response.find_header('Content-Type:') == -1:
+      if cls.encoding is not None:
+        response.headers.append('Content-Type: %s; charset=%s' % (cls.media_type, cls.encoding))
+      else:
+        response.headers.append('Content-Type: %s' % cls.media_type)
+  
 
 # Load serializers
-import json, xmlrpc, xml_rest
+import json, xmlrpc, xml_rest, xhtml

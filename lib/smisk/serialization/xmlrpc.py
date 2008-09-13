@@ -8,19 +8,19 @@ from xmlrpclib import dumps, loads, Fault
 class Serializer(BaseSerializer):
   '''XMLRPC serializer'''
   
-  extension = '.xmlrpc'
-  output_type = 'application/rpc+xml'
-  output_encoding = 'utf-8'
+  extension = 'xmlrpc'
+  media_type = 'application/rpc+xml'
+  encoding = 'utf-8'
   
   @classmethod
   def encode(cls, *args, **params):
     args = list(args)
     args.append(params)
-    return dumps(args, None, True, cls.output_encoding, True)
+    return dumps(args, None, True, cls.encoding, True)
   
   @classmethod
   def encode_error(cls, typ, val, tb):
-    return dumps(Fault(getattr(val, 'http_code', 0), str(val)), encoding=cls.output_encoding)
+    return dumps(Fault(getattr(val, 'http_code', 0), str(val)), encoding=cls.encoding)
   
   @classmethod
   def decode(cls, file):
@@ -38,5 +38,4 @@ class Serializer(BaseSerializer):
     return (methodname, args, kwargs)
   
 
-serializers[Serializer.output_type] = Serializer
-serializers['application/xml-rpc+xml'] = Serializer
+serializers.register(Serializer, ['application/xml-rpc+xml'])
