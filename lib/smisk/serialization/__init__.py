@@ -54,10 +54,8 @@ class BaseSerializer(object):
   '''
   
   @classmethod
-  def encode(cls, *args, **params):
+  def encode(cls, **params):
     """
-    :param args: 
-    :type  args:   list
     :param params: 
     :type  params: dict
     :rtype:        string
@@ -82,12 +80,12 @@ class BaseSerializer(object):
     return None
   
   @classmethod
-  def decode(cls, file):
+  def decode(cls, file, length=-1):
     """
     :param file: A file-like object implementing at least the read() method
     :type  file: object
+    :returns:    2-tuple of (list args, dict params) args and params might be None
     :rtype:      tuple
-    :returns:    A tuple of (string methodname, list args, dict params)
     """
     raise NotImplementedError('%s.decode' % cls.__name__)
   
@@ -102,4 +100,7 @@ class BaseSerializer(object):
   
 
 # Load serializers
-import json, xmlrpc, xml_rest, xhtml
+import json, xmlrpc, xml, xhtml
+
+# Load unstable serializers
+import pickle

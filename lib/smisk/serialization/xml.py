@@ -1,13 +1,12 @@
 # encoding: utf-8
 '''
-XML REST serialization
+XML serialization
 '''
 import re, logging
 from . import serializers, BaseSerializer
 from smisk.core.xml import encode as xml_encode
 
 log = logging.getLogger(__name__)
-NODENAME_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
 
 class EncodeError(Exception):
   """Indicates an encoding error"""
@@ -23,11 +22,6 @@ def start_rsp():
 def finalize_rsp(v, glue="\n"):
   v.append('</rsp>')
   return glue.join(v)
-
-def qualifies_as_nodename(s):
-  if NODENAME_RE.match(s):
-    return True
-  return False
 
 def encode_value(v, buf, level):
   indent = '  '*level
@@ -64,21 +58,16 @@ def encode_sequence(l, buf, level):
 
 
 class Serializer(BaseSerializer):
-  '''XML REST serializer'''
+  '''XML serializer'''
   
-  extension = 'xrest'
-  media_type = 'application/rest+xml'
+  extension = 'xml'
+  media_type = 'text/xml'
   encoding = 'utf-8'
   
   @classmethod
-  def encode(cls, *args, **params):
+  def encode(cls, **params):
     v = start_rsp()
-    if len(args) and len(params):
-      encode_sequence((args, params), v, 1)
-    elif len(args):
-      encode_sequence(args, v, 1)
-    else:
-      encode_map(params, v, 1)
+    encode_map(params, v, 1)
     return finalize_rsp(v)
   
   @classmethod

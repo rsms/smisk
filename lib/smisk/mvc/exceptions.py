@@ -4,6 +4,10 @@ class MVCError(Exception):
 
 class NotFound(MVCError):
   http_code = 404
+  
+  def __call__(self, *args, **kwargs):
+    raise self
+  
 
 class ControllerNotFound(NotFound):
   pass

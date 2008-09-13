@@ -26,11 +26,12 @@ class Serializer(BaseSerializer):
   encoding = 'utf-8'
     
   @classmethod
-  def encode(cls, *args, **params):
-    return doc('Smisk XHTML response',
-               ['<h1>Arguments:</h1><ol><li><tt>%s</tt></li></ol>'\
-                '<h1>Parameters:</h1><p><tt>%s</tt></p>'\
-               % ('</tt></li><li><tt>'.join([xml_encode(s) for s in args]), xml_encode(repr(params))) ])
+  def encode(cls, **params):
+    body = ['<h1>Parameters:</h1><ol>']
+    body.extend(['<li><b>%s:</b> <tt>%s</tt></li>' \
+      % (xml_encode(str(k)), xml_encode(str(v))) for k,v in params.items()])
+    body.append('</ol>')
+    return doc('Response', body)
   
   @classmethod
   def encode_error(cls, typ, val, tb):
@@ -42,10 +43,6 @@ class Serializer(BaseSerializer):
       status = '%d Internal Error' % status
     return doc(status, ["<html><body><h1>%s</h1><p>%s</p></body></html>" \
                % (status, message)]) 
-  
-  @classmethod
-  def decode(cls, file):
-    return (None, None, None)
   
 
 serializers.register(Serializer, ['text/html'])

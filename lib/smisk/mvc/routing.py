@@ -21,6 +21,8 @@ class Destination(object):
   def __call__(self, *args, **kwargs):
     return self.action(*args, **kwargs)
   
+  def __repr__(self):
+    return '%s(action=%s)' % (self.__class__.__name__, repr(self.action))
 
 
 class Router(object):
@@ -106,14 +108,22 @@ class ClassTreeRouter(Router):
     if root is None:
       root = self.root_controller
     if root is None:
-      raise ControllerNotFound('No root controller could be found')
+      e = ControllerNotFound('No root controller could be found')
+      self.cache[raw_path] = e
+      raise e
     
     # a/b//c => ['a', 'b', 'c']
     path = []
     for part in raw_path.split('/'):
       part = URL.decode(part)
       if len(part):
-        path.append(part)
+        p = part.rfind('.')
+        if p != -1:
+          part = part[:p]
+          if len(part):
+            path.append(part)
+        else:
+          path.append(part)
     
     # Find branch
     action = root
@@ -176,13 +186,17 @@ class ClassTreeRouter(Router):
     # Did we just end up on a class branch?
     if not end_of_branch:
       if last_match_index+1 != len(path):
-        raise MethodNotFound('No such method: "%s"' % '.'.join(path))
+        e = MethodNotFound('No such method: "%s"' % '.'.join(path))
+        self.cache[raw_path] = e
+        raise e
       # Set action to the instance of the class rather than the class itself
       if type(action) is TypeType:
         action = action()
       # Make sure the action (class instance) is callable
       if not callable(action):
-        raise MethodNotFound('No such method: "%s"' % '.'.join(path))
+        e = MethodNotFound('No such method: "%s"' % '.'.join(path))
+        self.cache[raw_path] = e
+        raise e
     
     # Complete destination
     destination.action = action

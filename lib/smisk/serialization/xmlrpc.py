@@ -1,30 +1,29 @@
 # encoding: utf-8
 '''
-XMLRPC serialization
+XML-RPC serialization
 '''
 from . import serializers, BaseSerializer
 from xmlrpclib import dumps, loads, Fault
 
 class Serializer(BaseSerializer):
-  '''XMLRPC serializer'''
+  '''XML-RPC serializer'''
   
   extension = 'xmlrpc'
   media_type = 'application/rpc+xml'
   encoding = 'utf-8'
   
   @classmethod
-  def encode(cls, *args, **params):
-    args = list(args)
-    args.append(params)
-    return dumps(args, None, True, cls.encoding, True)
+  def encode(cls, **params):
+    return dumps((params,), methodresponse=True, encoding=cls.encoding, allow_none=True)
   
   @classmethod
   def encode_error(cls, typ, val, tb):
     return dumps(Fault(getattr(val, 'http_code', 0), str(val)), encoding=cls.encoding)
   
   @classmethod
-  def decode(cls, file):
-    (params, methodname) = loads(file.read())
+  def decode(cls, file, length=-1):
+    # return (list args, dict params)
+    (params, method_name) = loads(file.read(length))
     args = []
     kwargs = {}
     
@@ -35,7 +34,7 @@ class Serializer(BaseSerializer):
         else:
           args.append(o)
     
-    return (methodname, args, kwargs)
+    return (args, kwargs)
   
 
 serializers.register(Serializer, ['application/xml-rpc+xml'])
