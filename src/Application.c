@@ -439,6 +439,7 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
       "Status: 500 Internal Server Error\r\n"
       "Content-Type: text/html\r\n"
       "Content-Length: %ld\r\n"
+      "Cache-Control: no-cache\r\n"
        "\r\n"
        "%s%s%s\r\n",
       strlen(header)+PyString_GET_SIZE(msg)+strlen(footer)+2,
