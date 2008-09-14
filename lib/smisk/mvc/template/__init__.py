@@ -1,46 +1,97 @@
-# lookup.py
+# encoding: utf-8
+# Based on lookup.py from the Mako project
 # Copyright (C) 2006, 2007, 2008 Michael Bayer mike_mp@zzzcomputing.com
 #
 # This module is part of Mako and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 #
-# Modified for the Smisk project by Rasmus Andersson.
-
+# Modified for Smisk by Rasmus Andersson.
+#
+'''
+Templating
+'''
 import os, sys, stat, posixpath, re, logging
+import mako.filters, smisk.core.xml
+from smisk.core import URL
 from mako import exceptions, util
 from mako.template import Template
-from . import http
+from .. import http
+from . import filters
 
 log = logging.getLogger(__name__)
-
-try:
-  import threading
-except:
-  import dummy_threading as threading
-
 exceptions.TopLevelLookupException.http_code = 404
 
+# Replace Mako filter with the faster Smisk implementations
+mako.filters.html_escape = smisk.core.xml.escape
+mako.filters.xml_escape = smisk.core.xml.escape
+mako.filters.url_escape = URL.encode
+mako.filters.url_unescape = URL.decode
+
 class Templates(object):
+  cache_limit = -1
+  '''
+  Limit cache size.
+  
+  0 means no cache.
+  -1 means no limit.
+  any positive value results in a LRU-approach.
+  
+  :type: int
+  '''
+  
+  cache_type = 'memory'
+  '''
+  Type of cache.
+  
+  :type: string
+  '''
+  
+  imports = [
+    'import os, sys, time, logging',
+    'from smisk.mvc import app, request, response',
+    'from smisk.mvc.template.filters import j',
+    'log = logging.getLogger(\'template:\' + _template_uri)'
+  ]
+  ''':type: list'''
+  
+  show_traceback = True
+  '''
+  Include stack traceback in error messages.
+  
+  :type: bool
+  '''
+  
+  autoreload = None
+  '''
+  Automatically reload templates which has been modified.
+  
+  If this is set to None when `app` starts accepting requests, the application
+  will set the value according to its own autoreload value.
+  
+  :type: bool
+  '''
+  
+  directories = None
+  '''
+  Directories in which to find templates.
+  
+  :type: list
+  '''
+  
+  errors = None
+  ''':type: dict'''
+  
+  app = None
+  ''':type: smisk.core.Application'''
+  
   def __init__(self, app):
     self.app = app
     self.directories = []
     self.errors = {}
-    self.autoreload = None # will be assigned app.autoreload by app if None after configuration
-    self.default_locals = {}
-    self._cache_lock = threading.Lock()
-    self.show_traceback = True
-    
-    self.cache_type = 'memory'
-    self.cache_limit = -1
-    self.imports = [
-      'import os, sys, time, logging',
-      'from smisk.mvc import app, request, response',
-      'log = logging.getLogger(\'view:\' + _template_uri)'
-    ]
-    # for compat with mako
-    self.get_template = self.template_for_uri
+    self.get_template = self.template_for_uri # for compat with mako
+    self.reset_cache()
   
-  def reload_config(self):
+  def reset_cache(self):
     if self.cache_limit == -1:
       self._collection = {}
       self._uri_cache = {}
@@ -48,12 +99,19 @@ class Templates(object):
       self._collection = util.LRUCache(self.cache_limit)
       self._uri_cache = util.LRUCache(self.cache_limit)
   
-  def template_for_uri(self, uri):
+  def template_for_uri(self, uri, exc_if_not_found=True):
+    '''
+    :return: template for the uri provided 
+    :rtype:  Template
+    '''
     try:
       if self.autoreload:
-        return self._check(uri, self._collection[uri])
+        template = self._check(uri, self._collection[uri])
       else:
-        return self._collection[uri]
+        template = self._collection[uri]
+      if exc_if_not_found and template is None:
+        raise exceptions.TopLevelLookupException("Failed to locate template for uri '%s'" % uri)
+      return template
     except KeyError:
       u = re.sub(r'^\/+', '', uri)
       for dn in self.directories:
@@ -61,7 +119,10 @@ class Templates(object):
         if os.access(srcfile, os.F_OK):
           return self._load(srcfile, uri)
       else:
-        raise exceptions.TopLevelLookupException("Cant locate template for uri '%s'" % uri)
+        self._collection[uri] = None
+        if exc_if_not_found:
+          raise exceptions.TopLevelLookupException("Failed to locate template for uri '%s'" % uri)
+        return None
   
   def builtin_error_template(self):
     if '_builtin_error_' in self._collection:
@@ -150,44 +211,36 @@ class Templates(object):
       return None
   
   def _load(self, filename, uri, text=None):
-    self._cache_lock.acquire()
     try:
-      try:
-        # try returning from collection one more time in case concurrent thread already loaded
-        return self._collection[uri]
-      except KeyError:
-        pass
-      try:
-        if filename is not None:
-          filename = posixpath.normpath(filename)
-        self._collection[uri] = Template(
-          uri=uri,
-          filename=filename,
-          text=text,
-          lookup=self,
-          module_filename=None,
-          format_exceptions=False,
-          input_encoding=self.app.input_encoding,
-          output_encoding=self.app.output_encoding,
-          cache_type=self.cache_type,
-          default_filters=['str'],
-          #default_filters=['unicode'],
-          imports=self.imports)
-        if __debug__ and self.cache_type != 'file':
-          log.debug("Compiled %s into:\n%s", uri, self._collection[uri].code.strip())
-        return self._collection[uri]
-      except:
-        self._collection.pop(uri, None)
-        raise
-    finally:
-      self._cache_lock.release()
+      if filename is not None:
+        filename = posixpath.normpath(filename)
+      self._collection[uri] = Template(
+        uri=uri,
+        filename=filename,
+        text=text,
+        lookup=self,
+        module_filename=None,
+        format_exceptions=False,
+        #input_encoding=self.app.input_encoding,
+        output_encoding=self.app.default_output_encoding,
+        encoding_errors='replace',
+        cache_type=self.cache_type,
+        default_filters=['str'],
+        #default_filters=['unicode'],
+        imports=self.imports)
+      if __debug__ and self.cache_type != 'file':
+        log.debug("Compiled %s into %d bytes of python code", uri, len(self._collection[uri].code))
+      return self._collection[uri]
+    except:
+      self._collection.pop(uri, None)
+      raise
   
   def _check(self, uri, template):
     if template.filename is None:
       return template
     if not os.access(template.filename, os.F_OK):
       self._collection.pop(uri, None)
-      raise exceptions.TemplateLookupException("Cant locate template for uri '%s'" % uri)
+      raise exceptions.TemplateLookupException("Can't locate template for uri '%s'" % uri)
     elif template.module._modified_time < os.stat(template.filename)[stat.ST_MTIME]:
       self._collection.pop(uri, None)
       return self._load(template.filename, uri)

@@ -17,12 +17,39 @@ class Destination(object):
   # These should not be modified directly from outside of a router,
   # since routers might cache instances of Destination.
   action = None
+  ''':type: function'''
+  
+  path = None
+  '''
+  Canonical internal path.
+  
+  some.module.controllers.posts.list.__call__()
+  Is represented as, if "posts" parent class is the same as Router.root_controller:
+  ['posts', 'list', '__call__']
+  But might be called from any external URL:
+  /posts/list
+  /posts/list.json
+  /some/other/url
+  
+  :type: list
+  '''
+  
+  def __init__(self, action, path):
+    self.action = action
+    self.path = path
   
   def __call__(self, *args, **kwargs):
     return self.action(*args, **kwargs)
   
+  def __str__(self):
+    if self.path:
+      return '/'.join(self.path)
+    else:
+      return self.__repr__()
+  
   def __repr__(self):
-    return '%s(action=%s)' % (self.__class__.__name__, repr(self.action))
+    return '%s(action=%s, path=%s)' \
+      % (self.__class__.__name__, repr(self.action), repr(self.path))
 
 
 class Router(object):
@@ -90,6 +117,40 @@ class ClassTreeRouter(Router):
     super(ClassTreeRouter, self).__init__(*args, **kwargs)
     self.cache = {}
   
+  
+  def path_for_action(self, action):
+    '''
+    Can be called on an action which has been resolved at least once,
+    to build and return its canonical internal path.
+    
+    :param action: The action
+    :type  action: callable
+    :rtype:        list
+    '''
+    root = self.root_controller
+    
+    if isinstance(action, root):
+      path = ['__call__']
+      if action.__class__ is root:
+        return path
+      n = action.__class__
+    else:
+      path = [action.__name__]
+      if type(action) is MethodType:
+        n = action.im_class
+      else:
+        n = action.parent
+    
+    while n is not root:
+      path.append(n.__name__)
+      if type(n) is MethodType:
+        n = n.im_class
+      else:
+        n = n.parent
+    path.reverse()
+    return path
+  
+  
   def __call__(self, url, root=None):
     raw_path = url.path.strip('/')
     
@@ -102,7 +163,6 @@ class ClassTreeRouter(Router):
     
     if __debug__:
       log.info('Resolving %s', repr(raw_path))
-    destination = Destination()
     
     # Make sure we have a valid root
     if root is None:
@@ -127,6 +187,7 @@ class ClassTreeRouter(Router):
     
     # Find branch
     action = root
+    action.parent = None
     end_of_branch = False
     last_match_index = -1
     for i in range(len(path)):
@@ -141,6 +202,7 @@ class ClassTreeRouter(Router):
           break
       
       if found_sub_cls is not None:
+        found_sub_cls.parent = action
         action = found_sub_cls
         last_match_index = i
       else:
@@ -167,8 +229,11 @@ class ClassTreeRouter(Router):
                 if __debug__:
                   log.debug('Found member %s %s for part %s on %s', 
                             member_name, repr(member), part, repr(action))
+                if member_type is not MethodType:
+                  member.__class__.parent = action.__class__
                 action = member
-                end_of_branch = True
+                if i == len(path)-1:
+                  end_of_branch = True
                 last_match_index = i
                 break
               elif __debug__:
@@ -177,6 +242,7 @@ class ClassTreeRouter(Router):
             
         # Revert to class if we are to continue
         if not end_of_branch:
+          #log.debug('R not end_of_branch')
           action = action.__class__
       
       # If we did hit a method, or a leaf, this is the end of the branch  
@@ -198,8 +264,8 @@ class ClassTreeRouter(Router):
         self.cache[raw_path] = e
         raise e
     
-    # Complete destination
-    destination.action = action
+    # Make destination
+    destination = Destination(action, self.path_for_action(action))
     if __debug__:
       log.debug('Found destination: %s', repr(destination))
     

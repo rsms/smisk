@@ -1,15 +1,15 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <title>${post.title} - ${title}</title>
+    <title>${title|x}</title>
   </head>
   <body class="index">
-    <h1>${post.title}</h1>
+    <h1>${title|x}</h1>
     <p>
-      ${post.body}
+      ${message|x}
     </p>
-		<small>
-			Published ${post.date_published}
-		</small>
+    <small>
+      Comes from a template
+    </small>
   </body>
 </html>
 <% log.debug('From the template') %>

@@ -4,7 +4,7 @@ XML serialization
 '''
 import re, logging
 from . import serializers, BaseSerializer
-from smisk.core.xml import encode as xml_encode
+from smisk.core.xml import escape as xml_escape
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def encode_value(v, buf, level):
     if len(v) > 256 and v.find('<![CDATA[') == -1:
       buf.append('%s<string><![CDATA[%s]]></string>' % (indent, v))
     else:
-      buf.append('%s<string>%s</string>' % (indent, xml_encode(v)))
+      buf.append('%s<string>%s</string>' % (indent, xml_escape(v)))
   elif isinstance(v, list) or isinstance(v, tuple):
     buf.append('%s<array>' % indent)
     encode_sequence(v, buf, level+1)
@@ -48,7 +48,7 @@ def encode_value(v, buf, level):
 def encode_map(d, buf, level):
   indent = '  '*level
   for k,v in d.iteritems():
-    buf.append('%s<param name="%s">' % (indent, xml_encode(k)))
+    buf.append('%s<param name="%s">' % (indent, xml_escape(k)))
     encode_value(v, buf, level+1)
     buf.append('%s</param>' % indent)
 
@@ -73,7 +73,7 @@ class Serializer(BaseSerializer):
   @classmethod
   def encode_error(cls, typ, val, tb):
     v = start_rsp()
-    v.append('<err code="%d" msg="%s" />' % (int(getattr(val, 'http_code', 0)), xml_encode(str(val))))
+    v.append('<err code="%d" msg="%s" />' % (int(getattr(val, 'http_code', 0)), xml_escape(str(val))))
     return finalize_rsp(v)
   
   #xxx todo implement decoder

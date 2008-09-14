@@ -35,7 +35,7 @@ static const unsigned char chr_table[256] =
   1,  0,  0,  1,   1,  0,  1,  1,   /* BS  HT  LF  VT   FF  CR  SO  SI  */
   1,  1,  1,  1,   1,  1,  1,  1,   /* DLE DC1 DC2 DC3  DC4 NAK SYN ETB */
   1,  1,  1,  1,   1,  1,  1,  1,   /* CAN EM  SUB ESC  FS  GS  RS  US  */
-  0,  0,  1,  0,   0,  0,  1,  0,   /* SP  !   "   #    $   %   &   '   */
+  0,  0,  1,  0,   0,  0,  1,  1,   /* SP  !   "   #    $   %   &   '   */
   0,  0,  0,  0,   0,  0,  0,  0,   /* (   )   *   +    ,   -   .   /   */
   0,  0,  0,  0,   0,  0,  0,  0,   /* 0   1   2   3    4   5   6   7   */
   0,  0,  0,  0,   1,  0,  1,  0,   /* 8   9   :   ;    <   =   >   ?   */
@@ -114,21 +114,21 @@ char *smisk_xml_encode (const char *s, size_t len) {
 }
 
 
-PyDoc_STRVAR(smisk_xml_encode_DOC,
+PyDoc_STRVAR(smisk_xml_escape_DOC,
   "Encode reserved and unsafe characters for use in XML or HTML context.\n"
   "\n"
   "Example:\n"
   "\n"
-  ">>> from smisk.core.xml import encode\n"
+  ">>> from smisk.core.xml import escape\n"
   ">>> s = \"Your's & not mine <says> \\\"you\\\"\"\n"
-  ">>> encode(s)\n"
+  ">>> escape(s)\n"
   "\"Your's &#x26; not mine &#x3C;says&#x3E; &#x22;you&#x22;\"\n"
   ">>> \n"
   "\n"
   ":param s: Raw string to be encoded\n"
   ":type  s: string\n"
   ":rtype: string");
-PyObject *smisk_xml_encode_py(PyObject *self, PyObject *pys) {
+PyObject *smisk_xml_escape_py(PyObject *self, PyObject *pys) {
   size_t len, nlen;
   PyObject *npys;
   char *s, *dest;
@@ -181,7 +181,7 @@ PyObject *smisk_xml_encode_py(PyObject *self, PyObject *pys) {
 #pragma mark Type construction
 
 static PyMethodDef methods[] = {
-  {"encode", (PyCFunction)smisk_xml_encode_py, METH_O, smisk_xml_encode_DOC},
+  {"escape", (PyCFunction)smisk_xml_escape_py, METH_O, smisk_xml_escape_DOC},
   {NULL, NULL, 0, NULL}
 };
 

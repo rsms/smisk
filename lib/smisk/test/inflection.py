@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 import unittest
-from inflection import inflection as en
+from smisk.inflection import inflection as en
 
 class English(unittest.TestCase):
 	def test_plural(self):
@@ -41,7 +41,7 @@ class English(unittest.TestCase):
 		assert en.underscore('ModerController.Barn') == 'moder_controller/barn'
 	
 
-from inflection.sv import inflection as sv
+from smisk.inflection.sv import inflection as sv
 class Swedish(unittest.TestCase):
 	def test_plural(self):
 		assert sv.pluralize('mouse') == 'mice'

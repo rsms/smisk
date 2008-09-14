@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 import unittest
-from routing import *
+from smisk.mvc.routing import *
 
 class RoutingTests(unittest.TestCase):
 	

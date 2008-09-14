@@ -9,7 +9,7 @@ class XMLTests(unittest.TestCase):
     pass
   
   def test_encode(self):
-    encoded = xml.encode('Some <document> with strings & characters with should be "escaped"')
+    encoded = xml.escape('Some <document> with strings & characters with should be "escaped"')
     expected = 'Some &#x3C;document&#x3E; with strings &#x26; characters with should be &#x22;escaped&#x22;'
     assert encoded == expected
   

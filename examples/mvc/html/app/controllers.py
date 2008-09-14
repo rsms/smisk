@@ -19,6 +19,7 @@ class root(Controller):
   
   def posts(self, *args, **kwargs):
     pass
+    # this will never be called from the outside, as class posts shadows this.
 
 
 class posts(root):
@@ -35,13 +36,13 @@ class posts(root):
     }
   
   def show(self, post_id=0, *args, **kwargs):
-    response("from root > %s.show(post_id=%s)\n" % (repr(self), str(post_id)))
+    return {'message': "from root > %s.show(post_id=%s)" % (repr(self), str(post_id))}
   
   class edit(root):
     def __call__(self, *args, **kwargs):
-      response("from root > posts.%s.__call__()\n" % repr(self))
+      return {'message': "from root > posts.%s.__call__()" % repr(self)}
     
     def save(self, *args, **kwargs):
-      response("from root > posts.%s.save()\n" % repr(self))
+      return {'message': "from root > posts.%s.save()" % repr(self)}
     
   

@@ -8,6 +8,15 @@ class Singleton(object):
     return type._instance
   
 
+def unique_sorted_modules_of_items(v):
+  s = []
+  for t in v:
+    s.append(t.__module__)
+  s = list_unique_wild(s)
+  s.sort()
+  return s
+
+
 def list_python_filenames_in_dir(path, only_py=True):
   names = []
   for fn in os.listdir(path):

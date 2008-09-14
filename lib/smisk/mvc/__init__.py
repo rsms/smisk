@@ -7,21 +7,15 @@ from smisk.util import *
 from smisk.util.timing import Timer
 from control import Controller
 from model import Entity
+from template import Templates
 from exceptions import *
 from routing import ClassTreeRouter, MethodNotFound
 from ..serialization import serializers
 
 log = logging.getLogger(__name__)
-
-
-def unique_sorted_modules_of_items(v):
-  s = []
-  for t in v:
-    s.append(t.__module__)
-  s = list_unique_wild(s)
-  s.sort()
-  return s
-
+app = None
+request = None
+response = None
 
 class Response(smisk.core.Response):
   format = None
@@ -35,26 +29,39 @@ class Response(smisk.core.Response):
 class Application(smisk.core.Application):
   '''MVC application'''
   
-  router_type = ClassTreeRouter
-  '''Default router type'''
-  
   default_output_encoding = 'utf-8'
-  '''Default response character encoding'''
+  '''
+  Default response character encoding.
+  
+  :type: string
+  '''
   
   default_format = 'html'
+  ''':type: string'''
   
   serializer = None
-  '''Used during runtime. Here because we want to use it in error()'''
+  '''
+  Used during runtime. Here because we want to use it in error()
   
-  def __init__(self, *args, **kwargs):
+  :type: Serializer
+  '''
+  
+  templates = None
+  ''':type: Templates'''
+  
+  autoreload = False
+  ''':type: bool'''
+  
+  def __init__(self, log_level=logging.INFO, *args, **kwargs):
     self.response_class = Response
     super(Application, self).__init__(*args, **kwargs)
     logging.basicConfig(
-      level=logging.DEBUG,
+      level=log_level,
       format = '%(levelname)-8s %(name)-20s %(message)s',
       datefmt = '%d %b %H:%M:%S'
     )
-    self.router = self.router_type()
+    self.router = ClassTreeRouter()
+    self.templates = Templates(app=self)
   
   
   def application_will_start(self):
@@ -69,6 +76,9 @@ class Application(smisk.core.Application):
       m.app = self
       m.request = self.request
       m.response = self.response
+    global request, response
+    request = self.request
+    response = self.response
     
     # Check so the default media type really has an available serializer
     serializer_exts = serializers.extensions.keys()
@@ -80,11 +90,19 @@ class Application(smisk.core.Application):
         log.warn('app.default_format is not available from the current set of serializers'\
                  ' -- setting to first registered serializer: %s', self.default_format)
     
+    # Check templates config
+    if self.templates:
+      if not self.templates.directories:
+        self.templates.directories = [os.path.join(os.environ['SMISK_APP_DIR'], 'templates')]
+      if self.templates.autoreload is None:
+        self.templates.autoreload = self.autoreload
+    
     # Info about serializers
     if log.level <= logging.DEBUG:
       log.debug('Serializers: %s', ', '.join(unique_sorted_modules_of_items(serializers.values())) )
-      log.debug('Serializer media types: %s', repr(serializers.media_types.keys()))
-      log.debug('Serializer formats: %s', repr(serializers.extensions.keys()))
+      log.debug('Serializer media types: %s', ', '.join(serializers.media_types.keys()))
+      log.debug('Serializer formats: %s', ', '.join(serializers.extensions.keys()))
+      log.debug('Template directories: %s', ', '.join(self.templates.directories))
     
     # When we return, accept() in smisk.core is called
     log.info('Accepting connections')
@@ -193,8 +211,37 @@ class Application(smisk.core.Application):
     
     # Call action
     if log.level <= logging.DEBUG:
-      log.debug('Calling destination %s', repr(destination))
-    return destination(*args, **params)
+      log.debug('Calling destination %s', destination)
+    return destination, destination(*args, **params)
+  
+  
+  def encode_response(self, rsp, template):
+    encoding = self.default_output_encoding
+    
+    # No input at all
+    if rsp is None:
+      if template:
+        return template.render_unicode().encode(encoding)
+      return None
+    
+    # If rsp is already a string, we do not process it further
+    if isinstance(rsp, basestring):
+      return rsp
+    
+    # Make sure rsp is a dict
+    if not isinstance(rsp, dict):
+      raise Exception('actions must return a dict, string or None -- not %s', type(rsp))
+    
+    # Use template as serializer, if available
+    if template:
+      return template.render_unicode(**rsp).encode(encoding)
+    
+    # If we do not have a template, we use a standard serializer
+    if self.serializer is None:
+      self.serializer = self.response_serializer()
+      if self.serializer is None:
+        raise Exception('no serializer available')
+    return self.serializer.encode(**rsp)
   
   
   def send_response(self, rsp):
@@ -206,18 +253,6 @@ class Application(smisk.core.Application):
       if not self.response.has_begun and self.response.find_header('Content-Length:') == -1:
         self.response.headers.append('Content-Length: 0')
       return
-    
-    # If rsp is not yet a string, we need to serialize it
-    if not isinstance(rsp, basestring):
-      # Aquire appropriate serializer
-      self.serializer = self.response_serializer()
-      if self.serializer is None:
-        raise Exception('no serializer available')
-      
-      # Serialize rsp
-      if not isinstance(rsp, dict):
-        rsp = {'rsp':rsp}
-      rsp = self.serializer.encode(**rsp)
     
     # Add headers if the response has not yet begun
     if not self.response.has_begun:
@@ -239,6 +274,7 @@ class Application(smisk.core.Application):
     # Reset response serializer, as it's used in error()
     self.serializer = None
     self.response.format = None
+    template = None
     
     # Parse request (and decode if needed)
     (req_args, req_params) = self.parse_request()
@@ -250,7 +286,18 @@ class Application(smisk.core.Application):
     self.response.headers.append('Cache-Control: private')
     
     # Call the action which might generate a response object: rsp
-    rsp = self.call_action(req_args, req_params)
+    destination, rsp = self.call_action(req_args, req_params)
+    
+    # Aquire template
+    if self.templates is not None:
+      self.serializer = self.response_serializer()
+      fn = os.path.join(*destination.path) + '.' + self.serializer.extension
+      if log.level <= logging.DEBUG:
+        log.debug('Looking for template %s', fn)
+      template = self.templates.template_for_uri(fn, exc_if_not_found=False)
+    
+    # Encode response
+    rsp = self.encode_response(rsp, template)
     
     # Return a response to the client and thus completing the transaction.
     self.send_response(rsp)
@@ -258,8 +305,14 @@ class Application(smisk.core.Application):
     # Report performance
     if log.level <= logging.INFO:
       timer.finish()
-      url = self.request.url.to_s(scheme=0, user=0, password=0, host=0, port=0)
-      log.info('Processed %s in %.3fms', url, timer.time()*1000.0)
+      uri = None
+      if destination is not None:
+        uri = '.'.join(destination.path)
+        if self.serializer is not None:
+          uri += ':' + self.serializer.extension
+      else:
+        uri = self.request.url.to_s(scheme=0, user=0, password=0, host=0, port=0)
+      log.info('Processed %s in %.3fms', uri, timer.time()*1000.0)
   
   
   def error(self, typ, val, tb):
@@ -313,13 +366,24 @@ class Application(smisk.core.Application):
   
 
 
-def main(cls=Application):
+def main(application=None, appdir=None):
   if 'SMISK_APP_DIR' not in os.environ:
-    os.environ['SMISK_APP_DIR'] = os.path.abspath('.')
+    if appdir is None:
+      appdir = os.path.abspath(os.getcwd())
+    os.environ['SMISK_APP_DIR'] = appdir
+  
+  global app
+  
+  if application is None:
+    if app is not None:
+      application = app
+    else:
+      application = Application()
+  
+  app = application
   
   # Create app and start it
   try:
-    app = cls()
     if len(sys.argv) > 1:
       smisk.bind(sys.argv[1])
       log.info('Listening on %s', sys.argv[1])
@@ -327,5 +391,5 @@ def main(cls=Application):
   except KeyboardInterrupt:
     pass
   except:
-    log.critical('%s died', repr(cls), exc_info=True)
+    log.critical('%s died', repr(app), exc_info=True)
     sys.exit(1)

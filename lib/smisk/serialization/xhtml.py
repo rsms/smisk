@@ -4,14 +4,14 @@ JSON serialization (RFC 4627)
 '''
 from . import serializers, BaseSerializer
 from ..mvc import http
-from smisk.core.xml import encode as xml_encode
+from smisk.core.xml import escape as xml_escape
 
 def doc(title, body):
   v = ['<?xml version="1.0" encoding="%s" ?>' % Serializer.encoding]
   v.append('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '\
            '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')
   v.append('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">')
-  v.append('<head><title>%s</title></head>' % xml_encode(title))
+  v.append('<head><title>%s</title></head>' % xml_escape(title))
   v.append('<body>')
   v.extend(body)
   v.append('</body>')
@@ -29,7 +29,7 @@ class Serializer(BaseSerializer):
   def encode(cls, **params):
     body = ['<h1>Parameters:</h1><ol>']
     body.extend(['<li><b>%s:</b> <tt>%s</tt></li>' \
-      % (xml_encode(str(k)), xml_encode(str(v))) for k,v in params.items()])
+      % (xml_escape(str(k)), xml_escape(str(v))) for k,v in params.items()])
     body.append('</ol>')
     return doc('Response', body)
   
