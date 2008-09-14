@@ -93,10 +93,10 @@ class Templates(object):
   
   def reset_cache(self):
     if self.cache_limit == -1:
-      self._collection = {}
+      self.instances = {}
       self._uri_cache = {}
     else:
-      self._collection = util.LRUCache(self.cache_limit)
+      self.instances = util.LRUCache(self.cache_limit)
       self._uri_cache = util.LRUCache(self.cache_limit)
   
   def template_for_uri(self, uri, exc_if_not_found=True):
@@ -105,7 +105,7 @@ class Templates(object):
     :rtype:  Template
     '''
     try:
-      template = self._collection[uri]
+      template = self.instances[uri]
       if self.autoreload and template is not None:
         template = self._check(uri, template)
       if exc_if_not_found and template is None:
@@ -118,14 +118,14 @@ class Templates(object):
         if os.access(srcfile, os.F_OK):
           return self._load(srcfile, uri)
       else:
-        self._collection[uri] = None
+        self.instances[uri] = None
         if exc_if_not_found:
           raise exceptions.TopLevelLookupException("Failed to locate template for uri '%s'" % uri)
         return None
   
   def builtin_error_template(self):
-    if '_builtin_error_' in self._collection:
-      return self._collection['_builtin_error_']
+    if '_builtin_error_' in self.instances:
+      return self.instances['_builtin_error_']
     else:
       return self._load(filename=None, uri='_builtin_error_', text=HTML_ERROR_TEMPLATE)
   
@@ -213,7 +213,7 @@ class Templates(object):
     try:
       if filename is not None:
         filename = posixpath.normpath(filename)
-      self._collection[uri] = Template(
+      self.instances[uri] = Template(
         uri=uri,
         filename=filename,
         text=text,
@@ -228,21 +228,21 @@ class Templates(object):
         #default_filters=['unicode'],
         imports=self.imports)
       if log.level <= logging.DEBUG and self.cache_type != 'file':
-        code = self._collection[uri].code
+        code = self.instances[uri].code
         log.debug("Compiled %s into %d bytes of python code:\n%s", uri, len(code), code)
-      return self._collection[uri]
+      return self.instances[uri]
     except:
-      self._collection.pop(uri, None)
+      self.instances.pop(uri, None)
       raise
   
   def _check(self, uri, template):
     if template.filename is None:
       return template
     if not os.access(template.filename, os.F_OK):
-      self._collection.pop(uri, None)
+      self.instances.pop(uri, None)
       raise exceptions.TemplateLookupException("Can't locate template for uri '%s'" % uri)
     elif template.module._modified_time < os.stat(template.filename)[stat.ST_MTIME]:
-      self._collection.pop(uri, None)
+      self.instances.pop(uri, None)
       return self._load(template.filename, uri)
     else:
       return template
@@ -251,7 +251,7 @@ class Templates(object):
     raise NotImplementedError
   
   def put_template(self, uri, template):
-    self._collection[uri] = template
+    self.instances[uri] = template
   
 
 HTML_ERROR_TEMPLATE = r'''

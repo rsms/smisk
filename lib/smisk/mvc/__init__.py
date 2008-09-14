@@ -366,7 +366,7 @@ class Application(smisk.core.Application):
       
       # Aquire template
       if template is None and self.templates is not None:
-        template = self.template_for_path_wo_ext(os.path.join(*destination.path))
+        template = self.template_for_path(os.path.join(*destination.path))
     
     # Handle an abrupt HTTP status change
     except http.ExcResponse, e:
@@ -374,10 +374,12 @@ class Application(smisk.core.Application):
         log.info('Abrupt HTTP status change: %s', e.status)
       rsp = e(self)
       if self.templates is not None:
-        template = self.template_for_path_wo_ext(os.path.join('errors', str(e.status.code)))
+        uri = self.template_uri_for_path(os.path.join('errors', str(e.status.code)))
+        template = self.template_for_uri(uri)
         if template is None:
-          # Catch-all error template "any"
-          template = self.template_for_path_wo_ext(os.path.join('errors', 'any'))
+          # Catch-all error template "any". Also, put it the cache for the original uri
+          template = self.template_for_path(os.path.join('errors', 'any'))
+          self.templates.instances[uri] = template
     
     # Encode response
     rsp = self.encode_response(rsp, template)
@@ -398,13 +400,20 @@ class Application(smisk.core.Application):
       log.info('Processed %s in %.3fms', uri, timer.time()*1000.0)
   
   
-  def template_for_path_wo_ext(self, path):
+  def template_for_path(self, path):
+    return self.template_for_uri(self.template_uri_for_path(path))
+  
+  
+  def template_uri_for_path(self, path):
     if self.serializer is None:
       self.serializer = self.response_serializer()
-    fn = path + '.' + self.serializer.extension
+    return path + '.' + self.serializer.extension
+  
+  
+  def template_for_uri(self, uri):
     if log.level <= logging.DEBUG:
-      log.debug('Looking for template %s', fn)
-    return self.templates.template_for_uri(fn, exc_if_not_found=False)
+      log.debug('Looking for template %s', uri)
+    return self.templates.template_for_uri(uri, exc_if_not_found=False)
   
   
   def error(self, typ, val, tb):
