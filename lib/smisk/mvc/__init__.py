@@ -366,7 +366,7 @@ class Application(smisk.core.Application):
   
 
 
-def main(application=None, appdir=None):
+def main(application=None, appdir=None, *args, **kwargs):
   if 'SMISK_APP_DIR' not in os.environ:
     if appdir is None:
       appdir = os.path.abspath(os.getcwd())
@@ -378,7 +378,7 @@ def main(application=None, appdir=None):
     if app is not None:
       application = app
     else:
-      application = Application()
+      application = Application(*args, **kwargs)
   
   app = application
   

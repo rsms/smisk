@@ -28,11 +28,11 @@ class posts(root):
     post = Post(title='the title', body='das bothy')
     session.commit()
     return {
-      "post": post,
+      #"post": post,
       "Post.query.all()": repr(Post.query.all()),
       "Method called": "%s.__call__()\n" % repr(self),
       "Request args": repr(args),
-      "Request params": repr(kwargs)
+      "params": repr(kwargs)
     }
   
   def show(self, post_id=0, *args, **kwargs):
