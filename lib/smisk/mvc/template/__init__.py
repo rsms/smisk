@@ -48,7 +48,7 @@ class Templates(object):
   
   imports = [
     'import os, sys, time, logging',
-    'from smisk.mvc import app, request, response',
+    'from smisk.mvc import application, request, response',
     'from smisk.mvc.template.filters import j',
     'log = logging.getLogger(\'template:\' + _template_uri)'
   ]
@@ -105,10 +105,9 @@ class Templates(object):
     :rtype:  Template
     '''
     try:
-      if self.autoreload:
-        template = self._check(uri, self._collection[uri])
-      else:
-        template = self._collection[uri]
+      template = self._collection[uri]
+      if self.autoreload and template is not None:
+        template = self._check(uri, template)
       if exc_if_not_found and template is None:
         raise exceptions.TopLevelLookupException("Failed to locate template for uri '%s'" % uri)
       return template
@@ -228,8 +227,9 @@ class Templates(object):
         default_filters=['str'],
         #default_filters=['unicode'],
         imports=self.imports)
-      if __debug__ and self.cache_type != 'file':
-        log.debug("Compiled %s into %d bytes of python code", uri, len(self._collection[uri].code))
+      if log.level <= logging.DEBUG and self.cache_type != 'file':
+        code = self._collection[uri].code
+        log.debug("Compiled %s into %d bytes of python code:\n%s", uri, len(code), code)
       return self._collection[uri]
     except:
       self._collection.pop(uri, None)

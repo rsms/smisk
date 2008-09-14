@@ -1,5 +1,6 @@
 # encoding: utf-8
 import sys, os
+from smisk.core import Application
 
 class Singleton(object):
   def __new__(type):
@@ -7,6 +8,21 @@ class Singleton(object):
       type._instance = object.__new__(type)
     return type._instance
   
+
+def normalize_url(url):
+  if url.find('://') == -1:
+    # url is actually a path
+    path = url
+    url = Application.current().request.url
+    if len(path) == 0:
+      path = '/'
+    elif path[0] != '/':
+      path = os.path.normpath(url.path) + '/' + os.path.normpath(path)
+    else:
+      path = os.path.normpath(path)
+    url = url.to_s(port=url.port!=80, path=False) + path
+  return url
+
 
 def unique_sorted_modules_of_items(v):
   s = []

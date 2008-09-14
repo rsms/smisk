@@ -9,8 +9,18 @@ from types import *
 from exceptions import *
 from ..core import URL
 from control import Controller
+from . import http
 
 log = logging.getLogger(__name__)
+
+
+def a(*args, **kwargs):
+  raise http.MovedPermanently('/'+is__call__)
+
+def wrap_exc_in_action(exc):
+  def a(*args, **kwargs):
+    raise exc
+  return a
 
 
 class Destination(object):
@@ -157,18 +167,19 @@ class ClassTreeRouter(Router):
     # Cached?
     if raw_path in self.cache:
       destination = self.cache[raw_path]
-      if __debug__:
+      if log.level <= logging.DEBUG:
         log.debug('Found destination in cache: %s', destination)
       return destination
     
-    if __debug__:
+    if log.level <= logging.DEBUG:
       log.info('Resolving %s', repr(raw_path))
     
     # Make sure we have a valid root
     if root is None:
       root = self.root_controller
     if root is None:
-      e = ControllerNotFound('No root controller could be found')
+      # XXX todo
+      e = http.ControllerNotFound('No root controller could be found')
       self.cache[raw_path] = e
       raise e
     
@@ -184,6 +195,10 @@ class ClassTreeRouter(Router):
             path.append(part)
         else:
           path.append(part)
+    
+    is__call__ = len(path) > 0 and path[-1] == '__call__'
+    if is__call__:
+      is__call__ = '/'.join(path[:-1])
     
     # Find branch
     action = root
@@ -252,21 +267,29 @@ class ClassTreeRouter(Router):
     # Did we just end up on a class branch?
     if not end_of_branch:
       if last_match_index+1 != len(path):
-        e = MethodNotFound('No such method: "%s"' % '.'.join(path))
-        self.cache[raw_path] = e
-        raise e
-      # Set action to the instance of the class rather than the class itself
-      if type(action) is TypeType:
-        action = action()
+        action = None
+      else:
+        # Set action to the instance of the class rather than the class itself
+        if type(action) is TypeType:
+          action = action()
       # Make sure the action (class instance) is callable
       if not callable(action):
-        e = MethodNotFound('No such method: "%s"' % '.'.join(path))
-        self.cache[raw_path] = e
-        raise e
+        a = wrap_exc_in_action(http.MethodNotFound('No such method: "%s"' % '.'.join(path)))
+        self.cache[raw_path] = a
+        a()
+    
+    # Calc path
+    path = self.path_for_action(action)
+    
+    # Redirect /something/__call__ to /something
+    if is__call__ is not False:
+      def a(*args, **kwargs):
+        raise http.MovedPermanently('/'+is__call__)
+      action = a
     
     # Make destination
-    destination = Destination(action, self.path_for_action(action))
-    if __debug__:
+    destination = Destination(action, path)
+    if log.level <= logging.DEBUG:
       log.debug('Found destination: %s', repr(destination))
     
     # Cache the results

@@ -38,9 +38,9 @@ class Serializer(BaseSerializer):
     message = str(val)
     status = getattr(val, 'http_code', 500)
     if status in http.STATUS:
-      status = '%d %s' % (status, http.STATUS[status])
+      status = str(http.STATUS[status])
     else:
-      status = '%d Internal Error' % status
+      status = '%d Internal Server Error' % status
     return doc(status, ["<html><body><h1>%s</h1><p>%s</p></body></html>" \
                % (status, message)]) 
   

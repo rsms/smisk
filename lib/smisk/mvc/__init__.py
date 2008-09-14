@@ -9,11 +9,11 @@ from control import Controller
 from model import Entity
 from template import Templates
 from exceptions import *
-from routing import ClassTreeRouter, MethodNotFound
+from routing import ClassTreeRouter
 from ..serialization import serializers
 
 log = logging.getLogger(__name__)
-app = None
+application = None
 request = None
 response = None
 
@@ -24,6 +24,9 @@ class Response(smisk.core.Response):
   
   :type: string
   '''
+  
+  status = http.OK
+  ''':type: smisk.mvc.http.Status'''
 
 
 class Application(smisk.core.Application):
@@ -52,21 +55,67 @@ class Application(smisk.core.Application):
   autoreload = False
   ''':type: bool'''
   
-  def __init__(self, log_level=logging.INFO, *args, **kwargs):
+  etag = None
+  '''
+  Enables adding an E-Tag header to all buffered responses.
+  
+  The value needs to be either the name of a valid hash function in the
+  `hashlib` module (i.e. "md5"), or a something respoding in the same way
+  as the hash functions in hashlib. (i.e. need to return a hexadecimal
+  string rep when:
+  
+  .. python::
+    h = self.etag(data)
+    h.update(more_data)
+    etag_value = h.hexdigest()
+  
+  Enabling this is generally not recommended as it introduces a small to
+  moderate performance hit, because a checksum need to be calculated for
+  each response, and the nature of the data -- Smisk can not know exactly
+  about all stakes in a transaction, thus constructing a valid E-Tag might
+  somethimes be impossible.
+  
+  :type: object
+  '''
+  
+  def __init__(self,
+               log_level=logging.INFO,
+               autoreload=False,
+               etag=None, 
+               router=None,
+               templates=None,
+               *args, **kwargs):
     self.response_class = Response
     super(Application, self).__init__(*args, **kwargs)
+    
     logging.basicConfig(
       level=log_level,
       format = '%(levelname)-8s %(name)-20s %(message)s',
       datefmt = '%d %b %H:%M:%S'
     )
-    self.router = ClassTreeRouter()
-    self.templates = Templates(app=self)
+    
+    self.etag = etag
+    self.autoreload = autoreload
+    
+    if router is None:
+      self.router = ClassTreeRouter()
+    else:
+      self.router = router
+    
+    if templates is None:
+      self.templates = Templates(app=self)
+    else:
+      self.templates = templates
   
   
   def application_will_start(self):
     # Make sure the router has a reference to to app
     self.router.app = self
+    
+    # Setup E-Tag
+    if self.etag is not None and isinstance(self.etag, basestring):
+      import hashlib
+      self.etag = getattr(hashlib, self.etag)
     
     # Initialize modules which need access to app, request and response
     modules = find_modules_for_classtree(Controller)
@@ -76,7 +125,10 @@ class Application(smisk.core.Application):
       m.app = self
       m.request = self.request
       m.response = self.response
-    global request, response
+    
+    # Set references in this module to live instances
+    global application, request, response
+    application = self
     request = self.request
     response = self.response
     
@@ -140,30 +192,41 @@ class Application(smisk.core.Application):
           return serializers.extensions[ext]
     
     # Try media type
+    default_serializer = None
     accept_types = self.request.env.get('HTTP_ACCEPT', None)
     if accept_types is not None:
       available_types = serializers.media_types.keys()
       vv = []
+      highq = []
       for media in accept_types.split(','):
         p = media.find(';')
         if p != -1:
           pp = media.find('q=', p)
           if pp != -1:
-            vv.append([media[:p], int(float(media[pp+2:])*100.0)])
+            q = int(float(media[pp+2:])*100.0)
+            media = media[:p]
+            vv.append([media, q])
+            if q == 100:
+              highq.append(media)
             continue
         qual = 100
         if media == '*/*':
           qual = 0
         elif '/*' in media:
           qual = 50
+        else:
+          highq.append(media)
         vv.append([media, qual])
       vv.sort(lambda a,b: b[1] - a[1])
+      default_serializer = serializers.extensions.get(self.default_format, None)
+      if default_serializer.media_type in highq:
+        return default_serializer
       for v in vv:
         if v[0] in available_types:
           return serializers.media_types[v[0]]
     
     # Default serializer (Worst case scenario: return None)
-    return serializers.extensions.get(self.default_format, None)
+    return default_serializer
   
   
   def parse_request(self):
@@ -256,11 +319,21 @@ class Application(smisk.core.Application):
     
     # Add headers if the response has not yet begun
     if not self.response.has_begun:
+      # Set status
+      if self.response.status is not None \
+        and self.response.status is not http.OK \
+        and self.response.find_header('Status:') == -1:
+        self.response.headers.append('Status: ' + str(self.response.status)),
       # Add Content-Length header
       if self.response.find_header('Content-Length:') == -1:
         self.response.headers.append('Content-Length: %d' % len(rsp))
       # Add Content-Type header
       self.serializer.add_content_type_header(self.response)
+      # Add E-Tag
+      if self.etag is not None and len(rsp) > 0 and self.response.find_header('E-Tag:') == -1:
+        h = self.etag(''.join(self.response.headers))
+        h.update(rsp)
+        self.response.headers.append('E-Tag: "%s"' % h.hexdigest())
     
     # Send body
     assert(isinstance(rsp, basestring))
@@ -274,27 +347,37 @@ class Application(smisk.core.Application):
     # Reset response serializer, as it's used in error()
     self.serializer = None
     self.response.format = None
+    self.response.status = http.OK
+    destination = None
     template = None
     
-    # Parse request (and decode if needed)
-    (req_args, req_params) = self.parse_request()
+    try:
+      # Parse request (and decode if needed)
+      (req_args, req_params) = self.parse_request()
+      
+      # Add "private" cache control directive.
+      # As most actions will generate different output depending on variables like 
+      # client, time and data state, we need to tell facilities between us to, and
+      # including, the client the content is private.
+      self.response.headers.append('Cache-Control: private')
+      
+      # Call the action which might generate a response object: rsp
+      destination, rsp = self.call_action(req_args, req_params)
+      
+      # Aquire template
+      if template is None and self.templates is not None:
+        template = self.template_for_path_wo_ext(os.path.join(*destination.path))
     
-    # Add "private" cache control directive.
-    # As most actions will generate different output depending on variables like 
-    # client, time and data state, we need to tell facilities between us to, and
-    # including, the client the content is private.
-    self.response.headers.append('Cache-Control: private')
-    
-    # Call the action which might generate a response object: rsp
-    destination, rsp = self.call_action(req_args, req_params)
-    
-    # Aquire template
-    if self.templates is not None:
-      self.serializer = self.response_serializer()
-      fn = os.path.join(*destination.path) + '.' + self.serializer.extension
-      if log.level <= logging.DEBUG:
-        log.debug('Looking for template %s', fn)
-      template = self.templates.template_for_uri(fn, exc_if_not_found=False)
+    # Handle an abrupt HTTP status change
+    except http.ExcResponse, e:
+      if log.level <= logging.INFO:
+        log.info('Abrupt HTTP status change: %s', e.status)
+      rsp = e(self)
+      if self.templates is not None:
+        template = self.template_for_path_wo_ext(os.path.join('errors', str(e.status.code)))
+        if template is None:
+          # Catch-all error template "any"
+          template = self.template_for_path_wo_ext(os.path.join('errors', 'any'))
     
     # Encode response
     rsp = self.encode_response(rsp, template)
@@ -315,18 +398,26 @@ class Application(smisk.core.Application):
       log.info('Processed %s in %.3fms', uri, timer.time()*1000.0)
   
   
+  def template_for_path_wo_ext(self, path):
+    if self.serializer is None:
+      self.serializer = self.response_serializer()
+    fn = path + '.' + self.serializer.extension
+    if log.level <= logging.DEBUG:
+      log.debug('Looking for template %s', fn)
+    return self.templates.template_for_uri(fn, exc_if_not_found=False)
+  
+  
   def error(self, typ, val, tb):
     try:
-      status = getattr(val, 'http_code', 500)
-      is_error = status % 500 < 100
+      status = http.InternalServerError
+      status_code = getattr(val, 'http_code', 500)
+      if status_code in http.STATUS:
+        status = http.STATUS[status_code]
       rsp = None
-      status_name = "Internal Error"
-      if status in http.STATUS:
-        status_name = http.STATUS[status]
       
       # Log
-      if is_error:
-        log.error('%d Request failed for %s', status, repr(self.request.url.path), exc_info=(typ, val, tb))
+      if status.is_error:
+        log.error('%d Request failed for %s', status.code, repr(self.request.url.path), exc_info=(typ, val, tb))
       else:
         log.warn('Request failed for %s -- %s: %s', repr(self.request.url.path), typ.__name__, str(val))
       
@@ -346,10 +437,10 @@ class Application(smisk.core.Application):
         # Set headers
         if not self.response.has_begun:
           self.response.headers = [
-            'Status: %d %s' % (status, status_name),
+            'Status: %s' % status,
             'Content-Length: %d' % len(rsp)
           ]
-          if is_error:
+          if status.is_error:
             self.response.headers.append('Cache-Control: no-cache')
           if self.serializer is not None:
             self.serializer.add_content_type_header(self.response)
@@ -366,21 +457,17 @@ class Application(smisk.core.Application):
   
 
 
-def main(application=None, appdir=None, *args, **kwargs):
+def main(app=None, appdir=None, *args, **kwargs):
   if 'SMISK_APP_DIR' not in os.environ:
     if appdir is None:
       appdir = os.path.abspath(os.getcwd())
     os.environ['SMISK_APP_DIR'] = appdir
   
-  global app
-  
-  if application is None:
-    if app is not None:
-      application = app
+  if app is None:
+    if Application.current() is not None:
+      app = Application.current()
     else:
-      application = Application(*args, **kwargs)
-  
-  app = application
+      app = Application(*args, **kwargs)
   
   # Create app and start it
   try:
