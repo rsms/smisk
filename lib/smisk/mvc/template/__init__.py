@@ -13,10 +13,12 @@ Templating
 import os, sys, stat, posixpath, re, logging
 import mako.filters, smisk.core.xml
 from smisk.core import URL
-from mako import exceptions, util
+from mako import exceptions
+from mako.util import LRUCache
 from mako.template import Template
 from .. import http
 from . import filters
+from ... import util
 
 log = logging.getLogger(__name__)
 exceptions.TopLevelLookupException.http_code = 404
@@ -78,8 +80,14 @@ class Templates(object):
   :type: list
   '''
   
-  errors = None
-  ''':type: dict'''
+  errors = {}
+  '''
+  Map http error to a template path.
+  
+  i.e. 500: 'errors/server_error'
+  
+  :type: dict
+  '''
   
   app = None
   ''':type: smisk.core.Application'''
@@ -87,7 +95,6 @@ class Templates(object):
   def __init__(self, app):
     self.app = app
     self.directories = []
-    self.errors = {}
     self.get_template = self.template_for_uri # for compat with mako
     self.reset_cache()
   
@@ -96,8 +103,8 @@ class Templates(object):
       self.instances = {}
       self._uri_cache = {}
     else:
-      self.instances = util.LRUCache(self.cache_limit)
-      self._uri_cache = util.LRUCache(self.cache_limit)
+      self.instances = LRUCache(self.cache_limit)
+      self._uri_cache = LRUCache(self.cache_limit)
   
   def template_for_uri(self, uri, exc_if_not_found=True):
     '''
@@ -123,11 +130,13 @@ class Templates(object):
           raise exceptions.TopLevelLookupException("Failed to locate template for uri '%s'" % uri)
         return None
   
-  def builtin_error_template(self):
-    if '_builtin_error_' in self.instances:
-      return self.instances['_builtin_error_']
-    else:
-      return self._load(filename=None, uri='_builtin_error_', text=HTML_ERROR_TEMPLATE)
+  def builtin_error_template(self, format='html'):
+    cache_id = '__builtin_error.'+format
+    if cache_id in self.instances:
+      return self.instances[cache_id]
+    elif format in ERROR_TEMPLATES:
+      return self._load(filename=None, uri=cache_id, text=ERROR_TEMPLATES[format])
+    return None
   
   def adjust_uri(self, uri, relativeto):
     """adjust the given uri based on the calling filename."""
@@ -147,37 +156,39 @@ class Templates(object):
       self._uri_cache[filename] = value
       return value
   
-  def render_error(self, typ=None, val=None, tb=None):
+  def render_error(self, status, format='html', typ=None, val=None, tb=None):
     if typ is None:
       (typ, val, tb) = sys.exc_info()
-    status = getattr(val, 'http_code', 500)
+    
     data = dict(
-      title=str(status),
+      title=status.name,
+      status=status,
       message=str(val),
       server_info = '%s at %s' % (self.app.request.env['SERVER_SOFTWARE'],
                                   self.app.request.env['SERVER_NAME']),
+      traceback=None
     )
-    
-    # Add HTTP status title
-    if status in http.STATUS:
-      data['title'] = '%d %s' % (status, http.STATUS[status])
-    
     # Add traceback if enabled
-    #if self.show_traceback:
-    #  data['traceback'] = utils.format_exc((typ, val, tb))
+    if self.show_traceback:
+      data['traceback'] = util.format_exc((typ, val, tb))
     
     # Compile body from template
-    body = ''
-    template = None
-    if status in self.errors:
-      template = self.template_for_uri(self.errors[status])
+    if status.code in self.errors:
+      template = self.template_for_uri('%s.%s' % (self.errors[status.code], format))
+    elif status in self.errors:
+      template = self.template_for_uri('%s.%s' % (self.errors[status], format))
     elif 0 in self.errors:
-      template = self.template_for_uri(self.errors[0])
+      template = self.template_for_uri('%s.%s' % (self.errors[0], format))
     else:
-      return None
-      #template = self.builtin_error_template()
+      template = self.builtin_error_template(format)
     
-    body = template.render(**data)
+    # We can't render this error.
+    # Whoever asked us to do so must solve it in another way.
+    if template is None:
+      return None
+    
+    # Render template
+    rsp = template.render(**data)
     
     # Get rid of MSIE "friendly" error messages
     if self.app.request.env.get('HTTP_USER_AGENT','').find('MSIE') != -1:
@@ -185,20 +196,12 @@ class Templates(object):
       ielen = _msie_error_sizes.get(status, 0)
       if ielen:
         ielen += 1
-        blen = len(body)
+        blen = len(rsp)
         if blen < ielen:
           log.debug('Adding additional body content for MSIE')
-          body = body + (' ' * (ielen-blen))
+          rsp = rsp + (' ' * (ielen-blen))
     
-    # Set headers
-    self.app.response.headers = [
-      'Status: %d' % status,
-      'Content-Type: text/html',
-      'Content-Length: %d' % len(body)]
-    
-    # Send response
-    self.app.response.write(body)
-    return True
+    return rsp
   
   def _relativeize(self, filename):
     """return the portion of a filename that is 'relative' to the directories in this lookup."""
@@ -213,6 +216,11 @@ class Templates(object):
     try:
       if filename is not None:
         filename = posixpath.normpath(filename)
+      
+      encoding_errors = 'replace'
+      if len(uri) > 4 and (uri[-5:].lower() == '.html' or uri[-4:].lower() == '.xml'):
+        encoding_errors='htmlentityreplace'
+      
       self.instances[uri] = Template(
         uri=uri,
         filename=filename,
@@ -220,9 +228,9 @@ class Templates(object):
         lookup=self,
         module_filename=None,
         format_exceptions=False,
-        #input_encoding=self.app.input_encoding,
+        input_encoding='utf-8', # xxx todo: check file using Unicode BOM, #encoding:-patterns, etc.
         output_encoding=self.app.default_output_encoding,
-        encoding_errors='replace',
+        encoding_errors=encoding_errors,
         cache_type=self.cache_type,
         default_filters=['str'],
         #default_filters=['unicode'],
@@ -254,56 +262,33 @@ class Templates(object):
     self.instances[uri] = template
   
 
-HTML_ERROR_TEMPLATE = r'''
-<%! from mako.exceptions import RichTraceback %>
-<html>
-<head>
+ERROR_TEMPLATES = {
+
+'html': r'''<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
     <title>${title|x}</title>
-    <style>
-        body { font-family:verdana; margin:10px 30px 10px 30px;}
-        .stacktrace { margin:5px 5px 5px 5px; }
-        .highlight { padding:0px 10px 0px 10px; background-color:#9F9FDF; }
-        .nonhighlight { padding:0px; background-color:#DFDFDF; }
-        .sample { padding:10px; margin:10px 10px 10px 10px; font-family:monospace; }
-        .sampleline { padding:0px 10px 0px 10px; }
-        .sourceline { margin:5px 5px 10px 5px; font-family:monospace;}
-        .location { font-size:80%; }
+    <style type="text/css">
+      body,html { padding:0; margin:0; background:#666; }
+      h1 { padding:25pt 10pt 10pt 15pt; background:#ffb2bf; color:#560c00; font-family:arial,helvetica,sans-serif; margin:0; }
+      address, p { font-family:'lucida grande',verdana,arial,sans-serif; }
+      p.message { padding:10pt 16pt; background:#fff; color:#222; margin:0; font-size:.9em; }
+      pre.traceback { padding:10pt 15pt 25pt 15pt; line-height:1.4; background:#f2f2ca; color:#52523b; margin:0; border-top:1px solid #e3e3ba; border-bottom:1px solid #555; }
+      hr { display:none; }
+      address { padding:10pt 15pt; color:#333; font-size:11px; }
     </style>
-</head>
-<body>
-  <h1>${title|x}</h1>
-  <%
-      tback = RichTraceback()
-      src = tback.source
-      line = tback.lineno
-      if src:
-          lines = src.split('\n')
-      else:
-          lines = None
-  %>
-  <h3>${str(tback.error.__class__.__name__)}: ${str(tback.error)}</h3>
+  </head>
+  <body>
+    <h1>${title|x}</h1>
+    <p class="message">${message|x}</p>
+    % if traceback is not None:
+    <pre class="traceback">Traceback (most recent call last):
+    ${traceback|x}
+    </pre>
+    % endif
+    <hr/>
+    <address>${server_info|x}</address>
+  </body>
+</html>'''
 
-  % if lines:
-      <div class="sample">
-      <div class="nonhighlight">
-  % for index in range(max(0, line-4),min(len(lines), line+5)):
-      % if index + 1 == line:
-  <div class="highlight">${index + 1} ${lines[index] | h}</div>
-      % else:
-  <div class="sampleline">${index + 1} ${lines[index] | h}</div>
-      % endif
-  % endfor
-      </div>
-      </div>
-  % endif
-
-  <div class="stacktrace">
-  % for (filename, lineno, function, line) in tback.reverse_traceback:
-      <div class="location">${filename}, line ${lineno}:</div>
-      <div class="sourceline">${line | h}</div>
-  % endfor
-  </div>
-  <address>${server_info}</address>
-</body>
-</html>
-'''
+}

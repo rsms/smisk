@@ -1,0 +1,72 @@
+/* Basics */
+body,html,p,div,span,a,b,em,h1,h2,h3,h4,h5,i,blockquote,code,tt,pre,img,table,tr,td,th,tbody,form {
+  padding:0; margin:0;
+}
+body { background-color:#fff; color:#555; }
+h1,h2,h3,h4,h5 { color:#444; font-weight:normal; }
+p,body,td { font-size:13px; }
+p,body,td,h1,h2,h3,h4,h5 { font-family:helvetica,arial,sans-serif; }
+p { margin:1em 0; }
+code,pre { overflow:auto; }
+hr { height:1px; border:none; background-color:#ccc; }
+img { border:none; vertical-align:bottom; }
+::selection { color:#000; }
+
+h1 { font-size:22px; }
+h2 { font-size:18px; }
+
+a { text-decoration:none; }
+
+/* Globals */
+div.wrapper { clear:both; margin:0 auto; width:900px; }
+
+#header { background:#ff8080; min-width:900px; height:80px; }
+  #header h1 { }
+    #header h1 a {
+      background: url(logo.png) no-repeat 0% 50%;
+      display: block;
+      float: left;
+      width:110px; height:80px;
+      text-indent: -9999px;
+    }
+    #header h1 a:link, #header h1 a:visited { color:#ff8080; }
+  #header ul { float:right; list-style:none; margin-top:50px; margin-right:14px; }
+    #header ul li { float:left; font-size:14px; }
+      #header ul li a {
+        display:block; line-height:30px; padding:0 10px;
+        color:#913c3c;
+      }
+      #header ul li a:hover {
+        color:#510000;
+        background: #ff9898;
+        -moz-border-radius-topleft: 3px;
+        -khtml-border-top-left-radius: 3px;
+        -webkit-border-top-left-radius: 3px;
+        border-top-left-radius: 3px;
+        -moz-border-radius-topright: 3px;
+        -khtml-border-top-right-radius: 3px;
+        -webkit-border-top-right-radius: 3px;
+        border-top-right-radius: 3px;
+      }
+      #header ul li a.current, #header ul li#download a.current {
+        color: #111;
+        background: #edfafa;
+        -moz-border-radius-topleft: 3px;
+        -khtml-border-top-left-radius: 3px;
+        -webkit-border-top-left-radius: 3px;
+        border-top-left-radius: 3px;
+        -moz-border-radius-topright: 3px;
+        -khtml-border-top-right-radius: 3px;
+        -webkit-border-top-right-radius: 3px;
+        border-top-right-radius: 3px;
+      }
+  
+  #main {
+    background-image:url(main-bg.png); background-repeat:repeat-x;
+    min-height:300px;
+  }
+    #main > .wrapper { padding-top:20px; }
+    #main p { margin:10px 0; }
+    #main a:link,  a:active,  a:visited { color:#000; }
+    #main a:link:hover,  a:active:hover { color:#003173; background-color:#c0d9eb; }
+    #main a:visited:hover { color:#600085; background-color:#e7d0f0; }

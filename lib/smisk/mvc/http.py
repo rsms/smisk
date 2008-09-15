@@ -3,9 +3,9 @@ from ..util import normalize_url
 
 STATUS = {}
 
-class ExcResponse(Exception):
+class HTTPExc(Exception):
   def __init__(self, status, *args, **kwargs):
-    super(ExcResponse, self).__init__()
+    super(HTTPExc, self).__init__()
     self.status = status
     self.args = args
     self.kwargs = kwargs
@@ -21,7 +21,7 @@ class Status(object):
     STATUS[code] = self
   
   def __call__(self, *args, **kwargs):
-    return ExcResponse(self, *args, **kwargs)
+    return HTTPExc(self, *args, **kwargs)
   
   def service(self, app, *args, **kwargs):
     app.response.status = self

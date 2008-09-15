@@ -5,6 +5,7 @@ JSON serialization (RFC 4627)
 from . import serializers, BaseSerializer
 from ..mvc import http
 from smisk.core.xml import escape as xml_escape
+from smisk.core import Application
 
 def doc(title, body):
   v = ['<?xml version="1.0" encoding="%s" ?>' % Serializer.encoding]
@@ -31,7 +32,10 @@ class Serializer(BaseSerializer):
     body.extend(['<li><b>%s:</b> <tt>%s</tt></li>' \
       % (xml_escape(str(k)), xml_escape(str(v))) for k,v in params.items()])
     body.append('</ol>')
-    return doc('Response', body)
+    title = 'XHTML response'
+    if Application.current().destination is not None:
+      '/'.jon(Application.current().destination.path)
+    return doc(title, body)
   
   @classmethod
   def encode_error(cls, typ, val, tb):
@@ -42,7 +46,7 @@ class Serializer(BaseSerializer):
     else:
       status = '%d Internal Server Error' % status
     return doc(status, ["<html><body><h1>%s</h1><p>%s</p></body></html>" \
-               % (status, message)]) 
+               % (xml_escape(status), xml_escape(message))])
   
 
 serializers.register(Serializer, ['text/html'])

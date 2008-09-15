@@ -40,14 +40,6 @@ class Application(smisk.core.Application):
   '''
   
   default_format = 'html'
-  ''':type: string'''
-  
-  serializer = None
-  '''
-  Used during runtime. Here because we want to use it in error()
-  
-  :type: Serializer
-  '''
   
   templates = None
   ''':type: Templates'''
@@ -76,6 +68,30 @@ class Application(smisk.core.Application):
   somethimes be impossible.
   
   :type: object
+  '''
+  ''':type: string'''
+  
+  serializer = None
+  '''
+  Used during runtime.
+  Here because we want to use it in error()
+  
+  :type: Serializer
+  '''
+  
+  destination = None
+  '''
+  Used during runtime.
+  Available in actions, serializers and templates.
+  
+  :type: smisk.mvc.routing.Destination
+  '''
+  
+  template = None
+  '''
+  Used during runtime.
+  
+  :type: mako.template.Template
   '''
   
   def __init__(self,
@@ -348,41 +364,27 @@ class Application(smisk.core.Application):
     self.serializer = None
     self.response.format = None
     self.response.status = http.OK
-    destination = None
-    template = None
+    self.destination = None
+    self.template = None
     
-    try:
-      # Parse request (and decode if needed)
-      (req_args, req_params) = self.parse_request()
-      
-      # Add "private" cache control directive.
-      # As most actions will generate different output depending on variables like 
-      # client, time and data state, we need to tell facilities between us to, and
-      # including, the client the content is private.
-      self.response.headers.append('Cache-Control: private')
-      
-      # Call the action which might generate a response object: rsp
-      destination, rsp = self.call_action(req_args, req_params)
-      
-      # Aquire template
-      if template is None and self.templates is not None:
-        template = self.template_for_path(os.path.join(*destination.path))
+    # Parse request (and decode if needed)
+    (req_args, req_params) = self.parse_request()
     
-    # Handle an abrupt HTTP status change
-    except http.ExcResponse, e:
-      if log.level <= logging.INFO:
-        log.info('Abrupt HTTP status change: %s', e.status)
-      rsp = e(self)
-      if self.templates is not None:
-        uri = self.template_uri_for_path(os.path.join('errors', str(e.status.code)))
-        template = self.template_for_uri(uri)
-        if template is None:
-          # Catch-all error template "any". Also, put it the cache for the original uri
-          template = self.template_for_path(os.path.join('errors', 'any'))
-          self.templates.instances[uri] = template
+    # Add "private" cache control directive.
+    # As most actions will generate different output depending on variables like 
+    # client, time and data state, we need to tell facilities between us to, and
+    # including, the client the content is private.
+    self.response.headers.append('Cache-Control: private')
+    
+    # Call the action which might generate a response object: rsp
+    self.destination, rsp = self.call_action(req_args, req_params)
+    
+    # Aquire template
+    if self.template is None and self.templates is not None:
+      self.template = self.template_for_path(os.path.join(*self.destination.path))
     
     # Encode response
-    rsp = self.encode_response(rsp, template)
+    rsp = self.encode_response(rsp, self.template)
     
     # Return a response to the client and thus completing the transaction.
     self.send_response(rsp)
@@ -391,8 +393,8 @@ class Application(smisk.core.Application):
     if log.level <= logging.INFO:
       timer.finish()
       uri = None
-      if destination is not None:
-        uri = '.'.join(destination.path)
+      if self.destination is not None:
+        uri = '.'.join(self.destination.path)
         if self.serializer is not None:
           uri += ':' + self.serializer.extension
       else:
@@ -418,11 +420,9 @@ class Application(smisk.core.Application):
   
   def error(self, typ, val, tb):
     try:
-      status = http.InternalServerError
-      status_code = getattr(val, 'http_code', 500)
-      if status_code in http.STATUS:
-        status = http.STATUS[status_code]
+      status = getattr(val, 'status', http.InternalServerError)
       rsp = None
+      format = self.default_format
       
       # Log
       if status.is_error:
@@ -437,10 +437,15 @@ class Application(smisk.core.Application):
         except:
           pass
       
-      # Build response body
+      # Set format if a serializer was found
       if self.serializer is not None:
+        format = self.serializer.extension
+      
+      # Try to use templating or serializer
+      rsp = self.templates.render_error(status, format, typ, val, tb)
+      if rsp is None and self.serializer is not None:
         rsp = self.serializer.encode_error(typ, val, tb)
-        
+      
       # Send response
       if rsp is not None:
         # Set headers
@@ -460,7 +465,7 @@ class Application(smisk.core.Application):
       
       # No rsp or error, so let smisk.core.Application.error() handle the response
     except:
-      log.error('Failed to send error using serializer %s', repr(self.serializer), exc_info=1)
+      log.error('Failed to encode error', exc_info=1)
     log.error('Request failed for %s', repr(self.request.url.path), exc_info=(typ, val, tb))
     super(Application, self).error(typ, val, tb)
   
