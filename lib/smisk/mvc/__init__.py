@@ -57,7 +57,7 @@ class Application(smisk.core.Application):
   
   etag = None
   '''
-  Enables adding an E-Tag header to all buffered responses.
+  Enables adding an ETag header to all buffered responses.
   
   The value needs to be either the name of a valid hash function in the
   `hashlib` module (i.e. "md5"), or a something respoding in the same way
@@ -72,7 +72,7 @@ class Application(smisk.core.Application):
   Enabling this is generally not recommended as it introduces a small to
   moderate performance hit, because a checksum need to be calculated for
   each response, and the nature of the data -- Smisk can not know exactly
-  about all stakes in a transaction, thus constructing a valid E-Tag might
+  about all stakes in a transaction, thus constructing a valid ETag might
   somethimes be impossible.
   
   :type: object
@@ -112,7 +112,7 @@ class Application(smisk.core.Application):
     # Make sure the router has a reference to to app
     self.router.app = self
     
-    # Setup E-Tag
+    # Setup ETag
     if self.etag is not None and isinstance(self.etag, basestring):
       import hashlib
       self.etag = getattr(hashlib, self.etag)
@@ -329,11 +329,11 @@ class Application(smisk.core.Application):
         self.response.headers.append('Content-Length: %d' % len(rsp))
       # Add Content-Type header
       self.serializer.add_content_type_header(self.response)
-      # Add E-Tag
-      if self.etag is not None and len(rsp) > 0 and self.response.find_header('E-Tag:') == -1:
+      # Add ETag
+      if self.etag is not None and len(rsp) > 0 and self.response.find_header('ETag:') == -1:
         h = self.etag(''.join(self.response.headers))
         h.update(rsp)
-        self.response.headers.append('E-Tag: "%s"' % h.hexdigest())
+        self.response.headers.append('ETag: "%s"' % h.hexdigest())
     
     # Send body
     assert(isinstance(rsp, basestring))
