@@ -4,7 +4,7 @@
 Path to structure routing.
 """
 
-import logging
+import logging, re
 from types import *
 from exceptions import *
 from ..core import URL
@@ -22,6 +22,7 @@ def wrap_exc_in_action(exc):
     raise exc
   return a
 
+# xxx todo: when appropriate, control action and make sure it accepts at least (*args, **params)
 
 class Destination(object):
   # These should not be modified directly from outside of a router,
@@ -62,13 +63,33 @@ class Destination(object):
       % (self.__class__.__name__, repr(self.action), repr(self.path))
 
 
+class RegExpDestination(Destination):
+  def __init__(self, regexp, action, path, match_on_full_url=False):
+    super(RegExpDestination, self).__init__(action, path)
+    self.pattern = regexp
+    self.match_on_full_url = match_on_full_url
+  
+  def match(self, url):
+    if not self.match_on_full_url:
+      url = url.path
+    else:
+      url = str(url)
+    m = self.pattern.match(url)
+    if m is not None:
+      return self, m.groups(), m.groupdict()
+  
+
+
 class Router(object):
   """Abstract router"""
+  None3Tuple = (None, None, None)
+  
   def __init__(self, app=None):
     self.app = app
+    self.mappings = []
   
   def __call__(self, url, root=None):
-    raise NotImplementedError('Abstract class Router is not callable')
+    raise NotImplementedError('abstract class Router is not callable')
   
   @property
   def root_controller(self):
@@ -78,6 +99,20 @@ class Router(object):
         if c.__name__.lower() == 'root':
           self._root_controller = c
     return self._root_controller
+  
+  
+  def map(self, regexp, action, match_on_full_url=False):
+    '''Explicitly map an action to urls matching regexp'''
+    path = ['__call__'] # xxx todo: find a way to map the internal canonical path in this case.
+    self.mappings.append(RegExpDestination(re.compile(regexp), action, path, match_on_full_url))
+  
+  
+  def match_mapping(self, url):
+    for dest in self.mappings:
+      dest_args_params_tuple = dest.match(url)
+      if dest_args_params_tuple is not None:
+        return dest_args_params_tuple
+    return self.None3Tuple
   
 
 class ClassTreeRouter(Router):
@@ -161,7 +196,18 @@ class ClassTreeRouter(Router):
     return path
   
   
-  def __call__(self, url, root=None):
+  def __call__(self, url, args, params):
+    # First, see if an explicit mapping matches
+    destination, dargs, dparams = self.match_mapping(url)
+    if destination is not None:
+      if dargs:
+        args.extend(dargs)
+      if dparams:
+        dparams.update(dparams)
+        params = dparams
+      return destination
+    
+    # Now, go on matching on the controller tree as usual
     raw_path = url.path.strip('/')
     
     # Cached?
@@ -175,8 +221,7 @@ class ClassTreeRouter(Router):
       log.info('Resolving %s', repr(raw_path))
     
     # Make sure we have a valid root
-    if root is None:
-      root = self.root_controller
+    root = self.root_controller
     if root is None:
       # XXX todo
       e = http.ControllerNotFound('No root controller could be found')

@@ -14,5 +14,5 @@ class root(Controller):
   def __call__(self, *args, **kwargs):
     return { 'site_menu': self.site_menu }
   
-  def docs(self):
+  def docs(self, *args, **kwargs):
     return { 'site_menu': self.site_menu }

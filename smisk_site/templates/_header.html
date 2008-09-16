@@ -12,11 +12,11 @@
           % for m in site_menu:
             <li\
 % if 'id' in m:
- id="${m['id']}"
+ id="${m['id']}"\
 % endif
 ><a href="${m['url']}" title="${m['desc']|x}"\
 % if request.url.path == m['url']:
- class="current"
+ class="current"\
 % endif
 >${m['title']|x}</a></li>
           % endfor

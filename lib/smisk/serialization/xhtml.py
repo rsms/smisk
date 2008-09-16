@@ -34,7 +34,7 @@ class Serializer(BaseSerializer):
     body.append('</ol>')
     title = 'XHTML response'
     if Application.current().destination is not None:
-      '/'.jon(Application.current().destination.path)
+      '/'.join(Application.current().destination.path)
     return doc(title, body)
   
   @classmethod

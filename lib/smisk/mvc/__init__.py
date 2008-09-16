@@ -114,9 +114,9 @@ class Application(smisk.core.Application):
     self.autoreload = autoreload
     
     if router is None:
-      self.router = ClassTreeRouter()
+      self.routes = ClassTreeRouter()
     else:
-      self.router = router
+      self.routes = router
     
     if templates is None:
       self.templates = Templates(app=self)
@@ -126,7 +126,7 @@ class Application(smisk.core.Application):
   
   def application_will_start(self):
     # Make sure the router has a reference to to app
-    self.router.app = self
+    self.routes.app = self
     
     # Setup ETag
     if self.etag is not None and isinstance(self.etag, basestring):
@@ -286,7 +286,7 @@ class Application(smisk.core.Application):
     :rtype:   dict
     '''
     # Find destination or return None
-    destination = self.router(self.request.url)
+    destination = self.routes(self.request.url, args, params)
     
     # Call action
     if log.level <= logging.DEBUG:
@@ -478,16 +478,16 @@ class Application(smisk.core.Application):
   
 
 
-def main(app=None, appdir=None, *args, **kwargs):
+def main(appdir=None, app=None, *args, **kwargs):
   if 'SMISK_APP_DIR' not in os.environ:
+    # xxx todo: use stack info to get __file__ from caller
     if appdir is None:
       appdir = os.path.abspath(os.getcwd())
     os.environ['SMISK_APP_DIR'] = appdir
   
   if app is None:
-    if Application.current() is not None:
-      app = Application.current()
-    else:
+    app = Application.current()
+    if app is None:
       app = Application(*args, **kwargs)
   
   # Create app and start it

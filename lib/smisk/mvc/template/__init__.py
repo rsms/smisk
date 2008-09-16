@@ -162,11 +162,11 @@ class Templates(object):
     
     # Compile body from template
     if status.code in self.errors:
-      template = self.template_for_uri('%s.%s' % (self.errors[status.code], format))
+      template = self.template_for_uri('%s.%s' % (self.errors[status.code], format), False)
     elif status in self.errors:
-      template = self.template_for_uri('%s.%s' % (self.errors[status], format))
+      template = self.template_for_uri('%s.%s' % (self.errors[status], format), False)
     elif 0 in self.errors:
-      template = self.template_for_uri('%s.%s' % (self.errors[0], format))
+      template = self.template_for_uri('%s.%s' % (self.errors[0], format), False)
     else:
       template = self.builtin_error_template(format)
     
