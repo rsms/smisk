@@ -38,7 +38,7 @@ class Serializer(BaseSerializer):
     return doc(title, body)
   
   @classmethod
-  def encode_error(cls, typ, val, tb):
+  def encode_error(cls, params, typ, val, tb):
     message = str(val)
     status = getattr(val, 'http_code', 500)
     if status in http.STATUS:

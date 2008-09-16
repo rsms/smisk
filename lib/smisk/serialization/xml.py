@@ -71,7 +71,7 @@ class Serializer(BaseSerializer):
     return finalize_rsp(v)
   
   @classmethod
-  def encode_error(cls, typ, val, tb):
+  def encode_error(cls, params, typ, val, tb):
     v = start_rsp()
     v.append('<err code="%d" msg="%s" />' % (int(getattr(val, 'http_code', 0)), xml_escape(str(val))))
     return finalize_rsp(v)

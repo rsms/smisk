@@ -29,7 +29,7 @@ class Serializer(BaseSerializer):
     return dumps(params, HIGHEST_PROTOCOL)
   
   @classmethod
-  def encode_error(cls, typ, val, tb):
+  def encode_error(cls, params, typ, val, tb):
     return dumps(dict(code=getattr(val, 'http_code', 0), message=str(val)), HIGHEST_PROTOCOL)
   
   @classmethod

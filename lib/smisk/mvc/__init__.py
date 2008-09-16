@@ -421,8 +421,13 @@ class Application(smisk.core.Application):
   def error(self, typ, val, tb):
     try:
       status = getattr(val, 'status', http.InternalServerError)
-      rsp = None
+      rsp = {}
       format = self.default_format
+      
+      # Set headers
+      self.response.headers = [
+        'Status: %s' % status
+      ]
       
       # Log
       if status.is_error:
@@ -441,20 +446,22 @@ class Application(smisk.core.Application):
       if self.serializer is not None:
         format = self.serializer.extension
       
+      # HTTP exception has a bound action we want to call
+      if isinstance(val, http.HTTPExc):
+        rsp = val(self)
+      
       # Try to use templating or serializer
-      rsp = self.templates.render_error(status, format, typ, val, tb)
+      rsp = self.templates.render_error(status, format, rsp, typ, val, tb)
       if rsp is None and self.serializer is not None:
-        rsp = self.serializer.encode_error(typ, val, tb)
+        rsp = self.serializer.encode_error(rsp, typ, val, tb)
       
       # Send response
       if rsp is not None:
         # Set headers
         if not self.response.has_begun:
-          self.response.headers = [
-            'Status: %s' % status,
-            'Content-Length: %d' % len(rsp)
-          ]
-          if status.is_error:
+          if self.response.find_header('Content-Length:') == -1:
+            self.response.headers.append('Content-Length: %d' % len(rsp))
+          if status.is_error and self.response.find_header('Cache-Control:') == -1:
             self.response.headers.append('Cache-Control: no-cache')
           if self.serializer is not None:
             self.serializer.add_content_type_header(self.response)

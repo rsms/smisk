@@ -63,19 +63,21 @@ class BaseSerializer(object):
     raise NotImplementedError('%s.encode' % cls.__name__)
   
   @classmethod
-  def encode_error(cls, typ, val, tb):
+  def encode_error(cls, params, typ, val, tb):
     """
     Encode an error.
     
     Might return None to indicate someone else should handle the error.
-    
-    :param typ: Error type
-    :type  typ: Type
-    :param val: Value
-    :type  val: object
-    :param tb:  Traceback
-    :type  tb:  object
-    :rtype:     string
+
+    :param params: Parameters
+    :type  params: dict
+    :param typ:    Error type
+    :type  typ:    Type
+    :param val:    Value
+    :type  val:    object
+    :param tb:     Traceback
+    :type  tb:     object
+    :rtype: string
     """
     return None
   

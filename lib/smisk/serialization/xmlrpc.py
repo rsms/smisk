@@ -17,7 +17,7 @@ class Serializer(BaseSerializer):
     return dumps((params,), methodresponse=True, encoding=cls.encoding, allow_none=True)
   
   @classmethod
-  def encode_error(cls, typ, val, tb):
+  def encode_error(cls, params, typ, val, tb):
     return dumps(Fault(getattr(val, 'http_code', 0), str(val)), encoding=cls.encoding)
   
   @classmethod

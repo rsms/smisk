@@ -25,8 +25,9 @@ class Serializer(BaseSerializer):
     return encode(params)
   
   @classmethod
-  def encode_error(cls, typ, val, tb):
-    return encode(dict(code=getattr(val, 'http_code', 0), message=str(val)))
+  def encode_error(cls, params, typ, val, tb):
+    params.update(dict(code=getattr(val, 'http_code', 0), message=str(val)))
+    return encode(params)
   
   @classmethod
   def decode(cls, file, length=-1):

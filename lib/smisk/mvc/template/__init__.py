@@ -156,21 +156,9 @@ class Templates(object):
       self._uri_cache[filename] = value
       return value
   
-  def render_error(self, status, format='html', typ=None, val=None, tb=None):
+  def render_error(self, status, format='html', params={}, typ=None, val=None, tb=None):
     if typ is None:
       (typ, val, tb) = sys.exc_info()
-    
-    data = dict(
-      title=status.name,
-      status=status,
-      message=str(val),
-      server_info = '%s at %s' % (self.app.request.env['SERVER_SOFTWARE'],
-                                  self.app.request.env['SERVER_NAME']),
-      traceback=None
-    )
-    # Add traceback if enabled
-    if self.show_traceback:
-      data['traceback'] = util.format_exc((typ, val, tb))
     
     # Compile body from template
     if status.code in self.errors:
@@ -187,8 +175,23 @@ class Templates(object):
     if template is None:
       return None
     
+    # Update parameters
+    rsp = dict(
+      title=status.name,
+      status=status,
+      message=str(val),
+      server_info = '%s at %s' % (self.app.request.env['SERVER_SOFTWARE'],
+                                  self.app.request.env['SERVER_NAME']),
+      traceback=None
+    )
+    rsp.update(params)
+    
+    # Add traceback if enabled
+    if self.show_traceback and ('traceback' not in rsp or rsp['traceback'] is None):
+      rsp['traceback'] = util.format_exc((typ, val, tb))
+    
     # Render template
-    rsp = template.render(**data)
+    rsp = template.render(**rsp)
     
     # Get rid of MSIE "friendly" error messages
     if self.app.request.env.get('HTTP_USER_AGENT','').find('MSIE') != -1:
@@ -282,9 +285,7 @@ ERROR_TEMPLATES = {
     <h1>${title|x}</h1>
     <p class="message">${message|x}</p>
     % if traceback is not None:
-    <pre class="traceback">Traceback (most recent call last):
-    ${traceback|x}
-    </pre>
+    <pre class="traceback">${traceback|x}</pre>
     % endif
     <hr/>
     <address>${server_info|x}</address>

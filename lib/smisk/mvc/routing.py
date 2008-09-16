@@ -222,7 +222,8 @@ class ClassTreeRouter(Router):
         last_match_index = i
       else:
         # Aquire controller instance, as all controllers are singletons, this is safe
-        action = action()
+        if action is not MethodType:
+          action = action()
         # 2. find method  named <string part> of <class action>
         # Note: we do search subclasses but we do NOT search for anything within methods or other
         #       members which are not a class. Otherwise we would get problems.

@@ -13,6 +13,9 @@ class HTTPExc(Exception):
   def __call__(self, app):
     return self.status.service(app, *self.args, **self.kwargs)
   
+  def __str__(self):
+    return '%s %s %s' % (self.status, self.args, self.kwargs)
+  
 
 class Status(object):
   def __init__(self, code, name):
@@ -26,13 +29,7 @@ class Status(object):
   def service(self, app, *args, **kwargs):
     app.response.status = self
     app.response.headers = [] # clear any previous headers
-    return {
-      'status': {
-        'code': self.code,
-        'name': self.name
-      },
-      'message': ''
-    }
+    return {}
   
   @property
   def is_error(self):
@@ -50,9 +47,7 @@ class Status300(Status):
   def service(self, app, url, *args, **kwargs):
     rsp = Status.service(self, app)
     app.response.headers = ['Location: ' + normalize_url(url)]
-    rsp.update({
-      'message': 'The resource has moved'
-    })
+    rsp['message'] = 'The resource has moved to %s' % url
     return rsp
   
 
