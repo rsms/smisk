@@ -1,11 +1,34 @@
-<%include file="_header.html"/>
+<%include file="_header.html" />
     <div id="main">
       <div class="wrapper">
-        <h1>Save both time and clock cycles</h1>
-        <p>
-          Simple, high-performance and scalable web service framework for
-          FastCGI – written in C, but controlled by Python.
-        </p>
+        <div class="left-column">
+          <h1>Save both time and clock cycles</h1>
+          <p>
+            Simple, high-performance and scalable web service framework for
+            FastCGI – written in C, but controlled by Python.
+          </p>
+          <h2>Layer 1 – Core</h2>
+          <p>
+            Includes basic functionality, like request parsing, I/O, session and response handling. The smisk core is native machine code for maximum performance. Some applications can be written directly against the core, as it provides all means necessary for small processes.
+          </p>
+          <p>
+            <a href="http://trac.hunch.se/smisk/wiki/Core">Learn more...</a>
+          </p>
+          <h2>Layer 2 – MVC</h2>
+          <p>
+            This layer implements the classic Model-View-Controller paradigm.
+          </p>
+          <p>
+            And here is where the similarities with other frameworks end. Smisk MVC is strictly REST-based, and can handle the presentation automatically. (Yup, that's the "V" in MVC)
+          </p>
+          <p>
+            Because Smisk aims to be a platform for web service development, rather than just HTML web sites, we have taken the idea of MVC a step further in terms of pragmatism and simplicity. Smisk can understand and answer in many different languages, or formats, often removing the need for custom Views (templates).
+          </p>
+          <p>
+            <a href="http://trac.hunch.se/smisk/wiki/MVC">Learn more...</a>
+          </p>
+        </div>
+        <div class="breaker"></div>
       </div>
     </div>
 <%include file="_footer.html"/>
