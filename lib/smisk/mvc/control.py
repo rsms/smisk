@@ -8,7 +8,11 @@ from smisk.core import Application as App
 class Controller(object):
   def __new__(type):
     if not '_instance' in type.__dict__:
-      type._instance = object.__new__(type)
+      o = object.__new__(type)
+      for k in dir(o):
+        if k[0] != '_':
+          o.__dict__[k] = getattr(o, k)
+      type._instance = o
     return type._instance
   
   @classmethod
