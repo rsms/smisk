@@ -420,6 +420,7 @@ setup(
     'smisk',
     'smisk.inflection',
     'smisk.mvc',
+    'smisk.mvc.template',
     'smisk.serialization',
     'smisk.test',
     'smisk.util',
