@@ -2,7 +2,7 @@
 '''
 JSON serialization (RFC 4627)
 '''
-from . import serializers, BaseSerializer
+from smisk.serialization import serializers, BaseSerializer
 try:
   from cjson import encode, decode, DecodeError, EncodeError
 except ImportError:

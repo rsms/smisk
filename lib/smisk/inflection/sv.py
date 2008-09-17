@@ -12,7 +12,7 @@ __revision__ = '$Revision: 0$'.split(' ')[1][:-1]
 
 import re
 try:
-	from . import Inflector
+	from smisk.inflection import Inflector
 except ValueError:
 	from miwa.inflection import Inflector
 

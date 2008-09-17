@@ -7,9 +7,9 @@ Path to structure routing.
 import logging, re
 from types import *
 from exceptions import *
-from ..core import URL
+from smisk.core import URL
 from control import Controller
-from . import http
+import http
 
 log = logging.getLogger(__name__)
 

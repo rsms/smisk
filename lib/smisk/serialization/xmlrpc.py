@@ -2,7 +2,7 @@
 '''
 XML-RPC serialization
 '''
-from . import serializers, BaseSerializer
+from smisk.serialization import serializers, BaseSerializer
 from xmlrpclib import dumps, loads, Fault
 
 class Serializer(BaseSerializer):

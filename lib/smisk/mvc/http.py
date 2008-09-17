@@ -1,5 +1,5 @@
 # encoding: utf-8
-from ..util import normalize_url
+from smisk.util import normalize_url
 
 STATUS = {}
 

@@ -8,7 +8,7 @@ __docformat__ = 'restructuredtext en'
 __revision__ = '$Revision: 0$'.split(' ')[1][:-1]
 
 import re
-from . import Inflector
+from smisk.inflection import Inflector
 
 __all__ = ['inflection']
 

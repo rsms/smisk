@@ -2,7 +2,7 @@
 '''
 Python pickle serialization
 '''
-from . import serializers, BaseSerializer
+from smisk.serialization import serializers, BaseSerializer
 import logging
 try:
 	from cPickle import dumps, load, loads, HIGHEST_PROTOCOL

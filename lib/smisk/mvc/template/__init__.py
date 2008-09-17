@@ -16,9 +16,9 @@ from smisk.core import URL
 from mako import exceptions
 from mako.util import LRUCache
 from mako.template import Template
-from .. import http
-from . import filters
-from ... import util
+from smisk.mvc import http
+import filters
+from smisk import util
 
 log = logging.getLogger(__name__)
 exceptions.TopLevelLookupException.http_code = 404

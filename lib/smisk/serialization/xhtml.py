@@ -2,8 +2,8 @@
 '''
 JSON serialization (RFC 4627)
 '''
-from . import serializers, BaseSerializer
-from ..mvc import http
+from smisk.serialization import serializers, BaseSerializer
+from smisk.mvc import http
 from smisk.core.xml import escape as xml_escape
 from smisk.core import Application
 

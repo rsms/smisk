@@ -10,7 +10,7 @@ from model import Entity
 from template import Templates
 from exceptions import *
 from routing import ClassTreeRouter
-from ..serialization import serializers
+from smisk.serialization import serializers
 
 log = logging.getLogger(__name__)
 application = None
