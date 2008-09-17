@@ -418,7 +418,11 @@ setup(
   package_dir = {'': 'lib'},
   packages = [
     'smisk',
+    'smisk.inflection',
+    'smisk.mvc',
+    'smisk.serialization',
     'smisk.test',
+    'smisk.util',
   ],
   include_package_data=True,
   exclude_package_data={"debian" : ["*"]},
@@ -428,4 +432,8 @@ setup(
     undef_macros = undef_macros
   )],
   test_suite = 'smisk.test',
+  install_requires=["Elixir>=0.6", "Mako>=0.1.10"],
+  extras_require={
+    'serialization': ['python-cjson'], # or minjson
+  },
 )
