@@ -7,7 +7,7 @@ from smisk.util import *
 from smisk.util.timing import Timer
 from control import Controller
 from model import Entity
-from template import Templates
+from smisk.mvc.template import Templates
 from exceptions import *
 from routing import ClassTreeRouter
 from smisk.serialization import serializers
