@@ -1,3 +1,10 @@
+python-smisk (1.1.0-1) unstable; urgency=low
+
+  * MVC introduced
+  * WSGI support
+
+ -- Rasmus Andersson <rasmus@flajm.se>  Wed, 17 Sep 2008 18:26:33 +0200
+
 python-smisk (1.0.0-1) unstable; urgency=low
 
   * First stable release
