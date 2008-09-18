@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
-import sys, os
+import sys, os, re
 from types import *
 from smisk.core import URL
 from smisk.mvc.control import Controller
@@ -20,15 +20,89 @@ class level3(level2):
   def func_on_level3(self): pass
 
 
+None2 = (None, None)
+
 def strip_filename_extension(fn):
   try:
     return fn[:fn.rindex('.')]
   except:
     return fn
 
+###############################################################################
+
+
+class Destination(object):
+  # These should not be modified directly from outside of a router,
+  # since routers might cache instances of Destination.
+  action = None
+  ''':type: function'''
+  
+  path = None
+  '''
+  Canonical internal path.
+  
+  some.module.controllers.posts.list.__call__()
+  Is represented as, if "posts" parent class is the same as Router.root_controller:
+  ['posts', 'list', '__call__']
+  But might be called from any external URL:
+  /posts/list
+  /posts/list.json
+  /some/other/url
+  
+  :type: list
+  '''
+  
+  def __init__(self, action):
+    self.action = action
+    self.path = []
+  
+  def __call__(self, *args, **kwargs):
+    return self.action(*args, **kwargs)
+  
+  def __str__(self):
+    if self.path:
+      return '/'.join(self.path)
+    else:
+      return self.__repr__()
+  
+  def __repr__(self):
+    return '%s(action=%s, path=%s)' \
+      % (self.__class__.__name__, repr(self.action), repr(self.path))
+
+
+class RegExpDestination(Destination):
+  def __init__(self, regexp, action, match_on_full_url=False, **params):
+    super(RegExpDestination, self).__init__(action)
+    self.pattern = regexp
+    self.match_on_full_url = match_on_full_url
+    self.params = params
+  
+  def match(self, url):
+    if self.match_on_full_url:
+      m = self.pattern.match(url)
+    else:
+      m = self.pattern.match(url.path)
+    if m is not None:
+      if self.params:
+        params = self.params.copy()
+        params.extend(m.groupdict())
+      else:
+        params = m.groupdict()
+      return list(m.groups()), params
+    return None2
+  
+
+
 class Router(object):
   def __init__(self):
     self.cache = {}
+    self.mappings = []
+  
+  def map(self, regexp, action, match_on_full_url=False, **params):
+    '''Explicitly map an action to paths or urls matching regexp'''
+    self.mappings.append(RegExpDestination(re.compile(regexp), 
+                                           action, match_on_full_url, 
+                                           **params))
   
   def tokenize_path(self, path):
     tokens = []
@@ -40,23 +114,39 @@ class Router(object):
       tokens[-1] = strip_filename_extension(tokens[-1])
     return tokens
   
-  def __call__(self, path):
-    raw_path = path.strip('/').lower()
+  def __call__(self, url, args, params):
+    raw_url = str(url).rstrip('/').lower()
     
     # Cached?
-    if raw_path in self.cache:
-      return self.cache[raw_path]
+    if raw_url in self.cache:
+      dest = self.cache[raw_url]
+      if dest.__class__ is RegExpDestination:
+        dargs, dparams = dest.match(url)
+        dargs.extend(args)
+        dparams.update(params)
+        return dest, dargs, dparams
+      return dest, args, params
+    
+    # Explicit mapping?
+    for dest in self.mappings:
+      dargs, dparams = dest.match(url)
+      if dargs is not None:
+        self.cache[raw_url] = dest
+        dargs.extend(args)
+        dparams.update(params)
+        return dest, dargs, dparams
     
     # Tokenize path
-    path = self.tokenize_path(path)
+    path = self.tokenize_path(url.path)
     node = root
     
     # Special case -- empty path means root.__call__
     if not path:
       try:
         node = node().__call__
-        self.cache[raw_path] = node
-        return node
+        dest = Destination(node)
+        self.cache[raw_url] = dest
+        return dest, args, params
       except AttributeError:
         return
     
@@ -91,7 +181,7 @@ class Router(object):
         # else we continue...
       else:
         #print '>> 404 Not Found -- url part not found'
-        self.cache[raw_path] = None
+        self.cache[raw_url] = None
         return
     
     # Did we hit a class/type at the end? If so, get its instance.
@@ -100,22 +190,35 @@ class Router(object):
       try:
         node = node().__call__
       except AttributeError:
-        node = None
+        #print '>> 404 Not Found -- uncallable leaf'
+        self.cache[raw_url] = None
+        return
     
-    self.cache[raw_path] = node
-    return node
-    
+    dest = Destination(node)
+    self.cache[raw_url] = dest
+    return dest, args, params
   
 
 r = Router()
-print r('/')
-print r('/func_on_root')
-print r('/level2')
-print r('/level2/func_on_level2')
-print r('/level2/nothing/here')
-print r('/level2/level3')
-print r('/level3')
-print r('/level2/level3/func_on_level3')
+r.map(r'^/user', level2().func_on_level2)
+urls = [
+  '/',
+  '/func_on_root',
+  '/level2',
+  '/level2/func_on_level2',
+  '/level2/nothing/here',
+  '/level2/level3',
+  '/level2/level3/__call__',
+  '/user/rasmus',
+  '/user/rasmus/photos',
+  '/level3',
+  '/level2/level3/func_on_level3',
+]
+for url in urls:
+  url = URL(url)
+  print url, '==>\n', r(url, [], {}), '\n'
+
+sys.exit(0)
 
 from smisk.util.timing import Timer
 t = Timer(True)

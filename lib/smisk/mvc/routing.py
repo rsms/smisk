@@ -102,7 +102,7 @@ class Router(object):
   
   
   def map(self, regexp, action, match_on_full_url=False):
-    '''Explicitly map an action to urls matching regexp'''
+    '''Explicitly map an action to paths or urls matching regexp'''
     path = ['__call__'] # xxx todo: find a way to map the internal canonical path in this case.
     self.mappings.append(RegExpDestination(re.compile(regexp), action, path, match_on_full_url))
   
@@ -203,8 +203,7 @@ class ClassTreeRouter(Router):
       if dargs:
         args.extend(dargs)
       if dparams:
-        dparams.update(dparams)
-        params = dparams
+        params.update(dparams)
       return destination
     
     # Now, go on matching on the controller tree as usual
