@@ -52,7 +52,7 @@ class Application(smisk.core.Application):
   Enables adding an ETag header to all buffered responses.
   
   The value needs to be either the name of a valid hash function in the
-  `hashlib` module (i.e. "md5"), or a something respoding in the same way
+  ``hashlib`` module (i.e. "md5"), or a something respoding in the same way
   as the hash functions in hashlib. (i.e. need to return a hexadecimal
   string rep when:
   
