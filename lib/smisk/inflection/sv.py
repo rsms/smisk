@@ -28,7 +28,10 @@ class SVInflector(Inflector):
 	
 
 def rc(pat, ignore_case=1):
-	return re.compile(pat, re.I if ignore_case else 0)
+  if ignore_case:
+	  return re.compile(pat, re.I)
+  else:
+	  return re.compile(pat)
 
 # Rules based on http://en.wiktionary.org/wiki/Wiktionary:Swedish_inflection_templates
 inflection = SVInflector('sv', 'sv_SV')
