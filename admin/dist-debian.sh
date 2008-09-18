@@ -177,6 +177,6 @@ mv -v ../$FNPATTERN* dist/debian/ || exit 1
 
 # Distribute
 if [ $DISTRIBUTE -eq 1 ]; then
-  echo "Running dupload -t hunch.se"
+  echo "Running dupload -t hunch.se dist/debian"
   dupload -t hunch.se dist/debian
 fi
