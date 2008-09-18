@@ -13,3 +13,6 @@ openssl gcc python-setuptools python-all-dev libfcgi-dev dpkg-dev debhelper fake
   # Install package
   cd smisk/..
   dpkg --install python-smisk_VERSION.deb
+
+# distributing
+dupload

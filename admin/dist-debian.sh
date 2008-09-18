@@ -177,12 +177,6 @@ mv -v ../$FNPATTERN* dist/debian/ || exit 1
 
 # Distribute
 if [ $DISTRIBUTE -eq 1 ]; then
-  echo -n "Copying dist/debian/${FNPATTERN}* to "
-  if is_local_host $DEB_REMOTE_HOST; then
-    echo cp -vf dist/debian/$FNPATTERN* "${DEB_REMOTE_PATH}"
-         cp -vf dist/debian/$FNPATTERN* "${DEB_REMOTE_PATH}" || exit 1
-  else
-    echo scp -qC dist/debian/$FNPATTERN* "${DEB_REMOTE_HOST}":"${DEB_REMOTE_PATH}"
-         scp -qC dist/debian/$FNPATTERN* "${DEB_REMOTE_HOST}":"${DEB_REMOTE_PATH}" || exit 1
-  fi
+  echo "Running dupload -t hunch.se"
+  dupload -t hunch.se dist/debian
 fi
