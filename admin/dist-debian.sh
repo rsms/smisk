@@ -5,7 +5,7 @@
 
 DEB_BRANCH='unstable'
 DISTRIBUTE=0
-DEB_REMOTE_HOST='hunch.se'
+DEB_REMOTE_HOST='rasmus@hunch.se'
 DEB_REMOTE_PATH='/var/www/hunch.se/www/public/debian/'
 
 # ----------------------------------
