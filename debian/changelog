@@ -1,4 +1,4 @@
-python-smisk (1.1.0-1) unstable; urgency=low
+python-smisk (1.1.0-2) unstable; urgency=low
 
   * MVC introduced
   * WSGI support
