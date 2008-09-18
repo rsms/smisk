@@ -34,6 +34,9 @@ ensure_clean_working_revision() {
 
 
 is_local_host() {
+  if [ ! -x "$(which host)" ]; then
+    return 1
+  fi
   if (uname|grep 'Darwin' > /dev/null); then
     hostname=$(hostname)
   else
