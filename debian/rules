@@ -23,7 +23,10 @@ clean:
 	dh_testroot
 	rm -f build*stamp
 	rm -rf build
+	rm -rf dist/debian
+	rm -rf debian/python-smisk*
 	find . -name '*.pyc' | xargs rm -f
+	find . -name '*.pyo' | xargs rm -f
 	dh_clean
 
 install: build install-prereq $(PYVERS:%=install-ext-%)

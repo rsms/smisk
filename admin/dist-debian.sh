@@ -163,8 +163,7 @@ fi # [ "$PREV_VER" = "$CURRENT_VER" ] && [ "$PREV_PKGVER" = "$DEB_PACKAGE_VER" ]
 
 # Build
 echo 'Running dpkg-buildpackage -rfakeroot'
-rm -rf debian/python-smisk*
-dpkg-buildpackage -rfakeroot || exit 1
+dpkg-buildpackage -rfakeroot -us -uc || exit 1
 
 
 # Move files to a better location
