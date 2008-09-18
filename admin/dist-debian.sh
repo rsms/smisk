@@ -76,21 +76,17 @@ else
   if [ "$LESS" = "" ]; then LESS=$(which more); fi
   if [ "$LESS" = "" ]; then LESS=$(which cat); fi
 
-  echo <<MSG
-The debian/changelog needs to be updated.
+  echo 'The debian/changelog needs to be updated.
 -------------------------------
 You can view a more detailed revision changelog here:
 http://trac.hunch.se/${PACKAGE?}/log
 Note: Editing the changelog through this interface will case a RSC commit.
--------------------------------
-MSG
+-------------------------------'
   NEED_ANSWER=1
   while [ $NEED_ANSWER -eq 1 ]; do
-    echo <<MSG
-[1] Help me edit debian/changelog and continue.
+    echo '[1] Help me edit debian/changelog and continue.
 [2] Contiune without modifying the changelog. (Not recommended)
-CTRL+C to abort.
-MSG
+CTRL+C to abort.'
     read -n 1 -p 'Enter your choice [1-2]: (1) ' ANSWER
     if [ "$ANSWER" = "" ]; then ANSWER=1; fi
     case $ANSWER in

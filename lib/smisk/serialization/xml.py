@@ -3,7 +3,7 @@
 XML serialization
 '''
 import re, logging
-from . import serializers, BaseSerializer
+from smisk.serialization import serializers, BaseSerializer
 from smisk.core.xml import escape as xml_escape
 
 log = logging.getLogger(__name__)

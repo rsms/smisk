@@ -1,0 +1,15 @@
+# Debian
+
+# running
+python python-mako python-elixir python-cjson libfcgi
+
+# building
+ssl gcc python-setuptools python-all-dev libfcgi-dev dpkg-dev debhelper fakeroot
+
+  # Build with
+  cd smisk
+  dpkg-buildpackage -rfakeroot
+
+  # Install package
+  cd smisk/..
+  dpkg --install python-smisk_VERSION.deb

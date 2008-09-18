@@ -301,5 +301,5 @@ class Inflector(object):
 	
 
 # Load default inflections
-from .en import inflection
+from smisk.inflection.en import inflection
 
