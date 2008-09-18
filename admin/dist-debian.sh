@@ -64,6 +64,7 @@ if [ "$PREV_VER" = "$CURRENT_VER" ]; then
   echo "debian package version which is now ${PREV_PKGVER})"
   read -n 1 -p 'Build package with current changelog? [Y/n] ' ANSWER
   if [ "$ANSWER" != "" ] && [ "$ANSWER" != "y" ] && [ "$ANSWER" != "Y" ]; then
+    echo
     echo 'Aborted by user' >&2
     exit 1
   fi
