@@ -161,6 +161,7 @@ CTRL+C to abort.'
   
 fi # [ "$PREV_VER" = "$CURRENT_VER" ] && [ "$PREV_PKGVER" = "$DEB_PACKAGE_VER" ] else
 
+rm -rf debian/python-smisk*
 
 # Build
 echo 'Running dpkg-buildpackage -rfakeroot'
