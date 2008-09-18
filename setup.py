@@ -142,9 +142,13 @@ class build_ext(_build_ext):
   def finalize_options(self):
     _build_ext.finalize_options(self)
     self.libraries = ['fcgi']
+    bid = tag
+    if bid:
+      bid += '-'
+    bid += time.strftime('%y%m%d%H%M%S', time.gmtime())
     self.define = [
       ('SMISK_VERSION', '"%s"' % version),
-      ('SMISK_BUILD_ID', '"%s"' % time.strftime('%y%m%d%H%M%S', time.gmtime())),
+      ('SMISK_BUILD_ID', '"%s"' % bid),
     ]
     self.undef = []
   
