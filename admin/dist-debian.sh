@@ -119,7 +119,7 @@ CTRL+C to abort.'
     echo >> debian/changelog.tmp
     echo " -- $PREV_DEB_CONTACT  $(date --rfc-2822)">> debian/changelog.tmp
     echo >> debian/changelog.tmp
-    cat debian/changelog >> debian/changelog.tmp
+    cat debian/changelog >> debian/changelog.tmp || exit 1
     
     
     # Let the user modify and update the changelog
@@ -140,7 +140,7 @@ CTRL+C to abort.'
         NEED_ANSWER=0
       fi
     done
-    mv debian/changelog.tmp debian/changelog
+    mv debian/changelog.tmp debian/changelog || exit 1
     echo 'debian/changelog updated'
     
     
@@ -161,26 +161,26 @@ fi # [ "$PREV_VER" = "$CURRENT_VER" ] && [ "$PREV_PKGVER" = "$DEB_PACKAGE_VER" ]
 
 
 # Build
-echo 'Running dpkg-buildpackage -rfakeroot...'
+echo 'Running dpkg-buildpackage -rfakeroot'
 dpkg-buildpackage -rfakeroot || exit 1
 
 
 # Move files to a better location
 # XXX: This should dpkg-buildpackage be able to do. Checked it up quickly but did not find anything.
 FNPATTERN="${DEB_PACKAGE_NAME}_${CURRENT_VER}-${DEB_PACKAGE_VER}"
-rm -rf dist/debian
-mkdir -vp dist/debian
-mv -v ../$FNPATTERN* dist/debian/
+rm -rf dist/debian || exit 1
+mkdir -vp dist/debian || exit 1
+mv -v ../$FNPATTERN* dist/debian/ || exit 1
 
 
 # Distribute
 if [ $DISTRIBUTE -eq 1 ]; then
   echo -n "Copying dist/debian/${FNPATTERN}* to "
   if is_local_host $DEB_REMOTE_HOST; then
-    echo "$DEB_REMOTE_PATH"
-    cp -vf dist/debian/$FNPATTERN* $DEB_REMOTE_PATH
+    echo cp -vf dist/debian/$FNPATTERN* "${DEB_REMOTE_PATH}"
+         cp -vf dist/debian/$FNPATTERN* "${DEB_REMOTE_PATH}" || exit 1
   else
-    echo "${DEB_REMOTE_HOST}:${DEB_REMOTE_PATH}"
-    scp -qC dist/debian/$FNPATTERN* $DEB_REMOTE_HOST:$DEB_REMOTE_PATH
+    echo scp -qC dist/debian/$FNPATTERN* "${DEB_REMOTE_HOST}":"${DEB_REMOTE_PATH}"
+         scp -qC dist/debian/$FNPATTERN* "${DEB_REMOTE_HOST}":"${DEB_REMOTE_PATH}" || exit 1
   fi
 fi

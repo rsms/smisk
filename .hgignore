@@ -9,6 +9,7 @@ fcgi.so
 MANIFEST
 setuptools-*.egg
 * copy.*
+._*
 
 # Dirs
 build*
