@@ -9,7 +9,7 @@ Standards-Version: 3.7.2
 Package: python-smisk
 Architecture: any
 Depends: ${shlibs:Depends}, ${python:Depends}, python-mako (>= 0.2), python-elixir (>=0.5), python-cjson (>=1.0)
-Suggests: lighttpd | libapache2-mod-fcgid
+Suggests: lighttpd
 XB-Python-Version: ${python:Versions}
 Homepage: http://trac.hunch.se/smisk
 Description: High-performance and scalable web service framework
