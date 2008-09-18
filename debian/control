@@ -1,18 +1,18 @@
 Source: python-smisk
 Section: python
 Priority: optional
-Maintainer: Rasmus Andersson <rasmus@flajm.se>
-Build-Depends: debhelper (>= 5.0.38), libfcgi-dev (>= 2.4.0-6), python-all-dev (>= 2.4.0-1), python-central (>= 0.5.6)
+Maintainer: Rasmus Andersson <rasmus@flajm.com>
+Build-Depends: debhelper (>= 5.0), libfcgi-dev (>= 2.4.0), python-all-dev (>= 2.4), python-central (>= 0.5)
 XS-Python-Version: all
 Standards-Version: 3.7.2
 
 Package: python-smisk
 Architecture: any
-Depends: libfcgi, ${shlibs:Depends}, ${python:Depends}
-Suggests: lighttpd
+Depends: libfcgi, ${shlibs:Depends}, ${python:Depends}, python-mako (>= 0.2), python-elixir (>=0.5), python-cjson (>=1.0) | 
+Suggests: lighttpd | libapache2-mod-fcgid
 XB-Python-Version: ${python:Versions}
-Description: Simple, high-performance and scalable web service framework
- Simple, high-performance and scalable web service framework written in
+Description: High-performance and scalable web service framework
+ High-performance and scalable web service framework written in
  C, but controlled by Python.
  .
-  Homepage: http://trac.hunch.se/smisk
+Homepage: http://trac.hunch.se/smisk

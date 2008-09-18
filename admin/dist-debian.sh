@@ -12,8 +12,9 @@ DEB_REMOTE_PATH='/var/www/hunch.se/www/public/debian/'
 
 usage() { (cat <<USAGE
 Usage: $0 [-u]
+  Build Debian packages [and upload to hunch Debian repository].
 Options:
- -u  Distribute/upload the resulting packages.
+  -u  Upload the resulting packages to the hunch Debian repository.
 USAGE
   ) >&2
 }
