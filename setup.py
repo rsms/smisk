@@ -412,7 +412,6 @@ setup(
     '========\n'
   ),
   url = 'http://trac.hunch.se/smisk',
-  install_requires = [],
   platforms = "ALL",
   classifiers = classifiers,
   zip_safe = True,
