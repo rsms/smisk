@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 #include "__init__.h"
+#include "uid.h"
 #include "Application.h"
 #include "Request.h"
 #include "Response.h"
@@ -157,11 +158,67 @@ PyObject *smisk_listening(PyObject *self, PyObject *args) {
 }
 
 
+PyDoc_STRVAR(smisk_uid_DOC,
+  "Generate a universal Unique Identifier.\n"
+  "\n"
+  "Note: This is not a UUID (ISO/IEC 11578:1996) implementation. However it "
+    "uses an algorithm very similar to UUID v5 (RFC 4122).\n"
+  "\n"
+  "The UID is calculated like this:\n"
+  "\n"
+  ".. python::\n"
+   "\n"
+   "  sha1 ( time.secs, time.usecs, pid, random[, node] )\n"
+  "\n"
+  ":param node: Optional data to be used when creating the uid.\n"
+  ":type  node: string\n"
+  ":param nbits: Number of bits to pack into each byte when creating "
+    "the string representation. A value in the range 4-6. Defaults to 5.\n"
+  ":type  nbits: int\n"
+  ":rtype: string");
+PyObject *smisk_uid(PyObject *self, PyObject *args) {
+  log_trace("ENTER");
+  PyObject *node = NULL;
+  int nbits = 5;
+  smisk_uid_t uid;
+  
+  // node
+  if (PyTuple_GET_SIZE(args) > 0) {
+    node = PyTuple_GET_ITEM(args, 0);
+    if (node == NULL || !PyString_Check(node)) {
+      PyErr_SetString(PyExc_TypeError, "first argument must be a string");
+      return NULL;
+    }
+  }
+  
+  // nbits
+  if (PyTuple_GET_SIZE(args) > 1) {
+    PyObject *arg = PyTuple_GET_ITEM(args, 1);
+    if (arg != NULL) {
+      if (!PyInt_Check(arg)) {
+        PyErr_SetString(PyExc_TypeError, "second argument must be an integer");
+        return NULL;
+      }
+      nbits = (int)PyInt_AS_LONG(arg);
+    }
+  }
+  
+  if ((node ? smisk_uid_create(&uid, PyString_AS_STRING(node), PyString_GET_SIZE(node))
+            : smisk_uid_create(&uid, NULL, 0)) == -1) {
+    PyErr_SetString(PyExc_SystemError, "smisk_uid_create() failed");
+    return NULL;
+  }
+  
+  return smisk_uid_format(&uid, nbits);
+}
+
+
 /* ------------------------------------------------------------------------- */
 
 static PyMethodDef module_methods[] = {
   {"bind",      (PyCFunction)smisk_bind,       METH_VARARGS, smisk_bind_DOC},
   {"listening", (PyCFunction)smisk_listening,  METH_NOARGS,  smisk_listening_DOC},
+  {"uid",       (PyCFunction)smisk_uid,        METH_VARARGS, smisk_uid_DOC},
   {NULL, NULL, 0, NULL}
 };
 

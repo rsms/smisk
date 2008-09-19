@@ -22,6 +22,7 @@ THE SOFTWARE.
 #ifndef SMISK_UTILS_H
 #define SMISK_UTILS_H
 
+#include <Python.h>
 #include <fcgiapp.h>
 
 
@@ -63,13 +64,13 @@ char smisk_size_unit (double *bytes);
  * nbits=5: out need to fit 32+1 bytes (base 32) (0-9, a-v)
  * nbits=6: out need to fit 27+1 bytes (base 64) (0-9, a-z, A-Z, "-", ",")
  */
-char *smisk_encode_bin (char *in, size_t inlen, char *out, char bits_per_byte);
+char *smisk_encode_bin (byte *in, size_t inlen, char *out, char bits_per_byte);
 
 /**
  * @param  list    list
  * @param  prefix  string
  * @return int
  */
-PyObject *smisk_find_string_by_prefix_in_dict(PyObject *list, PyObject *prefix);
+PyObject *smisk_find_string_by_prefix_in_dict (PyObject *list, PyObject *prefix);
 
 #endif

@@ -242,15 +242,15 @@ char smisk_size_unit (double *bytes) {
 
 static char binconvtab[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-";
 
-char *smisk_encode_bin(char *in, size_t inlen, char *out, char nbits) {
-  unsigned char *p, *q;
+char *smisk_encode_bin(byte *in, size_t inlen, char *out, char nbits) {
+  byte *p, *q;
   unsigned short w;
   int mask;
   int have;
   
-  p = (unsigned char *)in;
-  q = (unsigned char *)in + inlen;
-
+  p = in;
+  q = in + inlen;
+  
   w = 0;
   have = 0;
   mask = (1 << nbits) - 1;
@@ -267,7 +267,7 @@ char *smisk_encode_bin(char *in, size_t inlen, char *out, char nbits) {
         have = nbits;
       }
     }
-
+    
     /* consume nbits */
     *out++ = binconvtab[w & mask];
     w >>= nbits;

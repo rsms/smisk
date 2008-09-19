@@ -23,6 +23,10 @@ THE SOFTWARE.
 #define SMISK_MACROS_H
 
 #include <Python.h>
+#include <stdint.h>
+
+// Types
+typedef uint8_t byte;
 
 /* Convert an ASCII hex digit to the corresponding number between 0
    and 15.  H should be a hexadecimal digit that satisfies isxdigit;

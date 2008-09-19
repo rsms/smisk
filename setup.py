@@ -55,6 +55,7 @@ sources = [
   'src/__init__.c',
    
   'src/utils.c',
+  'src/uid.c',
   'src/atoin.c',
   'src/cstr.c',
   'src/multipart.c',
@@ -339,8 +340,8 @@ class apidocs(Command):
       ]
       cli.cli()
       sys.argv[1:] = old_argv
-    except ImportError:
-      log.info('epydoc not installed, skipping API documentation')
+    except ImportError, e:
+      log.info('epydoc not installed, skipping API documentation (%s)', e)
   
 
 from distutils.command.clean import clean as _clean

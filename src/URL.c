@@ -479,7 +479,7 @@ int smisk_URL_init(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   }
   
   if (!_parse(self, PyString_AS_STRING(str), PyString_GET_SIZE(str))) {
-    PyErr_Format(PyExc_ValueError, "Failed to parse URL");
+    PyErr_SetString(PyExc_ValueError, "Failed to parse URL");
     Py_DECREF(self);
     return -1;
   }

@@ -19,32 +19,18 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-#ifndef SMISK_CONFIG_H
-#define SMISK_CONFIG_H
+#ifndef SMISK_UID_H
+#define SMISK_UID_H
 
-#include "system_config.h"
+#include <Python.h>
+#include <fcgiapp.h>
 
-// If defined, the crash dump code will not be compiled in.
-//#define SMISK_NO_CRASH_REPORTING
+typedef struct {
+  byte digest[21];
+} smisk_uid_t;
 
-// Chunk size for reading unknown length from a stream
-#define SMISK_STREAM_READ_CHUNKSIZE 1024
+int smisk_uid_create (smisk_uid_t *uid, const char *node, size_t node_length);
 
-// Default readline length for smisk.Stream.readline()
-#define SMISK_STREAM_READLINE_LENGTH 8192
-
-// How much post data can be stored in memory instead of being written to disk
-#define SMISK_POST_SIZE_MEMORY_LIMIT 10240000
-
-// Where and how uploaded files are saved before taken care of
-#define SMISK_FILE_UPLOAD_DIR "/tmp/"
-#define SMISK_FILE_UPLOAD_PREFIX "smisk-upload-"
-
-// Session ID compactness
-// Warning: Changing SMISK_SESSION_NBITS may cause some smisk installations to
-//          stop sharing sessions with each other, which is dangerous. Do not
-//          change unless during a major version step.
-#define SMISK_SESSION_NBITS 5
-
+PyObject *smisk_uid_format (smisk_uid_t *uid, int nbits);
 
 #endif

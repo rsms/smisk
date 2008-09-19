@@ -23,7 +23,7 @@ THE SOFTWARE.
 #include "utils.h"
 #include "multipart.h"
 #include "file.h"
-#include "sha1.h"
+#include "uid.h"
 #include "Request.h"
 #include "Response.h"
 #include "Application.h"
@@ -34,11 +34,6 @@ THE SOFTWARE.
 #include <fastcgi.h>
 
 #pragma mark Internal
-
-// Warning: Changing SMISK_SESSION_NBITS may cause some smisk installations to
-//          stop sharing sessions with each other, which is dangerous. Do not
-//          change unless during a major version step.
-#define SMISK_SESSION_NBITS 5
 
 
 static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
@@ -144,44 +139,18 @@ static inline int _valid_sid(const char *uid, size_t len) {
 
 
 static PyObject *_generate_sid(smisk_Request* self) {
-  PyObject *uid;
-  struct timeval tv;
-  char *remote_info;
-  sha1_ctx_t sha1_ctx;
+  smisk_uid_t uid;
+  char *node;
   
-  gettimeofday(&tv, NULL);
+  if ((node = FCGX_GetParam("REMOTE_ADDR", self->envp)) == NULL)
+    node = "SID";
   
-  // maximum 19+19+11+19+1 bytes
-  char buf[69];
-  sprintf(buf, "%ld%ld%d%ld",
-    tv.tv_sec,
-    (long int)tv.tv_usec,
-    getpid(),
-    random());
+  if (smisk_uid_create(&uid, node, strlen(node)) == -1) {
+    PyErr_SetString(PyExc_SystemError, "smisk_uid_create() failed");
+    return NULL;
+  }
   
-  unsigned char digest[21];
-  sha1_init(&sha1_ctx);
-  sha1_update(&sha1_ctx, (unsigned char *)buf, strlen(buf));
-  
-  if ((remote_info = FCGX_GetParam("REMOTE_ADDR", self->envp)))
-    sha1_update(&sha1_ctx, (unsigned char *)remote_info, strlen(remote_info));
-  
-  if ((remote_info = FCGX_GetParam("REMOTE_PORT", self->envp)))
-    sha1_update(&sha1_ctx, (unsigned char *)remote_info, strlen(remote_info));
-  
-  sha1_final(&sha1_ctx, digest);
-  
-#if (SMISK_SESSION_NBITS == 6)
-  uid = PyString_FromStringAndSize(NULL, 27);
-#elif (SMISK_SESSION_NBITS == 5)
-  uid = PyString_FromStringAndSize(NULL, 32);
-#else
-  uid = PyString_FromStringAndSize(NULL, 40);
-#endif
-  char *digest_buf = PyString_AS_STRING(uid);
-  smisk_encode_bin((char *)digest, 20, digest_buf, SMISK_SESSION_NBITS);
-  
-  return uid;
+  return smisk_uid_format(&uid, SMISK_SESSION_NBITS);
 }
 
 
