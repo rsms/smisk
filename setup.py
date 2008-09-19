@@ -173,16 +173,8 @@ class build_ext(_build_ext):
       os.path.dirname(__file__), "src", "prefix.h"))
     
     # Warning flags
-    warnings = []
-    if log._global_log.threshold < 2:
-      warnings.extend([
-        'extra',
-        'cast-align', 'cast-qual',
-        'conversion',
-        '', # Creates a -W flag, enabling a basic set of warnings
-      ])
-    if len(warnings):
-      cflags += ' -W'+' -W'.join(warnings)
+    warnings = ['all', 'no-unknown-pragmas']
+    cflags += ''.join([' -W%s' % w for w in warnings])
     
     if '--debug' in sys.argv or '--debug-smisk' in sys.argv:
       log.debug("Mode: debug -- setting appropriate cflags and macros")
