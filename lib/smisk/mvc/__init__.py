@@ -4,12 +4,11 @@ import smisk, smisk.core
 import http
 from smisk.core import URL
 from smisk.util import *
-from smisk.util.timing import Timer
 from control import Controller
 from model import Entity
 from template import Templates
 from exceptions import *
-from routing import ClassTreeRouter
+from routing import Router
 from smisk.serialization import serializers
 
 log = logging.getLogger(__name__)
@@ -114,7 +113,7 @@ class Application(smisk.core.Application):
     self.autoreload = autoreload
     
     if router is None:
-      self.routes = ClassTreeRouter()
+      self.routes = Router()
     else:
       self.routes = router
     
@@ -286,7 +285,7 @@ class Application(smisk.core.Application):
     :rtype:   dict
     '''
     # Find destination or return None
-    destination = self.routes(self.request.url, args, params)
+    destination, args, params = self.routes(self.request.url, args, params)
     
     # Call action
     if log.level <= logging.DEBUG:
@@ -368,7 +367,7 @@ class Application(smisk.core.Application):
     self.template = None
     
     # Parse request (and decode if needed)
-    (req_args, req_params) = self.parse_request()
+    req_args, req_params = self.parse_request()
     
     # Add "private" cache control directive.
     # As most actions will generate different output depending on variables like 

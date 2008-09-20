@@ -1,37 +1,34 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-Swedish inflections
+Swedish inflection.
 
-This is a work in progress.
+This is work in progress.
 
 :Author: Rasmus Andersson http://hunch.se/
 """
 __docformat__ = 'restructuredtext en'
-__revision__ = '$Revision: 0$'.split(' ')[1][:-1]
+__revision__ = '$Revision: 0 $'.split(' ')[1]
 
 import re
-try:
-	from smisk.inflection import Inflector
-except ValueError:
-	from miwa.inflection import Inflector
+from smisk.inflection import Inflector
 
 __all__ = ['inflection']
 
 class SVInflector(Inflector):
-	def ordinalize(self, number):
-		i = int(number)
-		if i % 10 in [1,2]:
-			return str(i)+":a"
-		else:
-			return str(i)+":e"
-	
+  def ordinalize(self, number):
+    i = int(number)
+    if i % 10 in [1,2]:
+      return str(i)+":a"
+    else:
+      return str(i)+":e"
+  
 
 def rc(pat, ignore_case=1):
   if ignore_case:
-	  return re.compile(pat, re.I)
+    return re.compile(pat, re.I)
   else:
-	  return re.compile(pat)
+    return re.compile(pat)
 
 # Rules based on http://en.wiktionary.org/wiki/Wiktionary:Swedish_inflection_templates
 inflection = SVInflector('sv', 'sv_SV')
@@ -66,40 +63,6 @@ inflection.uncountable('folk','ris','får','sex','lokomotiv','lok','rum',
 'barn','förtjusande','brev','hus','gift')
 
 if __name__ == '__main__':
-	sv = inflection
-	def t(singular, plural):
-		print singular, "->", sv.pluralize(singular) + ',', plural, '->', sv.singularize(plural)
-		assert sv.pluralize(singular) == plural
-		assert sv.singularize(plural) == singular
-	t("bil", "bilar")
-	t("båt", "båtar")
-	t("katt", "katter")
-	t("peng", "pengar")
-	t("man", "män")
-	t("person", "personer")
-	t("huvud", "huvuden")
-	t("folk", "folk")
-	t("vittne", "vittnen")
-	t("morsa", "morsor")
-	t("liten", "små")
-	t("stor", "stora")
-	t("ny", "nya")
-	t("rik", "rika")
-	t("dum", "dumma")
-	t("stum", "stumma")
-	t("kvinna", "kvinnor")
-	t("intressant", "intressanta")
-	t("given", "givna")
-	t("ven", "vener")
-	t("hand", "händer")
-	t("land", "länder")
-	t("kviga", "kvigor")
-	t("mun", "munnar")
-	t("ros", "rosor")
-	t("lus", "löss")
-	t("mus", "möss")
-	t("kust", "kuster")
-	t("lust", "lustar")
-	t("pojke", "pojkar")
-	t("flicka", "flickor")
-	t("snorkel", "snorklar")
+  import unittest
+  from smisk.test.inflection import Swedish
+  unittest.TextTestRunner().run(unittest.makeSuite(Swedish))

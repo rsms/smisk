@@ -1,13 +1,61 @@
 # encoding: utf-8
-import sys, os
-from smisk.core import Application
+import sys, os, time
+from smisk.core import Application, URL
 
-class Singleton(object):
-  def __new__(type):
-    if not '_instance' in type.__dict__:
-      type._instance = object.__new__(type)
-    return type._instance
+None2 = (None, None)
+''':type: tuple'''
+
+
+class Timer(object):
+  '''A simple universal timer.'''
+  def __init__(self, start=True):
+    self.t0 = 0.0
+    self.t1 = 0.0
+    self.seconds = self.time
+    if start:
+      self.start()
   
+  def start(self):
+    self.t0 = time.time()
+  
+  def finish(self):
+    self.t1 = time.time()
+    return "%.0fs %.0fms %.0fus" % (self.seconds(), self.milli(), self.micro())
+  
+  def time(self):
+    return self.t1 - self.t0
+  
+  def seconds(self): # alias for time
+    return self.time()
+  
+  def milli(self):
+    return (self.time() * 1000) % 1000
+  
+  def micro(self):
+    return (self.time() * 1000000) % 1000
+  
+
+def tokenize_path(path):
+  '''Deconstruct a URI path into standardized tokens.
+  
+  :param path: A pathname
+  :type  path: string
+  :rtype: list'''
+  tokens = []
+  for tok in path.split('/'):
+    tok = URL.decode(tok)
+    if len(tok):
+      tokens.append(tok)
+  if tokens:
+    tokens[-1] = strip_filename_extension(tokens[-1])
+  return tokens
+
+def strip_filename_extension(fn):
+  '''Remove any file extension from filename.'''
+  try:
+    return fn[:fn.rindex('.')]
+  except:
+    return fn
 
 def normalize_url(url):
   if url.find('://') == -1:

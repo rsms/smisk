@@ -22,7 +22,7 @@ time_t smisk_file_mtime (const char *fn, int fd) {
   else
     r = stat(fn, &st);
   
-	return (r != 0) ? 0 : st.st_mtime;
+  return (r != 0) ? 0 : st.st_mtime;
 }
 
 

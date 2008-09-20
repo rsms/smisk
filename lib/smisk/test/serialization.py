@@ -3,9 +3,7 @@
 import unittest
 
 class SerializationTest(unittest.TestCase):
-  def test_plural(self):
-		pass
-	
+  pass
 
 def suite():
   return unittest.TestSuite([ unittest.makeSuite(SerializationTest) ])

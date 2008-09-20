@@ -419,7 +419,6 @@ setup(
     'smisk.mvc.template',
     'smisk.serialization',
     'smisk.test',
-    'smisk.util',
   ],
   include_package_data=True,
   exclude_package_data={"debian" : ["*"]},

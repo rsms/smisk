@@ -3,91 +3,63 @@
 import unittest
 from smisk.mvc.routing import *
 
+# Test matter
+class root(Controller):
+  def func_on_root(self): pass
+  def __call__(self): pass
+
+class level2(root):
+  def __call__(self): pass
+  #func_on_level2 = root
+  def func_on_level2(self): pass
+  def level3(self): pass
+
+class level3(level2):
+  def __call__(self): pass
+  def func_on_level3(self): pass
+
+class PostsController(level3):
+  def list(self): pass
+
+
 class RoutingTests(unittest.TestCase):
-	
-	def test1_fixed(self):
-		r = Router()
-		r.map(None, default=1)
-		r.map("/hello", fixed1=1)
-		r.map("/hello/bob", fixed2=1)
-		assert 'fixed1' in r("/hello")
-		assert 'fixed2' in r("/hello/bob")
-		assert 'default' in r("/hel")
-	
-	def test2_prefix(self):
-		r = Router()
-		r.map("/monkeys*", prefix1=1)
-		r.map(None)
-		assert 'prefix1' in r("/monkeys")
-		assert 'prefix1' in r("/monkeys/bananas.html")
-		assert 'prefix1' not in r("/monkey")
-	
-	def test3_suffix(self):
-		r = Router()
-		r.map(None)
-		r.map("*.html", suffix=1)
-		assert 'suffix' in r("/monkeys.html")
-		assert 'suffix' in r("/monkeys/bananas.html")
-		assert 'suffix' not in r("/monkey")
-	
-	def test4_regexp(self):
-		r = Router()
-		r.map(None)
-		r.map(re.compile(r"^(?:/(?P<year>[0-9]{4})|)(?:/(?P<month>[0-9]{2})|)(?:/(?P<day>[0-9]{2})|)/?$"), dynamic_time=1)
-		r.map(re.compile(r"^/(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/?$"), strict_time=1)
-		r.map(re.compile(r"^/[a-zA-Z]\w+$"), re1=1)
-		assert 're1' in r("/hello")
-		assert 'strict_time' not in r("/hello")
-		m = r("/hello/")
-		assert 're1' not in m
-		assert 'strict_time' not in m
-		assert 'strict_time' in r("/2007/05/17")
-		m = r("/1903/11/22/")
-		assert 'strict_time' in m
-		assert 'year' in m
-		assert 'month' in m
-		assert 'day' in m
-		assert 'dynamic_time' not in m
-		assert 'dynamic_time' in r("/1903/11/")
-		m = r("/1903/11")
-		assert 'dynamic_time' in m
-		assert 'year' in m
-		assert 'month' in m
-		assert 'day' in m
-		assert m['year'] == '1903'
-		assert m['month'] == '11'
-		assert m['day'] == None
-		assert 'dynamic_time' not in r("/1903/1")
-		assert 'dynamic_time' in r("/1903/")
-		assert 'dynamic_time' in r("/1903")
-		assert 'dynamic_time' not in r("/190")
-	
-	def test5_keyword(self):
-		# Since a keyword destination actually is a RegExp destination,
-		# we have loosen up on tests here because the RegExpDestination
-		# type is tested in test4_regexp.
-		r = Router()
-		r.map(None)
-		r.map("/:controller/:action/:id", kw0=1, action='something')
-		m = r("/foo/hello/momo")
-		assert 'controller' in m
-		assert 'action' in m
-		assert 'id' in m
-		assert m['controller'] == 'foo'
-		assert m['action'] == 'hello'
-		assert m['id'] == 'momo'
-		r = Router()
-		r.map(None)
-		r.map("/foo/:bar/:action", kw1=1)
-		m = r("/foo/hello/momo")
-		assert 'kw1' in m
-		assert 'bar' in m
-		assert 'action' in m
-		assert m['bar'] == 'hello'
-		assert m['action'] == 'momo'
-		assert 'bar' in r("/foo/hello")
-		assert 'bar' not in r("/hej")
-	
+  def test1(self):
+    r = Router()
+    r.map(r'^/user/(?P<user>[^/]+)', level2().func_on_level2)
+    r.map(r'^/archive/(\d{4})/(\d{2})/(\d{2})', level3().__call__, regexp_flags=0)
+    urls = [
+      ('/', root().__call__),
+      ('/func_on_root', root().func_on_root),
+      ('/level2', level2().__call__),
+      ('/level2/func_on_level2', level2().func_on_level2),
+      ('/level2/nothing/here', None),
+      ('/level2/level3', level3().__call__),
+      ('/level2/LEVEL3', level3().__call__),
+      ('/level2/level3/__call__', None),
+      ('/level3', None),
+      ('/level2/level3/func_on_level3', level3().func_on_level3),
+      ('/user/rasmus/photos', level2().func_on_level2),
+      ('/user/rasmus', level2().func_on_level2),
+      ('/USER/rasmus', level2().func_on_level2),
+      ('/user', None),
+      ('/archive/2008/01/15', level3().__call__),
+      ('/ARCHIVE/2008/01/15/foo', None),
+      ('/level2/level3/posts/list', PostsController().list),
+      ('/level2/level3/posts/', PostsController().__call__),
+    ]
+    do_print = False
+    if __name__ == '__main__':
+      do_print = True
+      print 'Printing out loud because __name__ == __main__'
+    for url,func in urls:
+      url = URL(url)
+      dest, args, params = r(url, [], {})
+      if dest is not None:
+        dest = dest.action
+      if do_print:
+        print '"%s" => %s (%s, %s)' % (url, dest, args, params)
+      assert dest == func, '"%s" => %s' % (url, dest)
+  
 
 def suite():
   return unittest.TestSuite([

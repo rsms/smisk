@@ -5,9 +5,9 @@ Python pickle serialization
 from smisk.serialization import serializers, BaseSerializer
 import logging
 try:
-	from cPickle import dumps, load, loads, HIGHEST_PROTOCOL
+  from cPickle import dumps, load, loads, HIGHEST_PROTOCOL
 except ImportError:
-	from pickle import dumps, load, loads, HIGHEST_PROTOCOL
+  from pickle import dumps, load, loads, HIGHEST_PROTOCOL
 
 log = logging.getLogger(__name__)
 
