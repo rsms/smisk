@@ -154,6 +154,8 @@ class Router(object):
       dest = self.cache[raw_url]
       return dest, args, params
     
+    log.debug('Resolving %s', url)
+    
     # Explicit mapping? (never cached)
     for dest in self.mappings:
       dargs, dparams = dest.match(url)
@@ -176,11 +178,14 @@ class Router(object):
     if not path:
       try:
         node = node().__call__
+        log.debug('Found destination: %s', node)
         dest = Destination(node)
         self.cache[raw_url] = dest
         return dest, args, params
       except AttributeError:
-        return
+        e = http.MethodNotFound('/')
+        self.cache[raw_url] = wrap_exc_in_callable(e)
+        raise e
     
     # Traverse tree
     for part in path:
@@ -228,6 +233,7 @@ class Router(object):
         self.cache[raw_url] = wrap_exc_in_callable(e)
         raise e
     
+    log.debug('Found destination: %s', node)
     dest = Destination(node)
     self.cache[raw_url] = dest
     return dest, args, params
