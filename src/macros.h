@@ -54,6 +54,9 @@ typedef uint8_t byte;
 #define max(X, Y)  ((X) > (Y) ? (X) : (Y))
 #endif
 
+// Module identifier, used in logging
+#define MOD_IDENT "smisk.core"
+
 // Replace a PyObject while counting references
 #define REPLACE_OBJ(destination, new_value, type) \
   do { \
@@ -77,7 +80,7 @@ typedef uint8_t byte;
 #define PyErr_SET_FROM_ERRNO   PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__)
 
 // Log to stderr
-#define log_error(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define log_error(fmt, ...) fprintf(stderr, MOD_IDENT " ERROR %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
 // Used for temporary debugging
 #define _DUMP_REFCOUNT(o) log_error("*** %s: %ld", #o, (o) ? (long int)(o)->ob_refcnt : 0)
@@ -85,19 +88,23 @@ typedef uint8_t byte;
 // Log to stderr, but only in debug builds
 #if SMISK_DEBUG
   #define SMISK_TRACE 1
-  #define log_debug(fmt, ...) fprintf(stderr, "DEBUG %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+  #define log_debug(fmt, ...) fprintf(stderr, MOD_IDENT " DEBUG %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
   #define IFDEBUG(x) x
   #define assert_refcount(o, count_test) \
-    do { if (!((o)->ob_refcnt count_test)){ log_debug("assert_refcount(%ld, %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test); }\
-      assert((o)->ob_refcnt count_test); } while (0);
-  #define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
+    do { \
+      if (!((o)->ob_refcnt count_test)){ \
+        log_debug(MOD_IDENT " assert_refcount(%ld, %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test);\
+      }\
+      assert((o)->ob_refcnt count_test); \
+    } while (0);
+  #define DUMP_REFCOUNT(o) log_debug(MOD_IDENT " *** %s: %ld", #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
   #define DUMP_REPR(o) \
     do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
       if (repr) {\
-        log_debug("repr(%s) = %s", #o, PyString_AS_STRING(repr));\
+        log_debug(MOD_IDENT " repr(%s) = %s", #o, PyString_AS_STRING(repr));\
         Py_DECREF(repr);\
       } else {\
-        log_debug("repr(%s) = <NULL>", #o);\
+        log_debug(MOD_IDENT " repr(%s) = <NULL>", #o);\
       }\
     } while (0);
 #else
@@ -105,19 +112,11 @@ typedef uint8_t byte;
   #define assert_refcount(o, count_test) 
   #define IFDEBUG(x) 
   #define DUMP_REFCOUNT(o) 
-  #define DUMP_REPR(o) \
-    do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
-      if (repr) {\
-        log_error("repr(%s) = %s", #o, PyString_AS_STRING(repr));\
-        Py_DECREF(repr);\
-      } else {\
-        log_error("repr(%s) = <NULL>", #o);\
-      }\
-    } while (0);
+  #define DUMP_REPR(o) 
 #endif
 
 #if SMISK_TRACE
-  #define log_trace(fmt, ...) fprintf(stderr, "TRACE %s:%d in %s " fmt "\n", __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+  #define log_trace(fmt, ...) fprintf(stderr, MOD_IDENT " TRACE %s:%d in %s " fmt "\n", __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
   #define IFTRACE(x) x
 #else
   #define log_trace(fmt, ...) ((void)0)
