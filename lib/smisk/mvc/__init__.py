@@ -177,16 +177,6 @@ class Application(smisk.core.Application):
     # When we return, accept() in smisk.core is called
     log.info('Accepting connections')
   
-  def _run(self):
-    if self.autoreload:
-      from smisk.autoreload import Autoreloader
-      while 1:
-        ar = Autoreloader()
-        ar.start()
-        smisk.core.Application.run(self)
-        sys.modules = default_sys_modules.copy()
-    else:
-      smisk.core.Application.run(self)
   
   def response_serializer(self):
     '''
