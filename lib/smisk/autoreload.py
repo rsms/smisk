@@ -76,6 +76,7 @@ class Autoreloader(Monitor):
             #self.log.debug("Stopped thread %r", self.thread.getName())
             import smisk.core
             smisk.core.Application.current().exit()
+            #raise KeyboardInterrupt
             return
   
 

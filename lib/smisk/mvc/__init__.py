@@ -12,6 +12,7 @@ from exceptions import *
 from routing import Router
 from smisk.serialization import serializers
 
+default_sys_modules = sys.modules.copy()
 log = logging.getLogger(__name__)
 application = None
 request = None
@@ -175,12 +176,16 @@ class Application(smisk.core.Application):
     # When we return, accept() in smisk.core is called
     log.info('Accepting connections')
   
-  def run(self):
+  def _run(self):
     if self.autoreload:
       from smisk.autoreload import Autoreloader
-      ar = Autoreloader()
-      ar.start()
-    smisk.core.Application.run(self)
+      while 1:
+        ar = Autoreloader()
+        ar.start()
+        smisk.core.Application.run(self)
+        sys.modules = default_sys_modules.copy()
+    else:
+      smisk.core.Application.run(self)
   
   def response_serializer(self):
     '''
@@ -484,7 +489,37 @@ class Application(smisk.core.Application):
   
 
 
-def main(appdir=None, app=None, *args, **kwargs):
+def main(appmain=None, appdir=None, *args, **kwargs):
+  if 'SMISK_APP_DIR' not in os.environ:
+    if appdir is None:
+      try:
+        appdir = os.path.abspath(os.path.dirname(appmain.func_globals['__file__']))
+      except:
+        appdir = os.path.abspath('.')
+    os.environ['SMISK_APP_DIR'] = appdir
+  try:
+    from smisk.autoreload import Autoreloader
+    while 1:
+      before_sys_modules = sys.modules.copy()
+      app = None
+      if appmain is not None:
+        app = appmain()
+      if app is None:
+        app = Application(*args, **kwargs)
+      if app.autoreload:
+        ar = Autoreloader()
+        ar.start()
+      app.run()
+      if not app.autoreload:
+        break
+      sys.modules = before_sys_modules
+  except KeyboardInterrupt:
+    pass
+  except:
+    log.critical('died from:', exc_info=True)
+    sys.exit(1)
+
+def _main(appdir=None, app=None, *args, **kwargs):
   if 'SMISK_APP_DIR' not in os.environ:
     # xxx todo: use stack info to get __file__ from caller
     if appdir is None:
@@ -507,3 +542,4 @@ def main(appdir=None, app=None, *args, **kwargs):
   except:
     log.critical('%r died', app, exc_info=True)
     sys.exit(1)
+

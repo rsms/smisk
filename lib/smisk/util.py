@@ -176,7 +176,10 @@ def find_modules_for_classtree(cls, exclude_root=True, unique=True):
   if exclude_root:
     modules = []
   else:
-    modules = [sys.modules[cls.__module__]]
+    try:
+      modules = [sys.modules[cls.__module__]]
+    except KeyError:
+      modules = [__import__(cls.__module__, globals(), locals())]
   for subcls in cls.__subclasses__():
     modules.extend(find_modules_for_classtree(subcls, False, False))
   if unique:

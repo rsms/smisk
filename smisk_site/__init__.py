@@ -3,14 +3,16 @@
 import os, logging
 from smisk.mvc import main, Application
 from smisk.mvc.template import Templates
-import controllers
 
-Templates.errors = {404: 'errors/404'}
-
-if __name__ == '__main__':
+def mymain():
+  import controllers
+  Templates.errors = {404: 'errors/404'}
   app = Application(
     log_level=logging.DEBUG,
-    autoreload=True
+    autoreload=False
   )
   app.routes.map(r'^/docs/(?P<article>.+)', controllers.root().docs)
-  main(os.path.dirname(os.path.dirname(__file__)))
+  return app
+
+if __name__ == '__main__':
+  main(mymain)
