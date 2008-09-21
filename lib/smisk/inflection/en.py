@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
-"""
+'''
 English inflections
-"""
+'''
 if __name__ == '__main__': print "Can't be run directly"
 __docformat__ = 'restructuredtext en'
 __revision__ = '$Revision: 0$'.split(' ')[1][:-1]

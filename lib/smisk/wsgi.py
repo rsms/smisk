@@ -1,3 +1,4 @@
+# encoding: utf-8
 '''
 This module provides a way to use Smisk as a WSGI backend.
 
@@ -57,13 +58,13 @@ _hop_headers = {
 }
 
 def is_hop_by_hop(header_name):
-  """Return true if 'header_name' is an HTTP/1.1 "Hop-by-Hop" header"""
+  '''Return true if 'header_name' is an HTTP/1.1 "Hop-by-Hop" header'''
   return header_name.lower() in _hop_headers
 
 class Request(smisk.Request):
-  """WSGI request"""
+  '''WSGI request'''
   def prepare(self, app):
-    """Set up the environment for one request"""
+    '''Set up the environment for one request'''
     self.env['wsgi.input']        = self.input
     self.env['wsgi.errors']       = self.errors
     self.env['wsgi.version']      = app.wsgi_version
@@ -85,7 +86,7 @@ class Request(smisk.Request):
   
 
 class Gateway(smisk.Application):
-  """This is the Smisk WSGI adapter"""
+  '''This is the Smisk WSGI adapter'''
   # Configuration parameters; can override per-subclass or per-instance
   wsgi_version = (1,0)
   wsgi_multithread = False
@@ -98,7 +99,7 @@ class Gateway(smisk.Application):
     self.wsgi_app = wsgi_app
   
   def start_response(self, status, headers, exc_info=None):
-    """`start_response()` callable as specified by `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`__"""
+    '''`start_response()` callable as specified by `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`__'''
     if exc_info:
       try:
         if self.response.has_begun:

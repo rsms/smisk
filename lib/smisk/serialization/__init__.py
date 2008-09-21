@@ -55,16 +55,16 @@ class BaseSerializer(object):
   
   @classmethod
   def encode(cls, **params):
-    """
+    '''
     :param params: 
     :type  params: dict
     :rtype:        string
-    """
+    '''
     raise NotImplementedError('%s.encode' % cls.__name__)
   
   @classmethod
   def encode_error(cls, status, params, typ, val, tb):
-    """
+    '''
     Encode an error.
     
     Might return None to indicate someone else should handle the error.
@@ -80,17 +80,17 @@ class BaseSerializer(object):
     :param tb:     Traceback
     :type  tb:     object
     :rtype: string
-    """
+    '''
     return None
   
   @classmethod
   def decode(cls, file, length=-1):
-    """
+    '''
     :param file: A file-like object implementing at least the read() method
     :type  file: object
     :returns:    2-tuple of (list args, dict params) args and params might be None
     :rtype:      tuple
-    """
+    '''
     raise NotImplementedError('%s.decode' % cls.__name__)
   
   @classmethod

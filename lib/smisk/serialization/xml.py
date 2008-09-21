@@ -9,7 +9,7 @@ from smisk.core.xml import escape as xml_escape
 log = logging.getLogger(__name__)
 
 class EncodeError(Exception):
-  """Indicates an encoding error"""
+  '''Indicates an encoding error'''
   pass
 
 

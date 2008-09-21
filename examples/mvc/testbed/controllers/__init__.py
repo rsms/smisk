@@ -27,8 +27,8 @@ class FilesController(Application):
     relpath = request.url.path.replace('..', '').lstrip('/')
     path = os.path.abspath(relpath)
     if not os.path.isfile(path):
-      raise NotFound('No such file "%s"' % relpath)
-    log.info("Sending file \"%s\"", path)
+      raise NotFound('No such file %r' % relpath)
+    log.info("Sending file %r", path)
     response.send_file(path)
   
 
@@ -41,7 +41,7 @@ class Post(object):
 
 class PostsController(Application):
   def index(self, **args):
-    log.info("args=%s", repr(args))
+    log.info("args=%r", args)
     pass
   
   def show(self, theid=None, **args):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
-"""
+'''
 Transforms words from singular to plural, class names to table names, 
 modularized class names to ones without, and class names to foreign keys.
 
@@ -12,7 +12,7 @@ by importing the appropriate inflector. For example
 :Author:          Rasmus Andersson http://hunch.se/
 :var inflections: locale-to-Inflection-object map
 :var inflection:  English inflection
-"""
+'''
 
 __docformat__ = 'restructuredtext en'
 __revision__ = '$Revision: 0$'.split(' ')[1][:-1]
@@ -24,14 +24,14 @@ inflections = {}
 log = logging.getLogger(__name__)
 
 class Inflector(object):
-  """
+  '''
   :ivar locales:      languages this inflection handles
   :ivar plurals:      plural rules
   :ivar singulars:    singular rules
   :ivar uncountables: list of uncountable words
-  """
+  '''
   def __init__(self, *locales):
-    """
+    '''
     Create a inflection handler.
     
     Locale codes should comply to
@@ -43,7 +43,7 @@ class Inflector(object):
     
     :param locales: Languages this Inflector handles.
     :type  locales:  string
-    """
+    '''
     self.plurals = []
     self.singulars = []
     self.uncountables = []
@@ -52,27 +52,27 @@ class Inflector(object):
       inflections[locale] = self
   
   def plural(self, rule, replacement):
-    """
+    '''
     Specifies a new pluralization rule and its replacement.
     
     :type rule:        RegExp pattern
     :type replacement: string
     :rtype: None
-    """
+    '''
     self.plurals[0:0] = [tuple([rule, replacement])]
   
   def singular(self, rule, replacement):
-    """
+    '''
     Specifies a new singularization rule and its replacement.
     
     :type rule:        RegExp pattern
     :type replacement: string
     :rtype: None
-    """
+    '''
     self.singulars[0:0] = [tuple([rule, replacement])]
   
   def regular(self, plural_find, plural_replace, singular_find, singular_replace=''):
-    """
+    '''
     Specified a new regular inflection.
     
     :param plural_find:      regular expression pattern (which will be compiled)
@@ -86,12 +86,12 @@ class Inflector(object):
                              regexp groups from ``singular_find``)
     :type  singular_replace: string
     :rtype: None
-    """
+    '''
     self.plural(re.compile(plural_find, re.I), plural_replace)
     self.singular(re.compile(singular_find, re.I), singular_replace)
   
   def irregular(self, singular, plural, first_letter_is_the_same=True):
-    """
+    '''
     Specifies a new irregular that applies to both pluralization and 
     singularization at the same time.
     
@@ -103,7 +103,7 @@ class Inflector(object):
     :type plural:   string
     :type first_letter_is_the_same: bool
     :rtype: None
-    """
+    '''
     if first_letter_is_the_same:
       self.plural(re.compile("(%s)%s$" % (singular[0], singular[1:]), re.IGNORECASE), r'\1' + plural[1:])
       self.singular(re.compile("(%s)%s$" % (plural[0], plural[1:]), re.IGNORECASE), r'\1' + singular[1:])
@@ -114,7 +114,7 @@ class Inflector(object):
       self.singular(re.compile("%s$" % plural), singular)
   
   def uncountable(self, *words):
-    """
+    '''
     Add uncountable words that shouldn't be attempted inflected.
     
     Examples:
@@ -124,14 +124,14 @@ class Inflector(object):
     
     :param words: strings
     :rtype: None
-    """
+    '''
     self.uncountables[0:0] = [w.lower() for w in words]
   
   def clear(self):
-    """
+    '''
     Clears any loaded inflections
     :rtype: None
-    """
+    '''
     self.plurals = []
     self.singulars = []
     self.uncountables = []
@@ -151,14 +151,14 @@ class Inflector(object):
       return word
     else:
       for (rule, replacement) in self.plurals:
-        #log.debug("pluralize(): rule: %s, replacement: %s", repr(rule.pattern), repr(replacement))
+        #log.debug("pluralize(): rule: %r, replacement: %r", rule.pattern, replacement)
         m = rule.subn(replacement, word)
         if m[1] > 0:
           return m[0]
     return word
   
   def singularize(self, word):
-    """The reverse of pluralize, returns the singular form of a word in a string.
+    '''The reverse of pluralize, returns the singular form of a word in a string.
     
     Examples
       "posts".singularize #=> "post"
@@ -169,7 +169,7 @@ class Inflector(object):
       "CamelOctopi".singularize #=> "CamelOctopus"
     
     :param word: a possibly plural word which should be converted to singular form.
-    """
+    '''
     word = str(word)
     if word.lower() in self.uncountables:
       return word
@@ -181,7 +181,7 @@ class Inflector(object):
     return word
   
   def camelize(self, lower_case_and_underscored_word, first_letter_uppercase=True):
-    """
+    '''
     By default, camelize converts strings to UpperCamelCase. If the
     ``first_letter_uppercase`` argument is set to False, `camelize` produces
     lowerCamelCase.
@@ -194,7 +194,7 @@ class Inflector(object):
       "active_record".camelize(False) #=> "activeRecord"
       "active_record/errors".camelize #=> "ActiveRecord.Errors"
       "active_record/errors".camelize(0) #=> "activeRecord.Errors"
-    """
+    '''
     if first_letter_uppercase:
       p2 = re.compile(r"(^|_)(.)")
       lower_case_and_underscored_word = Inflector.camelize.re1.sub(

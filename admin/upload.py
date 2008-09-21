@@ -2,7 +2,7 @@ import urllib2, os, sys
 from ConfigParser import SafeConfigParser
 
 class PyPI(object):
-  """docstring for PyPI"""
+  '''docstring for PyPI'''
   def __init__(self):
     super(PyPI, self).__init__()
     self.cfg = SafeConfigParser()

@@ -139,7 +139,7 @@ class Templates(object):
     return None
   
   def adjust_uri(self, uri, relativeto):
-    """adjust the given uri based on the calling filename."""
+    '''adjust the given uri based on the calling filename.'''
     if uri[0] != '/':
       if relativeto is not None:
         return posixpath.join(posixpath.dirname(relativeto), uri)
@@ -207,7 +207,7 @@ class Templates(object):
     return rsp
   
   def _relativeize(self, filename):
-    """return the portion of a filename that is 'relative' to the directories in this lookup."""
+    '''return the portion of a filename that is 'relative' to the directories in this lookup.'''
     filename = posixpath.normpath(filename)
     for dn in self.directories:
       if filename[0:len(dn)] == dn:

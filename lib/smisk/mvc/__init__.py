@@ -175,6 +175,12 @@ class Application(smisk.core.Application):
     # When we return, accept() in smisk.core is called
     log.info('Accepting connections')
   
+  def run(self):
+    if self.autoreload:
+      from smisk.autoreload import Autoreloader
+      ar = Autoreloader()
+      ar.start()
+    smisk.core.Application.run(self)
   
   def response_serializer(self):
     '''
@@ -429,9 +435,9 @@ class Application(smisk.core.Application):
       
       # Log
       if status.is_error:
-        log.error('%d Request failed for %s', status.code, repr(self.request.url.path), exc_info=(typ, val, tb))
+        log.error('%d Request failed for %r', status.code, self.request.url.path, exc_info=(typ, val, tb))
       else:
-        log.warn('Request failed for %s -- %s: %s', repr(self.request.url.path), typ.__name__, str(val))
+        log.warn('Request failed for %r -- %s: %s', self.request.url.path, typ.__name__, val)
       
       # Try to use a serializer
       if self.serializer is None:
@@ -473,7 +479,7 @@ class Application(smisk.core.Application):
       # No rsp or error, so let smisk.core.Application.error() handle the response
     except:
       log.error('Failed to encode error', exc_info=1)
-    log.error('Request failed for %s', repr(self.request.url.path), exc_info=(typ, val, tb))
+    log.error('Request failed for %r', self.request.url.path, exc_info=(typ, val, tb))
     super(Application, self).error(typ, val, tb)
   
 
@@ -499,5 +505,5 @@ def main(appdir=None, app=None, *args, **kwargs):
   except KeyboardInterrupt:
     pass
   except:
-    log.critical('%s died', repr(app), exc_info=True)
+    log.critical('%r died', app, exc_info=True)
     sys.exit(1)

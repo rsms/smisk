@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # encoding: utf-8
-"""
+'''
 Swedish inflection.
 
 This is work in progress.
 
 :Author: Rasmus Andersson http://hunch.se/
-"""
+'''
 __docformat__ = 'restructuredtext en'
 __revision__ = '$Revision: 0 $'.split(' ')[1]
 

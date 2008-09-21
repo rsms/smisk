@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
-"""
+'''
 URL-to-function routing.
-"""
+'''
 import re, logging
 from types import *
 from smisk.core import URL
@@ -22,7 +22,7 @@ class Destination(object):
     self.action = action
   
   def __call__(self, *args, **params):
-    """Call action"""
+    '''Call action'''
     return self.action(*args, **params)
   
   @property
@@ -41,8 +41,8 @@ class Destination(object):
       return self.__repr__()
   
   def __repr__(self):
-    return '%s(action=%s, path=%s)' \
-      % (self.__class__.__name__, repr(self.action), repr(self.path))
+    return '%s(action=%r, path=%r)' \
+      % (self.__class__.__name__, self.action, self.path)
   
 
 

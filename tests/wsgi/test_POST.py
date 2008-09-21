@@ -1,19 +1,19 @@
-"""This module exposes the post bug that Eric Moritz is experiences
+'''This module exposes the post bug that Eric Moritz is experiences
 
 where smisk segfaults
 
 :See: Fixed in 77188bce80d5 <http://hg.hunch.se/smisk/diff/77188bce80d5/src/Stream.c>
-"""
+'''
 from smisk import wsgi
 import smisk
 from StringIO import StringIO
 
 def safe_copyfileobj(fsrc, fdst, length=16*1024, size=0):
-    """
+    '''
     A version of shutil.copyfileobj that will not read more than 'size' bytes.
     This makes it safe from clients sending more than CONTENT_LENGTH bytes of
     data in the body.
-    """
+    '''
     if not size:
         return
     while size > 0:

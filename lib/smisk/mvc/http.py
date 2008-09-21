@@ -39,7 +39,7 @@ class Status(object):
     return '%d %s' % (self.code, self.name)
   
   def __repr__(self):
-    return 'Status(%d, %s)' % (self.code, repr(self.name))
+    return 'Status(%r, %r)' % (self.code, self.name)
   
 
 
