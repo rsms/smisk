@@ -145,9 +145,10 @@ PyDoc_STRVAR(smisk_Application_run_DOC,
   "Run application.\n"
   "\n"
   ":rtype: None");
-PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
+PyObject *smisk_Application_run(smisk_Application *self) {
   log_trace("ENTER");
   
+  int rc;
   PyOS_sighandler_t orig_int_handler, orig_hup_handler, orig_term_handler;
   PyObject *ret = Py_None;
   
@@ -156,12 +157,8 @@ PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
   if (PyList_GET_SIZE(argv))
     Py_SetProgramName(basename(PyString_AsString(PyList_GetItem(argv, 0))));
   
-  // Initialize libfcgi
+  // Setup request object
   FCGX_Request request;
-  int rc = FCGX_Init();
-  if (rc)
-    return PyErr_SET_FROM_ERRNO;
-  
   FCGX_InitRequest(&request, smisk_listensock_fileno, FCGI_FAIL_ACCEPT_ON_INTR);
   
   // Register signal handlers
@@ -182,7 +179,11 @@ PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
     return NULL;
   
   // Enter accept loop
-  while (FCGX_Accept_r(&request) != -1) {
+  rc = 0;
+  while (rc == 0) {
+    EXTERN_OP(rc = FCGX_Accept_r(&request));
+    if (rc != 0)
+      break;
     
     if (smisk_Application_trapped_signal)
       break;
@@ -266,7 +267,7 @@ PyObject *smisk_Application_run(smisk_Application *self, PyObject *args) {
     return NULL;
   
   //FCGX_Finish();
-  FCGX_Finish_r(&request);
+  EXTERN_OP(FCGX_Finish_r(&request));
   
   // reset signal handlers
   PyOS_setsig(SIGINT, orig_int_handler);
@@ -295,13 +296,15 @@ PyDoc_STRVAR(smisk_Application_service_DOC,
 PyObject *smisk_Application_service(smisk_Application *self, PyObject *args) {
   log_trace("ENTER");
   
-  FCGX_FPrintF(self->response->out->stream,
+  EXTERN_OP(
+    FCGX_FPrintF(self->response->out->stream,
      "Content-type: text/html\r\n"
      "\r\n"
      "<html><head><title>Smisk instance #%d</title></head><body>"
      "<h1>Smisk instance #%d</h1>\n"
      "No services available"
      "</body></html>\n", getpid(), getpid());
+  )
   
   Py_RETURN_NONE;
 }
@@ -411,9 +414,16 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
     port ? port : "?");
   
   // Log exception throught fcgi error stream
-  if (FCGX_PutStr(PyString_AS_STRING(exc_str), PyString_GET_SIZE(exc_str), self->request->errors->stream) == -1) {
+  EXTERN_OP(
+    rc = FCGX_PutStr(PyString_AS_STRING(exc_str), 
+                     PyString_GET_SIZE(exc_str),
+                     self->request->errors->stream)
+  );
+  if (rc == -1) {
     // Fall back to stderr
-    log_error("Error in %s.error(): %s", PyString_AS_STRING(PyObject_Str((PyObject *)self)), PyString_AS_STRING(exc_str));
+    log_error("Error in %s.error(): %s",
+      PyString_AS_STRING(PyObject_Str((PyObject *)self)),
+      PyString_AS_STRING(exc_str));
     goto return_error_from_errno;
   }
   
@@ -425,32 +435,36 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
       "<title>Service Error</title>"
       "<style type=\"text/css\">\n"
         "body,html { padding:0; margin:0; background:#666; }\n"
-        "h1 { padding:25pt 10pt 10pt 15pt; background:#ffb2bf; color:#560c00; font-family:arial,helvetica,sans-serif; margin:0; }\n"
+        "h1 { padding:25pt 10pt 10pt 15pt; background:#ffb2bf; color:#560c00; "
+             "font-family:arial,helvetica,sans-serif; margin:0; }\n"
         "address, p { font-family:'lucida grande',verdana,arial,sans-serif; }\n"
         "p.message { padding:10pt 16pt; background:#fff; color:#222; margin:0; font-size:.9em; }\n"
-        "pre.traceback { padding:10pt 15pt 25pt 15pt; line-height:1.4; background:#f2f2ca; color:#52523b; "
+        "pre.traceback { padding:10pt 15pt 25pt 15pt; line-height:1.4; "
+                        "background:#f2f2ca; color:#52523b; "
                         "margin:0; border-top:1px solid #e3e3ba; border-bottom:1px solid #555; }\n"
         "hr { display:none; }\n"
         "address { padding:10pt 15pt; color:#333; font-size:11px; }\n"
       "</style>"
       "</head><body>";
     static char *footer = "</body></html>";
-    rc = FCGX_FPrintF(self->response->out->stream,
-      "Status: 500 Internal Server Error\r\n"
-      "Content-Type: text/html\r\n"
-      "Content-Length: %ld\r\n"
-      "Cache-Control: no-cache\r\n"
-       "\r\n"
-       "%s%s%s\r\n",
-      strlen(header)+PyString_GET_SIZE(msg)+strlen(footer)+2,
-      header,
-      PyString_AS_STRING(msg),
-      footer);
+    EXTERN_OP(
+      rc = FCGX_FPrintF(self->response->out->stream,
+        "Status: 500 Internal Server Error\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: %ld\r\n"
+        "Cache-Control: no-cache\r\n"
+         "\r\n"
+         "%s%s%s\r\n",
+        strlen(header)+PyString_GET_SIZE(msg)+strlen(footer)+2,
+        header,
+        PyString_AS_STRING(msg),
+        footer);
+    );
   }
   else {
-    rc = FCGX_PutStr( PyString_AS_STRING(msg),
-                      PyString_GET_SIZE(msg),
-                      self->response->out->stream);
+    EXTERN_OP( rc = FCGX_PutStr(PyString_AS_STRING(msg),
+                                PyString_GET_SIZE(msg),
+                                self->response->out->stream) );
   }
   
   Py_DECREF(msg);
@@ -601,7 +615,7 @@ static PyMethodDef smisk_Application_methods[] = {
   {"current", (PyCFunction)smisk_Application_current, METH_STATIC|METH_NOARGS, smisk_Application_current_DOC},
   
   // Instance
-  {"run",     (PyCFunction)smisk_Application_run,     METH_VARARGS, smisk_Application_run_DOC},
+  {"run",     (PyCFunction)smisk_Application_run,     METH_NOARGS, smisk_Application_run_DOC},
   {"service", (PyCFunction)smisk_Application_service, METH_VARARGS, smisk_Application_service_DOC},
   {"error",   (PyCFunction)smisk_Application_error,   METH_VARARGS, smisk_Application_error_DOC},
   {"exit",    (PyCFunction)smisk_Application_exit,    METH_NOARGS,  smisk_Application_exit_DOC},

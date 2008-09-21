@@ -119,9 +119,7 @@ static void _gc_thread(void *_self) {
   smisk_FileSessionStore *self = (smisk_FileSessionStore *)_self;
   
   while (self->gc_run) {
-    Py_BEGIN_ALLOW_THREADS;
-    r = _gc_run(self);
-    Py_END_ALLOW_THREADS;
+    EXTERN_OP(r = _gc_run(self));
     
     // print errors to stdout since we're in another thread (not managed by Python!?)
     if (r != 0)

@@ -176,13 +176,18 @@ next_part:
 size_t smisk_stream_readline(char *str, int n, FCGX_Stream *stream) {
   int c;
   char *p = str;
-
+  
   n--;
+  
+  EXTERN_OP_START;
+  
   while (n > 0) {
     c = FCGX_GetChar(stream);
     if (c == EOF) {
-      if (p == str)
+      if (p == str) {
+        EXTERN_OP_END;
         return 0;
+      }
       else
         break;
     }
@@ -191,6 +196,9 @@ size_t smisk_stream_readline(char *str, int n, FCGX_Stream *stream) {
     if (c == '\n')
       break;
   }
+  
+  EXTERN_OP_END;
+  
   *p = '\0';
   return p-str;
 }
@@ -198,6 +206,7 @@ size_t smisk_stream_readline(char *str, int n, FCGX_Stream *stream) {
 
 void smisk_frepr_bytes(FILE *f, const char *s, size_t len) {
   int c;
+  EXTERN_OP_START;
   fprintf(f, "bytes(%lu) '", (unsigned long int)len);
   while (len--) {
     c = *s++;
@@ -209,6 +218,7 @@ void smisk_frepr_bytes(FILE *f, const char *s, size_t len) {
     }
   }
   fprintf(f, "'\n");
+  EXTERN_OP_END;
 }
 
 

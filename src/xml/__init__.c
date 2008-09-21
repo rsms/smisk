@@ -189,7 +189,7 @@ PyDoc_STRVAR(smisk_xml_DOC,
   "XML-related utilities");
 
 PyObject *smisk_xml_register (PyObject *parent) {
-  log_debug("ENTER smisk_xml_register");
+  log_trace("ENTER");
   smisk_xml = Py_InitModule("smisk.core.xml", methods);
   PyModule_AddStringConstant(smisk_xml, "__doc__", smisk_xml_DOC);
   if (PyModule_AddObject(parent, "xml", smisk_xml) != 0) {

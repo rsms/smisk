@@ -45,22 +45,22 @@ static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
   }
   else if (length > 0) {
     s = (char *)malloc(length+1);
-    bytes_read = FCGX_GetStr(s, length, stream);
+    EXTERN_OP(bytes_read = FCGX_GetStr(s, length, stream));
     s[(bytes_read < length) ? bytes_read : length] = '\0';
     return s;
   }
   else { // unknown length
     size_t size = SMISK_STREAM_READ_CHUNKSIZE;
-    s = (char *)malloc(size);
+    s = (char *)malloc(size+1);
     
     while (1) {
-      bytes_read = FCGX_GetStr(s, SMISK_STREAM_READ_CHUNKSIZE, stream);
+      EXTERN_OP(bytes_read = FCGX_GetStr(s, SMISK_STREAM_READ_CHUNKSIZE, stream));
       if (bytes_read < SMISK_STREAM_READ_CHUNKSIZE) {
         s[(size - SMISK_STREAM_READ_CHUNKSIZE) + bytes_read] = '\0';
         break; // EOF
       }
       size += SMISK_STREAM_READ_CHUNKSIZE;
-      s = (char *)realloc(s, size);
+      s = (char *)realloc(s, size+1);
     }
     
     return s;
@@ -71,6 +71,7 @@ static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
 static int _parse_request_body(smisk_Request* self) {
   char *content_type;
   long content_length;
+  int rc;
   
   if ((self->post = PyDict_New()) == NULL)
     return -1;
@@ -84,12 +85,13 @@ static int _parse_request_body(smisk_Request* self) {
     content_length = (t != NULL) ? atol(t) : -1;
     
     if (strstr(content_type, "multipart/")) {
-      
-      if (smisk_multipart_parse_stream(self->input->stream, content_length, self->post, self->files) != 0)
+      rc = smisk_multipart_parse_stream(self->input->stream, content_length, 
+                                        self->post, self->files);
+      if (rc != 0)
         return -1;
-      
     }
     else if (strstr(content_type, "/x-www-form-urlencoded")) {
+      // Todo: Optimize: keep s buffer and reuse it between calls.
       char *s = smisk_read_fcgxstream(self->input->stream, content_length);
       int parse_status = smisk_parse_input_data(s, "&", 0, self->post);
       free(s);
@@ -200,6 +202,7 @@ static int _cleanup_uploads(smisk_Request* self) {
   // Delete unused uploaded files
   int st = 0;
   if (self->files) {
+    EXTERN_OP_START;
     PyObject *files = PyDict_Values(self->files);
     size_t i, count = PyList_GET_SIZE(files);
     for (i=0;i<count;i++) {
@@ -208,7 +211,8 @@ static int _cleanup_uploads(smisk_Request* self) {
         PyObject *path = PyDict_GetItemString(file, "path");
         if (path) {
           char *fn = PyString_AsString(path);
-          log_debug("Trying to unlink file '%s' (%s)", fn, smisk_file_exist(fn) ? "exists" : "not found - skipping");
+          log_debug("Trying to unlink file '%s' (%s)", 
+            fn, smisk_file_exist(fn) ? "exists" : "not found - skipping");
           if (smisk_file_exist(fn) && (unlink(fn) != 0)) {
             log_debug("Failed to unlink temporary file %s", fn);
             PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__);
@@ -220,6 +224,7 @@ static int _cleanup_uploads(smisk_Request* self) {
         }
       }
     }
+    EXTERN_OP_END;
     Py_DECREF(files);
   }
   return st;
@@ -322,6 +327,8 @@ PyDoc_STRVAR(smisk_Request_log_error_DOC,
   ":rtype: None");
 PyObject *smisk_Request_log_error(smisk_Request* self, PyObject *msg) {
   log_trace("ENTER");
+  
+  int rc;
   static const char format[] = "%s[%d] %s";
   
   if (!self->errors->stream || ((PyObject *)self->errors->stream == Py_None)) {
@@ -334,8 +341,10 @@ PyObject *smisk_Request_log_error(smisk_Request* self, PyObject *msg) {
     return NULL;
   }
   
-  if (FCGX_FPrintF(self->errors->stream, format, Py_GetProgramName(), getpid(), PyString_AsString(msg)) == -1) {
-    fprintf(stderr, format, Py_GetProgramName(), getpid(), PyString_AsString(msg));
+  EXTERN_OP( rc = FCGX_FPrintF(self->errors->stream, format, Py_GetProgramName(), 
+                               getpid(), PyString_AsString(msg)) );
+  if (rc == -1) {
+    EXTERN_OP(fprintf(stderr, format, Py_GetProgramName(), getpid(), PyString_AsString(msg)));
     return PyErr_SET_FROM_ERRNO;
   }
   

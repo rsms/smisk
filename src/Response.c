@@ -184,10 +184,11 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
   Py_ssize_t num_headers, i;
   
   // Note: self->headers can be NULL at this point and that's by design.
-  
   IFDEBUG(if (self->headers) 
     assert_refcount(self->headers, > 0);
   )
+  
+  EXTERN_OP_START;
   
   // Set session cookie?
   if (smisk_current_app->request->session_id && (smisk_current_app->request->initial_session_hash == 0)) {
@@ -197,6 +198,7 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
     // First-time session!
     if (!PyString_Check(((smisk_SessionStore *)smisk_current_app->sessions)->name)) {
       PyErr_SetString(PyExc_TypeError, "sessions.name is not a string");
+      EXTERN_OP_END;
       return NULL;
     }
     assert(smisk_current_app->request->session_id);
@@ -228,6 +230,8 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
   // Header-Body separator
   FCGX_PutChar('\r', self->out->stream);
   rc = FCGX_PutChar('\n', self->out->stream);
+  
+  EXTERN_OP_END;
   
   REPLACE_OBJ(self->has_begun, Py_True, PyObject);
   

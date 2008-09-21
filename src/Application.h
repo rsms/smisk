@@ -56,7 +56,7 @@ PyObject *smisk_Application_new (PyTypeObject *type, PyObject *args, PyObject *k
 int  smisk_Application_init    (smisk_Application* self, PyObject *args, PyObject *kwargs);
 void smisk_Application_dealloc (smisk_Application* self);
 
-PyObject *smisk_Application_run     (smisk_Application* self, PyObject *args);
+PyObject *smisk_Application_run     (smisk_Application* self);
 PyObject *smisk_Application_service (smisk_Application* self, PyObject *args);
 PyObject *smisk_Application_exit    (smisk_Application* self);
 

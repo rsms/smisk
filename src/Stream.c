@@ -56,7 +56,8 @@ static int _get_opt_ssize_arg(Py_ssize_t *length, PyObject *args, Py_ssize_t pos
 
 
 int smisk_Stream_perform_write(smisk_Stream* self, PyObject *str, Py_ssize_t length) {
-  if ( FCGX_PutStr(PyString_AS_STRING(str), length, self->stream) == -1 ) {
+  EXTERN_OP( int rc = FCGX_PutStr(PyString_AS_STRING(str), length, self->stream) );
+  if (rc == -1) {
     PyErr_SET_FROM_ERRNO;
     return -1;
   }
@@ -131,8 +132,11 @@ PyObject *smisk_Stream_readline(smisk_Stream* self, PyObject *args) {
   p = po;
   n = length;
   
+  EXTERN_OP_START;
+  
   // Read loop
-  // We are doing our own, optimized readline proc here
+  // We are doing our own, optimized readline proc here.
+  // (i.e. not using the routine in util.c)
   while (n > 0) {
     c = FCGX_GetChar(self->stream);
     
@@ -151,6 +155,8 @@ PyObject *smisk_Stream_readline(smisk_Stream* self, PyObject *args) {
     if (c == '\n')
       break;
   }
+  
+  EXTERN_OP_END;
   
   length -= n;
   
@@ -243,19 +249,26 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
   
   // Read n bytes
   if (length > 0)  {
+    EXTERN_OP_START;
+    
     // Init string
-    if ((str = PyString_FromStringAndSize(NULL, length)) == NULL)
+    if ((str = PyString_FromStringAndSize(NULL, length)) == NULL) {
+      EXTERN_OP_END;
       return NULL;
+    }
     
     rc = FCGX_GetStr(PyString_AS_STRING(str), length, self->stream);
     // rc is now bytes read (will never be less than 0)
     
     // Size down the string if needed
     if (rc < length && _PyString_Resize(&str, (Py_ssize_t)rc) != 0) {
+      EXTERN_OP_END;
       Py_DECREF(str);
       log_error("_PyString_Resize(%p, %d) == -1", str, rc);
       return NULL;
     }
+    
+    EXTERN_OP_END;
   }
   // Zero is Zero!
   else if (length == 0) {
@@ -276,6 +289,8 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
     if ((str = PyString_FromStringAndSize(NULL, bufsize)) == NULL)
       return NULL;
     
+    EXTERN_OP_START;
+    
     // Start reading
     while (1) {
       strdat = PyString_AS_STRING(str)+rc;
@@ -293,11 +308,14 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
       if (bufsize < buflength+bufchunksize) {
         bufsize *= 2;
         if (_PyString_Resize(&str, bufsize) == -1) {
+          EXTERN_OP_END;
           log_error("_PyString_Resize(%p, %ld) == -1", str, (long)bufsize);
           return NULL;
         }
       }
     }
+    
+    EXTERN_OP_END;
     
     // Size down the string to the correct length
     if (_PyString_Resize(&str, buflength) == -1) {
@@ -324,7 +342,8 @@ PyObject *smisk_Stream_write_byte(smisk_Stream* self, PyObject *ch) {
     return NULL;
   }
   
-  if (FCGX_PutChar((int)PyInt_AS_LONG(ch), self->stream) == -1)
+  EXTERN_OP( int rc = FCGX_PutChar((int)PyInt_AS_LONG(ch), self->stream) );
+  if (rc == -1)
     return PyErr_SET_FROM_ERRNO;
   
   Py_RETURN_NONE;
@@ -444,7 +463,8 @@ PyDoc_STRVAR(smisk_Stream_flush_DOC,
   ":rtype: None");
 PyObject *smisk_Stream_flush(smisk_Stream* self) {
   log_trace("ENTER");
-  if (FCGX_FFlush(self->stream) == -1)
+  EXTERN_OP( int rc = FCGX_FFlush(self->stream) );
+  if (rc == -1)
     return PyErr_SET_FROM_ERRNO;
   Py_RETURN_NONE;
 }
@@ -458,7 +478,8 @@ PyDoc_STRVAR(smisk_Stream_close_DOC,
   ":rtype: None");
 PyObject *smisk_Stream_close(smisk_Stream* self) {
   log_trace("ENTER");
-  if (FCGX_FClose(self->stream) == -1)
+  EXTERN_OP( int rc = FCGX_FClose(self->stream) );
+  if (rc == -1)
     return PyErr_SET_FROM_ERRNO;
   Py_RETURN_NONE;
 }

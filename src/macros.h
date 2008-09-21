@@ -124,6 +124,44 @@ typedef uint8_t byte;
 #endif
 
 
+// Global Python interpreter lock helpers.
+//
+// Python has a somewhat retarded way of handling threads.
+// Even though smisk.core isn't threaded, we need to make
+// sure external operations which might block (for example
+// FCGX_Accept_r) does not hold on to the global interpreter
+// lock.
+//
+// smisk_py_thstate is defined in __init__.h and implemented
+// in __init__.c
+#define EXTERN_OP_START \
+	smisk_py_thstate = PyThreadState_Swap(NULL); \
+	PyEval_ReleaseLock();
+
+#define EXTERN_OP_END \
+	PyEval_AcquireLock(); \
+	PyThreadState_Swap(smisk_py_thstate);
+
+#define _EXTERN_OP(state_var, section) \
+	state_var = PyThreadState_Swap(NULL); \
+	PyEval_ReleaseLock(); \
+	section; \
+	PyEval_AcquireLock(); \
+	PyThreadState_Swap(state_var);
+
+// Smisk main state_var
+#define EXTERN_OP(section) \
+	_EXTERN_OP(smisk_py_thstate, section)
+
+// Temporary state_var
+#define EXTERN_OP2(section) \
+	_EXTERN_OP(PyThreadState *_thread_state ## __LINE__, section)
+
+// Custom state_var
+#define EXTERN_OP3(state_var, section) \
+	_EXTERN_OP(state_var, section)
+	
+
 // String macros
 #define STR_LTRIM_S(s) \
   for (; *(s)==' '; (s)++);

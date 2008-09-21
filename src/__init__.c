@@ -53,6 +53,8 @@ PyObject *os_module;
 PyObject *kString_http;
 PyObject *kString_https;
 
+// Smisk main thread python global interp. lock thread state.
+PyThreadState *smisk_py_thstate;
 
 PyDoc_STRVAR(smisk_bind_DOC,
   "Bind to a specific unix socket or host (and/or port).\n"
@@ -227,11 +229,19 @@ PyDoc_STRVAR(smisk_module_DOC,
 
 PyMODINIT_FUNC initcore(void) {
   log_trace("ENTER");
+  
+  // Without
+  PyEval_InitThreads();
+  
+  // Initialize libfcgi
+  if(FCGX_Init() != 0) {
+		PyErr_SetString(PyExc_ImportError, "smisk.core: FCGX_Init() failed");
+		return;
+	}
+  
+  // Create module
   PyObject *module;
   module = Py_InitModule("smisk.core", module_methods);
-  
-  // Seed random
-  srandom((unsigned int)getpid());
   
   // Initialize crash dumper
   smisk_crash_dump_init();
