@@ -118,12 +118,10 @@ def tokenize_path(path):
   :type  path: string
   :rtype: list'''
   tokens = []
-  for tok in path.split('/'):
+  for tok in strip_filename_extension(path).split('/'):
     tok = URL.decode(tok)
     if len(tok):
       tokens.append(tok)
-  if tokens:
-    tokens[-1] = strip_filename_extension(tokens[-1])
   return tokens
 
 def strip_filename_extension(fn):
