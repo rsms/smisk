@@ -25,8 +25,7 @@ class Serializer(BaseSerializer):
     return encode(params)
   
   @classmethod
-  def encode_error(cls, params, typ, val, tb):
-    params.update(dict(code=getattr(val, 'http_code', 0), message=str(val)))
+  def encode_error(cls, status, params, typ, val, tb):
     return encode(params)
   
   @classmethod

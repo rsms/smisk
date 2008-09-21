@@ -21,7 +21,7 @@ import filters
 from smisk import util
 
 log = logging.getLogger(__name__)
-exceptions.TopLevelLookupException.http_code = 404
+exceptions.TopLevelLookupException.status = http.NotFound
 
 # Replace Mako filter with the faster Smisk implementations
 mako.filters.html_escape = smisk.core.xml.escape

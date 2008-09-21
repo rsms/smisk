@@ -1,5 +1,6 @@
 # encoding: utf-8
 import sys, os, logging
+from types import DictType
 import smisk, smisk.core
 import http
 from smisk.core import URL
@@ -420,13 +421,11 @@ class Application(smisk.core.Application):
   def error(self, typ, val, tb):
     try:
       status = getattr(val, 'status', http.InternalServerError)
-      rsp = {}
+      params = {}
       format = self.default_format
       
       # Set headers
-      self.response.headers = [
-        'Status: %s' % status
-      ]
+      self.response.headers = ['Status: %s' % status]
       
       # Log
       if status.is_error:
@@ -447,12 +446,14 @@ class Application(smisk.core.Application):
       
       # HTTP exception has a bound action we want to call
       if isinstance(val, http.HTTPExc):
-        rsp = val(self)
+        params = val(self)
       
       # Try to use templating or serializer
-      rsp = self.templates.render_error(status, format, rsp, typ, val, tb)
+      rsp = self.templates.render_error(status, format, params, typ, val, tb)
       if rsp is None and self.serializer is not None:
-        rsp = self.serializer.encode_error(rsp, typ, val, tb)
+        if not params or type(params) is not DictType:
+          params = {'code': status.code, 'message': status.name}
+        rsp = self.serializer.encode_error(status, params, typ, val, tb)
       
       # Send response
       if rsp is not None:

@@ -28,8 +28,8 @@ class Status(object):
   
   def service(self, app, *args, **kwargs):
     app.response.status = self
-    app.response.headers = [] # clear any previous headers
-    return {}
+    app.response.headers = ['Status: %s' % self] # clear any previous headers
+    return {'code': self.code, 'message': self.name, 'http_error': True}
   
   @property
   def is_error(self):
@@ -46,7 +46,7 @@ class Status(object):
 class Status300(Status):
   def service(self, app, url, *args, **kwargs):
     rsp = Status.service(self, app)
-    app.response.headers = ['Location: ' + normalize_url(url)]
+    app.response.headers.append('Location: ' + normalize_url(url))
     rsp['message'] = 'The resource has moved to %s' % url
     return rsp
   

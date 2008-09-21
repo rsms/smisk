@@ -25,7 +25,12 @@ def finalize_rsp(v, glue="\n"):
 
 def encode_value(v, buf, level):
   indent = '  '*level
-  if isinstance(v, int):
+  if isinstance(v, bool):
+    s = 'false'
+    if v:
+      s = 'true'
+    buf.append('%s<%s />' % (indent, s))
+  elif isinstance(v, int):
     buf.append('%s<int>%d</int>' % (indent, v))
   elif isinstance(v, float):
     buf.append('%s<real>%f</real>' % (indent, v))
@@ -45,7 +50,7 @@ def encode_value(v, buf, level):
   else:
     raise EncodeError('Unserializeable type %s' % str(type(v)))
 
-def encode_map(d, buf, level):
+def encode_map(d, buf, level=1):
   indent = '  '*level
   for k,v in d.iteritems():
     buf.append('%s<param name="%s">' % (indent, xml_escape(k)))
@@ -67,13 +72,25 @@ class Serializer(BaseSerializer):
   @classmethod
   def encode(cls, **params):
     v = start_rsp()
-    encode_map(params, v, 1)
+    encode_map(params, v)
     return finalize_rsp(v)
   
   @classmethod
-  def encode_error(cls, params, typ, val, tb):
+  def encode_error(cls, status, params, typ, val, tb):
     v = start_rsp()
-    v.append('<err code="%d" msg="%s" />' % (int(getattr(val, 'http_code', 0)), xml_escape(str(val))))
+    if 'code' in params and 'message' in params:
+      ends = ' />'
+      if len(params) > 2:
+        ends = '>'
+      v.append('<err code="%d" msg="%s"%s' % \
+        (int(params['code']), xml_escape(str(params['message'])), ends))
+      if ends == '>':
+        del params['code']
+        del params['message']
+        encode_map(params, v)
+        v.append('</err>')
+    else:
+      encode_map(params, v)
     return finalize_rsp(v)
   
   #xxx todo implement decoder

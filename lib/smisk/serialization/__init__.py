@@ -63,12 +63,14 @@ class BaseSerializer(object):
     raise NotImplementedError('%s.encode' % cls.__name__)
   
   @classmethod
-  def encode_error(cls, params, typ, val, tb):
+  def encode_error(cls, status, params, typ, val, tb):
     """
     Encode an error.
     
     Might return None to indicate someone else should handle the error.
-
+    
+    :param status: HTTP status
+    :type  status: smisk.mvc.http.Status
     :param params: Parameters
     :type  params: dict
     :param typ:    Error type

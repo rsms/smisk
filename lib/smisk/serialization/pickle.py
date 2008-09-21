@@ -29,8 +29,8 @@ class Serializer(BaseSerializer):
     return dumps(params, HIGHEST_PROTOCOL)
   
   @classmethod
-  def encode_error(cls, params, typ, val, tb):
-    return dumps(dict(code=getattr(val, 'http_code', 0), message=str(val)), HIGHEST_PROTOCOL)
+  def encode_error(cls, status, params, typ, val, tb):
+    return dumps(params, HIGHEST_PROTOCOL)
   
   @classmethod
   def decode(cls, file, length=-1):
