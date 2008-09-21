@@ -12,7 +12,6 @@ from exceptions import *
 from routing import Router
 from smisk.serialization import serializers
 
-default_sys_modules = sys.modules.copy()
 log = logging.getLogger(__name__)
 application = None
 request = None
@@ -498,48 +497,32 @@ def main(appmain=None, appdir=None, *args, **kwargs):
         appdir = os.path.abspath('.')
     os.environ['SMISK_APP_DIR'] = appdir
   try:
-    from smisk.autoreload import Autoreloader
-    while 1:
-      before_sys_modules = sys.modules.copy()
-      app = None
-      if appmain is not None:
-        app = appmain()
+    # Aquire app
+    app = None
+    if appmain is not None:
+      app = appmain()
+    if app is None:
+      app = Application.current()
       if app is None:
         app = Application(*args, **kwargs)
-      if app.autoreload:
-        ar = Autoreloader()
-        ar.start()
-      app.run()
-      if not app.autoreload:
-        break
-      sys.modules = before_sys_modules
-  except KeyboardInterrupt:
-    pass
-  except:
-    log.critical('died from:', exc_info=True)
-    sys.exit(1)
-
-def _main(appdir=None, app=None, *args, **kwargs):
-  if 'SMISK_APP_DIR' not in os.environ:
-    # xxx todo: use stack info to get __file__ from caller
-    if appdir is None:
-      appdir = os.path.abspath(os.getcwd())
-    os.environ['SMISK_APP_DIR'] = appdir
-  
-  if app is None:
-    app = Application.current()
-    if app is None:
-      app = Application(*args, **kwargs)
-  
-  # Create app and start it
-  try:
+    
+    # Bind
     if len(sys.argv) > 1:
       smisk.bind(sys.argv[1])
       log.info('Listening on %s', sys.argv[1])
+    
+    # Enable auto-reloading
+    if app.autoreload:
+      from smisk.autoreload import Autoreloader
+      ar = Autoreloader()
+      ar.start()
+    
+    # Run app
     app.run()
   except KeyboardInterrupt:
     pass
+  except SystemExit:
+    raise
   except:
-    log.critical('%r died', app, exc_info=True)
+    log.critical('died from:', exc_info=True)
     sys.exit(1)
-

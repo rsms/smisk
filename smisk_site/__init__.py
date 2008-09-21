@@ -4,15 +4,15 @@ import os, logging
 from smisk.mvc import main, Application
 from smisk.mvc.template import Templates
 
-def mymain():
+def appmain():
   import controllers
   Templates.errors = {404: 'errors/404'}
   app = Application(
     log_level=logging.DEBUG,
-    autoreload=False
+    autoreload=True
   )
   app.routes.map(r'^/docs/(?P<article>.+)', controllers.root().docs)
   return app
 
 if __name__ == '__main__':
-  main(mymain)
+  main(appmain)

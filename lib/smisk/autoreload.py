@@ -73,10 +73,9 @@ class Autoreloader(Monitor):
             # The file has been deleted or modified.
             self.log.info("%s was modified", filename)
             self.thread.cancel()
-            #self.log.debug("Stopped thread %r", self.thread.getName())
+            self.log.debug("Stopped autoreload monitor (thread %r)", self.thread.getName())
             import smisk.core
             smisk.core.Application.current().exit()
-            #raise KeyboardInterrupt
             return
   
 
