@@ -9,7 +9,7 @@ except ImportError:
 
 import sys, os, time, platform, re
 
-from setuptools import Extension, Distribution, Command
+from setuptools import Extension as _Extension, Distribution, Command
 from pkg_resources import parse_version
 from distutils import log
 from subprocess import Popen, PIPE
@@ -18,7 +18,8 @@ from ConfigParser import SafeConfigParser as ConfigParser
 if sys.version_info < (2, 4):
   raise SystemExit("Python 2.4 or later is required")
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+os.chdir(BASE_DIR)
 execfile(os.path.join("lib", "smisk", "release.py"))
 # Load config
 cfg = ConfigParser()
@@ -36,7 +37,6 @@ undef_macros=[]
 if '--debug' in sys.argv or '--debug-smisk' in sys.argv:
   undef_macros=['NDEBUG']
 
-BASE_DIR = os.path.dirname(__file__)
 SYS_CONF_H = os.path.join(BASE_DIR, "src", "system_config.h")
 X86_MACHINES = ['i386', 'i686', 'i86pc', 'amd64', 'x86_64']
 HAVE_HEADERS = [
@@ -98,6 +98,7 @@ if v[3] == '*c' or v[3] == '*b':
 
 # -----------------------------------------
 # Helpers
+from distutils.dir_util import remove_tree
 
 def read(*rnames):
   return open(os.path.join(*rnames)).read()
@@ -114,6 +115,18 @@ def rm_dir(path):
 
 # -----------------------------------------
 # Commands
+
+class Extension(_Extension):
+  def built_product_path(self, build_dir):
+    relpath = self.name.split('.')
+    path = os.path.join(build_dir, *relpath[:-1])
+    match_prefix = '%s.' % relpath[-1]
+    for f in os.listdir(path):
+      if f.startswith(match_prefix):
+        fn = os.path.join(path, f)
+        if not os.path.isdir(fn):
+          return fn
+  
 
 from distutils.command.build import build as _build
 class build(_build):
@@ -141,7 +154,7 @@ class build_ext(_build_ext):
   
   def finalize_options(self):
     _build_ext.finalize_options(self)
-    self.libraries = ['fcgi']
+    self.libraries.append('fcgi')
     bid = tag
     if bid:
       bid += '-'
@@ -154,8 +167,52 @@ class build_ext(_build_ext):
   
   def run(self):
     self._run_config_if_needed()
+    self._check_prefix_modified()
     self._configure_compiler()
     _build_ext.run(self)
+  
+  def built_product_paths(self):
+    product_paths = []
+    for ext in self.extensions:
+      path = ext.built_product_path(self.build_lib)
+      if path:
+        product_paths.append(path)
+    return product_paths
+  
+  def resolve_local_imports(self, fn, paths):
+    include_re = re.compile(r'^\s*#(?:include|import)\s+"([^"]+)"', re.I)
+    fdir = os.path.dirname(fn)
+    f = open(fn, 'r')
+    try:
+      for line in f:
+        m = include_re.match(line)
+        if m:
+          include_fn = os.path.abspath(os.path.join(fdir, m.group(1)))
+          if include_fn not in paths:
+            paths.append(include_fn)
+            self.resolve_local_imports(include_fn, paths)
+    finally:
+      f.close()
+  
+  def find_precompiled(self):
+    prefix_h = os.path.abspath('src/prefix.h')
+    paths = [prefix_h]
+    self.resolve_local_imports(prefix_h, paths)
+    return paths
+  
+  def _check_prefix_modified(self):
+    if self.force:
+      return
+    built_product_paths = self.built_product_paths()
+    for precompiled_fn in self.find_precompiled():
+      precompiled_mt = os.path.getmtime(precompiled_fn)
+      for product_fn in built_product_paths:
+        if precompiled_mt > os.path.getmtime(product_fn):
+          log.info('Precompiled file %s have been modified -- forcing complete rebuild', precompiled_fn)
+          self.force = True
+          break
+      if self.force:
+        break
   
   def _run_config_if_needed(self):
     run_configure = True
@@ -341,7 +398,6 @@ class apidocs(Command):
   
 
 from distutils.command.clean import clean as _clean
-from distutils.dir_util import remove_tree
 class clean(_clean):
   def run(self):
     _clean.run(self)
