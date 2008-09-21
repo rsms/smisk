@@ -35,6 +35,12 @@ class Timer(object):
     return (self.time() * 1000000) % 1000
   
 
+def wrap_exc_in_callable(exc):
+  '''Wrap exc in a anonymous function, for later raising.'''
+  def a(*args, **kwargs):
+    raise exc
+  return a
+
 def tokenize_path(path):
   '''Deconstruct a URI path into standardized tokens.
   

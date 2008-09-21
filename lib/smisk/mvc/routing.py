@@ -6,11 +6,11 @@ URL-to-function routing.
 import re, logging
 from types import *
 from smisk.core import URL
+from smisk.util import None2, tokenize_path, wrap_exc_in_callable
 from smisk.mvc.control import Controller
-from smisk.util import tokenize_path, None2
+import http
 
 log = logging.getLogger(__name__)
-
 
 class Destination(object):
   '''A callable destination.'''
@@ -70,7 +70,46 @@ class RegExpDestination(Destination):
 
 
 class Router(object):
-  '''Default router handling both RegExp mappings and class tree mappings.'''
+  '''
+  Default router handling both RegExp mappings and class tree mappings.
+  
+  Consider the following tree of controllers:
+  
+  .. python::
+    class root(Controller):
+      def __call__(self, *args, **params):
+        return 'Welcome!'
+    
+    class employees(root):
+      def __call__(self, *args, **params):
+        return {'employees': Employee.query.all()}
+      
+      def show(self, employee_id, *args, **params):
+        return {'employee': Employee.get_by(id=employee_id)}
+      
+      class edit(employees):
+        def __call__(self, employee_id, *args, **params):
+          return employees.show(self, employee_id)
+        
+        def save(self, employee_id, *args, **params):
+          Employee.get_by(id=employee_id).save_or_update(**params)
+  
+  
+  Now, this list shows what URIs would map to what begin called:
+  
+  .. python::
+    /                             => root().__call__()
+    /employees                    => employees().__call__()
+    /employees/                   => employees().__call__()
+    /employees/show               => employees().show()
+    /employees/show/123           => employees().show(123)
+    /employees/show/123/456       => employees().show(123, 456)
+    /employees/show/123?other=456 => employees().show(123, other=456)
+    /employees/edit/123           => employees.edit().__call__(123)
+    /employees/edit/save/123      => employees.edit().save(123)
+  
+  See `smisk.test.routing` for more examples.
+  '''
   
   def __init__(self):
     self.cache = {}
@@ -128,6 +167,12 @@ class Router(object):
     path = tokenize_path(url.path)
     node = Controller.root_controller()
     
+    # Check root
+    if node is None:
+      e = http.ControllerNotFound('No root controller could be found')
+      self.cache[raw_url] = wrap_exc_in_callable(e)
+      raise e
+    
     # Special case: empty path == root.__call__
     if not path:
       try:
@@ -168,9 +213,10 @@ class Router(object):
           break
         # else we continue...
       else:
-        #print '>> 404 Not Found -- url part not found'
-        self.cache[raw_url] = None
-        return None, args, params
+        # Not found
+        e = http.MethodNotFound('/'.join(path))
+        self.cache[raw_url] = wrap_exc_in_callable(e)
+        raise e
     
     # Did we hit a class/type at the end? If so, get its instance.
     if type(node) is type:
@@ -178,9 +224,10 @@ class Router(object):
       try:
         node = node().__call__
       except AttributeError:
-        #print '>> 404 Not Found -- uncallable leaf'
-        self.cache[raw_url] = None
-        return None, args, params
+        # Uncallable leaf
+        e = http.MethodNotFound('/'.join(path))
+        self.cache[raw_url] = wrap_exc_in_callable(e)
+        raise e
     
     dest = Destination(node)
     self.cache[raw_url] = dest
