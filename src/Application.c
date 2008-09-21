@@ -149,7 +149,7 @@ PyObject *smisk_Application_run(smisk_Application *self) {
   log_trace("ENTER");
   
   int rc;
-  PyOS_sighandler_t orig_int_handler, orig_hup_handler, orig_term_handler;
+  PyOS_sighandler_t orig_int_handler, orig_hup_handler, orig_term_handler, orig_sigusr1_handler;
   PyObject *ret = Py_None;
   
   // Set program name to argv[0]
@@ -165,6 +165,7 @@ PyObject *smisk_Application_run(smisk_Application *self) {
   orig_int_handler = PyOS_setsig(SIGINT, smisk_Application_sighandler_close_fcgi);
   orig_hup_handler = PyOS_setsig(SIGHUP, smisk_Application_sighandler_close_fcgi);
   orig_term_handler = PyOS_setsig(SIGTERM, smisk_Application_sighandler_close_fcgi);
+  orig_sigusr1_handler = PyOS_setsig(SIGUSR1, smisk_Application_sighandler_close_fcgi);
   
   // CGI test
   if (FCGX_IsCGI() && (smisk_listensock_fileno == FCGI_LISTENSOCK_FILENO))
@@ -266,18 +267,22 @@ PyObject *smisk_Application_run(smisk_Application *self) {
   if (PyObject_CallMethod((PyObject *)self, "application_did_stop", NULL) == NULL)
     return NULL;
   
-  //FCGX_Finish();
+  request.keepConnection = 0; // this way, we can be sure streams are closed.
   EXTERN_OP(FCGX_Finish_r(&request));
   
   // reset signal handlers
   PyOS_setsig(SIGINT, orig_int_handler);
   PyOS_setsig(SIGHUP, orig_hup_handler);
   PyOS_setsig(SIGTERM, orig_term_handler);
+  PyOS_setsig(SIGUSR1, orig_sigusr1_handler);
   
-  // Now, raise the signal again if that was the reason for exiting the run loop
-  if (smisk_Application_trapped_signal) {
-    log_debug("raising signal %d again", smisk_Application_trapped_signal);
-    raise(smisk_Application_trapped_signal);
+  // Now, raise the signal again if that was the reason for exiting the
+  // run loop, unless SIGUSR1.
+  if (smisk_Application_trapped_signal != 0) {
+    if (smisk_Application_trapped_signal != SIGUSR1) {
+      log_debug("raising signal %d again", smisk_Application_trapped_signal);
+      raise(smisk_Application_trapped_signal);
+    }
     smisk_Application_trapped_signal = 0;
   }
   
@@ -489,7 +494,7 @@ PyDoc_STRVAR(smisk_Application_exit_DOC,
   ":rtype: None");
 PyObject *smisk_Application_exit(smisk_Application *self) {
   log_trace("ENTER");
-  raise(2); // SIG_INT
+  raise(SIGUSR1);
   Py_RETURN_NONE;
 }
 
