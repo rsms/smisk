@@ -7,8 +7,7 @@ import re, logging
 from types import *
 from smisk.core import URL
 from smisk.util import None2, tokenize_path, wrap_exc_in_callable
-from smisk.mvc.control import Controller
-import http
+import http, control
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ class Destination(object):
     
     :type: list
     '''
-    return Controller.path_to(self.action)
+    return control.path_to(self.action)
   
   def __str__(self):
     if self.path:
@@ -165,7 +164,7 @@ class Router(object):
     
     # Tokenize path
     path = tokenize_path(url.path)
-    node = Controller.root_controller()
+    node = control.root_controller()
     
     # Check root
     if node is None:

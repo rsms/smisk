@@ -2,15 +2,17 @@
 import sys, os, logging
 from types import DictType
 import smisk, smisk.core
-import http
+import http, control
+
 from smisk.core import URL
 from smisk.util import *
+from smisk.serialization import serializers
+
 from control import Controller
 from model import Entity
 from template import Templates
-from exceptions import *
 from routing import Router
-from smisk.serialization import serializers
+from exceptions import *
 
 log = logging.getLogger(__name__)
 application = None
@@ -488,23 +490,51 @@ class Application(smisk.core.Application):
   
 
 
-def main(appmain=None, appdir=None, *args, **kwargs):
+def main(app=None, appdir=None, *args, **kwargs):
+  '''Helper for running an application.
+  
+  If `app` is not provided or None, app will be aquired by calling
+  ``Application.current()`` if there is an application. Otherwise, a new
+  application instance of default type is created and in which case any extra
+  args and kwargs are passed to it's __init__.
+  
+  If `app` is a type, it has to be a subclass of `smisk.core.Application` in
+  which case a new instance of that type is created and passed any extra
+  args and kwargs passed to this function.
+  
+  If `appdir` is specified and SMISK_APP_DIR is present in os.environ, the
+  value of appdir will be replaced by the value of SMISK_APP_DIR. It is
+  constructed like this to allow for overloading using the env.
+  
+  If `appdir` is not specified the application directory path will be aquired
+  by ``dirname(__main__.__file__)`` and if that's not possible, the current
+  working directory is used.
+  
+  :param app:     An application type or instance.
+  :type  app:     Application
+  :param appdir:  Path to the applications base directory.
+  :type  appdir:  string
+  :rtype: None'''
+  # Make sure SMISK_APP_DIR is set correctly
   if 'SMISK_APP_DIR' not in os.environ:
     if appdir is None:
       try:
-        appdir = os.path.abspath(os.path.dirname(appmain.func_globals['__file__']))
+        appdir = os.path.abspath(os.path.dirname(sys.modules['__main__'].__file__))
       except:
         appdir = os.path.abspath('.')
     os.environ['SMISK_APP_DIR'] = appdir
   try:
     # Aquire app
-    app = None
-    if appmain is not None:
-      app = appmain()
     if app is None:
       app = Application.current()
       if app is None:
         app = Application(*args, **kwargs)
+    elif type(app) is type:
+      if not issubclass(app, smisk.core.Application):
+        raise ValueError('app is not a subclass of smisk.core.Application')
+      app = app(*args, **kwargs)
+    elif not isinstance(app, smisk.core.Application):
+      raise ValueError('app is not an instance of smisk.core.Application')
     
     # Bind
     if len(sys.argv) > 1:

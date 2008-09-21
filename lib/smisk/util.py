@@ -31,9 +31,10 @@ class PerpetualTimer(threading._Timer):
 
 class Monitor(object):
   '''Periodically run a callback in its own thread.'''
-  frequency = 60
+  frequency = 60.0
+  ''':type: float'''
   
-  def __init__(self, callback, setup_callback=None, frequency=60):
+  def __init__(self, callback, setup_callback=None, frequency=60.0):
     self.callback = callback
     self.setup_callback = setup_callback
     self.frequency = frequency
@@ -102,7 +103,10 @@ class Timer(object):
   
 
 def wrap_exc_in_callable(exc):
-  '''Wrap exc in a anonymous function, for later raising.'''
+  '''Wrap exc in a anonymous function, for later raising.
+  
+  :rtype: callable
+  '''
   def a(*args, **kwargs):
     raise exc
   return a
@@ -123,13 +127,17 @@ def tokenize_path(path):
   return tokens
 
 def strip_filename_extension(fn):
-  '''Remove any file extension from filename.'''
+  '''Remove any file extension from filename.
+  
+  :rtype: string
+  '''
   try:
     return fn[:fn.rindex('.')]
   except:
     return fn
 
 def normalize_url(url):
+  ''':rtype: string'''
   if url.find('://') == -1:
     # url is actually a path
     path = url
@@ -145,6 +153,7 @@ def normalize_url(url):
 
 
 def unique_sorted_modules_of_items(v):
+  ''':rtype: list'''
   s = []
   for t in v:
     s.append(t.__module__)
@@ -154,6 +163,7 @@ def unique_sorted_modules_of_items(v):
 
 
 def list_python_filenames_in_dir(path, only_py=True):
+  ''':rtype: list'''
   names = []
   for fn in os.listdir(path):
     if fn[-3:] == '.py':
@@ -170,8 +180,9 @@ def list_python_filenames_in_dir(path, only_py=True):
 
 
 def find_modules_for_classtree(cls, exclude_root=True, unique=True):
-  '''
-  Returns a list of all modules in which cls and any subclasses are defined.
+  '''Returns a list of all modules in which cls and any subclasses are defined.
+  
+  :rtype: list
   '''
   if exclude_root:
     modules = []
@@ -187,12 +198,34 @@ def find_modules_for_classtree(cls, exclude_root=True, unique=True):
   return modules
 
 
+def inspect(o, as_string=True):
+  '''Returns a dictionary or string of all members and their values in object `o`.
+  
+  :param o:         Object to inspect
+  :type  o:         object
+  :param as_string: Return a string formatted KEY=VALUE\\n...
+  :type  as_string: bool
+  :returns: string or dict
+  :rtype: object
+  '''
+  items = {}
+  for k in dir(o):
+    items[k] = eval('o.'+k)
+  if as_string:
+    return "\n".join(['%s=%r' % kv for kv in items.items()])
+  return items
+
+
 def list_unique_wild(seq):
+  '''
+  :param seq:
+  :type  seq: list
+  :rtype: list'''
   # Not order preserving but faster than list_unique
   return list(set(seq))
 
 
-def list_unique(s):
+def list_unique(seq):
   '''Return a list of the elements in s, but without duplicates.
   
   For example, unique([1,2,3,1,2,3]) is some permutation of [1,2,3],
@@ -211,8 +244,12 @@ def list_unique(s):
   If that's not possible either, the sequence elements must support
   equality-testing.  Then unique() will usually work in quadratic
   time.
+  
+  :param s:
+  :type  s: list
+  :rtype: list
   '''
-  n = len(s)
+  n = len(seq)
   if n == 0:
     return []
   # Try using a dict first, as that's the fastest and will usually
@@ -221,7 +258,7 @@ def list_unique(s):
   # sequence elements be hashable, and support equality comparison.
   u = {}
   try:
-    for x in s:
+    for x in seq:
       u[x] = 1
   except TypeError:
     del u  # move on to the next method
@@ -235,7 +272,7 @@ def list_unique(s):
   # sort functions in all languages or libraries, so this approach
   # is more effective in Python than it may be elsewhere.
   try:
-    t = list(s)
+    t = list(seq)
     t.sort()
   except TypeError:
     del t  # move on to the next method
@@ -252,7 +289,7 @@ def list_unique(s):
   
   # Brute force is all that's left.
   u = []
-  for x in s:
+  for x in seq:
     if x not in u:
       u.append(x)
   return u
