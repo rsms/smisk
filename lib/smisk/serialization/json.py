@@ -26,7 +26,7 @@ class Serializer(BaseSerializer):
   
   @classmethod
   def encode_error(cls, status, params, typ, val, tb):
-    return encode(params)
+    return encode(**params)
   
   @classmethod
   def decode(cls, file, length=-1):

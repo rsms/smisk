@@ -82,7 +82,7 @@ class Serializer(BaseSerializer):
   
   @classmethod
   def encode_error(cls, status, params, typ, val, tb):
-    return cls.encode(params)
+    return cls.encode(**params)
   
   #xxx todo implement decoder
 
