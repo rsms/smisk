@@ -104,7 +104,7 @@ class BaseSerializer(object):
   
 
 # Load serializers
-import json, xmlrpc, xml, xhtml, plist
+import json, xmlrpc, xml, xhtml, plist, text
 
 # Load unstable serializers
 import pickle
