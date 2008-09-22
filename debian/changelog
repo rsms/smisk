@@ -1,3 +1,11 @@
+python-smisk (1.1.0-3) unstable; urgency=low
+
+  * Fixed a bug where an empty error repsponse did not include custom headers.
+  * Improved on content negotiation.
+  * Rejecting clients requesting unacceptable types.
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Ons, 24 Sep 2008 00:35:00 +0200
+
 python-smisk (1.1.0-2) unstable; urgency=low
 
   * MVC introduced
