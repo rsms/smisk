@@ -649,7 +649,7 @@ def main(app=None, appdir=None, *args, **kwargs):
       f = open(os.path.join(os.environ['SMISK_APP_DIR'], 'error.log'), 'a')
       try:
         from traceback import print_exc
-        print_exc(-1, f)
+        print_exc(1000, f)
       finally:
         f.close()
     except:
