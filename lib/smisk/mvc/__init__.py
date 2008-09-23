@@ -19,6 +19,21 @@ application = None
 request = None
 response = None
 
+def branch():
+  """Return the name of the current branch. Defaults to 'stable'.
+  
+  Returns the ``SMISK_BRANCH`` environment value if available,
+  otherwise returns the string 'stable'.
+  
+  :returns: Name of the current branch.
+  :rtype: string
+  """
+  try:
+    return os.environ['SMISK_BRANCH']
+  except KeyError:
+    return 'stable'
+
+
 class Response(smisk.core.Response):
   format = None
   '''
@@ -97,7 +112,6 @@ class Application(smisk.core.Application):
   '''
   
   def __init__(self,
-               log_level=logging.INFO,
                autoreload=False,
                etag=None, 
                router=None,
@@ -105,12 +119,6 @@ class Application(smisk.core.Application):
                *args, **kwargs):
     self.response_class = Response
     super(Application, self).__init__(*args, **kwargs)
-    
-    logging.basicConfig(
-      level=log_level,
-      format = '%(levelname)-8s %(name)-20s %(message)s',
-      datefmt = '%d %b %H:%M:%S'
-    )
     
     self.etag = etag
     self.autoreload = autoreload
@@ -125,6 +133,39 @@ class Application(smisk.core.Application):
     else:
       self.templates = templates
   
+  def autoload_configuration(self, config_mod_name='config'):
+    import imp
+    path = os.path.join(os.environ['SMISK_APP_DIR'], config_mod_name)
+    locs = {'app': self}
+    if not os.path.exists(path):
+      log.info('No configuration found -- no %s module in application.', config_mod_name)
+      return
+    if os.path.isdir(path):
+      execfile(os.path.join(path, '__init__.py'), globals(), locs)
+      log.info('Loaded configuration from module %r', config_mod_name)
+      path = os.path.join(path, '%s.py' % branch())
+      if os.path.exists(path):
+        execfile(path, globals(), locs)
+        log.info('Loaded configuration (for %r branch) from module %s.%s',
+                 branch(), config_mod_name, branch())
+      else:
+        log.debug('No configuration found for active branch (%s) -- '\
+                  'no %s module in application.', branch(), branch_mod_name)
+    return
+    
+    locs = {'app': self}
+    try:
+      __import__(config_mod_name, globals(), locs)
+      log.info('Loaded application-wide configuration from module %r', config_mod_name)
+      branch_mod_name = '%s.%s' % (config_mod_name, branch())
+      try:
+        __import__(branch_mod_name, globals(), locs)
+        log.info('Loaded application configuration for %s branch from module %r', branch(), branch_mod_name)
+      except ImportError:
+        log.debug('No configuration found for active branch (%r). '\
+                 'No module %r in your application.', branch(), branch_mod_name)
+    except ImportError:
+      log.info('No configuration found. No module %r in your application.', config_mod_name)
   
   def application_will_start(self):
     # Make sure the router has a reference to to app
@@ -178,6 +219,18 @@ class Application(smisk.core.Application):
     log.info('Accepting connections')
   
   
+  def default_serializer(self):
+    """Return the default serializer.
+    
+    If even the default format can not be used, the first registered
+    serializer is returned.
+    """
+    try:
+      return serializers.extensions[self.default_format]
+    except KeyError:
+      return serializers.first_in
+  
+  
   def response_serializer(self):
     '''
     Return the most appropriate serializer for handling response encoding.
@@ -205,17 +258,25 @@ class Application(smisk.core.Application):
       filename = os.path.basename(self.request.url.path)
       p = filename.rfind('.')
       if p != -1:
-        ext = filename[p+1:]
-        if ext in serializers.extensions.keys():
+        ext = filename[p+1:].lower()
+        if log.level <= logging.DEBUG:
+          log.debug('Client asked for format %r', ext)
+        try:
           return serializers.extensions[ext]
+        except KeyError:
+          raise http.NotAcceptable()
     
     # Try media type
     default_serializer = None
     accept_types = self.request.env.get('HTTP_ACCEPT', None)
-    if accept_types is not None:
+    if accept_types is not None and len(accept_types):
+      if log.level <= logging.DEBUG:
+        log.debug('Client accepts: %r', accept_types)
       available_types = serializers.media_types.keys()
       vv = []
       highq = []
+      partials = []
+      accept_any = False
       for media in accept_types.split(','):
         p = media.find(';')
         if p != -1:
@@ -227,24 +288,41 @@ class Application(smisk.core.Application):
             if q == 100:
               highq.append(media)
             continue
+        # No qvalue; we use three classes: any (q=0), partial (q=50) and complete (q=100)
         qual = 100
         if media == '*/*':
           qual = 0
-        elif '/*' in media:
-          qual = 50
+          accept_any = True
         else:
-          highq.append(media)
+          if media.endswith('/*'):
+            partial = media[:-2]
+            if not partial:
+              continue
+            qual = 50
+            partials.append(partial) # remove last char '*'
+          else:
+            highq.append(media)
         vv.append([media, qual])
-      vv.sort(lambda a,b: b[1] - a[1])
-      default_serializer = serializers.extensions.get(self.default_format, None)
+      default_serializer = self.default_serializer()
+      # If the default serializer exists in the highest quality accept types, return it
       if default_serializer.media_type in highq:
         return default_serializer
+      # Find a serializer matching any accept type, ordered by qvalue
+      vv.sort(lambda a,b: b[1] - a[1])
       for v in vv:
-        if v[0] in available_types:
-          return serializers.media_types[v[0]]
+        t = v[0]
+        if t in available_types:
+          return serializers.media_types[t]
+      # Test partials
+      for t, serializer in serializers.media_types.items():
+        if t[:t.find('/', 0)] in partials:
+          return serializer
+      # The client does not accept */* so respond with 406
+      if not accept_any:
+        raise http.NotAcceptable()
     
-    # Default serializer (Worst case scenario: return None)
-    return default_serializer
+    # Return the default serializer if the client did not specify any acceptable types
+    return self.default_serializer()
   
   
   def parse_request(self):
@@ -275,7 +353,8 @@ class Application(smisk.core.Application):
           if eparams is not None:
             params.update(eparams)
         else:
-          log.info('No serializer found for request type "%s"', content_type)
+          log.error('No serializer found for request type %r -- unable to parse request', content_type)
+          raise http.HTTPExc(http.UnsupportedMediaType)
     
     return (args, params)
   
@@ -318,10 +397,6 @@ class Application(smisk.core.Application):
       return template.render_unicode(**rsp).encode(encoding)
     
     # If we do not have a template, we use a standard serializer
-    if self.serializer is None:
-      self.serializer = self.response_serializer()
-      if self.serializer is None:
-        raise Exception('no serializer available')
     return self.serializer.encode(**rsp)
   
   
@@ -362,12 +437,18 @@ class Application(smisk.core.Application):
     if log.level <= logging.INFO:
       timer = Timer()
     
-    # Reset response serializer, as it's used in error()
-    self.serializer = None
+    # Reset pre-transaction properties
     self.response.format = None
     self.response.status = http.OK
     self.destination = None
     self.template = None
+    
+    # Aquire response serializer.
+    # We do this here already, because if response_serializer() raises and
+    # exception, we do not want any action to be performed. If we would do this
+    # after calling an action, chances are an important answer gets replaced by
+    # an error response, like 406 Not Acceptable.
+    self.serializer = self.response_serializer()
     
     # Parse request (and decode if needed)
     req_args, req_params = self.parse_request()
@@ -396,9 +477,7 @@ class Application(smisk.core.Application):
       timer.finish()
       uri = None
       if self.destination is not None:
-        uri = '.'.join(self.destination.path)
-        if self.serializer is not None:
-          uri += ':' + self.serializer.extension
+        uri = '%s:%s' % ('.'.join(self.destination.path), self.serializer.extension)
       else:
         uri = self.request.url.to_s(scheme=0, user=0, password=0, host=0, port=0)
       log.info('Processed %s in %.3fms', uri, timer.time()*1000.0)
@@ -409,8 +488,6 @@ class Application(smisk.core.Application):
   
   
   def template_uri_for_path(self, path):
-    if self.serializer is None:
-      self.serializer = self.response_serializer()
     return path + '.' + self.serializer.extension
   
   
@@ -435,40 +512,47 @@ class Application(smisk.core.Application):
       else:
         log.warn('Request failed for %r -- %s: %s', self.request.url.path, typ.__name__, val)
       
-      # Try to use a serializer
-      if self.serializer is None:
-        try:
-          self.serializer = self.response_serializer()
-        except:
-          pass
+      # Ony perform the following block if status type has a body
+      if status.has_body:
+        
+        # Try to use a serializer
+        if self.serializer is None:
+          try:
+            self.serializer = self.response_serializer()
+          except:
+            self.serializer = self.default_serializer()
       
-      # Set format if a serializer was found
-      if self.serializer is not None:
+        # Set format if a serializer was found
         format = self.serializer.extension
       
-      # HTTP exception has a bound action we want to call
-      if isinstance(val, http.HTTPExc):
-        params = val(self)
+        # HTTP exception has a bound action we want to call
+        if isinstance(val, http.HTTPExc):
+          params = val(self)
       
-      # Try to use templating or serializer
-      rsp = self.templates.render_error(status, format, params, typ, val, tb)
-      if rsp is None and self.serializer is not None:
-        if not params or type(params) is not DictType:
-          params = {'code': status.code, 'message': status.name}
-        rsp = self.serializer.encode_error(status, params, typ, val, tb)
+        # Try to use templating or serializer
+        rsp = self.templates.render_error(status, format, params, typ, val, tb)
+        if rsp is None:
+          if not params or type(params) is not DictType:
+            params = {'code': status.code, 'message': status.name}
+          rsp = self.serializer.encode_error(status, params, typ, val, tb)
+      else:
+        rsp = ''
       
       # Send response
       if rsp is not None:
         # Set headers
         if not self.response.has_begun:
-          if self.response.find_header('Content-Length:') == -1:
+          if status.has_body and self.response.find_header('Content-Length:') == -1:
             self.response.headers.append('Content-Length: %d' % len(rsp))
           if status.is_error and self.response.find_header('Cache-Control:') == -1:
             self.response.headers.append('Cache-Control: no-cache')
-          if self.serializer is not None:
+          if status.has_body:
             self.serializer.add_content_type_header(self.response)
+        
         # Write body (and send headers if not yet sent)
-        self.response.write(rsp)
+        if status.has_body and len(rsp):
+          self.response.write(rsp)
+        
         # We're done.
         return
       
@@ -505,15 +589,23 @@ def main(app=None, appdir=None, *args, **kwargs):
   :param appdir:  Path to the applications base directory.
   :type  appdir:  string
   :rtype: None'''
-  # Make sure SMISK_APP_DIR is set correctly
-  if 'SMISK_APP_DIR' not in os.environ:
-    if appdir is None:
-      try:
-        appdir = os.path.abspath(os.path.dirname(sys.modules['__main__'].__file__))
-      except:
-        appdir = os.path.abspath('.')
-    os.environ['SMISK_APP_DIR'] = appdir
   try:
+    # Make sure SMISK_APP_DIR is set correctly
+    if 'SMISK_APP_DIR' not in os.environ:
+      if appdir is None:
+        try:
+          appdir = os.path.abspath(os.path.dirname(sys.modules['__main__'].__file__))
+        except:
+          appdir = os.path.abspath('.')
+      os.environ['SMISK_APP_DIR'] = appdir
+    
+    # Simpler branch() function
+    global branch
+    os.environ['SMISK_BRANCH'] = branch()
+    def unsafe_branch():
+      return os.environ['SMISK_BRANCH']
+    branch = unsafe_branch
+    
     # Aquire app
     if app is None:
       app = Application.current()
@@ -525,6 +617,9 @@ def main(app=None, appdir=None, *args, **kwargs):
       app = app(*args, **kwargs)
     elif not isinstance(app, smisk.core.Application):
       raise ValueError('app is not an instance of smisk.core.Application')
+    
+    # Load config
+    app.autoload_configuration()
     
     # Bind
     if len(sys.argv) > 1:

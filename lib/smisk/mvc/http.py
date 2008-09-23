@@ -18,9 +18,10 @@ class HTTPExc(Exception):
   
 
 class Status(object):
-  def __init__(self, code, name):
+  def __init__(self, code, name, has_body=True):
     self.code = code
     self.name = name
+    self.has_body = has_body
     STATUS[code] = self
   
   def __call__(self, *args, **kwargs):
@@ -29,7 +30,8 @@ class Status(object):
   def service(self, app, *args, **kwargs):
     app.response.status = self
     app.response.headers = ['Status: %s' % self] # clear any previous headers
-    return {'code': self.code, 'message': self.name, 'http_error': True}
+    if self.has_body:
+      return {'code': self.code, 'message': self.name, 'http_error': True}
   
   @property
   def is_error(self):
@@ -44,7 +46,9 @@ class Status(object):
 
 
 class Status300(Status):
-  def service(self, app, url, *args, **kwargs):
+  def service(self, app, url=None, *args, **kwargs):
+    if url is None:
+      raise Exception('Status300 requires a 3:rd argument "url"')
     rsp = Status.service(self, app)
     app.response.headers.append('Location: ' + normalize_url(url))
     rsp['message'] = 'The resource has moved to %s' % url
@@ -52,9 +56,20 @@ class Status300(Status):
   
 
 class Status404(Status):
-  def service(self, app, url, *args, **kwargs):
+  def service(self, app, *args, **kwargs):
     rsp = Status.service(self, app)
     rsp['message'] = 'No resource exists at %s' % app.request.url.path
+    return rsp
+  
+
+class StatusNotAcceptable(Status):
+  def service(self, app, *args, **kwargs):
+    rsp = Status.service(self, app)
+    from smisk.serialization import serializers
+    # Note: Lighttpd 1.4 is confirmed not to send any body, so this will never be sent
+    #       If running in lighttpd 1.4. The specification of this HTTP 1.1 status code
+    #       is somewhat vauge but we interpret it as being able to contain a body.
+    rsp['message'] = 'Acceptable types: %s' % ', '.join(serializers.media_types.keys())
     return rsp
   
 
@@ -80,7 +95,7 @@ TemporaryRedirect            = Status300(307, "Temporary Redirect")
 
 BadRequest                   = Status(400, "Bad Request")
 Unauthorized                 = Status(401, "Unauthorized")
-PaymentRequired              = Status(402, "Payment Required")
+PaymentRequired              = Status(402, "Payment Required", False)
 Forbidden                    = Status(403, "Forbidden")
 NotFound                     = Status404(404, "Not Found")
 
@@ -88,17 +103,17 @@ ControllerNotFound           = Status404(404, "Not Found")
 MethodNotFound               = Status404(404, "Not Found")
 TemplateNotFound             = Status404(404, "Not Found")
 
-MethodNotAllowed             = Status(405, "Method Not Allowed")
-NotAcceptable                = Status(406, "Not Acceptable")
-ProxyAuthenticationRequired  = Status(407, "Proxy Authentication Required")
-RequestTimeout               = Status(408, "Request Time-out")
-Conflict                     = Status(409, "Conflict")
-Gone                         = Status(410, "Gone")
+MethodNotAllowed             = Status(405, "Method Not Allowed", False)
+NotAcceptable                = StatusNotAcceptable(406, "Not Acceptable", False)
+ProxyAuthenticationRequired  = Status(407, "Proxy Authentication Required", False)
+RequestTimeout               = Status(408, "Request Time-out", False)
+Conflict                     = Status(409, "Conflict", False)
+Gone                         = Status(410, "Gone", False)
 LengthRequired               = Status(411, "Length Required")
 PreconditionFailed           = Status(412, "Precondition Failed")
 RequestEntityTooLarge        = Status(413, "Request Entity Too Large")
 RequestURITooLarge           = Status(414, "Request-URI Too Large")
-UnsupportedMediaType         = Status(415, "Unsupported Media Type")
+UnsupportedMediaType         = Status(415, "Unsupported Media Type", False)
 RequestedRangeNotSatisfiable = Status(416, "Requested range not satisfiable")
 ExpectationFailed            = Status(417, "Expectation Failed")
 

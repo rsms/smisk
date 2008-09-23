@@ -8,6 +8,9 @@ except ImportError:
 
 
 class Serializers(object):
+  first_in = None
+  """First registered serializer"""
+  
   def __init__(self):
     self.media_types = {}
     self.extensions = {}
@@ -20,6 +23,8 @@ class Serializers(object):
     self.extensions[cls.extension] = cls
     for ext in additional_extensions:
       self.extensions[ext] = cls
+    if self.first_in is None:
+      self.first_in = cls
   
   def values(self):
     return self.media_types.values()

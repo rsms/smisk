@@ -11,6 +11,9 @@ import http, control
 
 log = logging.getLogger(__name__)
 
+def _prep_path(path):
+  return path.rstrip('/').lower()
+
 class Destination(object):
   '''A callable destination.'''
   
@@ -45,10 +48,10 @@ class Destination(object):
   
 
 
-class RegExpDestination(Destination):
-  def __init__(self, regexp, action, match_on_full_url=False, **params):
-    super(RegExpDestination, self).__init__(action)
-    self.pattern = regexp
+class Filter(object):
+  def __init__(self, pattern, destination_path, match_on_full_url=False, **params):
+    self.pattern = pattern
+    self.destination_path = _prep_path(destination_path)
     self.match_on_full_url = match_on_full_url
     self.params = params
   
@@ -112,30 +115,33 @@ class Router(object):
   
   def __init__(self):
     self.cache = {}
-    self.mappings = []
+    self.filters = []
   
-  def map(self, regexp, action, regexp_flags=re.I, match_on_full_url=False, **params):
+  def filter(self, regexp, destination_path, regexp_flags=re.I, match_on_full_url=False, **params):
     '''Explicitly map an action to paths or urls matching regular expression `regexp`.
     
     Excessive keyword arguments are saved and later included in every call to
     action taking this route.
     
-    :param regexp:
-    :type  regexp: re.RegExp
-    :param action:
-    :type  action: callable
-    :param regexp_flags: Defaults to ``re.I`` (case-insensitive)
-    :type  regexp_flags: int
+    :param regexp:            Pattern
+    :type  regexp:            re.RegExp
+    :param destination_path:  Path to action, expressed in internal canonical form.
+                              i.e. "/controller/action".
+    :type  destination_path:  string
+    :param regexp_flags:      Defaults to ``re.I`` (case-insensitive)
+    :type  regexp_flags:      int
     :param match_on_full_url: Where there or not to perform matches on complete
-      URL (i.e. "https://foo.tld/bar?question=2"). Defauts to False (i.e. 
-      matches on path only. "/bar")
+                              URL (i.e. "https://foo.tld/bar?question=2").
+                              Defauts to False (i.e.matches on path only. "/bar")
     :type  match_on_full_url: bool
     :rtype: None'''
     if not isinstance(regexp_flags, int):
       regexp_flags = 0
-    self.mappings.append(RegExpDestination(re.compile(regexp, regexp_flags), 
-                                           action, match_on_full_url, 
-                                           **params))
+    pattern = re.compile(regexp, regexp_flags)
+    filter = Filter(pattern, destination_path, match_on_full_url, **params)
+    self.filters.append(filter)
+    return filter
+  
   
   def __call__(self, url, args, params):
     '''
@@ -147,31 +153,33 @@ class Router(object):
              `dest` might be none if no route to destination.
     :rtype: tuple
     '''
-    raw_url = str(url).rstrip('/').lower()
-    
-    # Cached?
-    if raw_url in self.cache:
-      dest = self.cache[raw_url]
-      return dest, args, params
-    
-    log.debug('Resolving %s', url)
-    
     # Explicit mapping? (never cached)
-    for dest in self.mappings:
-      dargs, dparams = dest.match(url)
+    for filter in self.filters:
+      dargs, dparams = filter.match(url)
       if dargs is not None:
         dargs.extend(args)
         dparams.update(params)
-        return dest, dargs, dparams
+        return self._resolve(filter.destination_path, dargs, dparams)
+    
+    return self._resolve(_prep_path(url.path), args, params)
+  
+  
+  def _resolve(self, raw_path, args, params):
+    # Cached?
+    if raw_path in self.cache:
+      dest = self.cache[raw_path]
+      return dest, args, params
+    
+    log.debug('Resolving %s', raw_path)
     
     # Tokenize path
-    path = tokenize_path(url.path)
+    path = tokenize_path(raw_path)
     node = control.root_controller()
     
     # Check root
     if node is None:
       e = http.ControllerNotFound('No root controller could be found')
-      self.cache[raw_url] = wrap_exc_in_callable(e)
+      self.cache[raw_path] = wrap_exc_in_callable(e)
       raise e
     
     # Special case: empty path == root.__call__
@@ -180,11 +188,11 @@ class Router(object):
         node = node().__call__
         log.debug('Found destination: %s', node)
         dest = Destination(node)
-        self.cache[raw_url] = dest
+        self.cache[raw_path] = dest
         return dest, args, params
       except AttributeError:
         e = http.MethodNotFound('/')
-        self.cache[raw_url] = wrap_exc_in_callable(e)
+        self.cache[raw_path] = wrap_exc_in_callable(e)
         raise e
     
     # Traverse tree
@@ -219,7 +227,7 @@ class Router(object):
       else:
         # Not found
         e = http.MethodNotFound('/'.join(path))
-        self.cache[raw_url] = wrap_exc_in_callable(e)
+        self.cache[raw_path] = wrap_exc_in_callable(e)
         raise e
     
     # Did we hit a class/type at the end? If so, get its instance.
@@ -230,12 +238,12 @@ class Router(object):
       except AttributeError:
         # Uncallable leaf
         e = http.MethodNotFound('/'.join(path))
-        self.cache[raw_url] = wrap_exc_in_callable(e)
+        self.cache[raw_path] = wrap_exc_in_callable(e)
         raise e
     
     log.debug('Found destination: %s', node)
     dest = Destination(node)
-    self.cache[raw_url] = dest
+    self.cache[raw_path] = dest
     return dest, args, params
   
 
