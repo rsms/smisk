@@ -20,9 +20,8 @@ class Serializer(BaseSerializer):
   >>> import pickle, urllib
   >>> print pickle.load(urllib.urlopen("http://localhost:8080/.pickle?hello=123"))
   '''
-  extension = 'pickle'
-  media_type = 'application/x-python-pickle'
-  encoding = None
+  extensions = ('pickle',)
+  media_types = ('application/x-python-pickle', 'application/x-pickle')
   
   @classmethod
   def encode(cls, **params):
@@ -49,4 +48,4 @@ class Serializer(BaseSerializer):
       return ((st,), None)
   
 
-serializers.register(Serializer, ['application/x-pickle'])
+serializers.register(Serializer)

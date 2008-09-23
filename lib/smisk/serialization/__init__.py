@@ -15,14 +15,19 @@ class Serializers(object):
     self.media_types = {}
     self.extensions = {}
   
-  def register(self, cls, additional_media_types=[], additional_extensions=[]):
+  def register(self, cls):
     '''Register a new serializer class'''
-    self.media_types[cls.media_type] = cls
-    for t in additional_media_types:
+    # Register Media types
+    for t in cls.media_types:
+      if cls.media_type is None:
+        cls.media_type = t
       self.media_types[t] = cls
-    self.extensions[cls.extension] = cls
-    for ext in additional_extensions:
+    # Register extensions/formats
+    for ext in cls.extensions:
+      if cls.extension is None:
+        cls.extension = ext
       self.extensions[ext] = cls
+    # Set first_in
     if self.first_in is None:
       self.first_in = cls
   
@@ -40,22 +45,49 @@ class BaseSerializer(object):
   '''
   
   extension = None
-  '''Filename extension'''
-  
-  media_type = 'application/octet-stream'
   '''
-  MIME type of output.
+  Primary filename extension.
   
-  Should not include charset.
+  This is set by Serializers.register. You should define your types in `media_types`.
+  
+  :type: string'''
+  
+  media_type = None
+  '''
+  Primary media type.
+  
+  This is set by Serializers.register. You should define your types in `media_types`.
   
   Serializers register themselves in the module-level dictionary `serializers`
   for any MIME types they can handle. This directive, mime_type, is only used
   for output.
+  
+  :type: string
+  '''
+  
+  extensions = tuple()
+  '''
+  Filename extensions this serializer can handle.
+  
+  The first item will be assigned to `extension` and used as primary extension.
+  
+  :type: collection
+  '''
+  
+  media_types = tuple()
+  '''
+  Media types this serializer can handle.
+  
+  The first item will be assigned to `media_type` and used as primary media type.
+  
+  :type: collection
   '''
   
   encoding = None
   '''
-  Preferred character encoding
+  Preferred character encoding.
+  
+  :type: string
   '''
   
   @classmethod

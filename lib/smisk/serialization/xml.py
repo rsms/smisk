@@ -65,8 +65,8 @@ def encode_sequence(l, buf, level):
 class Serializer(BaseSerializer):
   '''XML serializer'''
   
-  extension = 'xml'
-  media_type = 'text/xml'
+  extensions = ('xml',)
+  media_types = ('text/xml',)
   encoding = 'utf-8'
   
   @classmethod

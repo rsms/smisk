@@ -8,8 +8,8 @@ from xmlrpclib import dumps, loads, Fault
 class Serializer(BaseSerializer):
   '''XML-RPC serializer'''
   
-  extension = 'xmlrpc'
-  media_type = 'application/rpc+xml'
+  extensions = ('xmlrpc',)
+  media_types = ('application/rpc+xml', 'application/xml-rpc+xml')
   encoding = 'utf-8'
   
   @classmethod
@@ -39,4 +39,4 @@ class Serializer(BaseSerializer):
     return (args, kwargs)
   
 
-serializers.register(Serializer, ['application/xml-rpc+xml'])
+serializers.register(Serializer)

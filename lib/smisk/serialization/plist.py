@@ -70,8 +70,8 @@ def encode_sequence(l, buf, level):
 class Serializer(BaseSerializer):
   '''XML Property list serializer'''
   
-  extension = 'plist'
-  media_type = 'application/plist+xml'
+  extensions = ('plist',)
+  media_types = ('application/plist+xml',)
   encoding = 'utf-8'
   
   @classmethod

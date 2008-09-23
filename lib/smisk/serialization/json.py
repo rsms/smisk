@@ -16,8 +16,8 @@ except ImportError:
 
 class Serializer(BaseSerializer):
   '''JSON Serializer'''
-  extension = 'json'
-  media_type = 'application/json'
+  extensions = ('json',)
+  media_types = ('application/json', 'application/x-json')
   encoding = 'utf-8'
     
   @classmethod
@@ -42,5 +42,5 @@ class Serializer(BaseSerializer):
 
 # Don't register if we did not find a json implementation
 if encode is not None:
-  serializers.register(Serializer, ['application/x-json'])
+  serializers.register(Serializer)
 

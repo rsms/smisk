@@ -307,25 +307,30 @@ class Application(smisk.core.Application):
         vv.append([media, qual])
       default_serializer = self.default_serializer()
       # If the default serializer exists in the highest quality accept types, return it
-      if default_serializer.media_type in highq:
-        return default_serializer
+      for t in default_serializer.media_types:
+        if t in highq:
+          return default_serializer
       # Find a serializer matching any accept type, ordered by qvalue
       vv.sort(lambda a,b: b[1] - a[1])
       for v in vv:
         t = v[0]
         if t in available_types:
           return serializers.media_types[t]
+      # Accepts */* which is far more common than accepting partials, so we test this here
+      # and simply return default_serializer if the client accepts anything.
+      if accept_any:
+        return default_serializer
       # If the default serializer matches any partial, return it (the likeliness of 
       # this happening is so small we wait until now)
-      if default_serializer.media_type[:default_serializer.media_type.find('/', 0)] in partials:
-        return default_serializer
+      for t in default_serializer.media_types:
+        if t[:t.find('/', 0)] in partials:
+          return default_serializer
       # Test the rest of the partials
       for t, serializer in serializers.media_types.items():
         if t[:t.find('/', 0)] in partials:
           return serializer
-      # The client does not accept */* so respond with 406
-      if not accept_any:
-        raise http.NotAcceptable()
+      # The client does not accept anything we have to offser, so respond with 406
+      raise http.NotAcceptable()
     
     # Return the default serializer if the client did not specify any acceptable types
     return self.default_serializer()

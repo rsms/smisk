@@ -67,8 +67,8 @@ def encode_sequence(l, buf, level):
 
 class Serializer(BaseSerializer):
   '''Plain Text serializer.'''
-  extension = 'txt'
-  media_type = 'text/plain'
+  extensions = ('txt',)
+  media_types = ('text/plain',)
   encoding = 'utf-8'
   
   @classmethod

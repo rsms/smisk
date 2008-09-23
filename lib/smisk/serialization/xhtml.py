@@ -22,8 +22,8 @@ def doc(title, body):
 
 class Serializer(BaseSerializer):
   '''XHTML Serializer'''
-  extension = 'html'
-  media_type = 'application/xhtml+xml'
+  extensions = ('html',)
+  media_types = ('application/xhtml+xml', 'text/html')
   encoding = 'utf-8'
     
   @classmethod
@@ -48,4 +48,4 @@ class Serializer(BaseSerializer):
                % (xml_escape(status), xml_escape(message))])
   
 
-serializers.register(Serializer, ['text/html'])
+serializers.register(Serializer)
