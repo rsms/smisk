@@ -244,6 +244,9 @@ PyObject *smisk_Application_run(smisk_Application *self) {
         Py_DECREF(tb);
         if (err_ret != NULL) {
           Py_DECREF(err_ret);
+          smisk_Response_finish(self->response);
+          if (PyErr_Occurred())
+            PyErr_Clear();
         }
         else {
           // Exit run loop if sending the error failed
