@@ -315,7 +315,11 @@ class Application(smisk.core.Application):
         t = v[0]
         if t in available_types:
           return serializers.media_types[t]
-      # Test partials
+      # If the default serializer matches any partial, return it (the likeliness of 
+      # this happening is so small we wait until now)
+      if default_serializer.media_type[:default_serializer.media_type.find('/', 0)] in partials:
+        return default_serializer
+      # Test the rest of the partials
       for t, serializer in serializers.media_types.items():
         if t[:t.find('/', 0)] in partials:
           return serializer
