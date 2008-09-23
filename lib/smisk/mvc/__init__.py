@@ -133,6 +133,7 @@ class Application(smisk.core.Application):
     else:
       self.templates = templates
   
+  
   def autoload_configuration(self, config_mod_name='config'):
     import imp
     path = os.path.join(os.environ['SMISK_APP_DIR'], config_mod_name)
@@ -166,6 +167,7 @@ class Application(smisk.core.Application):
                  'No module %r in your application.', branch(), branch_mod_name)
     except ImportError:
       log.info('No configuration found. No module %r in your application.', config_mod_name)
+  
   
   def application_will_start(self):
     # Make sure the router has a reference to to app
