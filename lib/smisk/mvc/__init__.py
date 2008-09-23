@@ -151,7 +151,7 @@ class Application(smisk.core.Application):
                  branch(), config_mod_name, branch())
       else:
         log.debug('No configuration found for active branch (%s) -- '\
-                  'no %s module in application.', branch(), branch_mod_name)
+                  'no %s.%s module in application.', branch(), config_mod_name, branch())
     return
     
     locs = {'app': self}
@@ -641,5 +641,17 @@ def main(app=None, appdir=None, *args, **kwargs):
   except SystemExit:
     raise
   except:
-    log.critical('died from:', exc_info=True)
+    try:
+      log.critical('died from:', exc_info=True)
+    except:
+      pass
+    try:
+      f = open(os.path.join(os.environ['SMISK_APP_DIR'], 'error.log'), 'a')
+      try:
+        from traceback import print_exc
+        print_exc(-1, f)
+      finally:
+        f.close()
+    except:
+      pass
     sys.exit(1)
