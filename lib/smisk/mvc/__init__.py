@@ -266,7 +266,7 @@ class Application(smisk.core.Application):
         try:
           return serializers.extensions[ext]
         except KeyError:
-          raise http.NotAcceptable()
+          raise http.NotFound()
     
     # Try media type
     default_serializer = None
