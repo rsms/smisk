@@ -19,10 +19,4 @@ class root(Controller):
 
 
 if __name__ == '__main__':
-  Templates.errors = {404: 'errors/404'}
-  app = Application(
-    log_level=logging.DEBUG,
-    autoreload=True
-  )
-  app.routes.map(r'^/docs/(?P<article>.+)', root().docs)
-  main(app)
+  main()
