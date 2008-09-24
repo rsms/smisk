@@ -6,8 +6,6 @@ from smisk.serialization import serializers, BaseSerializer
 from datetime import datetime
 import re
 
-KEY_SAFE_RE = re.compile(r'^[a-zA-Z0-9_\.]+$')
-
 def encode_value(v, buf, level):
   indent = '  '*level
   if isinstance(v, bool):
@@ -36,10 +34,7 @@ def encode_map(d, buf, level=0):
   ln = len(d)
   i = 1
   for k,v in d.iteritems():
-    if KEY_SAFE_RE.match(k):
-      buf.append('%s%s: ' % (indent, k))
-    else:
-      buf.append('%s%r: ' % (indent, k))
+    buf.append('%s%r: ' % (indent, k))
     encode_value(v, buf, level+1)
     if i < ln:
       buf.append(',\n')
