@@ -7,6 +7,7 @@ XSPF v1.0 serialization.
 import re, logging
 from smisk.serialization import serializers, BaseSerializer
 from smisk.core.xml import escape as xml_escape
+from smisk.util import to_bool
 from xml.dom.minidom import getDOMImplementation, parseString as parse_xml
 
 DOM = getDOMImplementation()
@@ -50,7 +51,7 @@ class Serializer(BaseSerializer):
         root.appendChild(n)
       # else just skip the kv
     pretty_print = params.get('pretty_print', None)
-    if (pretty_print is None and cls.pretty_print) or pretty_print:
+    if (pretty_print is None and cls.pretty_print) or to_bool(pretty_print):
       return doc.toprettyxml('  ', encoding=cls.encoding)
     else:
       return doc.toxml(encoding=cls.encoding)
