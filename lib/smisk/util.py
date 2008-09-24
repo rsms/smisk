@@ -1,5 +1,5 @@
 # encoding: utf-8
-import sys, os, time, threading, thread, logging
+import sys, os, time, threading, thread, logging, imp
 from smisk.core import Application, URL
 
 None2 = (None, None)
@@ -102,6 +102,16 @@ class Timer(object):
     return (self.time() * 1000000) % 1000
   
 
+def to_bool(o):
+  if type(o) in (str, unicode, basestring):
+    try:
+      return int(o)
+    except ValueError:
+      o = o.lower()
+      return o == 'true' or o == 'yes' or o == 'on' or o == 'enabled'
+  else:
+    return o
+
 def wrap_exc_in_callable(exc):
   '''Wrap exc in a anonymous function, for later raising.
   
@@ -133,6 +143,26 @@ def strip_filename_extension(fn):
     return fn[:fn.rindex('.')]
   except:
     return fn
+
+def load_modules_in_dir(path, skip__init__=True):
+  '''Import all modules in a directory.
+  
+  :returns: A list of modules imported
+  :rtype:   list'''
+  loaded = []
+  for f in os.listdir(path):
+    name = strip_filename_extension(f)
+    if skip__init__ and name == '__init__':
+      continue
+    if f[0] != '.' and f[-3:] in ('.py', 'pyc') and f not in loaded:
+      fp, pathname, desc = imp.find_module(name, [path])
+      try:
+        imp.load_module(name, fp, pathname, desc)
+      finally:
+        if fp:
+          fp.close()
+      loaded.append(f)
+  return loaded
 
 def normalize_url(url):
   ''':rtype: string'''
