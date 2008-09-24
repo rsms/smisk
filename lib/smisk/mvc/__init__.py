@@ -173,6 +173,13 @@ class Application(smisk.core.Application):
     # Make sure the router has a reference to to app
     self.routes.app = self
     
+    # Basic config
+    logging.basicConfig(
+      level=logging.WARN,
+      format = '%(levelname)-8s %(name)-20s %(message)s',
+      datefmt = '%d %b %H:%M:%S'
+    )
+    
     # Setup ETag
     if self.etag is not None and isinstance(self.etag, basestring):
       import hashlib
@@ -447,6 +454,7 @@ class Application(smisk.core.Application):
   def service(self):
     if log.level <= logging.INFO:
       timer = Timer()
+      log.info('Serving request for URL %s', request.url)
     
     # Reset pre-transaction properties
     self.response.format = None
