@@ -7,7 +7,7 @@ xspf.Serializer.pretty_print = True
 
 # Logging
 logging.basicConfig(
-  level=logging.DEBUG,
+  level=logging.INFO,
   format = '%(levelname)-8s %(name)-20s %(message)s',
   datefmt = '%d %b %H:%M:%S'
 )

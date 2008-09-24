@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # encoding: utf-8
-import os, logging
 from smisk.mvc import *
 
 class root(Controller):
