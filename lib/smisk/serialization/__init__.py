@@ -1,12 +1,6 @@
 # encoding: utf-8
 '''Data serializers'''
 
-try:
-  from cStringIO import StringIO
-except ImportError:
-  from StringIO import StringIO
-
-
 class Serializers(object):
   first_in = None
   """First registered serializer"""
@@ -140,8 +134,7 @@ class BaseSerializer(object):
         response.headers.append('Content-Type: %s' % cls.media_type)
   
 
-# Load serializers
-import json, xmlrpc, xml, xhtml, plist, text
-
-# Load unstable serializers
-import pickle
+# Load built-in serializers
+import os
+from smisk.util import load_modules_in_dir
+print load_modules_in_dir(os.path.dirname(__file__))
