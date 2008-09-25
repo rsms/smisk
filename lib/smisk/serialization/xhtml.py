@@ -33,8 +33,8 @@ class Serializer(BaseSerializer):
       % (xml_escape(str(k)), xml_escape(str(v))) for k,v in params.items()])
     body.append('</ol>')
     title = 'XHTML response'
-    if Application.current().destination is not None:
-      '/'.join(Application.current().destination.path)
+    if Application.current.destination is not None:
+      '/'.join(Application.current.destination.path)
     return doc(title, body)
   
   @classmethod

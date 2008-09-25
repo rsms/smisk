@@ -169,7 +169,7 @@ def normalize_url(url):
   if url.find('://') == -1:
     # url is actually a path
     path = url
-    url = Application.current().request.url
+    url = Application.current.request.url
     if len(path) == 0:
       path = '/'
     elif path[0] != '/':

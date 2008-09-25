@@ -42,10 +42,13 @@ typedef struct {
 } smisk_Application;
 
 // Current instance (NULL if none)
-extern smisk_Application *smisk_current_app;
+smisk_Application *smisk_Application_current;
 
-// Set error if smisk_current_app is NULL and return -1. Returns 0 when app is available.
+// Set error if smisk_Application_current is NULL and return -1. Returns 0 when app is available.
 int smisk_require_app (void);
+
+// Set Application.current to app. Returns 0 on success, -1 on failure.
+int smisk_Application_set_current (PyObject *app);
 
 // Type setup
 extern PyTypeObject smisk_ApplicationType;
@@ -61,5 +64,8 @@ PyObject *smisk_Application_service (smisk_Application* self, PyObject *args);
 PyObject *smisk_Application_exit    (smisk_Application* self);
 
 PyObject *smisk_Application_get_sessions (smisk_Application* self);
+
+// Get/setter for Application.current
+
 
 #endif

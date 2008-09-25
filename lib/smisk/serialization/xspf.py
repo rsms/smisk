@@ -72,9 +72,9 @@ class Serializer(BaseSerializer):
   @classmethod
   def encode_error(cls, status, params, typ, val, tb):
     from smisk.core import Application
-    app = Application.current()
+    app = Application.current
     if app:
-      identifier = str(Application.current().request.url) + '#'
+      identifier = str(Application.current.request.url) + '#'
     else:
       identifier = 'urn:smisk:'
     identifier += 'error/%d' % status.code

@@ -23,7 +23,7 @@ class MyRequest(Request):
 
 class MyResponse(Response):
   def redirect_to_path(self, path):
-    url = Application.current().request.url
+    url = Application.current.request.url
     include_port = True
     if url.port == 80:
       include_port = False

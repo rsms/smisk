@@ -587,7 +587,7 @@ def main(app=None, appdir=None, *args, **kwargs):
   '''Helper for running an application.
   
   If `app` is not provided or None, app will be aquired by calling
-  ``Application.current()`` if there is an application. Otherwise, a new
+  ``Application.current`` if there is an application. Otherwise, a new
   application instance of default type is created and in which case any extra
   args and kwargs are passed to it's __init__.
   
@@ -627,7 +627,7 @@ def main(app=None, appdir=None, *args, **kwargs):
     
     # Aquire app
     if app is None:
-      app = Application.current()
+      app = Application.current
       if app is None:
         app = Application(*args, **kwargs)
     elif type(app) is type:

@@ -75,7 +75,7 @@ class Autoreloader(Monitor):
             self.thread.cancel()
             self.log.debug("Stopped autoreload monitor (thread %r)", self.thread.getName())
             import smisk.core
-            smisk.core.Application.current().exit()
+            smisk.core.Application.current.exit()
             return
   
 

@@ -144,8 +144,8 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
   char *server = NULL;
-  if (smisk_current_app)
-    server = FCGX_GetParam( "SERVER_SOFTWARE", smisk_current_app->request->envp );
+  if (smisk_Application_current)
+    server = FCGX_GetParam( "SERVER_SOFTWARE", smisk_Application_current->request->envp );
   
   if (server == NULL)
     server = "unknown server software";
@@ -191,20 +191,20 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
   EXTERN_OP_START;
   
   // Set session cookie?
-  if (smisk_current_app->request->session_id && (smisk_current_app->request->initial_session_hash == 0)) {
+  if (smisk_Application_current->request->session_id && (smisk_Application_current->request->initial_session_hash == 0)) {
     log_debug("New session - sending SID with Set-Cookie: %s=%s;Version=1;Path=/",
-      PyString_AS_STRING(((smisk_SessionStore *)smisk_current_app->sessions)->name),
-      PyString_AS_STRING(smisk_current_app->request->session_id));
+      PyString_AS_STRING(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
+      PyString_AS_STRING(smisk_Application_current->request->session_id));
     // First-time session!
-    if (!PyString_Check(((smisk_SessionStore *)smisk_current_app->sessions)->name)) {
+    if (!PyString_Check(((smisk_SessionStore *)smisk_Application_current->sessions)->name)) {
       PyErr_SetString(PyExc_TypeError, "sessions.name is not a string");
       EXTERN_OP_END;
       return NULL;
     }
-    assert(smisk_current_app->request->session_id);
+    assert(smisk_Application_current->request->session_id);
     FCGX_FPrintF(self->out->stream, "Set-Cookie: %s=%s;Version=1;Path=/\r\n",
-      PyString_AS_STRING(((smisk_SessionStore *)smisk_current_app->sessions)->name),
-      PyString_AS_STRING(smisk_current_app->request->session_id)
+      PyString_AS_STRING(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
+      PyString_AS_STRING(smisk_Application_current->request->session_id)
     );
   }
   

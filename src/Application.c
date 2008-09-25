@@ -34,15 +34,34 @@ THE SOFTWARE.
 
 #pragma mark Public C
 
-smisk_Application *smisk_current_app = NULL;
+smisk_Application *smisk_Application_current = NULL;
 
 int smisk_require_app (void) {
   log_trace("ENTER");
-  if (!smisk_current_app || (smisk_current_app == (smisk_Application *)Py_None)) {
+  if ( (smisk_Application_current == NULL) || (smisk_Application_current == (smisk_Application *)Py_None) ) {
     PyErr_SetString(PyExc_EnvironmentError, "Application not initialized");
     return -1;
   }
   return 0;
+}
+
+// Returns 0 on success, -1 on failure.
+int smisk_Application_set_current (PyObject *app) {
+  PyObject *old = SMISK_PyObject_GET(&smisk_ApplicationType, "current");
+  int st = SMISK_PyObject_SET(&smisk_ApplicationType, "current", app);
+  if (st == -1) {
+    Py_INCREF(Py_None);
+    smisk_Application_current = (smisk_Application *)Py_None;
+    if (SMISK_PyObject_SET(&smisk_ApplicationType, "current", Py_None) == -1) {
+      Py_DECREF(Py_None);
+    }
+  }
+  else {
+    Py_INCREF(app);
+    smisk_Application_current = (smisk_Application *)app;
+  }
+  Py_XDECREF(old);
+  return st;
 }
 
 
@@ -110,7 +129,7 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
     self->show_traceback = Py_True; Py_INCREF(Py_True);
     
     // Application.current = self
-    REPLACE_OBJ(smisk_current_app, self, smisk_Application);
+    smisk_Application_set_current((PyObject *)self);
   }
   
   return (PyObject *)self;
@@ -125,8 +144,8 @@ int smisk_Application_init(smisk_Application *self, PyObject *args, PyObject *kw
 void smisk_Application_dealloc(smisk_Application *self) {
   log_trace("ENTER");
   
-  if (smisk_current_app == self)
-    REPLACE_OBJ(smisk_current_app, Py_None, smisk_Application);
+  if (smisk_Application_current == self)
+    smisk_Application_set_current(Py_None);
   
   Py_DECREF(self->request);
   Py_DECREF(self->response);
@@ -502,17 +521,6 @@ PyObject *smisk_Application_exit(smisk_Application *self) {
 }
 
 
-PyDoc_STRVAR(smisk_Application_current_DOC,
-  "Current application instance, if any.\n"
-  "\n"
-  ":rtype: Application");
-PyObject *smisk_Application_current(void) {
-  log_trace("ENTER");
-  Py_INCREF(smisk_current_app);
-  return (PyObject *)smisk_current_app;
-}
-
-
 #pragma mark -
 #pragma mark Notification methods
 
@@ -615,13 +623,12 @@ PyDoc_STRVAR(smisk_Application_DOC,
   "       self.response.write('<h1>Hello World!</h1>')\n"
   " \n"
   " MyApp().run()\n"
-  "\n");
+  "\n"
+  ":cvar current: Current application instance, if any.\n"
+  ":type current: Application\n");
 
 // Methods
 static PyMethodDef smisk_Application_methods[] = {
-  // Static
-  {"current", (PyCFunction)smisk_Application_current, METH_STATIC|METH_NOARGS, smisk_Application_current_DOC},
-  
   // Instance
   {"run",     (PyCFunction)smisk_Application_run,     METH_NOARGS, smisk_Application_run_DOC},
   {"service", (PyCFunction)smisk_Application_service, METH_VARARGS, smisk_Application_service_DOC},
@@ -720,12 +727,14 @@ PyTypeObject smisk_ApplicationType = {
 
 int smisk_Application_register_types(PyObject *module) {
   log_trace("ENTER");
-  if (smisk_current_app == NULL) {
-    smisk_current_app = (smisk_Application *)Py_None;
+  if (smisk_Application_current == NULL) {
+    smisk_Application_current = (smisk_Application *)Py_None;
     Py_INCREF(Py_None);
   }
   if (PyType_Ready(&smisk_ApplicationType) == 0) {
-    return PyModule_AddObject(module, "Application", (PyObject *)&smisk_ApplicationType);
+    if(PyModule_AddObject(module, "Application", (PyObject *)&smisk_ApplicationType) == 0) {
+      return SMISK_PyObject_SET(&smisk_ApplicationType, "current", smisk_Application_current);
+    }
   }
   return -1;
 }

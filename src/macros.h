@@ -77,6 +77,17 @@ typedef uint8_t byte;
     }\
   }
 
+// Get and set arbitrary attributes of objects.
+// This is the only way to set/get Type/Class properties.
+// Uses the interal function PyObject **_PyObject_GetDictPtr(PyObject *);
+// Returns PyObject * (NULL if an exception was raised)
+#define SMISK_PyObject_GET(PyObject_ptr_type, char_ptr_name) \
+  PyDict_GetItemString(*_PyObject_GetDictPtr((PyObject *)PyObject_ptr_type), char_ptr_name)
+// Returns 0 on success, -1 on failure.
+#define SMISK_PyObject_SET(PyObject_ptr_type, char_ptr_name, PyObject_ptr_value) \
+  PyDict_SetItemString(*_PyObject_GetDictPtr((PyObject *)PyObject_ptr_type), char_ptr_name, (PyObject *)PyObject_ptr_value)
+
+// Set IOError with errno and filename info. Return NULL
 #define PyErr_SET_FROM_ERRNO   PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__)
 
 // Log to stderr
@@ -96,7 +107,7 @@ typedef uint8_t byte;
         log_debug(MOD_IDENT " assert_refcount(%ld, %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test);\
       }\
       assert((o)->ob_refcnt count_test); \
-    } while (0);
+    } while (0)
   #define DUMP_REFCOUNT(o) log_debug(MOD_IDENT " *** %s: %ld", #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
   #define DUMP_REPR(o) \
     do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
@@ -106,7 +117,7 @@ typedef uint8_t byte;
       } else {\
         log_debug(MOD_IDENT " repr(%s) = <NULL>", #o);\
       }\
-    } while (0);
+    } while (0)
 #else
   #define log_debug(fmt, ...) ((void)0)
   #define assert_refcount(o, count_test) 
@@ -116,7 +127,8 @@ typedef uint8_t byte;
 #endif
 
 #if SMISK_TRACE
-  #define log_trace(fmt, ...) fprintf(stderr, MOD_IDENT " TRACE %s:%d in %s " fmt "\n", __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+  #define log_trace(fmt, ...) fprintf(stderr, MOD_IDENT " TRACE %s:%d in %s " fmt "\n", \
+    __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
   #define IFTRACE(x) x
 #else
   #define log_trace(fmt, ...) ((void)0)
