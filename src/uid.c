@@ -22,7 +22,6 @@ THE SOFTWARE.
 #include <arpa/inet.h>
 #include "__init__.h"
 #include "uid.h"
-#include "utils.h"
 #include "sha1.h"
 
 
@@ -55,25 +54,4 @@ int smisk_uid_create(smisk_uid_t *uid, const char *node, size_t node_length) {
   sha1_final(&sha1_ctx, uid->digest);
   
   return 0;
-}
-
-
-PyObject *smisk_uid_format(smisk_uid_t *uid, int nbits) {
-  PyObject *s;
-  switch(nbits) {
-    case 6:
-      s = PyString_FromStringAndSize(NULL, 27);
-      break;
-    case 5:
-      s = PyString_FromStringAndSize(NULL, 32);
-      break;
-    case 4:
-      s = PyString_FromStringAndSize(NULL, 40);
-      break;
-    default:
-      return PyErr_Format(PyExc_ValueError, "Invalid number of bits: %d", nbits);
-  }
-  char *digest_buf = PyString_AS_STRING(s);
-  smisk_encode_bin(uid->digest, 20, digest_buf, nbits);
-  return s;
 }

@@ -70,7 +70,6 @@ PyDoc_STRVAR(smisk_bind_DOC,
   ":rtype: None");
 PyObject *smisk_bind(PyObject *self, PyObject *args) {
   log_trace("ENTER");
-  //int FCGX_OpenSocket(const char *path, int backlog)
   int fd, backlog;
   PyObject *path;
   
@@ -149,7 +148,7 @@ PyObject *smisk_listening(PyObject *self, PyObject *args) {
       htons(((struct sockaddr_in *)addr)->sin_port) );
   }
   else if (addr->sa_family == AF_UNIX) {
-    // This may be a bit risky...
+    // XXX: This may be a bit risky...
     s = PyString_FromString(((struct sockaddr_un *)addr)->sun_path);
   }
   
@@ -163,8 +162,9 @@ PyObject *smisk_listening(PyObject *self, PyObject *args) {
 PyDoc_STRVAR(smisk_uid_DOC,
   "Generate a universal Unique Identifier.\n"
   "\n"
-  "Note: This is not a UUID (ISO/IEC 11578:1996) implementation. However it "
-    "uses an algorithm very similar to UUID v5 (RFC 4122).\n"
+  "Note: This is _not_ a UUID (ISO/IEC 11578:1996) implementation. However it "
+    "uses an algorithm very similar to UUID v5 (RFC 4122). Most notably, the "
+    "format of the output is more compact than that of UUID v5.\n"
   "\n"
   "The UID is calculated like this:\n"
   "\n"
@@ -172,11 +172,15 @@ PyDoc_STRVAR(smisk_uid_DOC,
    "\n"
    "  sha1 ( time.secs, time.usecs, pid, random[, node] )\n"
   "\n"
+  "nbits/length of returned string/characters used for encoding: ``0/20/\"0x00-0xff\", 4/40/\"0-9a-f\", 5/32/\"0-9a-v\", 6/27/\"0-9a-zA-Z,-\"``.\n"
+  "\n"
+  ":See: pack\n"
+  ":param nbits: Number of bits to pack into each byte when creating "
+    "the string representation. A value in the range 4-6 or 0 in which "
+    "case 20 raw bytes are returned. Defaults is 5.\n"
+  ":type  nbits: int\n"
   ":param node: Optional data to be used when creating the uid.\n"
   ":type  node: string\n"
-  ":param nbits: Number of bits to pack into each byte when creating "
-    "the string representation. A value in the range 4-6. Defaults to 5.\n"
-  ":type  nbits: int\n"
   ":rtype: string");
 PyObject *smisk_uid(PyObject *self, PyObject *args) {
   log_trace("ENTER");
@@ -184,10 +188,63 @@ PyObject *smisk_uid(PyObject *self, PyObject *args) {
   int nbits = 5;
   smisk_uid_t uid;
   
-  // node
+  // nbits
   if (PyTuple_GET_SIZE(args) > 0) {
-    node = PyTuple_GET_ITEM(args, 0);
-    if (node == NULL || !PyString_Check(node)) {
+    PyObject *arg = PyTuple_GET_ITEM(args, 0);
+    if (arg != NULL && arg != Py_None) {
+      if (!PyInt_Check(arg)) {
+        PyErr_SetString(PyExc_TypeError, "first argument must be an integer");
+        return NULL;
+      }
+      nbits = (int)PyInt_AS_LONG(arg);
+    }
+  }
+  
+  // node
+  if (PyTuple_GET_SIZE(args) > 1) {
+    node = PyTuple_GET_ITEM(args, 1);
+    if (node == Py_None) {
+      node = NULL;
+    }
+    else if (node == NULL || !PyString_Check(node)) {
+      PyErr_SetString(PyExc_TypeError, "second argument must be a string");
+      return NULL;
+    }
+  }
+  
+  if ((node ? smisk_uid_create(&uid, PyString_AS_STRING(node), PyString_GET_SIZE(node))
+            : smisk_uid_create(&uid, NULL, 0)) == -1) {
+    PyErr_SetString(PyExc_SystemError, "smisk_uid_create() failed");
+    return NULL;
+  }
+  
+  if ( (nbits == 0) || (nbits == -1) )
+    return PyString_FromStringAndSize((const char *)uid.digest, 20);
+  else
+    return smisk_uid_format(&uid, nbits);
+}
+
+
+PyDoc_STRVAR(smisk_pack_DOC,
+  "Pack arbitrary bytes into a printable ASCII string.\n"
+  "\n"
+  "nbits/characters used for encoding: ``4/\"0-9a-f\" (base 16), 5/\"0-9a-v\" (base 32), 6/\"0-9a-zA-Z,-\" (base 64)``.\n"
+  "\n"
+  ":param data:\n"
+  ":type  data:  string\n"
+  ":param nbits: Number of bits to pack into each byte when creating "
+    "the string representation. A value in the range 4-6. Default is 5.\n"
+  ":type  nbits: int\n"
+  ":rtype: string");
+PyObject *smisk_pack(PyObject *self, PyObject *args) {
+  log_trace("ENTER");
+  PyObject *data = NULL;
+  int nbits = 5;
+  
+  // data
+  if (PyTuple_GET_SIZE(args) > 0) {
+    data = PyTuple_GET_ITEM(args, 0);
+    if (data == NULL || !PyString_Check(data)) {
       PyErr_SetString(PyExc_TypeError, "first argument must be a string");
       return NULL;
     }
@@ -205,13 +262,7 @@ PyObject *smisk_uid(PyObject *self, PyObject *args) {
     }
   }
   
-  if ((node ? smisk_uid_create(&uid, PyString_AS_STRING(node), PyString_GET_SIZE(node))
-            : smisk_uid_create(&uid, NULL, 0)) == -1) {
-    PyErr_SetString(PyExc_SystemError, "smisk_uid_create() failed");
-    return NULL;
-  }
-  
-  return smisk_uid_format(&uid, nbits);
+  return smisk_util_pack((const byte *)PyString_AS_STRING(data), PyString_GET_SIZE(data), nbits);
 }
 
 
@@ -221,6 +272,7 @@ static PyMethodDef module_methods[] = {
   {"bind",      (PyCFunction)smisk_bind,       METH_VARARGS, smisk_bind_DOC},
   {"listening", (PyCFunction)smisk_listening,  METH_NOARGS,  smisk_listening_DOC},
   {"uid",       (PyCFunction)smisk_uid,        METH_VARARGS, smisk_uid_DOC},
+  {"pack",      (PyCFunction)smisk_pack,       METH_VARARGS, smisk_pack_DOC},
   {NULL, NULL, 0, NULL}
 };
 

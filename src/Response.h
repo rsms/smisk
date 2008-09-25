@@ -24,7 +24,6 @@ THE SOFTWARE.
 #include <Python.h>
 #include "Stream.h"
 
-//#include <fcgi_config.h>
 #include <fcgiapp.h>
 
 typedef struct {

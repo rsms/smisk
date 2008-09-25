@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 #include <Python.h>
 #include <fcgiapp.h>
+#include "utils.h" /* For smisk_uid_format which expands to smisk_util_pack */
 
 typedef struct {
   byte digest[21];
@@ -31,6 +32,7 @@ typedef struct {
 
 int smisk_uid_create (smisk_uid_t *uid, const char *node, size_t node_length);
 
-PyObject *smisk_uid_format (smisk_uid_t *uid, int nbits);
+#define smisk_uid_format(smisk_uid_t__ptr__uid, int__nbits) \
+  smisk_util_pack((smisk_uid_t__ptr__uid)->digest, 20, (int__nbits))
 
 #endif

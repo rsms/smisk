@@ -251,15 +251,21 @@ char smisk_size_unit (double *bytes) {
 
 
 static char binconvtab[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-";
+// Highest character                       f               v                               -
+// Tokens                               16 chrs         32 chrs                         64 chrs
+// Bits                                 4 bits          5 bits                          6 bits
+//
 
-char *smisk_encode_bin(byte *in, size_t inlen, char *out, char nbits) {
+char *smisk_encode_bin(const byte *in, size_t inlen, char *out, char nbits) {
   byte *p, *q;
   unsigned short w;
   int mask;
   int have;
   
-  p = in;
-  q = in + inlen;
+  assert(nbits < 7);
+  
+  p = (byte *)in;
+  q = p + inlen;
   
   w = 0;
   have = 0;
@@ -286,6 +292,26 @@ char *smisk_encode_bin(byte *in, size_t inlen, char *out, char nbits) {
   
   *out = '\0';
   return out;
+}
+
+
+PyObject *smisk_util_pack (const byte *data, size_t size, int nbits) {
+  PyObject *s;
+  switch(nbits) {
+    case 6:
+      s = PyString_FromStringAndSize(NULL, 27);
+      break;
+    case 5:
+      s = PyString_FromStringAndSize(NULL, 32);
+      break;
+    case 4:
+      s = PyString_FromStringAndSize(NULL, 40);
+      break;
+    default:
+      return PyErr_Format(PyExc_ValueError, "Invalid number of bits: %d", nbits);
+  }
+  smisk_encode_bin(data, size, PyString_AS_STRING(s), nbits);
+  return s;
 }
 
 

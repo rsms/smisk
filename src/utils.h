@@ -64,7 +64,14 @@ char smisk_size_unit (double *bytes);
  * nbits=5: out need to fit 32+1 bytes (base 32) (0-9, a-v)
  * nbits=6: out need to fit 27+1 bytes (base 64) (0-9, a-z, A-Z, "-", ",")
  */
-char *smisk_encode_bin (byte *in, size_t inlen, char *out, char bits_per_byte);
+char *smisk_encode_bin (const byte *in, size_t inlen, char *out, char bits_per_byte);
+
+/**
+ * Pack bytes into printable ASCII characters.
+ * Returns a PyString.
+ * See smisk_encode_bin for more information.
+ */
+PyObject *smisk_util_pack (const byte *data, size_t size, int nbits);
 
 /**
  * @param  list    list
