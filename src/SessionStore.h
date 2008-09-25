@@ -32,7 +32,7 @@ typedef struct {
   
 } smisk_SessionStore;
 
-extern PyTypeObject smisk_SessionStoreType;
+PyTypeObject smisk_SessionStoreType;
 
 int smisk_SessionStore_register_types (PyObject *module);
 

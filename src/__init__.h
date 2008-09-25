@@ -24,17 +24,17 @@ THE SOFTWARE.
 #include <Python.h>
 
 // fcgi socket fd
-extern int smisk_listensock_fileno;
-extern PyObject *os_module;
-extern PyThreadState *smisk_py_thstate;
+int smisk_listensock_fileno;
+PyObject *os_module;
+PyThreadState *smisk_py_thstate;
 
 // static objects at module-level
-extern PyObject *smisk_Error; // extends PyExc_StandardError
-extern PyObject *smisk_IOError; // extends PyExc_IOError
-extern PyObject *smisk_InvalidSessionError; // extends PyExc_ValueError
+PyObject *smisk_Error; // extends PyExc_StandardError
+PyObject *smisk_IOError; // extends PyExc_IOError
+PyObject *smisk_InvalidSessionError; // extends PyExc_ValueError
 
 // Other static strings (only used in C API)
-extern PyObject *kString_http;
-extern PyObject *kString_https;
+PyObject *kString_http;
+PyObject *kString_https;
 
 #endif

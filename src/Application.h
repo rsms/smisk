@@ -44,6 +44,9 @@ typedef struct {
 // Current instance (NULL if none)
 smisk_Application *smisk_Application_current;
 
+// class Application (the Application type object)
+PyTypeObject smisk_ApplicationType;
+
 // Set error if smisk_Application_current is NULL and return -1. Returns 0 when app is available.
 int smisk_require_app (void);
 
@@ -51,7 +54,6 @@ int smisk_require_app (void);
 int smisk_Application_set_current (PyObject *app);
 
 // Type setup
-extern PyTypeObject smisk_ApplicationType;
 int smisk_Application_register_types (PyObject *module);
 
 // Methods

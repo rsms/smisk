@@ -32,7 +32,7 @@ typedef struct {
 } smisk_Stream;
 
 // Type setup
-extern PyTypeObject smisk_StreamType;
+PyTypeObject smisk_StreamType;
 int smisk_Stream_register_types (PyObject *module);
 
 // Methods

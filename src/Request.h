@@ -63,7 +63,7 @@ typedef struct {
 int smisk_Request_reset (smisk_Request* self);
 
 // Type setup
-extern PyTypeObject smisk_RequestType;
+PyTypeObject smisk_RequestType;
 int smisk_Request_register_types(PyObject *module);
 
 // Methods

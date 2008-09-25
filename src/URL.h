@@ -42,8 +42,10 @@ typedef struct {
 size_t smisk_url_decode (char *str, size_t len); // returns (new) length of str
 char *smisk_url_encode (const char *s, int full); // returns a newly allocated string
 
+// class URL (the URL type object)
+PyTypeObject smisk_URLType;
+
 // Type setup
-extern PyTypeObject smisk_URLType;
 int smisk_URL_register_types (PyObject *module);
 
 // Methods
