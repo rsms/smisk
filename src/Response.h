@@ -42,7 +42,7 @@ int smisk_Response_reset (smisk_Response* self); // returns != 0 on error
 int smisk_Response_finish (smisk_Response* self); // returns != 0 on error
 
 // Type setup
-extern PyTypeObject smisk_ResponseType;
+PyTypeObject smisk_ResponseType;
 int smisk_Response_register_types (PyObject *module);
 
 // Methods
