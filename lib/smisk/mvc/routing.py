@@ -32,7 +32,7 @@ class Destination(object):
     '''
     Canonical path.
     
-    :type: list
+    :rtype: list
     '''
     return control.path_to(self.action)
   

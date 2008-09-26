@@ -273,8 +273,8 @@ def list_unique(seq):
   equality-testing.  Then unique() will usually work in quadratic
   time.
   
-  :param s:
-  :type  s: list
+  :param seq:
+  :type  seq: list
   :rtype: list
   '''
   n = len(seq)
