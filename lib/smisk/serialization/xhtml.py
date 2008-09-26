@@ -23,7 +23,7 @@ def doc(title, body):
 class Serializer(BaseSerializer):
   '''XHTML Serializer'''
   extensions = ('html',)
-  media_types = ('application/xhtml+xml', 'text/html')
+  media_types = ('text/html', 'application/xhtml+xml')
   encoding = 'utf-8'
     
   @classmethod
