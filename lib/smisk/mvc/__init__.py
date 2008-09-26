@@ -64,6 +64,9 @@ class Application(smisk.core.Application):
   autoreload = False
   ''':type: bool'''
   
+  show_traceback = False
+  ''':type: bool'''
+  
   etag = None
   '''
   Enables adding an ETag header to all buffered responses.
@@ -116,12 +119,14 @@ class Application(smisk.core.Application):
                etag=None, 
                router=None,
                templates=None,
+               show_traceback=False,
                *args, **kwargs):
     self.response_class = Response
     super(Application, self).__init__(*args, **kwargs)
     
     self.etag = etag
     self.autoreload = autoreload
+    self.show_traceback = show_traceback
     
     if router is None:
       self.routes = Router()
@@ -216,6 +221,8 @@ class Application(smisk.core.Application):
         self.templates.directories = [os.path.join(os.environ['SMISK_APP_DIR'], 'templates')]
       if self.templates.autoreload is None:
         self.templates.autoreload = self.autoreload
+      if self.templates.show_traceback is None:
+        self.templates.show_traceback = self.show_traceback
     
     # Info about serializers
     if log.level <= logging.DEBUG:
@@ -287,6 +294,7 @@ class Application(smisk.core.Application):
       partials = []
       accept_any = False
       for media in accept_types.split(','):
+        media = media.strip(' ')
         p = media.find(';')
         if p != -1:
           pp = media.find('q=', p)
@@ -337,6 +345,7 @@ class Application(smisk.core.Application):
         if t[:t.find('/', 0)] in partials:
           return serializer
       # The client does not accept anything we have to offser, so respond with 406
+      log.info('Client not accepting anything we can speak. "Accept: %s"', accept_types)
       raise http.NotAcceptable()
     
     # Return the default serializer if the client did not specify any acceptable types
@@ -446,6 +455,10 @@ class Application(smisk.core.Application):
         h.update(rsp)
         self.response.headers.append('ETag: "%s"' % h.hexdigest())
     
+    # Debug print
+    if log.level <= logging.DEBUG:
+      self._log_debug_sending_rsp(rsp)
+    
     # Send body
     assert(isinstance(rsp, basestring))
     self.response.write(rsp)
@@ -454,7 +467,7 @@ class Application(smisk.core.Application):
   def service(self):
     if log.level <= logging.INFO:
       timer = Timer()
-      log.info('Serving request for URL %s', request.url)
+      log.info('Serving %s for client %s', request.url, request.env.get('REMOTE_ADDR','?'))
     
     # Reset pre-transaction properties
     self.response.format = None
@@ -515,6 +528,12 @@ class Application(smisk.core.Application):
       log.debug('Looking for template %s', uri)
     return self.templates.template_for_uri(uri, exc_if_not_found=False)
   
+  def _log_debug_sending_rsp(self, rsp):
+    _body = ''
+    if rsp:
+      _body = '<%d bytes>' % len(rsp)
+    log.debug('Sending response to %s: %r', self.request.env.get('REMOTE_ADDR','?'),
+      '\r\n'.join(self.response.headers) + '\r\n\r\n' + _body)
   
   def error(self, typ, val, tb):
     try:
@@ -567,9 +586,15 @@ class Application(smisk.core.Application):
             self.response.headers.append('Cache-Control: no-cache')
           if status.has_body:
             self.serializer.add_content_type_header(self.response)
+          else:
+            rsp = None
+        
+        # Debug print
+        if log.level <= logging.DEBUG:
+          self._log_debug_sending_rsp(rsp)
         
         # Write body (and send headers if not yet sent)
-        if status.has_body and len(rsp):
+        if rsp:
           self.response.write(rsp)
         
         # We're done.

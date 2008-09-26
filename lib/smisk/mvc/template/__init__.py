@@ -29,6 +29,10 @@ mako.filters.xml_escape = smisk.core.xml.escape
 mako.filters.url_escape = URL.encode
 mako.filters.url_unescape = URL.decode
 
+# MSIE error body sizes
+_msie_error_sizes = { 400:512, 403:256, 404:512, 405:256, 406:512, 408:512,
+                      409:512, 410:256, 500:512, 501:512, 505:512}
+
 class Templates(object):
   cache_limit = -1
   '''
@@ -56,9 +60,12 @@ class Templates(object):
   ]
   ''':type: list'''
   
-  show_traceback = True
+  show_traceback = None
   '''
   Include stack traceback in error messages.
+  
+  If this is set to None when `app` starts accepting requests, the application
+  will set the value according to its own show_traceback value.
   
   :type: bool
   '''
