@@ -6,7 +6,7 @@ import http, control
 
 from smisk.core import URL
 from smisk.util import *
-from smisk.serialization import serializers
+from smisk.codec import codecs
 
 from control import Controller
 from model import Entity
@@ -37,7 +37,7 @@ def branch():
 class Response(smisk.core.Response):
   format = None
   '''
-  Any value which is a valid key of the serializers.extensions dict.
+  Any value which is a valid key of the codecs.extensions dict.
   
   :type: string
   '''
@@ -96,13 +96,13 @@ class Application(smisk.core.Application):
   Used during runtime.
   Here because we want to use it in error()
   
-  :type: Serializer
+  :type: codec
   '''
   
   destination = None
   '''
   Used during runtime.
-  Available in actions, serializers and templates.
+  Available in actions, codecs and templates.
   
   :type: smisk.mvc.routing.Destination
   '''
@@ -206,13 +206,13 @@ class Application(smisk.core.Application):
     response = self.response
     
     # Check so the default media type really has an available serializer
-    serializer_exts = serializers.extensions.keys()
+    serializer_exts = codecs.extensions.keys()
     if not self.default_format in serializer_exts:
-      if len(serializers.extensions) == 0:
-        log.warn('No serializers available!')
+      if len(codecs.extensions) == 0:
+        log.warn('No codecs available!')
       else:
-        self.default_format = serializers.extensions.keys()[0]
-        log.warn('app.default_format is not available from the current set of serializers'\
+        self.default_format = codecs.extensions.keys()[0]
+        log.warn('app.default_format is not available from the current set of codecs'\
                  ' -- setting to first registered serializer: %s', self.default_format)
     
     # Check templates config
@@ -224,11 +224,11 @@ class Application(smisk.core.Application):
       if self.templates.show_traceback is None:
         self.templates.show_traceback = self.show_traceback
     
-    # Info about serializers
+    # Info about codecs
     if log.level <= logging.DEBUG:
-      log.debug('Serializers: %s', ', '.join(unique_sorted_modules_of_items(serializers.values())) )
-      log.debug('Serializer media types: %s', ', '.join(serializers.media_types.keys()))
-      log.debug('Serializer formats: %s', ', '.join(serializers.extensions.keys()))
+      log.debug('codecs: %s', ', '.join(unique_sorted_modules_of_items(codecs.values())) )
+      log.debug('codec media types: %s', ', '.join(codecs.media_types.keys()))
+      log.debug('codec formats: %s', ', '.join(codecs.extensions.keys()))
       log.debug('Template directories: %s', ', '.join(self.templates.directories))
     
     # When we return, accept() in smisk.core is called
@@ -242,9 +242,9 @@ class Application(smisk.core.Application):
     serializer is returned.
     """
     try:
-      return serializers.extensions[self.default_format]
+      return codecs.extensions[self.default_format]
     except KeyError:
-      return serializers.first_in
+      return codecs.first_in
   
   
   def response_serializer(self):
@@ -252,12 +252,12 @@ class Application(smisk.core.Application):
     Return the most appropriate serializer for handling response encoding.
     
     :return: The most appropriate serializer
-    :rtype:  Serializer
+    :rtype:  codec
     '''
     # Overridden by explicit response.format?
     if self.response.format is not None:
       # Should fail if not exists
-      return serializers.extensions[self.response.format]
+      return codecs.extensions[self.response.format]
     
     # Overridden by explicit Content-Type header?
     p = self.response.find_header('Content-Type:')
@@ -266,8 +266,8 @@ class Application(smisk.core.Application):
       p = content_type.find(';')
       if p != -1:
         content_type = content_type[:p].rstrip("\t ")
-      if content_type in serializers.media_types:
-        return serializers.media_types[content_type]
+      if content_type in codecs.media_types:
+        return codecs.media_types[content_type]
     
     # Try filename extension
     if self.request.url.path.rfind('.') != -1:
@@ -278,7 +278,7 @@ class Application(smisk.core.Application):
         if log.level <= logging.DEBUG:
           log.debug('Client asked for format %r', ext)
         try:
-          return serializers.extensions[ext]
+          return codecs.extensions[ext]
         except KeyError:
           raise http.NotFound()
     
@@ -288,7 +288,7 @@ class Application(smisk.core.Application):
     if accept_types is not None and len(accept_types):
       if log.level <= logging.DEBUG:
         log.debug('Client accepts: %r', accept_types)
-      available_types = serializers.media_types.keys()
+      available_types = codecs.media_types.keys()
       vv = []
       highq = []
       partials = []
@@ -330,7 +330,7 @@ class Application(smisk.core.Application):
       for v in vv:
         t = v[0]
         if t in available_types:
-          return serializers.media_types[t]
+          return codecs.media_types[t]
       # Accepts */* which is far more common than accepting partials, so we test this here
       # and simply return default_serializer if the client accepts anything.
       if accept_any:
@@ -341,7 +341,7 @@ class Application(smisk.core.Application):
         if t[:t.find('/', 0)] in partials:
           return default_serializer
       # Test the rest of the partials
-      for t, serializer in serializers.media_types.items():
+      for t, serializer in codecs.media_types.items():
         if t[:t.find('/', 0)] in partials:
           return serializer
       # The client does not accept anything we have to offser, so respond with 406
@@ -369,7 +369,7 @@ class Application(smisk.core.Application):
         params.update(self.request.post)
       else:
         # Different kind of content
-        serializer = serializers.media_types.get(content_type, None)
+        serializer = codecs.media_types.get(content_type, None)
         
         # Parse content
         if serializer is not None:

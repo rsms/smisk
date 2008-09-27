@@ -65,11 +65,11 @@ class Status404(Status):
 class StatusNotAcceptable(Status):
   def service(self, app, *args, **kwargs):
     rsp = Status.service(self, app)
-    from smisk.serialization import serializers
+    from smisk.codec import codecs
     # Note: Lighttpd 1.4 is confirmed not to send any body, so this will never be sent
     #       If running in lighttpd 1.4. The specification of this HTTP 1.1 status code
     #       is somewhat vauge but we interpret it as being able to contain a body.
-    rsp['message'] = 'Acceptable types: %s' % ', '.join(serializers.media_types.keys())
+    rsp['message'] = 'Acceptable types: %s' % ', '.join(codecs.media_types.keys())
     return rsp
   
 

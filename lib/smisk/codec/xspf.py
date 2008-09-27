@@ -5,7 +5,7 @@ XSPF v1.0 serialization.
 :Specification: http://xspf.org/xspf-v1.html
 '''
 import re, logging
-from smisk.serialization import serializers, BaseSerializer
+from smisk.codec import codecs, BaseCodec
 from smisk.core.xml import escape as xml_escape
 from smisk.util import to_bool
 from xml.dom.minidom import getDOMImplementation, parseString as parse_xml
@@ -23,7 +23,7 @@ class ElementSpec(object):
     self.desc = desc
   
 
-class Serializer(BaseSerializer):
+class codec(BaseCodec):
   '''XSPF serializer'''
   extensions = ('xspf',)
   media_types = ('application/xspf+xml',)
@@ -164,18 +164,18 @@ class Serializer(BaseSerializer):
       cls.ELEMENTS[e.name] = e
   
 
-Serializer.setup()
-serializers.register(Serializer)
+codec.setup()
+codecs.register(codec)
 
 if __name__ == '__main__':
-  Serializer.pretty_print = True
+  codec.pretty_print = True
   try:
     raise Exception('Mosmaster!')
   except:
     import sys
     from smisk.mvc.http import InternalServerError
-    #print Serializer.encode_error(InternalServerError, {}, *sys.exc_info())
-  xml = Serializer.encode(**{
+    #print codec.encode_error(InternalServerError, {}, *sys.exc_info())
+  xml = codec.encode(**{
     'title': 'Spellistan frum hell',
     'creator': 'rasmus',
     'trackList': [
@@ -211,4 +211,4 @@ if __name__ == '__main__':
   #print xml
   from StringIO import StringIO
   f = StringIO(xml)
-  print Serializer.decode(f)
+  print codec.decode(f)

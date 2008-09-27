@@ -2,13 +2,13 @@
 '''
 JSON serialization (RFC 4627)
 '''
-from smisk.serialization import serializers, BaseSerializer
+from smisk.codec import codecs, BaseCodec
 from smisk.mvc import http
 from smisk.core.xml import escape as xml_escape
 from smisk.core import Application
 
 def doc(title, body):
-  v = ['<?xml version="1.0" encoding="%s" ?>' % Serializer.encoding]
+  v = ['<?xml version="1.0" encoding="%s" ?>' % codec.encoding]
   v.append('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '\
            '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')
   v.append('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">')
@@ -20,8 +20,8 @@ def doc(title, body):
   return "\n".join(v)
 
 
-class Serializer(BaseSerializer):
-  '''XHTML Serializer'''
+class codec(BaseCodec):
+  '''XHTML codec'''
   extensions = ('html',)
   media_types = ('text/html', 'application/xhtml+xml')
   encoding = 'utf-8'
@@ -48,4 +48,4 @@ class Serializer(BaseSerializer):
                % (xml_escape(status), xml_escape(message))])
   
 
-serializers.register(Serializer)
+codecs.register(codec)

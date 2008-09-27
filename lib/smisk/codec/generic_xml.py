@@ -3,7 +3,7 @@
 XML serialization
 '''
 import re, logging
-from smisk.serialization import serializers, BaseSerializer
+from smisk.codec import codecs, BaseCodec
 from smisk.core.xml import escape as xml_escape
 
 log = logging.getLogger(__name__)
@@ -14,8 +14,8 @@ class EncodeError(Exception):
 
 
 def start_rsp():
-  if Serializer.encoding is not None:
-    return ['<?xml version="1.0" encoding="%s" ?>' % Serializer.encoding, '<rsp>']
+  if codec.encoding is not None:
+    return ['<?xml version="1.0" encoding="%s" ?>' % codec.encoding, '<rsp>']
   else:
     return ['<?xml version="1.0"?>', '<rsp>']
 
@@ -62,7 +62,7 @@ def encode_sequence(l, buf, level):
     encode_value(v, buf, level)
 
 
-class Serializer(BaseSerializer):
+class codec(BaseCodec):
   '''XML serializer'''
   
   extensions = ('xml',)
@@ -95,4 +95,4 @@ class Serializer(BaseSerializer):
   
   #xxx todo implement decoder
 
-serializers.register(Serializer)
+codecs.register(codec)

@@ -2,7 +2,7 @@
 '''
 Python pickle serialization
 '''
-from smisk.serialization import serializers, BaseSerializer
+from smisk.codec import codecs, BaseCodec
 import logging
 try:
   from cPickle import dumps, load, loads, HIGHEST_PROTOCOL
@@ -12,9 +12,9 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-class Serializer(BaseSerializer):
+class codec(BaseCodec):
   '''
-  Python Pickle Serializer
+  Python Pickle codec
   
   Example client for interacting with a smisk service:
   >>> import pickle, urllib
@@ -48,4 +48,4 @@ class Serializer(BaseSerializer):
       return ((st,), None)
   
 
-serializers.register(Serializer)
+codecs.register(codec)

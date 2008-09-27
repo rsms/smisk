@@ -1,7 +1,7 @@
 # encoding: utf-8
-'''Data serializers'''
+'''Data codecs'''
 
-class Serializers(object):
+class Codecs(object):
   first_in = None
   """First registered serializer"""
   
@@ -29,20 +29,20 @@ class Serializers(object):
     return self.media_types.values()
   
 
-serializers = Serializers()
-'Serializers keyed by lower case MIME types.'
+codecs = Codecs()
+'codecs keyed by lower case MIME types.'
 
 
-class BaseSerializer(object):
+class BaseCodec(object):
   '''
-  Abstract baseclass for serializers
+  Abstract baseclass for codecs
   '''
   
   extension = None
   '''
   Primary filename extension.
   
-  This is set by Serializers.register. You should define your types in `media_types`.
+  This is set by codecs.register. You should define your types in `media_types`.
   
   :type: string'''
   
@@ -50,9 +50,9 @@ class BaseSerializer(object):
   '''
   Primary media type.
   
-  This is set by Serializers.register. You should define your types in `media_types`.
+  This is set by codecs.register. You should define your types in `media_types`.
   
-  Serializers register themselves in the module-level dictionary `serializers`
+  codecs register themselves in the module-level dictionary `codecs`
   for any MIME types they can handle. This directive, mime_type, is only used
   for output.
   
@@ -134,7 +134,7 @@ class BaseSerializer(object):
         response.headers.append('Content-Type: %s' % cls.media_type)
   
 
-# Load built-in serializers
+# Load built-in codecs
 import os
 from smisk.util import load_modules_in_dir
-print load_modules_in_dir(os.path.dirname(__file__))
+load_modules_in_dir(os.path.dirname(__file__))

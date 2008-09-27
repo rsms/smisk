@@ -473,7 +473,7 @@ setup(
     'smisk.inflection',
     'smisk.mvc',
     'smisk.mvc.template',
-    'smisk.serialization',
+    'smisk.codec',
     'smisk.test',
   ],
   include_package_data=True,

@@ -3,7 +3,7 @@
 XML Property List serialization
 '''
 import re, logging
-from smisk.serialization import serializers, BaseSerializer
+from smisk.codec import codecs, BaseCodec
 from smisk.core.xml import escape as xml_escape
 from datetime import datetime
 
@@ -17,8 +17,8 @@ class EncodeError(Exception):
   pass
 
 def start_rsp():
-  if Serializer.encoding is not None:
-    return ['<?xml version="1.0" encoding="%s" ?>' % Serializer.encoding, DOCTYPE, '<plist version="1.0">']
+  if codec.encoding is not None:
+    return ['<?xml version="1.0" encoding="%s" ?>' % codec.encoding, DOCTYPE, '<plist version="1.0">']
   else:
     return ['<?xml version="1.0"?>', DOCTYPE, '<plist version="1.0">']
 
@@ -67,7 +67,7 @@ def encode_sequence(l, buf, level):
   buf.append('%s</array>' % indent)
 
 
-class Serializer(BaseSerializer):
+class codec(BaseCodec):
   '''XML Property list serializer'''
   
   extensions = ('plist',)
@@ -86,10 +86,10 @@ class Serializer(BaseSerializer):
   
   #xxx todo implement decoder
 
-serializers.register(Serializer)
+codecs.register(codec)
 
 if __name__ == '__main__':
-  print Serializer.encode(**{
+  print codec.encode(**{
     'message': 'Hello worlds',
     'internets': [
       'interesting',

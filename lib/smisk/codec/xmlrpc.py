@@ -2,10 +2,10 @@
 '''
 XML-RPC serialization
 '''
-from smisk.serialization import serializers, BaseSerializer
+from smisk.codec import codecs, BaseCodec
 from xmlrpclib import dumps, loads, Fault
 
-class Serializer(BaseSerializer):
+class codec(BaseCodec):
   '''XML-RPC serializer'''
   
   extensions = ('xmlrpc',)
@@ -39,4 +39,4 @@ class Serializer(BaseSerializer):
     return (args, kwargs)
   
 
-serializers.register(Serializer)
+codecs.register(codec)

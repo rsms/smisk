@@ -2,7 +2,7 @@
 '''
 Plain text serialization
 '''
-from smisk.serialization import serializers, BaseSerializer
+from smisk.codec import codecs, BaseCodec
 from datetime import datetime
 import re
 
@@ -60,7 +60,7 @@ def encode_sequence(l, buf, level):
     i += 1
   buf.append('%s]' % ('  '*(level-1)))
 
-class Serializer(BaseSerializer):
+class codec(BaseCodec):
   '''Plain Text serializer.'''
   extensions = ('txt',)
   media_types = ('text/plain',)
@@ -79,10 +79,10 @@ class Serializer(BaseSerializer):
     return '\n'.join([str(status), msg])+'\n'
   
 
-serializers.register(Serializer)
+codecs.register(codec)
 
 if __name__ == '__main__':
-  print Serializer.encode(**{
+  print codec.encode(**{
     'message': 'Hello worlds',
     'internets': [
       'interesting',

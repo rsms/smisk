@@ -2,7 +2,7 @@
 '''
 JSON serialization (RFC 4627)
 '''
-from smisk.serialization import serializers, BaseSerializer
+from smisk.codec import codecs, BaseCodec
 try:
   from cjson import encode, decode, DecodeError, EncodeError
 except ImportError:
@@ -14,8 +14,8 @@ except ImportError:
     from warnings import warn, showwarning
     warn('No JSON implementation available. Install cjson or minjson.')
 
-class Serializer(BaseSerializer):
-  '''JSON Serializer'''
+class codec(BaseCodec):
+  '''JSON codec'''
   extensions = ('json',)
   media_types = ('application/json', 'application/x-json')
   encoding = 'utf-8'
@@ -42,5 +42,5 @@ class Serializer(BaseSerializer):
 
 # Don't register if we did not find a json implementation
 if encode is not None:
-  serializers.register(Serializer)
+  codecs.register(codec)
 

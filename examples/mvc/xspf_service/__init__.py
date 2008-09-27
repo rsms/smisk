@@ -4,7 +4,7 @@ from smisk.mvc import *
 
 class root(Controller):
   def __call__(self, *args, **params):
-    raise http.TemporaryRedirect('/example')
+    raise http.Found('/example')
   
   def echo(self, *args, **params):
     return params
