@@ -171,11 +171,6 @@ PyObject *smisk_Application_run(smisk_Application *self) {
   PyOS_sighandler_t orig_int_handler, orig_hup_handler, orig_term_handler, orig_sigusr1_handler;
   PyObject *ret = Py_None;
   
-  // Set program name to argv[0]
-  PyObject *argv = PySys_GetObject("argv");
-  if (PyList_GET_SIZE(argv))
-    Py_SetProgramName(basename(PyString_AsString(PyList_GetItem(argv, 0))));
-  
   // Setup request object
   FCGX_Request request;
   FCGX_InitRequest(&request, smisk_listensock_fileno, FCGI_FAIL_ACCEPT_ON_INTR);

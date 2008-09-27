@@ -85,13 +85,15 @@ typedef uint8_t byte;
   PyDict_GetItemString(*_PyObject_GetDictPtr((PyObject *)PyObject_ptr_type), char_ptr_name)
 // Returns 0 on success, -1 on failure.
 #define SMISK_PyObject_SET(PyObject_ptr_type, char_ptr_name, PyObject_ptr_value) \
-  PyDict_SetItemString(*_PyObject_GetDictPtr((PyObject *)PyObject_ptr_type), char_ptr_name, (PyObject *)PyObject_ptr_value)
+  PyDict_SetItemString(*_PyObject_GetDictPtr((PyObject *)PyObject_ptr_type), char_ptr_name, \
+                                             (PyObject *)PyObject_ptr_value)
 
 // Set IOError with errno and filename info. Return NULL
 #define PyErr_SET_FROM_ERRNO   PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__)
 
 // Log to stderr
-#define log_error(fmt, ...) fprintf(stderr, MOD_IDENT " ERROR %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define log_error(fmt, ...) fprintf(stderr, MOD_IDENT " ERROR %s:%d: " fmt "\n", \
+                                    __FILE__, __LINE__, ##__VA_ARGS__)
 
 // Used for temporary debugging
 #define _DUMP_REFCOUNT(o) log_error("*** %s: %ld", #o, (o) ? (long int)(o)->ob_refcnt : 0)
@@ -99,7 +101,8 @@ typedef uint8_t byte;
 // Log to stderr, but only in debug builds
 #if SMISK_DEBUG
   #define SMISK_TRACE 1
-  #define log_debug(fmt, ...) fprintf(stderr, MOD_IDENT " DEBUG %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+  #define log_debug(fmt, ...) fprintf(stderr, MOD_IDENT " DEBUG %s:%d: " fmt "\n",\
+                                      __FILE__, __LINE__, ##__VA_ARGS__)
   #define IFDEBUG(x) x
   #define assert_refcount(o, count_test) \
     do { \

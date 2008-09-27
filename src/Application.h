@@ -67,7 +67,4 @@ PyObject *smisk_Application_exit    (smisk_Application* self);
 
 PyObject *smisk_Application_get_sessions (smisk_Application* self);
 
-// Get/setter for Application.current
-
-
 #endif
