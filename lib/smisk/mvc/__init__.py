@@ -486,12 +486,6 @@ class Application(smisk.core.Application):
     # Parse request (and decode if needed)
     req_args, req_params = self.parse_request()
     
-    # Add "private" cache control directive.
-    # As most actions will generate different output depending on variables like 
-    # client, time and data state, we need to tell facilities between us to, and
-    # including, the client the content is private.
-    self.response.headers.append('Cache-Control: private')
-    
     # Call the action which might generate a response object: rsp
     self.destination, rsp = self.call_action(req_args, req_params)
     
