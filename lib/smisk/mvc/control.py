@@ -1,9 +1,11 @@
 # encoding: utf-8
 from types import MethodType
 from smisk.inflection import inflection
+from smisk.util import tokenize_path
 
 _root_controller = False
 _path_to_cache = {}
+_template_for_cache = {}
 
 def root_controller():
   '''Returns the root controller.
@@ -25,33 +27,97 @@ def path_to(node):
   :type  node: object
   :rtype: list'''
   global _path_to_cache
+  return _cached_path_to(node, _path_to_cache, False)
+
+
+def template_for(node):
+  '''Returns the template uri for node.
+  
+  :param node: Something on the controller tree. (method, class, instance, etc)
+  :type  node: object
+  :rtype: list'''
+  global _template_for_cache
+  return _cached_path_to(node, _template_for_cache, True)
+
+
+def _cached_path_to(node, cache, resolve_template):
   try:
-    return _path_to_cache[node]
+    return cache[node]
   except KeyError:
-    path = []
-    node_type = type(node)
-    if node_type is MethodType:
-      path = [node.im_func.__name__]
-      path = _path_to_class(node.im_class, path)
-    else:
-      path = ['__call__']
-      if node_type is type:
-        path = _path_to_class(node, path)
-      else:
-        path = _path_to_class(node.__class__, path)
+    path = _path_to(node, resolve_template)
     if path is not None:
       path.reverse()
-    _path_to_cache[node] = path
+    cache[node] = path
     return path
+
+
+def _node_name(node, fallback):
+  n = getattr(node, 'slug', None)
+  if n is None:
+    return fallback
+  return n
+
+def _get_template(node):
+  tpl = getattr(node, 'template', None)
+  if tpl is not None:
+    if not isinstance(tpl, list):
+      tpl = tokenize_path(str(tpl))
+    return tpl
+
+def _path_to(node, resolve_template):
+  node_type = type(node)
+  
+  if node_type is MethodType:
+    # Leaf is Method
+    if getattr(node, 'hidden', False):
+      return None
+    
+    if resolve_template:
+      tpl = _get_template(node)
+      if tpl is not None:
+        return tpl
+    
+    path = [_node_name(node, node.im_func.__name__)]
+    path = _path_to_class(node.im_class, path)
+    
+  else:
+    # Leaf is Class
+    if node_type is not type:
+      node = node.__class__
+    
+    try:
+      node_callable = node.__call__
+    except KeyError:
+      return None
+    
+    if getattr(node_callable, 'hidden', False):
+      return None
+    
+    if resolve_template:
+      tpl = _get_template(node)
+      if tpl is not None:
+        return tpl
+    
+    name = _node_name(node_callable, None)
+    if name is None:
+      path = ['__call__']
+    else:
+      path = []
+    
+    path = _path_to_class(node, path)
+  
+  return path
 
 
 def _path_to_class(node, path):
   root = root_controller()
+  if getattr(node, 'hidden', False):
+    return None
   if node is root:
     return path
   if not issubclass(node, root):
     raise TypeError('%s is not part of the Controller tree' % node)
-  path.append(node.controller_name())
+  path.append(_node_name(node, node.controller_name()))
   try:
     return _path_to_class(node.__bases__[0], path)
   except IndexError:

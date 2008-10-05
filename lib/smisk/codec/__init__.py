@@ -42,7 +42,7 @@ class BaseCodec(object):
   '''
   Primary filename extension.
   
-  This is set by codecs.register. You should define your types in `media_types`.
+  This is set by codecs.register. You should define your extensions in `extensions`.
   
   :type: string'''
   

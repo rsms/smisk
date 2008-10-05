@@ -13,6 +13,7 @@ from model import Entity
 from template import Templates
 from routing import Router
 from exceptions import *
+from decorators import *
 
 log = logging.getLogger(__name__)
 application = None
@@ -191,7 +192,7 @@ class Application(smisk.core.Application):
       self.etag = getattr(hashlib, self.etag)
     
     # Initialize modules which need access to app, request and response
-    modules = find_modules_for_classtree(Controller)
+    modules = find_modules_for_classtree(control.Controller)
     modules.extend(find_modules_for_classtree(Entity))
     for m in modules:
       log.debug('Initializing app module %s', m.__name__)
@@ -496,7 +497,7 @@ class Application(smisk.core.Application):
     
     # Aquire template
     if self.template is None and self.templates is not None:
-      self.template = self.template_for_path(os.path.join(*self.destination.path))
+      self.template = self.template_for_path(os.path.join(*control.template_for(self.destination.action)))
     
     # Encode response
     rsp = self.encode_response(rsp, self.template)

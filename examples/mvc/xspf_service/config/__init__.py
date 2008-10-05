@@ -2,6 +2,8 @@
 app.autoreload = True
 app.show_traceback = True
 
+Application.default_format = 'xspf'
+
 # Pretty-print XSPF by default
 from smisk.codec import xspf
 xspf.codec.pretty_print = True

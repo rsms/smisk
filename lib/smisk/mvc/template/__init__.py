@@ -80,6 +80,15 @@ class Templates(object):
   :type: bool
   '''
   
+  format_template_exceptions = True
+  '''
+  Let the templating engine render information about template formatting exceptions.
+  
+  Things like missing or misspelled variables etc.
+  
+  :type: bool
+  '''
+  
   directories = None
   '''
   Directories in which to find templates.
@@ -237,7 +246,7 @@ class Templates(object):
         text=text,
         lookup=self,
         module_filename=None,
-        format_exceptions=False,
+        format_exceptions=self.format_template_exceptions,
         input_encoding='utf-8', # xxx todo: check file using Unicode BOM, #encoding:-patterns, etc.
         output_encoding=self.app.default_output_encoding,
         encoding_errors=encoding_errors,
