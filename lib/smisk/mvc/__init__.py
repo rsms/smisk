@@ -395,12 +395,12 @@ class Application(smisk.core.Application):
     :rtype:   dict
     '''
     # Find destination or return None
-    destination, args, params = self.routes(self.request.url, args, params)
+    self.destination, args, params = self.routes(self.request.url, args, params)
     
     # Call action
     if log.level <= logging.DEBUG:
-      log.debug('Calling destination %s', destination)
-    return destination, destination(*args, **params)
+      log.debug('Calling destination %s', self.destination)
+    return self.destination(*args, **params)
   
   
   def encode_response(self, rsp, template):
@@ -487,7 +487,7 @@ class Application(smisk.core.Application):
     req_args, req_params = self.parse_request()
     
     # Call the action which might generate a response object: rsp
-    self.destination, rsp = self.call_action(req_args, req_params)
+    rsp = self.call_action(req_args, req_params)
     
     # Aquire template, if any
     if self.template is None and self.templates is not None:
