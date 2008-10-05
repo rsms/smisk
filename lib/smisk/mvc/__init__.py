@@ -495,9 +495,11 @@ class Application(smisk.core.Application):
     # Call the action which might generate a response object: rsp
     self.destination, rsp = self.call_action(req_args, req_params)
     
-    # Aquire template
+    # Aquire template, if any
     if self.template is None and self.templates is not None:
-      self.template = self.template_for_path(os.path.join(*control.template_for(self.destination.action)))
+      template_path = control.template_for(self.destination.action)
+      if template_path:
+        self.template = self.template_for_path(os.path.join(*template_path))
     
     # Encode response
     rsp = self.encode_response(rsp, self.template)
