@@ -393,7 +393,7 @@ PyObject *smisk_Request_get_env(smisk_Request* self) {
         }
         
         // SERVER_SOFTWARE will most likely not change during the process lifetime,
-        // or at least, we done really care, so lets cache it.
+        // or at least, we don't really care, so lets cache it.
         if (smisk_str8cmp(*envp, 'S','E','R','V','E','R','_','S') &&
           (*envp)[8]=='O'  && (*envp)[9]=='F'  && (*envp)[10]=='T' && (*envp)[11]=='W' && 
           (*envp)[12]=='A' && (*envp)[13]=='R' && (*envp)[14]=='E')
