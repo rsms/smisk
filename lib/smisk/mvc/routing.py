@@ -14,6 +14,12 @@ log = logging.getLogger(__name__)
 def _prep_path(path):
   return path.rstrip('/').lower()
 
+def _node_name(node, fallback):
+  n = getattr(node, 'slug', None)
+  if n is None:
+    return fallback
+  return n
+
 class Destination(object):
   '''A callable destination.'''
   
@@ -178,7 +184,7 @@ class Router(object):
     
     # Check root
     if node is None:
-      e = http.ControllerNotFound('No root controller could be found')
+      e = http.ControllerNotFound('No root controller exists')
       self.cache[raw_path] = wrap_exc_in_callable(e)
       raise e
     
@@ -201,7 +207,9 @@ class Router(object):
       
       # 1. Search subclasses first
       for cls in node.__subclasses__():
-        if cls.controller_name() == part:
+        if _node_name(cls, cls.controller_name()) == part:
+          if getattr(cls, 'hidden', False):
+            continue
           found = cls
           break
       if found is not None:
@@ -214,7 +222,9 @@ class Router(object):
       if type(node) is type:
         node = node()
       for k,v in node.__dict__.items():
-        if k.lower() == part:
+        if _node_name(v, k.lower()) == part:
+          if getattr(v, 'hidden', False):
+            continue
           found = v
           break
       if found is not None:
