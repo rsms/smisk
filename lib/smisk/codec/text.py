@@ -68,7 +68,7 @@ class codec(BaseCodec):
   
   @classmethod
   def encode(cls, **params):
-    return ''.join(encode_map(params, []))
+    return '{%s}\n' % ''.join(encode_map(params, [])).rstrip('\n')
   
   @classmethod
   def encode_error(cls, status, params, typ, val, tb):
