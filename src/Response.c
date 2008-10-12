@@ -156,6 +156,9 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   else if (strstr(server, "lighttpd/") || strstr(server, "Apache/2")) {
     FCGX_PutStr("X-Sendfile: ", 12, self->out->stream);
   }
+  else if (strstr(server, "nginx/")) {
+    FCGX_PutStr("X-Accel-Redirect: ", 18, self->out->stream);
+  }
   else {
     return PyErr_Format(PyExc_EnvironmentError, "sendfile not supported by host server ('%s')", server);
   }
