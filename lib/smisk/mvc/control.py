@@ -111,12 +111,10 @@ def _path_to(node, resolve_template):
 
 def _path_to_class(node, path):
   root = root_controller()
-  if getattr(node, 'hidden', False):
+  if getattr(node, 'hidden', False) or not issubclass(node, root):
     return None
   if node is root:
     return path
-  if not issubclass(node, root):
-    raise TypeError('%s is not part of the Controller tree' % node)
   path.append(_node_name(node, node.controller_name()))
   try:
     return _path_to_class(node.__bases__[0], path)

@@ -44,7 +44,7 @@ class Destination(object):
   
   def __str__(self):
     if self.path:
-      return '/'.join(self.path)
+      return '/'+'/'.join(self.path)
     else:
       return self.__repr__()
   
@@ -247,9 +247,13 @@ class Router(object):
         node = node().__call__
       except AttributeError:
         # Uncallable leaf
-        e = http.MethodNotFound('/'.join(path))
-        self.cache[raw_path] = wrap_exc_in_callable(e)
-        raise e
+        node = None
+    
+    # Not callable?
+    if node is None or not callable(node):
+      e = http.MethodNotFound('/'.join(path))
+      self.cache[raw_path] = wrap_exc_in_callable(e)
+      raise e
     
     log.debug('Found destination: %s', node)
     dest = Destination(node)
