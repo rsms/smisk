@@ -399,7 +399,7 @@ class Application(smisk.core.Application):
     
     # Call action
     if log.level <= logging.DEBUG:
-      log.debug('Calling destination %s', self.destination)
+      log.debug('Calling destination %r', self.destination)
     return self.destination(*args, **params)
   
   
@@ -506,7 +506,7 @@ class Application(smisk.core.Application):
       timer.finish()
       uri = None
       if self.destination is not None:
-        uri = '%s:%s' % ('.'.join(self.destination.path), self.serializer.extension)
+        uri = '/%s.%s' % ('/'.join(self.destination.path), self.serializer.extension)
       else:
         uri = self.request.url.to_s(scheme=0, user=0, password=0, host=0, port=0)
       log.info('Processed %s in %.3fms', uri, timer.time()*1000.0)
