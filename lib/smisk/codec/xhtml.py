@@ -63,12 +63,41 @@ class codec(BaseCodec):
   
   @classmethod
   def encode_error(cls, status, params, charset):
-    s = u"<html><body><h1>%s</h1><p>%s</p></body></html>" % \
-      (xml_escape(params['name']), xml_escape(params['description']))
+    xp = {'charset':charset}
+    for k,v in params.iteritems():
+      if k == 'traceback' and v:
+        xp[k] = u'<pre class="traceback">%s</pre>' % xml_escape(''.join(v))
+      else:
+        xp[k] = xml_escape(str(v))
+    s = ERROR_TEMPLATE % xp
     return (charset, s.encode(charset))
   
 
 codecs.register(codec)
+
+ERROR_TEMPLATE = ur'''<?xml version="1.0" encoding="%(charset)s" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <title>%(name)s</title>
+    <style type="text/css">
+      body,html { padding:0; margin:0; background:#666; }
+      h1 { padding:25pt 10pt 10pt 15pt; background:#ffb2bf; color:#560c00; font-family:arial,helvetica,sans-serif; margin:0; }
+      address, p { font-family:'lucida grande',verdana,arial,sans-serif; }
+      p.message { padding:10pt 16pt; background:#fff; color:#222; margin:0; font-size:.9em; }
+      pre.traceback { padding:10pt 15pt 25pt 15pt; line-height:1.4; background:#f2f2ca; color:#52523b; margin:0; border-top:1px solid #e3e3ba; border-bottom:1px solid #555; }
+      hr { display:none; }
+      address { padding:10pt 15pt; color:#333; font-size:11px; }
+    </style>
+  </head>
+  <body>
+    <h1>%(name)s</h1>
+    <p class="message">%(description)s</p>
+    %(traceback)s
+    <hr/>
+    <address>%(server)s</address>
+  </body>
+</html>'''
 
 if __name__ == '__main__':
   from datetime import datetime

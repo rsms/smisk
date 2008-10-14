@@ -212,19 +212,18 @@ class Templates(object):
         encoding_errors='htmlentityreplace'
       
       self.instances[uri] = Template(
-        uri=uri,
-        filename=filename,
-        text=text,
-        lookup=self,
-        module_filename=None,
-        format_exceptions=self.format_template_exceptions,
-        input_encoding='utf-8', # xxx todo: check file using Unicode BOM, #encoding:-patterns, etc.
-        output_encoding=self.app.default_output_encoding,
-        encoding_errors=encoding_errors,
-        cache_type=self.cache_type,
-        default_filters=['str'],
-        #default_filters=['unicode'],
-        imports=self.imports)
+          uri               = uri,
+          filename          = filename,
+          text              = text,
+          lookup            = self,
+          module_filename   = None,
+          format_exceptions = self.format_template_exceptions,
+          input_encoding    = 'utf-8',
+          output_encoding   = self.app.default_response_charset,
+          encoding_errors   = encoding_errors,
+          cache_type        = self.cache_type,
+          default_filters   = ['str'],
+          imports           = self.imports)
       if log.level <= logging.DEBUG and self.cache_type != 'file':
         code = self.instances[uri].code
         log.debug("Compiled %s into %d bytes of python code:\n%s", uri, len(code), code)
@@ -270,7 +269,7 @@ ERROR_TEMPLATES = {
   </head>
   <body>
     <h1>${title|x}</h1>
-    <p class="message">${message|x}</p>
+    <p class="message">${description|x}</p>
     % if traceback is not None:
     <pre class="traceback">${traceback|x}</pre>
     % endif

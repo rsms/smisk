@@ -599,10 +599,12 @@ class Application(smisk.core.Application):
           assert(type(params) is DictType)
         
         # Include basic info
-        params['name'] = status.name,
+        params['name'] = str(status.name)
         params['code'] = status.code,
         if 'description' not in params:
           params['description'] = str(val)
+        else:
+          params['description'] = str(params['description'])
         params['server'] = '%s at %s' % (self.request.env['SERVER_SOFTWARE'],
           self.request.env['SERVER_NAME'])
         
