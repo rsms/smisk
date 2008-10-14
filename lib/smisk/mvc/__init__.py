@@ -20,6 +20,10 @@ application = None
 request = None
 response = None
 
+# MSIE error body sizes
+_MSIE_ERROR_SIZES = { 400:512, 403:256, 404:512, 405:256, 406:512, 408:512,
+                      409:512, 410:256, 500:512, 501:512, 505:512}
+
 def branch():
   """Return the name of the current branch. Defaults to 'stable'.
   
@@ -619,6 +623,17 @@ class Application(smisk.core.Application):
         # ...or a codec
         if rsp is None:
           self.response_charset, rsp = self.codec.encode_error(status, params, self.response_charset)
+        
+        # Get rid of MSIE "friendly" error messages
+        if self.request.env.get('HTTP_USER_AGENT','').find('MSIE') != -1:
+          # See: http://support.microsoft.com/kb/q218155/
+          ielen = _MSIE_ERROR_SIZES.get(status.code, 0)
+          if ielen:
+            ielen += 1
+            blen = len(rsp)
+            if blen < ielen:
+              log.debug('Adding additional body content for MSIE')
+              rsp = rsp + (' ' * (ielen-blen))
       else:
         rsp = ''
       

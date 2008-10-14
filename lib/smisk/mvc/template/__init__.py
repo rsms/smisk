@@ -29,10 +29,6 @@ mako.filters.xml_escape = smisk.core.xml.escape
 mako.filters.url_escape = URL.encode
 mako.filters.url_unescape = URL.decode
 
-# MSIE error body sizes
-_msie_error_sizes = { 400:512, 403:256, 404:512, 405:256, 406:512, 408:512,
-                      409:512, 410:256, 500:512, 501:512, 505:512}
-
 class Templates(object):
   cache_limit = -1
   '''
@@ -136,14 +132,6 @@ class Templates(object):
           raise exceptions.TopLevelLookupException("Failed to locate template for uri '%s'" % uri)
         return None
   
-  def builtin_error_template(self, format='html'):
-    cache_id = '__builtin_error.'+format
-    if cache_id in self.instances:
-      return self.instances[cache_id]
-    elif format in ERROR_TEMPLATES:
-      return self._load(filename=None, uri=cache_id, text=ERROR_TEMPLATES[format])
-    return None
-  
   def adjust_uri(self, uri, relativeto):
     '''adjust the given uri based on the calling filename.'''
     if uri[0] != '/':
@@ -178,20 +166,7 @@ class Templates(object):
       return None
     
     # Render template
-    rsp = template.render(**params)
-    
-    # Get rid of MSIE "friendly" error messages
-    if self.app.request.env.get('HTTP_USER_AGENT','').find('MSIE') != -1:
-      # See: http://support.microsoft.com/kb/q218155/
-      ielen = _msie_error_sizes.get(status, 0)
-      if ielen:
-        ielen += 1
-        blen = len(rsp)
-        if blen < ielen:
-          log.debug('Adding additional body content for MSIE')
-          rsp = rsp + (' ' * (ielen-blen))
-    
-    return rsp
+    return template.render(**params)
   
   def _relativeize(self, filename):
     '''return the portion of a filename that is 'relative' to the directories in this lookup.'''
@@ -250,32 +225,3 @@ class Templates(object):
   def put_template(self, uri, template):
     self.instances[uri] = template
   
-
-ERROR_TEMPLATES = {
-
-'html': r'''<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-  <head>
-    <title>${title|x}</title>
-    <style type="text/css">
-      body,html { padding:0; margin:0; background:#666; }
-      h1 { padding:25pt 10pt 10pt 15pt; background:#ffb2bf; color:#560c00; font-family:arial,helvetica,sans-serif; margin:0; }
-      address, p { font-family:'lucida grande',verdana,arial,sans-serif; }
-      p.message { padding:10pt 16pt; background:#fff; color:#222; margin:0; font-size:.9em; }
-      pre.traceback { padding:10pt 15pt 25pt 15pt; line-height:1.4; background:#f2f2ca; color:#52523b; margin:0; border-top:1px solid #e3e3ba; border-bottom:1px solid #555; }
-      hr { display:none; }
-      address { padding:10pt 15pt; color:#333; font-size:11px; }
-    </style>
-  </head>
-  <body>
-    <h1>${title|x}</h1>
-    <p class="message">${description|x}</p>
-    % if traceback is not None:
-    <pre class="traceback">${traceback|x}</pre>
-    % endif
-    <hr/>
-    <address>${server_info|x}</address>
-  </body>
-</html>'''
-
-}
