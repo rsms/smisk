@@ -600,14 +600,15 @@ class Application(smisk.core.Application):
         
         # Include basic info
         params['name'] = status.name,
-        params['code'] = status,
-        params['description'] = str(val)
-        params['server'] = '%s at %s' % (self.app.request.env['SERVER_SOFTWARE'],
-          self.app.request.env['SERVER_NAME'])
+        params['code'] = status.code,
+        if 'description' not in params:
+          params['description'] = str(val)
+        params['server'] = '%s at %s' % (self.request.env['SERVER_SOFTWARE'],
+          self.request.env['SERVER_NAME'])
         
         # Include traceback if enabled
         if self.show_traceback:
-          params['traceback'] = util.format_exc((typ, val, tb))
+          params['traceback'] = format_exc((typ, val, tb))
         else:
           params['traceback'] = None
         
@@ -615,7 +616,7 @@ class Application(smisk.core.Application):
         rsp = self.templates.render_error(status, params, format)
         # ...or a codec
         if rsp is None:
-          rsp = self.codec.encode_error(status, params)
+          self.response_charset, rsp = self.codec.encode_error(status, params, self.response_charset)
       else:
         rsp = ''
       

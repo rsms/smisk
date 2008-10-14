@@ -31,7 +31,7 @@ class Status(object):
     app.response.status = self
     app.response.headers = ['Status: %s' % self] # clear any previous headers
     if self.has_body:
-      return {'code': self.code, 'message': self.name, 'http_error': True}
+      return {'code': self.code, 'description': self.name, 'http_error': True}
   
   @property
   def is_error(self):
@@ -51,14 +51,14 @@ class Status300(Status):
       raise Exception('Status300 requires a 3:rd argument "url"')
     rsp = Status.service(self, app)
     app.response.headers.append('Location: ' + normalize_url(url))
-    rsp['message'] = 'The resource has moved to %s' % url
+    rsp['description'] = 'The resource has moved to %s' % url
     return rsp
   
 
 class Status404(Status):
   def service(self, app, *args, **kwargs):
     rsp = Status.service(self, app)
-    rsp['message'] = 'No resource exists at %s' % app.request.url.path
+    rsp['description'] = 'No resource exists at %s' % app.request.url.path
     return rsp
   
 
@@ -69,7 +69,7 @@ class StatusNotAcceptable(Status):
     # Note: Lighttpd 1.4 is confirmed not to send any body, so this will never be sent
     #       If running in lighttpd 1.4. The specification of this HTTP 1.1 status code
     #       is somewhat vauge but we interpret it as being able to contain a body.
-    rsp['message'] = 'Acceptable types: %s' % ', '.join(codecs.media_types.keys())
+    rsp['description'] = 'Acceptable types: %s' % ', '.join(codecs.media_types.keys())
     return rsp
   
 
