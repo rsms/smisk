@@ -1,5 +1,5 @@
 # encoding: utf-8
-import sys, os, logging
+import sys, os, logging, codecs as char_codecs
 from types import DictType
 import smisk, smisk.core
 import http, control
@@ -50,7 +50,7 @@ class Response(smisk.core.Response):
 class Application(smisk.core.Application):
   '''MVC application'''
   
-  default_output_encoding = 'utf-8'
+  default_response_charset = 'utf-8'
   '''
   Default response character encoding.
   
@@ -58,6 +58,7 @@ class Application(smisk.core.Application):
   '''
   
   default_format = 'html'
+  ''':type: string'''
   
   templates = None
   ''':type: Templates'''
@@ -65,8 +66,22 @@ class Application(smisk.core.Application):
   autoreload = False
   ''':type: bool'''
   
-  show_traceback = False
-  ''':type: bool'''
+  strict_content_negotiation = True
+  '''
+  Controls where there or not this application is strict about content
+  negotiation.
+  
+  For example, if this is True and a client accepts only character sets 
+  none of which can encode, a 206 Not Acceptable response is sent.
+  
+  This affects ``Accept*`` request headers which demands can not be met.
+  
+  As HTTP 1.1 (RFC 2616) allows fallback to defaults (though not 
+  recommended) we provide the option of turning of the 206 response.
+  Setting this to false will respond using a best-guess of what value
+  to use in place of the demanded value which could no be met.
+  
+  :type: bool'''
   
   etag = None
   '''
@@ -92,7 +107,7 @@ class Application(smisk.core.Application):
   '''
   ''':type: string'''
   
-  serializer = None
+  codec = None
   '''
   Used during runtime.
   Here because we want to use it in error()
@@ -206,15 +221,15 @@ class Application(smisk.core.Application):
     request = self.request
     response = self.response
     
-    # Check so the default media type really has an available serializer
-    serializer_exts = codecs.extensions.keys()
-    if not self.default_format in serializer_exts:
+    # Check so the default media type really has an available codec
+    codec_exts = codecs.extensions.keys()
+    if not self.default_format in codec_exts:
       if len(codecs.extensions) == 0:
         log.warn('No codecs available!')
       else:
         self.default_format = codecs.extensions.keys()[0]
         log.warn('app.default_format is not available from the current set of codecs'\
-                 ' -- setting to first registered serializer: %s', self.default_format)
+                 ' -- setting to first registered codec: %s', self.default_format)
     
     # Check templates config
     if self.templates:
@@ -222,8 +237,6 @@ class Application(smisk.core.Application):
         self.templates.directories = [os.path.join(os.environ['SMISK_APP_DIR'], 'templates')]
       if self.templates.autoreload is None:
         self.templates.autoreload = self.autoreload
-      if self.templates.show_traceback is None:
-        self.templates.show_traceback = self.show_traceback
     
     # Info about codecs
     if log.level <= logging.DEBUG:
@@ -236,11 +249,11 @@ class Application(smisk.core.Application):
     log.info('Accepting connections')
   
   
-  def default_serializer(self):
-    """Return the default serializer.
+  def default_codec(self):
+    """Return the default codec.
     
     If even the default format can not be used, the first registered
-    serializer is returned.
+    codec is returned.
     """
     try:
       return codecs.extensions[self.default_format]
@@ -248,11 +261,11 @@ class Application(smisk.core.Application):
       return codecs.first_in
   
   
-  def response_serializer(self):
+  def response_codec(self):
     '''
-    Return the most appropriate serializer for handling response encoding.
+    Return the most appropriate codec for handling response encoding.
     
-    :return: The most appropriate serializer
+    :return: The most appropriate codec
     :rtype:  codec
     '''
     # Overridden by explicit response.format?
@@ -284,85 +297,98 @@ class Application(smisk.core.Application):
           raise http.NotFound()
     
     # Try media type
-    default_serializer = None
+    default_codec = None
     accept_types = self.request.env.get('HTTP_ACCEPT', None)
     if accept_types is not None and len(accept_types):
       if log.level <= logging.DEBUG:
         log.debug('Client accepts: %r', accept_types)
+      
+      # Parse the qvalue header
+      tqs, highqs, partials, accept_any = parse_qvalue_header(accept_types, '*/*', '/*')
+      
+      # If the default codec exists in the highest quality accept types, return it
+      default_codec = self.default_codec()
+      for t in default_codec.media_types:
+        if t in highqs:
+          return default_codec
+      
+      # Find a codec matching any accept type, ordered by qvalue
       available_types = codecs.media_types.keys()
-      vv = []
-      highq = []
-      partials = []
-      accept_any = False
-      for media in accept_types.split(','):
-        media = media.strip(' ')
-        p = media.find(';')
-        if p != -1:
-          pp = media.find('q=', p)
-          if pp != -1:
-            q = int(float(media[pp+2:])*100.0)
-            media = media[:p]
-            vv.append([media, q])
-            if q == 100:
-              highq.append(media)
-            continue
-        # No qvalue; we use three classes: any (q=0), partial (q=50) and complete (q=100)
-        qual = 100
-        if media == '*/*':
-          qual = 0
-          accept_any = True
-        else:
-          if media.endswith('/*'):
-            partial = media[:-2]
-            if not partial:
-              continue
-            qual = 50
-            partials.append(partial) # remove last char '*'
-          else:
-            highq.append(media)
-        vv.append([media, qual])
-      default_serializer = self.default_serializer()
-      # If the default serializer exists in the highest quality accept types, return it
-      for t in default_serializer.media_types:
-        if t in highq:
-          return default_serializer
-      # Find a serializer matching any accept type, ordered by qvalue
-      vv.sort(lambda a,b: b[1] - a[1])
-      for v in vv:
-        t = v[0]
+      for tq in tqs:
+        t = tq[0]
         if t in available_types:
           return codecs.media_types[t]
+      
       # Accepts */* which is far more common than accepting partials, so we test this here
-      # and simply return default_serializer if the client accepts anything.
+      # and simply return default_codec if the client accepts anything.
       if accept_any:
-        return default_serializer
-      # If the default serializer matches any partial, return it (the likeliness of 
+        return default_codec
+      
+      # If the default codec matches any partial, return it (the likeliness of 
       # this happening is so small we wait until now)
-      for t in default_serializer.media_types:
+      for t in default_codec.media_types:
         if t[:t.find('/', 0)] in partials:
-          return default_serializer
+          return default_codec
+      
       # Test the rest of the partials
-      for t, serializer in codecs.media_types.items():
+      for t, codec in codecs.media_types.items():
         if t[:t.find('/', 0)] in partials:
-          return serializer
-      # The client does not accept anything we have to offser, so respond with 406
-      log.info('Client not accepting anything we can speak. "Accept: %s"', accept_types)
-      raise http.NotAcceptable()
+          return codec
+      
+      # If an Accept header field is present, and if the server cannot send a response which 
+      # is acceptable according to the combined Accept field value, then the server SHOULD 
+      # send a 406 (not acceptable) response. [RFC 2616]
+      log.info('Client demanded content type(s) we can not respond in. "Accept: %s"', accept_types)
+      if self.strict_content_negotiation:
+        raise http.NotAcceptable()
     
-    # Return the default serializer if the client did not specify any acceptable types
-    return self.default_serializer()
+    # Return the default codec if the client did not specify any acceptable types
+    return self.default_codec()
   
   
   def parse_request(self):
     '''
-    Parses the request, involving appropriate serializer if needed.
+    Parses the request, involving appropriate codec if needed.
     
     :returns: (list arguments, dict parameters)
     :rtype:   tuple
     '''
     args = []
+    
+    # Set params to the query string
     params = self.request.get
     
+    # Look at Accept-Charset header and set self.response_charset accordingly
+    accept_charset = self.request.env.get('HTTP_ACCEPT_CHARSET', False)
+    if accept_charset:
+      cqs, highqs, partials, accept_any = parse_qvalue_header(accept_charset.lower(), '*', None)
+      # If the charset we have already set is not in highq, use the first usable encoding
+      if self.response_charset not in highqs:
+        alt_cs = None
+        for cq in cqs:
+          c = cq[0]
+          try:
+            char_codecs.lookup(c)
+            alt_cs = c
+            break
+          except LookupError:
+            pass
+        
+        if alt_cs is not None:
+          self.response_charset = alt_cs
+        else:
+          # If an Accept-Charset header is present, and if the server cannot send a response 
+          # which is acceptable according to the Accept-Charset header, then the server 
+          # SHOULD send an error response with the 406 (not acceptable) status code, though 
+          # the sending of an unacceptable response is also allowed. [RFC 2616]
+          log.info('Client demanded charset(s) we can not respond using. "Accept-Charset: %s"', accept_charset)
+          if self.strict_content_negotiation:
+            raise http.NotAcceptable()
+        
+        if log.level <= logging.DEBUG:
+          log.debug('Using alternate response character encoding: %r (requested by client)', self.response_charset)
+    
+    # Parse body if POST request
     if self.request.env['REQUEST_METHOD'] == 'POST':
       content_type = self.request.env.get('CONTENT_TYPE', '').lower()
       if content_type == 'application/x-www-form-urlencoded' or len(content_type) == 0:
@@ -370,18 +396,18 @@ class Application(smisk.core.Application):
         params.update(self.request.post)
       else:
         # Different kind of content
-        serializer = codecs.media_types.get(content_type, None)
+        codec = codecs.media_types.get(content_type, None)
         
         # Parse content
-        if serializer is not None:
+        if codec is not None:
           content_length = int(self.request.env.get('CONTENT_LENGTH', -1))
-          (eargs, eparams) = serializer.decode(self.request.input, content_length)
+          (eargs, eparams) = codec.decode(self.request.input, content_length)
           if eargs is not None:
             args.extend(eargs)
           if eparams is not None:
             params.update(eparams)
         else:
-          log.error('No serializer found for request type %r -- unable to parse request', content_type)
+          log.error('No codec found for request type %r -- unable to parse request', content_type)
           raise http.HTTPExc(http.UnsupportedMediaType)
     
     return (args, params)
@@ -403,29 +429,33 @@ class Application(smisk.core.Application):
     return self.destination(*args, **params)
   
   
-  def encode_response(self, rsp, template):
-    encoding = self.default_output_encoding
-    
+  def encode_response(self, rsp):
     # No input at all
     if rsp is None:
-      if template:
-        return template.render_unicode().encode(encoding)
+      if self.template:
+        return self.template.render_unicode().encode(self.response_charset)
       return None
     
     # If rsp is already a string, we do not process it further
     if isinstance(rsp, basestring):
-      return rsp
+      if not isinstance(rsp, str):
+        if isinstance(rsp, unicode):
+          rsp = rsp.encode(self.response_charset)
+        else:
+          rsp = str(rsp)
+        return rsp
     
     # Make sure rsp is a dict
     if not isinstance(rsp, dict):
       raise Exception('actions must return a dict, string or None -- not %s', type(rsp))
     
-    # Use template as serializer, if available
-    if template:
-      return template.render_unicode(**rsp).encode(encoding)
+    # Use template as codec, if available
+    if self.template:
+      return self.template.render_unicode(**rsp).encode(self.response_charset)
     
-    # If we do not have a template, we use a standard serializer
-    return self.serializer.encode(**rsp)
+    # If we do not have a template, we use a data codec
+    self.response_charset, rsp = self.codec.encode(rsp, self.response_charset)
+    return rsp
   
   
   def send_response(self, rsp):
@@ -449,7 +479,7 @@ class Application(smisk.core.Application):
       if self.response.find_header('Content-Length:') == -1:
         self.response.headers.append('Content-Length: %d' % len(rsp))
       # Add Content-Type header
-      self.serializer.add_content_type_header(self.response)
+      self.codec.add_content_type_header(self.response, self.response_charset)
       # Add ETag
       if self.etag is not None and len(rsp) > 0 and self.response.find_header('ETag:') == -1:
         h = self.etag(''.join(self.response.headers))
@@ -475,13 +505,16 @@ class Application(smisk.core.Application):
     self.response.status = http.OK
     self.destination = None
     self.template = None
+    self.response_charset = self.default_response_charset
     
-    # Aquire response serializer.
-    # We do this here already, because if response_serializer() raises and
+    # Aquire response codec.
+    # We do this here already, because if response_codec() raises and
     # exception, we do not want any action to be performed. If we would do this
     # after calling an action, chances are an important answer gets replaced by
     # an error response, like 406 Not Acceptable.
-    self.serializer = self.response_serializer()
+    self.codec = self.response_codec()
+    if self.codec.charset is not None:
+      self.response_charset = self.codec.charset
     
     # Parse request (and decode if needed)
     req_args, req_params = self.parse_request()
@@ -496,7 +529,7 @@ class Application(smisk.core.Application):
         self.template = self.template_for_path(os.path.join(*template_path))
     
     # Encode response
-    rsp = self.encode_response(rsp, self.template)
+    rsp = self.encode_response(rsp)
     
     # Return a response to the client and thus completing the transaction.
     self.send_response(rsp)
@@ -506,7 +539,7 @@ class Application(smisk.core.Application):
       timer.finish()
       uri = None
       if self.destination is not None:
-        uri = '/%s.%s' % ('/'.join(self.destination.path), self.serializer.extension)
+        uri = '/%s.%s' % ('/'.join(self.destination.path), self.codec.extension)
       else:
         uri = self.request.url.to_s(scheme=0, user=0, password=0, host=0, port=0)
       log.info('Processed %s in %.3fms', uri, timer.time()*1000.0)
@@ -517,7 +550,7 @@ class Application(smisk.core.Application):
   
   
   def template_uri_for_path(self, path):
-    return path + '.' + self.serializer.extension
+    return path + '.' + self.codec.extension
   
   
   def template_for_uri(self, uri):
@@ -550,26 +583,39 @@ class Application(smisk.core.Application):
       # Ony perform the following block if status type has a body
       if status.has_body:
         
-        # Try to use a serializer
-        if self.serializer is None:
+        # Try to use a codec
+        if self.codec is None:
           try:
-            self.serializer = self.response_serializer()
+            self.codec = self.response_codec()
           except:
-            self.serializer = self.default_serializer()
-      
-        # Set format if a serializer was found
-        format = self.serializer.extension
-      
+            self.codec = self.default_codec()
+        
+        # Set format if a codec was found
+        format = self.codec.extension
+        
         # HTTP exception has a bound action we want to call
         if isinstance(val, http.HTTPExc):
           params = val(self)
-      
-        # Try to use templating or serializer
-        rsp = self.templates.render_error(status, format, params, typ, val, tb)
+          assert(type(params) is DictType)
+        
+        # Include basic info
+        params['name'] = status.name,
+        params['code'] = status,
+        params['description'] = str(val)
+        params['server'] = '%s at %s' % (self.app.request.env['SERVER_SOFTWARE'],
+          self.app.request.env['SERVER_NAME'])
+        
+        # Include traceback if enabled
+        if self.show_traceback:
+          params['traceback'] = util.format_exc((typ, val, tb))
+        else:
+          params['traceback'] = None
+        
+        # Try to use a template...
+        rsp = self.templates.render_error(status, params, format)
+        # ...or a codec
         if rsp is None:
-          if not params or type(params) is not DictType:
-            params = {'code': status.code, 'message': status.name}
-          rsp = self.serializer.encode_error(status, params, typ, val, tb)
+          rsp = self.codec.encode_error(status, params)
       else:
         rsp = ''
       
@@ -582,7 +628,7 @@ class Application(smisk.core.Application):
           if status.is_error and self.response.find_header('Cache-Control:') == -1:
             self.response.headers.append('Cache-Control: no-cache')
           if status.has_body:
-            self.serializer.add_content_type_header(self.response)
+            self.codec.add_content_type_header(self.response, self.response_charset)
           else:
             rsp = None
         

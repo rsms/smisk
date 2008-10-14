@@ -6,24 +6,23 @@ from smisk.codec import codecs, BaseCodec
 from xmlrpclib import dumps, loads, Fault
 
 class codec(BaseCodec):
-  '''XML-RPC serializer'''
+  '''XML-RPC codec'''
   
   extensions = ('xmlrpc',)
   media_types = ('application/rpc+xml', 'application/xml-rpc+xml')
-  encoding = 'utf-8'
+  charset = 'utf-8'
   
   @classmethod
-  def encode(cls, **params):
-    return dumps((params,), methodresponse=True, encoding=cls.encoding, allow_none=True)
+  def encode(cls, params, charset):
+    return (charset, dumps((params,), methodresponse=True, encoding=charset, allow_none=True))
   
   @classmethod
-  def encode_error(cls, status, params, typ, val, tb):
-    code = params.get('code', status.code)
-    msg = params.get('message', status.name)
-    return dumps(Fault(code, str(msg)), encoding=cls.encoding)
+  def encode_error(cls, status, params, charset=None):
+    msg = u' '.join([params['name'], params['description']])
+    return (charset, dumps(Fault(params['code'], msg), encoding=charset))
   
   @classmethod
-  def decode(cls, file, length=-1):
+  def decode(cls, file, length=-1, encoding=None):
     # return (list args, dict params)
     (params, method_name) = loads(file.read(length))
     args = []

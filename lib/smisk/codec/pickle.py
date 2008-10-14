@@ -24,15 +24,11 @@ class codec(BaseCodec):
   media_types = ('application/x-python-pickle', 'application/x-pickle')
   
   @classmethod
-  def encode(cls, **params):
-    return dumps(params, HIGHEST_PROTOCOL)
+  def encode(cls, params, charset):
+    return (None, dumps(params, HIGHEST_PROTOCOL))
   
   @classmethod
-  def encode_error(cls, status, params, typ, val, tb):
-    return dumps(params, HIGHEST_PROTOCOL)
-  
-  @classmethod
-  def decode(cls, file, length=-1):
+  def decode(cls, file, length=-1, charset=None):
     # return (list args, dict params)
     if length == 0:
       return (None, None)

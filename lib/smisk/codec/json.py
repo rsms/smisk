@@ -18,18 +18,17 @@ class codec(BaseCodec):
   '''JSON codec'''
   extensions = ('json',)
   media_types = ('application/json', 'application/x-json')
-  encoding = 'utf-8'
-    
-  @classmethod
-  def encode(cls, **params):
-    return encode(params)
   
   @classmethod
-  def encode_error(cls, status, params, typ, val, tb):
-    return encode(**params)
+  def encode(cls, params, charset):
+    return (None, encode(params))
   
   @classmethod
-  def decode(cls, file, length=-1):
+  def encode_error(cls, status, params, charset):
+    return (None, encode(**params))
+  
+  @classmethod
+  def decode(cls, file, length=-1, charset=None):
     # return (list args, dict params)
     st = decode(file.read(length))
     if isinstance(st, dict):
@@ -44,3 +43,29 @@ class codec(BaseCodec):
 if encode is not None:
   codecs.register(codec)
 
+if __name__ == '__main__':
+  s = codec.encode({
+    'message': 'Hello worlds',
+    'internets': [
+      'interesting',
+      'lolz',
+      42.0,
+      {
+        'tubes': [1,3,16,18,24],
+        'persons': True,
+        'me agåain': {
+          'message': 'Hello worlds',
+          'internets': [
+            'interesting',
+            'lolz',
+            42.0,
+            {
+              'tubes': [1,3,16,18,24],
+              'persons': True
+            }
+          ]
+        }
+      }
+    ]
+  }, codec.charset)
+  print s

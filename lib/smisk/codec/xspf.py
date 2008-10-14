@@ -24,10 +24,10 @@ class ElementSpec(object):
   
 
 class codec(BaseCodec):
-  '''XSPF serializer'''
+  '''XSPF codec'''
   extensions = ('xspf',)
   media_types = ('application/xspf+xml',)
-  encoding = 'utf-8'
+  charset = 'utf-8'
   
   # Options
   pretty_print = False
@@ -36,7 +36,7 @@ class codec(BaseCodec):
   ELEMENTS = {}
   
   @classmethod
-  def encode(cls, **params):
+  def encode(cls, params, charset):
     doc = DOM.createDocument('http://xspf.org/ns/0/', "playlist", None)
     root = doc.documentElement
     root.setAttribute('xmlns', 'http://xspf.org/ns/0/')
@@ -52,9 +52,9 @@ class codec(BaseCodec):
       # else just skip the kv
     pretty_print = params.get('pretty_print', None)
     if (pretty_print is None and cls.pretty_print) or to_bool(pretty_print):
-      return doc.toprettyxml('  ', encoding=cls.encoding)
+      return (charset, doc.toprettyxml('  ', encoding=charset))
     else:
-      return doc.toxml(encoding=cls.encoding)
+      return (charset, doc.toxml(encoding=charset))
   
   @classmethod
   def encode_trackList(cls, doc, tracks):
@@ -70,7 +70,7 @@ class codec(BaseCodec):
     return trackList
   
   @classmethod
-  def encode_error(cls, status, params, typ, val, tb):
+  def encode_error(cls, status, params, charset):
     from smisk.core import Application
     app = Application.current
     if app:
@@ -78,12 +78,30 @@ class codec(BaseCodec):
     else:
       identifier = 'urn:smisk:'
     identifier += 'error/%d' % status.code
-    return cls.encode(**{
-      'title': status.name,
-      'annotation': params.get('message', str(val)),
+    return cls.encode({
+      'title':      params['name'],
+      'annotation': params['description'],
       'identifier': identifier,
-      'trackList': None
-    })
+      'trackList':  None
+    }, charset)
+  
+  @classmethod
+  def decode(cls, file, length=-1, charset=None):
+    ''':returns: (list args, dict params)'''
+    doc = parse_xml(file.read(length))
+    d = {}
+    playlist = doc.firstChild
+    for n in playlist.childNodes:
+      if n.nodeType is not doc.ELEMENT_NODE:
+        continue
+      k = n.nodeName
+      v = None
+      if k == 'trackList':
+        v = cls.decode_trackList(doc, n)
+      else:
+        v = n.firstChild.nodeValue.strip()
+      d[str(k)] = v
+    return (None, d)
   
   INT_ELEMENTS_OF_TRACK = ('trackNum', 'duration')
   
@@ -104,24 +122,6 @@ class codec(BaseCodec):
         track[str(k)] = v
       tracks.append(track)
     return tracks
-  
-  @classmethod
-  def decode(cls, file, length=-1):
-    ''':returns: (list args, dict params)'''
-    doc = parse_xml(file.read(length))
-    d = {}
-    playlist = doc.firstChild
-    for n in playlist.childNodes:
-      if n.nodeType is not doc.ELEMENT_NODE:
-        continue
-      k = n.nodeName
-      v = None
-      if k == 'trackList':
-        v = cls.decode_trackList(doc, n)
-      else:
-        v = n.firstChild.nodeValue.strip()
-      d[str(k)] = v
-    return (None, d)
   
   @classmethod
   def setup(cls):
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     import sys
     from smisk.mvc.http import InternalServerError
     #print codec.encode_error(InternalServerError, {}, *sys.exc_info())
-  xml = codec.encode(**{
+  charset, xml = codec.encode({
     'title': 'Spellistan frum hell',
     'creator': 'rasmus',
     'trackList': [

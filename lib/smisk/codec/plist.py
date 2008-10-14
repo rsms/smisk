@@ -9,21 +9,17 @@ from datetime import datetime
 
 log = logging.getLogger(__name__)
 
-DOCTYPE = '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" '\
-          '"http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+DOCTYPE = u'<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
 
 class EncodeError(Exception):
   '''Indicates an encoding error'''
   pass
 
-def start_rsp():
-  if codec.encoding is not None:
-    return ['<?xml version="1.0" encoding="%s" ?>' % codec.encoding, DOCTYPE, '<plist version="1.0">']
-  else:
-    return ['<?xml version="1.0"?>', DOCTYPE, '<plist version="1.0">']
+def start_rsp(charset):
+  return [u'<?xml version="1.0" encoding="%s" ?>' % charset, DOCTYPE, u'<plist version="1.0">']
 
-def finalize_rsp(v, glue="\n"):
-  v.append('</plist>')
+def finalize_rsp(v, glue=u"\n"):
+  v.append(u'</plist>')
   return glue.join(v)
 
 def encode_value(v, buf, level):
@@ -68,21 +64,17 @@ def encode_sequence(l, buf, level):
 
 
 class codec(BaseCodec):
-  '''XML Property list serializer'''
+  '''XML Property list codec'''
   
   extensions = ('plist',)
   media_types = ('application/plist+xml',)
-  encoding = 'utf-8'
+  charset = 'utf-8'
   
   @classmethod
-  def encode(cls, **params):
-    v = start_rsp()
+  def encode(cls, params, charset):
+    v = start_rsp(charset)
     encode_map(params, v)
-    return finalize_rsp(v)
-  
-  @classmethod
-  def encode_error(cls, status, params, typ, val, tb):
-    return cls.encode(**params)
+    return (charset, finalize_rsp(v).encode(charset))
   
   #xxx todo implement decoder
 

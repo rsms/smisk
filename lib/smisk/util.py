@@ -102,6 +102,49 @@ class Timer(object):
     return (self.time() * 1000000) % 1000
   
 
+
+def parse_qvalue_header(s, accept_any_equals='*/*', partial_endswith='/*'):
+  '''Parse a qvalue HTTP header'''
+  vqs = []
+  highqs = []
+  partials = []
+  accept_any = False
+  
+  if not partial_endswith:
+    partial_endswith = None
+  
+  for part in s.split(','):
+    part = part.strip(' ')
+    p = part.find(';')
+    if p != -1:
+      pp = part.find('q=', p)
+      if pp != -1:
+        q = int(float(part[pp+2:])*100.0)
+        part = part[:p]
+        vqs.append([part, q])
+        if q == 100:
+          highqs.append(part)
+        continue
+    # No qvalue; we use three classes: any (q=0), partial (q=50) and complete (q=100)
+    qual = 100
+    if part == accept_any_equals:
+      qual = 0
+      accept_any = True
+    else:
+      if partial_endswith is not None and part.endswith('/*'):
+        partial = part[:-2]
+        if not partial:
+          continue
+        qual = 50
+        partials.append(partial) # remove last char '*'
+      else:
+        highqs.append(part)
+    vqs.append([part, qual])
+  # Order by qvalue
+  vqs.sort(lambda a,b: b[1] - a[1])
+  return vqs, highqs, partials, accept_any
+
+
 def to_bool(o):
   if type(o) in (str, unicode, basestring):
     try:
@@ -323,11 +366,14 @@ def list_unique(seq):
   return u
 
 
-def format_exc(exc=None):
+def format_exc(exc=None, as_string=False):
   ''':rtype: string'''
   if exc is None:
     exc = sys.exc_info()
   if exc == (None, None, None):
     return ''
   import traceback
-  return ''.join(traceback.format_exception(*exc))
+  if as_string:
+    return ''.join(traceback.format_exception(*exc))
+  else:
+    return traceback.format_exception(*exc)

@@ -3,7 +3,6 @@
 Plain text serialization
 '''
 from smisk.codec import codecs, BaseCodec
-from datetime import datetime
 import re
 
 def encode_value(v, buf, level):
@@ -61,28 +60,22 @@ def encode_sequence(l, buf, level):
   buf.append('%s]' % ('  '*(level-1)))
 
 class codec(BaseCodec):
-  '''Plain Text serializer.'''
+  '''Plain Text codec.'''
   extensions = ('txt',)
   media_types = ('text/plain',)
-  encoding = 'utf-8'
+  charset = 'utf-8'
   
   @classmethod
-  def encode(cls, **params):
-    return '{%s}\n' % ''.join(encode_map(params, [])).rstrip('\n')
-  
-  @classmethod
-  def encode_error(cls, status, params, typ, val, tb):
-    if 'message' in params:
-      msg = params['message']
-    else:
-      msg = cls.encode(**params)
-    return '\n'.join([str(status), msg])+'\n'
+  def encode(cls, params, charset):
+    s = u'{%s}\n' % ''.join(encode_map(params, [])).rstrip('\n')
+    return (charset, s.encode(charset))
   
 
 codecs.register(codec)
 
 if __name__ == '__main__':
-  print codec.encode(**{
+  from datetime import datetime
+  print codec.encode({
     'message': 'Hello worlds',
     'internets': [
       'interesting',

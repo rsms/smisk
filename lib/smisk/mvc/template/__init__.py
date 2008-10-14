@@ -60,16 +60,6 @@ class Templates(object):
   ]
   ''':type: list'''
   
-  show_traceback = None
-  '''
-  Include stack traceback in error messages.
-  
-  If this is set to None when `app` starts accepting requests, the application
-  will set the value according to its own show_traceback value.
-  
-  :type: bool
-  '''
-  
   autoreload = None
   '''
   Automatically reload templates which has been modified.
@@ -172,10 +162,7 @@ class Templates(object):
       self._uri_cache[filename] = value
       return value
   
-  def render_error(self, status, format='html', params={}, typ=None, val=None, tb=None):
-    if typ is None:
-      (typ, val, tb) = sys.exc_info()
-    
+  def render_error(self, status, params={}, format='html'):
     # Compile body from template
     if status.code in self.errors:
       template = self.template_for_uri('%s.%s' % (self.errors[status.code], format), False)
@@ -184,30 +171,14 @@ class Templates(object):
     elif 0 in self.errors:
       template = self.template_for_uri('%s.%s' % (self.errors[0], format), False)
     else:
-      template = self.builtin_error_template(format)
+      template = None
     
-    # We can't render this error.
-    # Whoever asked us to do so must solve it in another way.
+    # We can't render this error because we did not find a suiting template.
     if template is None:
       return None
     
-    # Update parameters
-    rsp = dict(
-      title=status.name,
-      status=status,
-      message=str(val),
-      server_info = '%s at %s' % (self.app.request.env['SERVER_SOFTWARE'],
-                                  self.app.request.env['SERVER_NAME']),
-      traceback=None
-    )
-    rsp.update(params)
-    
-    # Add traceback if enabled
-    if self.show_traceback and ('traceback' not in rsp or rsp['traceback'] is None):
-      rsp['traceback'] = util.format_exc((typ, val, tb))
-    
     # Render template
-    rsp = template.render(**rsp)
+    rsp = template.render(**params)
     
     # Get rid of MSIE "friendly" error messages
     if self.app.request.env.get('HTTP_USER_AGENT','').find('MSIE') != -1:

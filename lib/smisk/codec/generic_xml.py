@@ -13,14 +13,11 @@ class EncodeError(Exception):
   pass
 
 
-def start_rsp():
-  if codec.encoding is not None:
-    return ['<?xml version="1.0" encoding="%s" ?>' % codec.encoding, '<rsp>']
-  else:
-    return ['<?xml version="1.0"?>', '<rsp>']
+def start_rsp(charset):
+  return [u'<?xml version="1.0" encoding="%s" ?>' % charset, u'<rsp>']
 
-def finalize_rsp(v, glue="\n"):
-  v.append('</rsp>')
+def finalize_rsp(v, glue=u"\n"):
+  v.append(u'</rsp>')
   return glue.join(v)
 
 def encode_value(v, buf, level):
@@ -63,35 +60,34 @@ def encode_sequence(l, buf, level):
 
 
 class codec(BaseCodec):
-  '''XML serializer'''
+  '''XML codec'''
   
   extensions = ('xml',)
   media_types = ('text/xml',)
-  encoding = 'utf-8'
+  charset = 'utf-8'
   
   @classmethod
-  def encode(cls, **params):
-    v = start_rsp()
+  def encode(cls, params, charset):
+    v = start_rsp(charset)
     encode_map(params, v)
-    return finalize_rsp(v)
+    return (charset, finalize_rsp(v).encode(charset))
   
   @classmethod
-  def encode_error(cls, status, params, typ, val, tb):
-    v = start_rsp()
-    if 'code' in params and 'message' in params:
-      ends = ' />'
-      if len(params) > 2:
-        ends = '>'
-      v.append('<err code="%d" msg="%s"%s' % \
-        (int(params['code']), xml_escape(str(params['message'])), ends))
-      if ends == '>':
-        del params['code']
-        del params['message']
-        encode_map(params, v)
-        v.append('</err>')
-    else:
+  def encode_error(cls, status, params, charset):
+    v = start_rsp(charset)
+    msg = ' '.join([params['name'], params['description']])
+    ends = ' />'
+    if len(params) > 3:
+      ends = '>'
+    v.append('<err code="%d" msg="%s"%s' % \
+      (int(params['code']), xml_escape(msg), ends))
+    if ends == '>':
+      del params['code']
+      del params['name']
+      del params['description']
       encode_map(params, v)
-    return finalize_rsp(v)
+      v.append('</err>')
+    return (charset, finalize_rsp(v).encode(charset))
   
   #xxx todo implement decoder
 
