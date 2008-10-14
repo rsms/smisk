@@ -117,6 +117,9 @@ def parse_qvalue_header(s, accept_any_equals='*/*', partial_endswith='/*'):
     part = part.strip(' ')
     p = part.find(';')
     if p != -1:
+      # todo Find out what the undocumented, but revealed, level= tags in HTTP 1.1 
+      #      really mean and if they exists in reality. As they are not documented,
+      #      we will not implement support for it. [RFC 2616, chapter 14.1 "Accept"]
       pp = part.find('q=', p)
       if pp != -1:
         q = int(float(part[pp+2:])*100.0)
