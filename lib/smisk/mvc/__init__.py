@@ -24,17 +24,17 @@ response = None
 _MSIE_ERROR_SIZES = { 400:512, 403:256, 404:512, 405:256, 406:512, 408:512,
                       409:512, 410:256, 500:512, 501:512, 505:512}
 
-def branch():
-  """Return the name of the current branch. Defaults to 'stable'.
+def environment():
+  """Return the name of the current environment. Defaults to 'stable'.
   
-  Returns the ``SMISK_BRANCH`` environment value if available,
+  Returns the ``SMISK_ENVIRONMENT`` environment value if available,
   otherwise returns the string 'stable'.
   
-  :returns: Name of the current branch.
+  :returns: Name of the current environment.
   :rtype: string
   """
   try:
-    return os.environ['SMISK_BRANCH']
+    return os.environ['SMISK_ENVIRONMENT']
   except KeyError:
     return 'stable'
 
@@ -169,27 +169,29 @@ class Application(smisk.core.Application):
     if os.path.isdir(path):
       execfile(os.path.join(path, '__init__.py'), globals(), locs)
       log.info('Loaded configuration from module %r', config_mod_name)
-      path = os.path.join(path, '%s.py' % branch())
+      path = os.path.join(path, '%s.py' % environment())
       if os.path.exists(path):
         execfile(path, globals(), locs)
-        log.info('Loaded configuration (for %r branch) from module %s.%s',
-                 branch(), config_mod_name, branch())
+        log.info('Loaded configuration (for %r environment) from module %s.%s',
+                 environment(), config_mod_name, environment())
       else:
-        log.debug('No configuration found for active branch (%s) -- '\
-                  'no %s.%s module in application.', branch(), config_mod_name, branch())
+        log.debug('No configuration found for active environment (%s) -- '\
+                  'no %s.%s module in application.', environment(), 
+                  config_mod_name, environment())
     return
     
     locs = {'app': self}
     try:
       __import__(config_mod_name, globals(), locs)
       log.info('Loaded application-wide configuration from module %r', config_mod_name)
-      branch_mod_name = '%s.%s' % (config_mod_name, branch())
+      environment_mod_name = '%s.%s' % (config_mod_name, environment())
       try:
-        __import__(branch_mod_name, globals(), locs)
-        log.info('Loaded application configuration for %s branch from module %r', branch(), branch_mod_name)
+        __import__(environment_mod_name, globals(), locs)
+        log.info('Loaded application configuration for %s environment from module %r', 
+                 environment(), environment_mod_name)
       except ImportError:
-        log.debug('No configuration found for active branch (%r). '\
-                 'No module %r in your application.', branch(), branch_mod_name)
+        log.debug('No configuration found for active environment (%r). '\
+                 'No module %r in your application.', environment(), environment_mod_name)
     except ImportError:
       log.info('No configuration found. No module %r in your application.', config_mod_name)
   
@@ -704,12 +706,12 @@ def main(app=None, appdir=None, *args, **kwargs):
           appdir = os.path.abspath('.')
       os.environ['SMISK_APP_DIR'] = appdir
     
-    # Simpler branch() function
-    global branch
-    os.environ['SMISK_BRANCH'] = branch()
-    def unsafe_branch():
-      return os.environ['SMISK_BRANCH']
-    branch = unsafe_branch
+    # Simpler environment() function
+    global environment
+    os.environ['SMISK_ENVIRONMENT'] = environment()
+    def unsafe_environment():
+      return os.environ['SMISK_ENVIRONMENT']
+    environment = unsafe_environment
     
     # Aquire app
     if app is None:
