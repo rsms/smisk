@@ -69,13 +69,13 @@ class Status300(Status):
     alternates = {}
     header = []
     html = ['<ul>']
-    for c in codecs.values():
+    for c in codecs:
       alt_path = '%s.%s' % (path, c.extension)
       header_s = '"%s" 1.0 {type %s}' % (alt_path, c.media_type)
       m = {'type':c.media_type, 'name':c.name}
       header.append('{%s}' % header_s)
       alternates[alt_path] = m
-      html.append('<li><a href="%s">%s (%s)</a></li>' % \
+      html.append('<li><a href="%s">%s (%s)</a></li>\n' % \
         (xmlesc(alt_path), xmlesc(c.name), xmlesc(c.media_type)))
     html.append('</ul>')
     
