@@ -2,6 +2,7 @@
 '''
 JSON serialization (RFC 4627)
 '''
+from smisk.core import Application
 from smisk.codec import codecs, BaseCodec
 try:
   from cjson import encode, decode, DecodeError, EncodeError
@@ -15,14 +16,22 @@ except ImportError:
     warn('No JSON implementation available. Install cjson or minjson.')
 
 class codec(BaseCodec):
-  '''JSON codec'''
+  '''JSON codec.
+  
+  Supports JSONP (JSON with Padding) through the special ``callback``
+  query string parameter.
+  '''
   name = 'JSON: JavaScript Object Notation'
   extensions = ('json',)
   media_types = ('application/json', 'application/x-json')
   
   @classmethod
   def encode(cls, params, charset):
-    return (None, encode(params))
+    callback = Application.current.request.get.get('callback', None)
+    if callback:
+      return (None, '%s(%s);' % (callback, encode(params)))
+    else:
+      return (None, encode(params))
   
   @classmethod
   def encode_error(cls, status, params, charset):
