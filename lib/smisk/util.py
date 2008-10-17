@@ -200,14 +200,14 @@ def load_modules_in_dir(path, skip__init__=True):
     name = strip_filename_extension(f)
     if skip__init__ and name == '__init__':
       continue
-    if f[0] != '.' and f[-3:] in ('.py', 'pyc') and f not in loaded:
+    if f[0] != '.' and f[-3:] in ('.py', 'pyc') and name not in loaded:
       fp, pathname, desc = imp.find_module(name, [path])
       try:
         imp.load_module(name, fp, pathname, desc)
       finally:
         if fp:
           fp.close()
-      loaded.append(f)
+      loaded.append(name)
   return loaded
 
 def normalize_url(url):
