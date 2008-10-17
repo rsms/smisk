@@ -80,14 +80,14 @@ class Application(smisk.core.Application):
   negotiation.
   
   For example, if this is True and a client accepts only character sets 
-  none of which can encode, a 206 Not Acceptable response is sent.
+  none of which we can encode, a 206 Not Acceptable response is sent.
   
   This affects ``Accept*`` request headers which demands can not be met.
   
   As HTTP 1.1 (RFC 2616) allows fallback to defaults (though not 
-  recommended) we provide the option of turning of the 206 response.
-  Setting this to false will respond using a best-guess of what value
-  to use in place of the demanded value which could no be met.
+  recommended) we provide the option of turning off the 206 response.
+  Setting this to false will cause Smisk to encode text responses using
+  a best-guess character encoding.
   
   :type: bool'''
   
@@ -113,7 +113,6 @@ class Application(smisk.core.Application):
   
   :type: object
   '''
-  ''':type: string'''
   
   codec = None
   '''
