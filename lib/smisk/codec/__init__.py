@@ -1,5 +1,6 @@
 # encoding: utf-8
 '''Data codecs'''
+import sys
 
 class Codecs(object):
   first_in = None
@@ -8,25 +9,49 @@ class Codecs(object):
   def __init__(self):
     self.media_types = {}
     self.extensions = {}
+    self.codecs = []
   
-  def register(self, cls):
+  def register(self, codec):
     '''Register a new codec class'''
+    # Already registered?
+    if codec in self.codecs:
+      return
+    # Register Codec
+    self.codecs.append(codec)
     # Register Media types
-    for t in cls.media_types:
-      if cls.media_type is None:
-        cls.media_type = t
-      self.media_types[t] = cls
+    for t in codec.media_types:
+      if codec.media_type is None:
+        codec.media_type = t
+      self.media_types[t] = codec
     # Register extensions/formats
-    for ext in cls.extensions:
-      if cls.extension is None:
-        cls.extension = ext
-      self.extensions[ext] = cls
+    for ext in codec.extensions:
+      if codec.extension is None:
+        codec.extension = ext
+      self.extensions[ext] = codec
     # Set first_in
     if self.first_in is None:
-      self.first_in = cls
+      self.first_in = codec
   
-  def values(self):
-    return self.extensions.values()
+  def unregister(self, codec):
+    '''Unregister a previously registered codec.'''
+    for i in range(len(self.codecs)):
+      if self.codecs[i] == codec:
+        del self.codecs[i]
+        break
+    for k,v in self.media_types.items():
+      if v == codec:
+        del self.media_types[k]
+    for k,v in self.extensions.items():
+      if v == codec:
+        del self.extensions[k]
+    if self.first_in == codec:
+      if self.codecs:
+        self.first_in = self.codecs[0]
+      else:
+        self.first_in = None
+  
+  def __iter__(self):
+    return self.codecs.__iter__()
   
 
 codecs = Codecs()
