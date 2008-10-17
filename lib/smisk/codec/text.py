@@ -61,6 +61,7 @@ def encode_sequence(l, buf, level):
 
 class codec(BaseCodec):
   '''Plain Text codec.'''
+  name = 'Plain text'
   extensions = ('txt',)
   media_types = ('text/plain',)
   charset = 'utf-8'

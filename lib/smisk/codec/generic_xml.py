@@ -61,7 +61,7 @@ def encode_sequence(l, buf, level):
 
 class codec(BaseCodec):
   '''XML codec'''
-  
+  name = 'Generic XML'
   extensions = ('xml',)
   media_types = ('text/xml',)
   charset = 'utf-8'

@@ -1,5 +1,7 @@
 # encoding: utf-8
-from smisk.util import normalize_url
+from smisk.util import normalize_url, strip_filename_extension
+from smisk.core import URL
+from smisk.core.xml import escape as xmlesc
 
 STATUS = {}
 
@@ -18,10 +20,11 @@ class HTTPExc(Exception):
   
 
 class Status(object):
-  def __init__(self, code, name, has_body=True):
+  def __init__(self, code, name, has_body=True, uses_template=True):
     self.code = code
     self.name = name
     self.has_body = has_body
+    self.uses_template = uses_template
     STATUS[code] = self
   
   def __call__(self, *args, **kwargs):
@@ -29,7 +32,6 @@ class Status(object):
   
   def service(self, app, *args, **kwargs):
     app.response.status = self
-    app.response.headers = ['Status: %s' % self] # clear any previous headers
     if self.has_body:
       return {'code': self.code, 'description': self.name, 'http_error': True}
   
@@ -44,32 +46,53 @@ class Status(object):
     return 'Status(%r, %r)' % (self.code, self.name)
   
 
-
-class Status300(Status):
+class Status30x(Status):
   def service(self, app, url=None, *args, **kwargs):
     if url is None:
-      raise Exception('Status300 requires a 3:rd argument "url"')
+      raise Exception('http.Status30x requires a 3:rd argument "url"')
     rsp = Status.service(self, app)
     app.response.headers.append('Location: ' + normalize_url(url))
     rsp['description'] = 'The resource has moved to %s' % url
     return rsp
   
 
-class Status404(Status):
-  def service(self, app, *args, **kwargs):
+class Status300(Status):
+  def service(self, app, url=None, *args, **kwargs):
+    from smisk.codec import codecs
     rsp = Status.service(self, app)
-    rsp['description'] = 'No resource exists at %s' % app.request.url.path
+    if url is None:
+      url = app.request.url
+    elif not isinstance(url, URL):
+      url = URL(url)
+    path = strip_filename_extension(url.path)
+    
+    alternates = {}
+    header = []
+    html = ['<ul>']
+    for c in codecs.values():
+      alt_path = '%s.%s' % (path, c.extension)
+      header_s = '"%s" 1.0 {type %s}' % (alt_path, c.media_type)
+      m = {'type':c.media_type, 'name':c.name}
+      header.append('{%s}' % header_s)
+      alternates[alt_path] = m
+      html.append('<li><a href="%s">%s (%s)</a></li>' % \
+        (xmlesc(alt_path), xmlesc(c.name), xmlesc(c.media_type)))
+    html.append('</ul>')
+    
+    app.response.headers.append('TCN: list')
+    app.response.headers.append('Alternates: '+','.join(header))
+    rsp['description'] = alternates
+    rsp['description_html'] = ''.join(html)
     return rsp
   
 
-class StatusNotAcceptable(Status):
-  def service(self, app, *args, **kwargs):
+class Status404(Status):
+  def service(self, app, description=None, *args, **kwargs):
     rsp = Status.service(self, app)
-    from smisk.codec import codecs
-    # Note: Lighttpd 1.4 is confirmed not to send any body, so this will never be sent
-    #       If running in lighttpd 1.4. The specification of this HTTP 1.1 status code
-    #       is somewhat vauge but we interpret it as being able to contain a body.
-    rsp['description'] = 'Acceptable types: %s' % ', '.join(codecs.media_types.keys())
+    if description is not None:
+      rsp['description'] = description
+    else:
+      rsp['description'] = 'No resource exists at %s' % app.request.url.path
     return rsp
   
 
@@ -85,13 +108,13 @@ NoContent                    = Status(204, "No Content")
 ResetContent                 = Status(205, "Reset Content")
 PartialContent               = Status(206, "Partial Content")
 
-MultipleChoices              = Status300(300, "Multiple Choices")
-MovedPermanently             = Status300(301, "Moved Permanently")
-Found                        = Status300(302, "Found")
-SeeOther                     = Status300(303, "See Other")
-NotModified                  = Status300(304, "Not Modified")
-UseProxy                     = Status300(305, "Use Proxy")
-TemporaryRedirect            = Status300(307, "Temporary Redirect")
+MultipleChoices              = Status300(300, "Multiple Choices", uses_template=False)
+MovedPermanently             = Status30x(301, "Moved Permanently")
+Found                        = Status30x(302, "Found")
+SeeOther                     = Status30x(303, "See Other")
+NotModified                  = Status30x(304, "Not Modified")
+UseProxy                     = Status30x(305, "Use Proxy")
+TemporaryRedirect            = Status30x(307, "Temporary Redirect")
 
 BadRequest                   = Status(400, "Bad Request")
 Unauthorized                 = Status(401, "Unauthorized")
@@ -104,7 +127,7 @@ MethodNotFound               = Status404(404, "Not Found")
 TemplateNotFound             = Status404(404, "Not Found")
 
 MethodNotAllowed             = Status(405, "Method Not Allowed", False)
-NotAcceptable                = StatusNotAcceptable(406, "Not Acceptable", False)
+NotAcceptable                = Status(406, "Not Acceptable", False)
 ProxyAuthenticationRequired  = Status(407, "Proxy Authentication Required", False)
 RequestTimeout               = Status(408, "Request Time-out", False)
 Conflict                     = Status(409, "Conflict", False)

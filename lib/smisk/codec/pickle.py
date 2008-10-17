@@ -20,6 +20,7 @@ class codec(BaseCodec):
   >>> import pickle, urllib
   >>> print pickle.load(urllib.urlopen("http://localhost:8080/.pickle?hello=123"))
   '''
+  name = 'Python Pickle'
   extensions = ('pickle',)
   media_types = ('application/x-python-pickle', 'application/x-pickle')
   

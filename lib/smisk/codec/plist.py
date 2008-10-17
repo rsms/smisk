@@ -64,8 +64,9 @@ def encode_sequence(l, buf, level):
 
 
 class codec(BaseCodec):
-  '''XML Property list codec'''
+  '''XML Property List codec'''
   
+  name = 'XML Property List'
   extensions = ('plist',)
   media_types = ('application/plist+xml',)
   charset = 'utf-8'
@@ -81,7 +82,7 @@ class codec(BaseCodec):
 codecs.register(codec)
 
 if __name__ == '__main__':
-  print codec.encode(**{
+  print codec.encode({
     'message': 'Hello worlds',
     'internets': [
       'interesting',

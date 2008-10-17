@@ -46,9 +46,6 @@ class Response(smisk.core.Response):
   
   :type: string
   '''
-  
-  status = http.OK
-  ''':type: smisk.mvc.http.Status'''
 
 
 class Application(smisk.core.Application):
@@ -61,8 +58,15 @@ class Application(smisk.core.Application):
   :type: string
   '''
   
-  default_format = 'html'
-  ''':type: string'''
+  default_codec = None
+  ''':type: smisk.codec.BaseCodec'''
+  
+  fallback_codec = None
+  '''If None when `application_will_start` is called, this will
+  be set to a HTML-codec and if none is available, the first registered
+  codec is used.
+  
+  :type: smisk.codec.BaseCodec'''
   
   templates = None
   ''':type: Templates'''
@@ -227,22 +231,19 @@ class Application(smisk.core.Application):
     request = self.request
     response = self.response
     
-    # Check so the default media type really has an available codec
-    codec_exts = codecs.extensions.keys()
-    if not self.default_format in codec_exts:
-      if len(codecs.extensions) == 0:
-        log.warn('No codecs available!')
-      else:
-        self.default_format = codecs.extensions.keys()[0]
-        log.warn('app.default_format is not available from the current set of codecs'\
-                 ' -- setting to first registered codec: %s', self.default_format)
-    
     # Check templates config
     if self.templates:
       if not self.templates.directories:
         self.templates.directories = [os.path.join(os.environ['SMISK_APP_DIR'], 'templates')]
       if self.templates.autoreload is None:
         self.templates.autoreload = self.autoreload
+    
+    # Set fallback codec
+    if self.fallback_codec is None:
+      try:
+        self.fallback_codec = codecs.extensions['html']
+      except KeyError:
+        self.fallback_codec = codecs.first_in
     
     # Info about codecs
     if log.level <= logging.DEBUG:
@@ -255,22 +256,17 @@ class Application(smisk.core.Application):
     log.info('Accepting connections')
   
   
-  def default_codec(self):
-    """Return the default codec.
-    
-    If even the default format can not be used, the first registered
-    codec is returned.
-    """
-    try:
-      return codecs.extensions[self.default_format]
-    except KeyError:
-      return codecs.first_in
-  
-  
-  def response_codec(self):
+  def response_codec(self, no_http_exc=False):
     '''
     Return the most appropriate codec for handling response encoding.
     
+    :param disable_http300: If true, HTTP statuses are never rised when no acceptable 
+                            codec is found. Instead a fallback codec will be returned:
+                            First we try to return a codec for format html, if that
+                            fails we return the first registered codec. If that also
+                            fails there is nothing more left to do but return None.
+                            Primarily used by `error()`.
+    :type  disable_http300: bool
     :return: The most appropriate codec
     :rtype:  codec
     '''
@@ -279,15 +275,21 @@ class Application(smisk.core.Application):
       # Should fail if not exists
       return codecs.extensions[self.response.format]
     
-    # Overridden by explicit Content-Type header?
+    # Overridden internally by explicit Content-Type header?
     p = self.response.find_header('Content-Type:')
     if p != -1:
       content_type = self.response.headers[p][13:].strip("\t ").lower()
       p = content_type.find(';')
       if p != -1:
         content_type = content_type[:p].rstrip("\t ")
-      if content_type in codecs.media_types:
+      try:
         return codecs.media_types[content_type]
+      except KeyError:
+        if no_http_exc:
+          return self.fallback_codec
+        else:
+          raise http.InternalServerError('Content-Type response header is set to type %r '\
+            'which does not have any valid codec associated with it.' % content_type)
     
     # Try filename extension
     if self.request.url.path.rfind('.') != -1:
@@ -300,10 +302,12 @@ class Application(smisk.core.Application):
         try:
           return codecs.extensions[ext]
         except KeyError:
-          raise http.NotFound()
+          if no_http_exc:
+            return self.fallback_codec
+          else:
+            raise http.NotFound('Resource not available as %r' % ext)
     
     # Try media type
-    default_codec = None
     accept_types = self.request.env.get('HTTP_ACCEPT', None)
     if accept_types is not None and len(accept_types):
       if log.level <= logging.DEBUG:
@@ -313,10 +317,10 @@ class Application(smisk.core.Application):
       tqs, highqs, partials, accept_any = parse_qvalue_header(accept_types, '*/*', '/*')
       
       # If the default codec exists in the highest quality accept types, return it
-      default_codec = self.default_codec()
-      for t in default_codec.media_types:
-        if t in highqs:
-          return default_codec
+      if self.default_codec is not None:
+        for t in self.default_codec.media_types:
+          if t in highqs:
+            return self.default_codec
       
       # Find a codec matching any accept type, ordered by qvalue
       available_types = codecs.media_types.keys()
@@ -328,13 +332,17 @@ class Application(smisk.core.Application):
       # Accepts */* which is far more common than accepting partials, so we test this here
       # and simply return default_codec if the client accepts anything.
       if accept_any:
-        return default_codec
+        if self.default_codec is not None:
+          return self.default_codec
+        else:
+          return self.fallback_codec
       
       # If the default codec matches any partial, return it (the likeliness of 
       # this happening is so small we wait until now)
-      for t in default_codec.media_types:
-        if t[:t.find('/', 0)] in partials:
-          return default_codec
+      if self.default_codec is not None:
+        for t in self.default_codec.media_types:
+          if t[:t.find('/', 0)] in partials:
+            return default_codec
       
       # Test the rest of the partials
       for t, codec in codecs.media_types.items():
@@ -348,8 +356,17 @@ class Application(smisk.core.Application):
       if self.strict_content_negotiation:
         raise http.NotAcceptable()
     
-    # Return the default codec if the client did not specify any acceptable types
-    return self.default_codec()
+    # The client did not ask for any type in particular
+    
+    # Strict TCN
+    if self.default_codec is None:
+      if no_http_exc:
+        return self.fallback_codec
+      else:
+        raise http.MultipleChoices(self.request.url)
+      
+    # Return the default codec
+    return self.default_codec
   
   
   def parse_request(self):
@@ -429,6 +446,11 @@ class Application(smisk.core.Application):
     # Find destination or return None
     self.destination, args, params = self.routes(self.request.url, args, params)
     
+    # Add Content-Location response header
+    if self.codec:
+      self.response.headers.append('Content-Location: /%s.%s' %\
+        ('/'.join(self.destination.path), self.codec.extension))
+    
     # Call action
     if log.level <= logging.DEBUG:
       log.debug('Calling destination %r', self.destination)
@@ -476,11 +498,6 @@ class Application(smisk.core.Application):
     
     # Add headers if the response has not yet begun
     if not self.response.has_begun:
-      # Set status
-      if self.response.status is not None \
-        and self.response.status is not http.OK \
-        and self.response.find_header('Status:') == -1:
-        self.response.headers.append('Status: ' + str(self.response.status)),
       # Add Content-Length header
       if self.response.find_header('Content-Length:') == -1:
         self.response.headers.append('Content-Length: %d' % len(rsp))
@@ -508,10 +525,10 @@ class Application(smisk.core.Application):
     
     # Reset pre-transaction properties
     self.response.format = None
-    self.response.status = http.OK
     self.destination = None
     self.template = None
     self.response_charset = self.default_response_charset
+    self.codec = None
     
     # Aquire response codec.
     # We do this here already, because if response_codec() raises and
@@ -524,6 +541,9 @@ class Application(smisk.core.Application):
     
     # Parse request (and decode if needed)
     req_args, req_params = self.parse_request()
+    
+    # Always add the vary header
+    self.response.headers.append('Vary: negotiate, accept, accept-charset')
     
     # Call the action which might generate a response object: rsp
     rsp = self.call_action(req_args, req_params)
@@ -574,11 +594,12 @@ class Application(smisk.core.Application):
   def error(self, typ, val, tb):
     try:
       status = getattr(val, 'status', http.InternalServerError)
-      params = {}
-      format = self.default_format
       
       # Set headers
-      self.response.headers = ['Status: %s' % status]
+      self.response.headers = [
+        'Status: %s' % status,
+        'Vary: negotiate, accept, accept-charset'
+      ]
       
       # Log
       if status.is_error:
@@ -588,13 +609,12 @@ class Application(smisk.core.Application):
       
       # Ony perform the following block if status type has a body
       if status.has_body:
+        params = {}
         
         # Try to use a codec
         if self.codec is None:
-          try:
-            self.codec = self.response_codec()
-          except:
-            self.codec = self.default_codec()
+          # In this case, probably HTTP 300 or a very early error occured.
+          self.codec = self.fallback_codec()
         
         # Set format if a codec was found
         format = self.codec.extension
@@ -606,11 +626,9 @@ class Application(smisk.core.Application):
         
         # Include basic info
         params['name'] = str(status.name)
-        params['code'] = status.code,
+        params['code'] = status.code
         if 'description' not in params:
           params['description'] = str(val)
-        else:
-          params['description'] = str(params['description'])
         params['server'] = '%s at %s' % (self.request.env['SERVER_SOFTWARE'],
           self.request.env['SERVER_NAME'])
         
@@ -621,7 +639,9 @@ class Application(smisk.core.Application):
           params['traceback'] = None
         
         # Try to use a template...
-        rsp = self.templates.render_error(status, params, format)
+        rsp = None
+        if status.uses_template:
+          rsp = self.templates.render_error(status, params, format)
         # ...or a codec
         if rsp is None:
           self.response_charset, rsp = self.codec.encode_error(status, params, self.response_charset)

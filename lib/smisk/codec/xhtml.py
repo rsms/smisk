@@ -7,42 +7,46 @@ from smisk.mvc import http
 from smisk.core.xml import escape as xml_escape
 from smisk.core import Application
 
-def encode_value(v, buf):
+def encode_value(v, buf, value_wraptag='tt'):
   if isinstance(v, bool):
     if v:
-      buf.append(u'<em>True</em>')
+      buf.append(u'<%s>True</%s>' % (value_wraptag, value_wraptag))
     else:
-      buf.append(u'<em>False</em>')
+      buf.append(u'<%s>False</%s>' % (value_wraptag, value_wraptag))
   elif isinstance(v, list) or isinstance(v, tuple):
-    encode_sequence(v, buf)
+    encode_sequence(v, buf, value_wraptag)
   elif isinstance(v, dict):
-    encode_map(v, buf)
+    encode_map(v, buf, value_wraptag)
   else:
-    buf.append(u'<tt>%s</tt>' % xml_escape(repr(v)))
+    buf.append(u'<%s>%s</%s>' % (value_wraptag, xml_escape(str(v)), value_wraptag) )
+  return buf
 
-def encode_map(d, buf):
+def encode_map(d, buf, value_wraptag='tt'):
   buf.append(u'<ul>')
   for k,v in d.iteritems():
     buf.append(u'<li><b>%s:</b> ' % xml_escape(str(k)) )
-    encode_value(v, buf)
+    encode_value(v, buf, value_wraptag)
     buf.append(u'</li>')
   buf.append(u'</ul>')
+  return buf
 
-def encode_sequence(l, buf):
+def encode_sequence(l, buf, value_wraptag='tt'):
   buf.append(u'<ol>')
   for v in l:
     buf.append(u'<li>')
-    encode_value(v, buf)
+    encode_value(v, buf, value_wraptag)
     buf.append(u'</li>')
   buf.append(u'</ol>')
+  return buf
 
 
 class codec(BaseCodec):
   '''XHTML codec'''
+  name = 'XHTML: Extensible Hypertext Markup Language'
   extensions = ('html',)
   media_types = ('text/html', 'application/xhtml+xml')
   charset = 'utf-8'
-    
+  
   @classmethod
   def encode(cls, params, charset):
     title = u'Response'
@@ -67,8 +71,13 @@ class codec(BaseCodec):
     for k,v in params.iteritems():
       if k == 'traceback' and v:
         xp[k] = u'<pre class="traceback">%s</pre>' % xml_escape(''.join(v))
+      elif k == 'description':
+        xp[k] = u''.join(encode_value(v, [], 'p'))
       else:
         xp[k] = xml_escape(str(v))
+    # Override if description_html is set
+    if 'description_html' in params:
+      xp['description'] = params['description_html']
     s = ERROR_TEMPLATE % xp
     return (charset, s.encode(charset))
   
@@ -84,7 +93,7 @@ ERROR_TEMPLATE = ur'''<?xml version="1.0" encoding="%(charset)s" ?>
       body,html { padding:0; margin:0; background:#666; }
       h1 { padding:25pt 10pt 10pt 15pt; background:#ffb2bf; color:#560c00; font-family:arial,helvetica,sans-serif; margin:0; }
       address, p { font-family:'lucida grande',verdana,arial,sans-serif; }
-      p.message { padding:10pt 16pt; background:#fff; color:#222; margin:0; font-size:.9em; }
+      body > p, body > ul, body > ol { padding:10pt 16pt; background:#fff; color:#222; margin:0; font-size:.9em; }
       pre.traceback { padding:10pt 15pt 25pt 15pt; line-height:1.4; background:#f2f2ca; color:#52523b; margin:0; border-top:1px solid #e3e3ba; border-bottom:1px solid #555; }
       hr { display:none; }
       address { padding:10pt 15pt; color:#333; font-size:11px; }
@@ -92,12 +101,13 @@ ERROR_TEMPLATE = ur'''<?xml version="1.0" encoding="%(charset)s" ?>
   </head>
   <body>
     <h1>%(name)s</h1>
-    <p class="message">%(description)s</p>
+    %(description)s
     %(traceback)s
     <hr/>
     <address>%(server)s</address>
   </body>
-</html>'''
+</html>
+'''
 
 if __name__ == '__main__':
   from datetime import datetime

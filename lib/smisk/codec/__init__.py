@@ -26,7 +26,7 @@ class Codecs(object):
       self.first_in = cls
   
   def values(self):
-    return self.media_types.values()
+    return self.extensions.values()
   
 
 codecs = Codecs()
@@ -36,6 +36,13 @@ codecs = Codecs()
 class BaseCodec(object):
   '''
   Abstract baseclass for codecs
+  '''
+  
+  name = 'Untitled codec'
+  '''
+  A human readable and descriptive but short name of the codec.
+  
+  :type: string
   '''
   
   extension = None

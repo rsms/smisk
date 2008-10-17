@@ -32,7 +32,9 @@ THE SOFTWARE.
 #include <limits.h> // for PATH_MAX
 #include <libgen.h>
 
+
 #pragma mark Public C
+
 
 smisk_Application *smisk_Application_current = NULL;
 
@@ -68,6 +70,7 @@ int smisk_Application_set_current (PyObject *app) {
 #pragma mark -
 #pragma mark Internal
 
+
 static int _setup_transaction_context(smisk_Application *self) {
   log_trace("ENTER");
   PyObject *request, *response;
@@ -92,11 +95,76 @@ static int _setup_transaction_context(smisk_Application *self) {
 }
 
 
+static int _fork(smisk_Application *self) {
+  log_trace("ENTER");
+  int i = 0;
+  pid_t pid;
+  
+  if (self->fork_pids) {
+    free(self->fork_pids);
+    self->fork_pids = NULL;
+  }
+  
+  for (; i<self->forks; i++) {
+    pid = fork();
+    
+    if (pid == -1) {
+      log_error("fork() failed");
+      PyErr_SET_FROM_ERRNO;
+      return -1;
+    }
+    else if (pid == 0) {
+      // child
+      log_debug("New child process started");
+      PyOS_AfterFork();
+      return 1;
+    }
+    else {
+      // parent
+      if (self->fork_pids == NULL)
+        self->fork_pids = (pid_t *)malloc(sizeof(pid_t)*self->forks);
+      self->fork_pids[i] = pid;
+    }
+  }
+  log_trace("EXIT");
+  return 0;
+}
+
+
+static int _wait_on_child_procs(smisk_Application *self) {
+  log_trace("ENTER");
+  int i = 0, child_exit_status;
+  for (; i < self->forks; i++) {
+    waitpid(self->fork_pids[i], &child_exit_status, 0);
+#if SMISK_DEBUG
+    if (WIFEXITED(child_exit_status)) {
+      log_debug("child %d exited with status %d", 
+        self->fork_pids[i], WEXITSTATUS(child_exit_status));
+    }
+    else if (WIFSIGNALED(child_exit_status)) {
+      log_debug("child %d exited due to signal %d", 
+        self->fork_pids[i], WTERMSIG(child_exit_status));
+    }
+    else if (WIFSTOPPED(child_exit_status)) {
+      log_debug("child %d is stopped",
+        self->fork_pids[i]);
+    }
+    else {
+      log_debug("child %d terminated abnormally. waitpid() returned 0x%x",
+        self->fork_pids[i], child_exit_status);
+    }
+#endif
+  }
+  log_trace("EXIT");
+  return 0;
+}
+
+
 // signal handlers wrapping run method
 
 int smisk_Application_trapped_signal = 0;
 
-static void smisk_Application_sighandler_close_fcgi(int sig) {
+static void _sighandler_close_fcgi(int sig) {
   log_trace("ENTER");
   log_debug("Caught signal %d", sig);
   smisk_Application_trapped_signal = sig;
@@ -127,6 +195,8 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
   
     // Default values
     self->show_traceback = Py_True; Py_INCREF(Py_True);
+    self->forks = 0;
+    self->fork_pids = NULL;
     
     // Application.current = self
     smisk_Application_set_current((PyObject *)self);
@@ -152,6 +222,9 @@ void smisk_Application_dealloc(smisk_Application *self) {
   Py_XDECREF(self->sessions);
   Py_DECREF(self->show_traceback);
   
+  if (self->fork_pids)
+    free(self->fork_pids);
+  
   self->ob_type->tp_free((PyObject*)self);
 }
 
@@ -166,20 +239,28 @@ PyDoc_STRVAR(smisk_Application_run_DOC,
   ":rtype: None");
 PyObject *smisk_Application_run(smisk_Application *self) {
   log_trace("ENTER");
-  
-  int rc;
+  int rc, is_child_process = 0;
   PyOS_sighandler_t orig_int_handler, orig_hup_handler, orig_term_handler, orig_sigusr1_handler;
   PyObject *ret = Py_None;
+  
+  // Fork
+  if ( (self->forks > 0) && ( (is_child_process = _fork(self)) == -1) )
+    return NULL;
+  
+  // Set program name to argv[0]
+  PyObject *argv = PySys_GetObject("argv");
+  if (PyList_GET_SIZE(argv))
+    Py_SetProgramName(basename(PyString_AsString(PyList_GetItem(argv, 0))));
   
   // Setup request object
   FCGX_Request request;
   FCGX_InitRequest(&request, smisk_listensock_fileno, FCGI_FAIL_ACCEPT_ON_INTR);
   
   // Register signal handlers
-  orig_int_handler = PyOS_setsig(SIGINT, smisk_Application_sighandler_close_fcgi);
-  orig_hup_handler = PyOS_setsig(SIGHUP, smisk_Application_sighandler_close_fcgi);
-  orig_term_handler = PyOS_setsig(SIGTERM, smisk_Application_sighandler_close_fcgi);
-  orig_sigusr1_handler = PyOS_setsig(SIGUSR1, smisk_Application_sighandler_close_fcgi);
+  orig_int_handler = PyOS_setsig(SIGINT, _sighandler_close_fcgi);
+  orig_hup_handler = PyOS_setsig(SIGHUP, _sighandler_close_fcgi);
+  orig_term_handler = PyOS_setsig(SIGTERM, _sighandler_close_fcgi);
+  orig_sigusr1_handler = PyOS_setsig(SIGUSR1, _sighandler_close_fcgi);
   
   // CGI test
   if (FCGX_IsCGI() && (smisk_listensock_fileno == FCGI_LISTENSOCK_FILENO))
@@ -197,8 +278,10 @@ PyObject *smisk_Application_run(smisk_Application *self) {
   rc = 0;
   while (rc == 0) {
     EXTERN_OP(rc = FCGX_Accept_r(&request));
-    if (rc != 0)
+    if (rc != 0) {
+      log_debug("FCGX_Accept_r failed (normal during shutdown)");
       break;
+    }
     
     if (smisk_Application_trapped_signal)
       break;
@@ -284,7 +367,7 @@ PyObject *smisk_Application_run(smisk_Application *self) {
   if (PyObject_CallMethod((PyObject *)self, "application_did_stop", NULL) == NULL)
     return NULL;
   
-  request.keepConnection = 0; // this way, we can be sure streams are closed.
+  request.keepConnection = 0; // make sure streams are closed.
   EXTERN_OP(FCGX_Finish_r(&request));
   
   // reset signal handlers
@@ -302,6 +385,10 @@ PyObject *smisk_Application_run(smisk_Application *self) {
     }
     smisk_Application_trapped_signal = 0;
   }
+  
+  // Wait for child processes to exit
+  if ( (self->forks > 0) && (!is_child_process) && (_wait_on_child_procs(self) != 0) )
+    return NULL;
   
   if (ret == Py_None)
     Py_INCREF(ret);
@@ -672,6 +759,13 @@ static struct PyMemberDef smisk_Application_members[] = {
   {"show_traceback", T_OBJECT_EX, offsetof(smisk_Application, show_traceback), 0,
     ":type: bool\n\n"
     "Defaults to True."},
+  
+  {"forks", T_INT, offsetof(smisk_Application, forks), 0,
+    ":type: int\n\n"
+    "Number of child processes to fork off into.\n"
+    "\n"
+    "This must be set before calling `run` as it is in `run` where the "
+    "forking is done. Defaults to 0."},
   
   {NULL, 0, 0, 0, NULL}
 };

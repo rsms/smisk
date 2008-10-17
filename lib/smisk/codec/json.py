@@ -16,6 +16,7 @@ except ImportError:
 
 class codec(BaseCodec):
   '''JSON codec'''
+  name = 'JSON: JavaScript Object Notation'
   extensions = ('json',)
   media_types = ('application/json', 'application/x-json')
   
@@ -25,7 +26,7 @@ class codec(BaseCodec):
   
   @classmethod
   def encode_error(cls, status, params, charset):
-    return (None, encode(**params))
+    return (None, encode(params))
   
   @classmethod
   def decode(cls, file, length=-1, charset=None):

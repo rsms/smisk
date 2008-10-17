@@ -7,7 +7,7 @@ from xmlrpclib import dumps, loads, Fault
 
 class codec(BaseCodec):
   '''XML-RPC codec'''
-  
+  name = 'XML-RPC'
   extensions = ('xmlrpc',)
   media_types = ('application/rpc+xml', 'application/xml-rpc+xml')
   charset = 'utf-8'

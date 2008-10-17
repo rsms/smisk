@@ -38,7 +38,10 @@ typedef struct {
   PyObject       *sessions; // lazy Session store
   
   PyObject       *show_traceback; // bool
+  int            forks; // int
   
+  // Public C
+  pid_t          *fork_pids;
 } smisk_Application;
 
 // Current instance (NULL if none)
@@ -66,5 +69,8 @@ PyObject *smisk_Application_service (smisk_Application* self, PyObject *args);
 PyObject *smisk_Application_exit    (smisk_Application* self);
 
 PyObject *smisk_Application_get_sessions (smisk_Application* self);
+
+// Get/setter for Application.current
+
 
 #endif

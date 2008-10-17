@@ -194,7 +194,9 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
   EXTERN_OP_START;
   
   // Set session cookie?
-  if (smisk_Application_current->request->session_id && (smisk_Application_current->request->initial_session_hash == 0)) {
+  if (smisk_Application_current->request->session_id 
+    && (smisk_Application_current->request->initial_session_hash == 0))
+  {
     log_debug("New session - sending SID with Set-Cookie: %s=%s;Version=1;Path=/",
       PyString_AS_STRING(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
       PyString_AS_STRING(smisk_Application_current->request->session_id));

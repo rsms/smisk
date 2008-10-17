@@ -25,6 +25,7 @@ class ElementSpec(object):
 
 class codec(BaseCodec):
   '''XSPF codec'''
+  name = 'XSPF: XML Shareable Playlist Format'
   extensions = ('xspf',)
   media_types = ('application/xspf+xml',)
   charset = 'utf-8'
