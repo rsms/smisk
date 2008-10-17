@@ -246,9 +246,9 @@ class Application(smisk.core.Application):
     
     # Info about codecs
     if log.level <= logging.DEBUG:
-      log.debug('codecs: %s', ', '.join(unique_sorted_modules_of_items(codecs.values())) )
-      log.debug('codec media types: %s', ', '.join(codecs.media_types.keys()))
-      log.debug('codec formats: %s', ', '.join(codecs.extensions.keys()))
+      log.debug('installed codecs: %s', ', '.join(unique_sorted_modules_of_items(codecs)) )
+      log.debug('acceptable media types: %s', ', '.join(codecs.media_types.keys()))
+      log.debug('available filename extensions: %s', ', '.join(codecs.extensions.keys()))
       log.debug('Template directories: %s', ', '.join(self.templates.directories))
     
     # When we return, accept() in smisk.core is called
