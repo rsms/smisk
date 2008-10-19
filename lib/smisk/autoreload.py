@@ -1,4 +1,6 @@
 # encoding: utf-8
+'''Automatically reload processes when components are updated.
+'''
 import sys, os, logging, re
 from smisk.util import Monitor
 

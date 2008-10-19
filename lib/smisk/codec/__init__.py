@@ -1,18 +1,38 @@
 # encoding: utf-8
-'''Data codecs'''
-import sys
+'''Data codecs
 
-class Codecs(object):
+.. packagetree::
+.. importgraph::
+'''
+
+class CodecRegistry(object):
   first_in = None
-  """First registered codec"""
+  '''First registered codec.
   
-  def __init__(self):
-    self.media_types = {}
-    self.extensions = {}
-    self.codecs = []
+  :type: BaseCodec
+  '''
+  
+  media_types = {}
+  '''Media type-to-Codec map.
+  
+  :type: dict
+  '''
+  
+  extensions = {}
+  '''Filename extension-to-Codec map.
+  
+  :type: dict
+  '''
+  
+  codecs = []
+  '''List of available codecs.
+  
+  :type: list
+  '''
   
   def register(self, codec):
-    '''Register a new codec class'''
+    '''Register a new codec
+    '''
     # Already registered?
     if codec in self.codecs:
       return
@@ -33,7 +53,8 @@ class Codecs(object):
       self.first_in = codec
   
   def unregister(self, codec):
-    '''Unregister a previously registered codec.'''
+    '''Unregister a previously registered codec.
+    '''
     for i in range(len(self.codecs)):
       if self.codecs[i] == codec:
         del self.codecs[i]
@@ -54,9 +75,11 @@ class Codecs(object):
     return self.codecs.__iter__()
   
 
-codecs = Codecs()
-'codecs keyed by lower case MIME types.'
+codecs = CodecRegistry()
+'''The codec registry.
 
+:type: Codecs
+'''
 
 class BaseCodec(object):
   '''
@@ -177,6 +200,18 @@ class BaseCodec(object):
         response.headers.append('Content-Type: %s; charset=%s' % (cls.media_type, charset))
       else:
         response.headers.append('Content-Type: %s' % cls.media_type)
+  
+  @classmethod
+  def directions(cls):
+    '''List of possible directions: "encode", "decode".
+    
+    :rtype: list'''
+    l = []
+    if cls.encode.im_func.func_code != BaseCodec.encode.im_func.func_code:
+      l.append('encode')
+    if cls.decode.im_func.func_code != BaseCodec.decode.im_func.func_code:
+      l.append('decode')
+    return l
   
 
 # Load built-in codecs

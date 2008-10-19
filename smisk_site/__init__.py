@@ -24,7 +24,10 @@ class root(Controller):
   @expose(template='documentation')
   def docs(self, *args, **params):
     return { 'site_menu': self.site_menu }
-
+  
+  def echo(self, *args, **params):
+    return dict(args=args, params=params)
+  
 
 class xyz(root):
   slug = 'x-y-z'

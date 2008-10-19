@@ -1,46 +1,52 @@
 # encoding: utf-8
 '''
-JSON serialization (RFC 4627)
+JSON: JavaScript Object Notation
+
+:see: `RFC 4627 <http://tools.ietf.org/html/rfc4627>`__
+:requires: `cjson <http://pypi.python.org/pypi/python-cjson>`__ | minjson
 '''
 from smisk.core import Application
 from smisk.codec import codecs, BaseCodec
 try:
-  from cjson import encode, decode, DecodeError, EncodeError
+  from cjson import encode as json_encode, decode as json_decode,\
+                    DecodeError, EncodeError
 except ImportError:
   try:
-    from minjson import write as encode, read as decode
-    from minjson import ReadException as DecodeError, WriteException as EncodeError
+    from minjson import write as json_encode, read as json_decode,\
+                        ReadException as DecodeError,\
+                        WriteException as EncodeError
   except ImportError:
-    encode = None
-    from warnings import warn, showwarning
+    json_encode = None
+    from warnings import warn
     warn('No JSON implementation available. Install cjson or minjson.')
 
 class codec(BaseCodec):
-  '''JSON codec.
+  '''JSON with JSONP support.
   
-  Supports JSONP (JSON with Padding) through the special ``callback``
-  query string parameter.
+  JSONP support through passing the special ``callback`` query string parameter.
   '''
   name = 'JSON: JavaScript Object Notation'
   extensions = ('json',)
-  media_types = ('application/json', 'application/x-json')
+  media_types = ('application/json',)
   
   @classmethod
   def encode(cls, params, charset):
-    callback = Application.current.request.get.get('callback', None)
+    callback = None
+    if Application.current:
+      callback = Application.current.request.get.get('callback', None)
     if callback:
-      return (None, '%s(%s);' % (callback, encode(params)))
+      return (None, '%s(%s);' % (callback, json_encode(params)))
     else:
-      return (None, encode(params))
+      return (None, json_encode(params))
   
   @classmethod
   def encode_error(cls, status, params, charset):
-    return (None, encode(params))
+    return (None, json_encode(params))
   
   @classmethod
   def decode(cls, file, length=-1, charset=None):
     # return (list args, dict params)
-    st = decode(file.read(length))
+    st = json_decode(file.read(length))
     if isinstance(st, dict):
       return (None, st)
     elif isinstance(st, list):
@@ -50,7 +56,7 @@ class codec(BaseCodec):
   
 
 # Don't register if we did not find a json implementation
-if encode is not None:
+if json_encode is not None:
   codecs.register(codec)
 
 if __name__ == '__main__':
@@ -77,5 +83,5 @@ if __name__ == '__main__':
         }
       }
     ]
-  }, codec.charset)
+  }, None)
   print s

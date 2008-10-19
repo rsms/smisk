@@ -1,4 +1,6 @@
 # encoding: utf-8
+'''Miscellaneous utilities.
+'''
 import sys, os, time, threading, thread, logging, imp
 from smisk.core import Application, URL
 
@@ -6,6 +8,54 @@ None2 = (None, None)
 ''':type: tuple'''
 
 log = logging.getLogger(__name__)
+
+
+class NamedObject:
+  '''General purpose named object.
+  '''
+  def __init__(self,name):
+    self.name = name
+  
+  def __repr__(self):
+    return self.name
+  
+
+Undefined = NamedObject('Undefined')
+'''Indicates an undefined value.
+'''
+
+
+class frozendict(dict):
+  '''Immutable dictionary.
+  '''
+  def __setitem__(self, *args, **kwargs):
+    raise TypeError("'frozendict' object does not support item assignment")
+  
+  setdefault = __delitem__ = clear = pop = popitem = __setitem__
+  
+  def update(self, *args):
+    '''Update a mutable copy with key/value pairs from b, replacing existing keys.
+    
+    :returns: A mutable copy with updated pairs.
+    :rtype: dict
+    '''
+    d = self.copy()
+    d.update(*args)
+    return d
+  
+  copy = dict.copy
+  '''Returns a mutable copy.
+  
+  :rtype: dict
+  '''
+  
+  def __hash__(self):
+    items = self.items()
+    res = hash(items[0])
+    for item in items[1:]:
+        res ^= hash(item)
+    return res
+  
 
 
 class PerpetualTimer(threading._Timer):
@@ -103,6 +153,133 @@ class Timer(object):
   
 
 
+class introspect(object):    
+  VARARGS = 4
+  KWARGS = 8
+  
+  @classmethod
+  def callable_info(cls, f):
+    '''Info about a callable.
+    
+    The results are cached for efficiency.
+    
+    :param f:
+    :type  f: callable
+    :rtype: frozendict
+    '''
+    try:
+      f = f.im_func
+    except AttributeError:
+      try:
+        f.func_code
+      except AttributeError:
+        f = f.__call__
+    try:
+      return f.info
+    except AttributeError:
+      pass
+    args = []
+    code = f.func_code
+    arglist = list(code.co_varnames[:code.co_argcount][1:])
+    varargs = False
+    kwargs = False
+    if code.co_flags & cls.VARARGS:
+      varargs = True
+    if code.co_flags & cls.KWARGS:
+      kwargs = True
+    arglist_len = len(arglist)
+    co_locals = []
+    if arglist_len < code.co_argcount:
+      for i,n in enumerate(code.co_varnames[arglist_len+1:]):
+        co_locals.append(n)
+    func_defaults_len = 0
+    if f.func_defaults:
+      func_defaults_len = len(f.func_defaults)
+    for i,n in enumerate(arglist):
+      default_index = i-(arglist_len-func_defaults_len)
+      v = Undefined
+      if default_index > -1:
+        v = f.func_defaults[default_index]
+      args.append((n, v))
+    f.info = frozendict({
+      'name':f.func_name,
+      'args':args,
+      'varargs':varargs,
+      'kwargs':kwargs,
+      'locals':tuple(co_locals)
+    })
+    return f.info
+  
+  @classmethod
+  def format_members(cls, o):
+    s = []
+    longest_k = 0
+    for k in dir(o):
+      if len(k) > longest_k:
+        longest_k = len(k)
+    pat = '%%-%ds = %%r' % longest_k
+    for k in dir(o):
+      s.append(pat % (k, getattr(o,k)))
+    return '\n'.join(s)
+  
+  @classmethod
+  def ensure_va_kwa(cls, f, parent=None):
+    '''Ensures `f` accepts both ``*varargs`` and ``**kwargs``.
+    
+    If `f` does not support ``*args``, it will be wrapped with a
+    function which cuts away extra arguments in ``*args``.
+    
+    If `f` does not support ``*args``, it will be wrapped with a
+    function which discards the ``**kwargs``.
+    
+    :param f:
+    :type  f:       callable
+    :param parent:  The parent on which `f` is defined. If specified, we will perform
+                    ``parent.<name of f> = wrapper`` in the case we needed to wrap `f`.
+    :type  parent:  object
+    :returns: A callable which is guaranteed to accept both ``*args`` and ``**kwargs``.
+    :rtype: callable
+    '''
+    info = cls.callable_info(f)
+    va_kwa_wrapper = None
+    if not info['varargs'] and not info['kwargs']:
+      def va_kwa_wrapper(*args, **kwargs):
+        return f(*args[:len(info['args'])])
+    elif not info['varargs']:
+      def va_kwa_wrapper(*args, **kwargs):
+        return f(*args[:len(info['args'])], **kwargs)
+    elif not info['kwargs']:
+      def va_kwa_wrapper(*args, **kwargs):
+        return f(*args)
+    if va_kwa_wrapper:
+      va_kwa_wrapper.info = frozendict(info.update({
+        'varargs': True,
+        'kwargs': True
+      }))
+      try:
+        va_kwa_wrapper.im_class = f.im_class
+        va_kwa_wrapper.im_func = f
+      except AttributeError:
+        pass
+      for k in dir(f):
+        if k[0] != '_' or k in ('__name__'):
+          setattr(va_kwa_wrapper, k, getattr(f, k))
+      if parent is not None:
+        setattr(parent, info['name'], va_kwa_wrapper)
+      return va_kwa_wrapper
+    return f
+  
+
+
+def classmethods(cls):
+  '''List names of all class methods in class `cls`.
+  
+  :rtype: list
+  '''
+  return [k for k in dir(cls) \
+    if (k[0] != '_' and getattr(getattr(cls, k), 'im_class', None) == type)]
+
+
 def parse_qvalue_header(s, accept_any_equals='*/*', partial_endswith='/*'):
   '''Parse a qvalue HTTP header'''
   vqs = []
@@ -163,9 +340,9 @@ def wrap_exc_in_callable(exc):
   
   :rtype: callable
   '''
-  def a(*args, **kwargs):
+  def exc_wrapper(*args, **kwargs):
     raise exc
-  return a
+  return exc_wrapper
 
 def tokenize_path(path):
   '''Deconstruct a URI path into standardized tokens.

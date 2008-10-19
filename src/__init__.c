@@ -277,7 +277,9 @@ static PyMethodDef module_methods[] = {
 };
 
 PyDoc_STRVAR(smisk_module_DOC,
-  "Smisk core library");
+  "Smisk core library\n"
+  "\n"
+  ":requires: `libfcgi <http://www.fastcgi.com/>`__");
 
 PyMODINIT_FUNC initcore(void) {
   log_trace("ENTER");

@@ -1,4 +1,8 @@
 # encoding: utf-8
+'''Model in MVC
+
+:requires: `elixir <http://elixir.ematia.de/>`__
+'''
 
 # Ignore the SA string type depr warning
 from sqlalchemy.exceptions import SADeprecationWarning

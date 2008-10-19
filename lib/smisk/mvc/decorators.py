@@ -1,4 +1,6 @@
 # encoding: utf-8
+'''Controller tree function decorators.
+'''
 import sys, types
 
 def expose(slug=None, template=None, formats=None):

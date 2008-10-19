@@ -7,18 +7,22 @@
 #
 # Modified for Smisk by Rasmus Andersson.
 #
-'''
-Templating
+'''View in MVC – Templating.
+
+.. packagetree::
+
+:requires: mako
 '''
 import os, sys, stat, posixpath, re, logging
 import mako.filters, smisk.core.xml
-from smisk.core import URL
 from mako import exceptions
 from mako.util import LRUCache
 from mako.template import Template
-from smisk.mvc import http
-import filters
+from smisk.core import URL
 from smisk import util
+from smisk.mvc import http
+import smisk.mvc
+import filters
 
 log = logging.getLogger(__name__)
 exceptions.TopLevelLookupException.status = http.NotFound
@@ -194,7 +198,7 @@ class Templates(object):
           module_filename   = None,
           format_exceptions = self.format_template_exceptions,
           input_encoding    = 'utf-8',
-          output_encoding   = self.app.default_response_charset,
+          output_encoding   = smisk.mvc.Response.charset,
           encoding_errors   = encoding_errors,
           cache_type        = self.cache_type,
           default_filters   = ['str'],

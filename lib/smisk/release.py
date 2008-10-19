@@ -1,3 +1,5 @@
+'''Release information.
+'''
 version = "1.1.0" # Major.Minor.Build
 author = "Rasmus Andersson"
 email = "rasmus@flajm.com"

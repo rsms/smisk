@@ -1,1 +1,4 @@
 sudo port install fcgi python25 py25-setuptools py25-mako py25-cjson py25-elixir
+
+# Packages needed for generation documentation
+py25-epydoc py25-docutils graphviz

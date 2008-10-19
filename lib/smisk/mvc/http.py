@@ -1,4 +1,6 @@
 # encoding: utf-8
+'''HTTP support (status codes, etc)
+'''
 from smisk.util import normalize_url, strip_filename_extension
 from smisk.core import URL
 from smisk.core.xml import escape as xmlesc
@@ -33,7 +35,10 @@ class Status(object):
   def service(self, app, *args, **kwargs):
     app.response.status = self
     if self.has_body:
-      return {'code': self.code, 'description': self.name, 'http_error': True}
+      desc = self.name
+      if args:
+        desc = ', '.join(args)
+      return {'code': self.code, 'description': desc, 'http_error': True}
   
   @property
   def is_error(self):
@@ -57,6 +62,20 @@ class Status30x(Status):
   
 
 class Status300(Status):
+  HTML_CHARSET = 'iso-8859-1'
+  HTML_TEMPLATE = ur'''<html>
+  <head>
+    <title>Multiple Choices</title>
+    <style type="text/css">body{font-family:sans-serif;}</style>
+  </head>
+  <body>
+    <ul>
+%s
+    </ul>
+  </body>
+</html>
+  '''
+  
   def service(self, app, url=None, *args, **kwargs):
     from smisk.codec import codecs
     rsp = Status.service(self, app)
@@ -66,24 +85,19 @@ class Status300(Status):
       url = URL(url)
     path = strip_filename_extension(url.path)
     
-    alternates = {}
     header = []
-    html = ['<ul>']
+    html = []
     for c in codecs:
       alt_path = '%s.%s' % (path, c.extension)
       header_s = '"%s" 1.0 {type %s}' % (alt_path, c.media_type)
-      m = {'type':c.media_type, 'name':c.name}
       header.append('{%s}' % header_s)
-      alternates[alt_path] = m
-      html.append('<li><a href="%s">%s (%s)</a></li>\n' % \
+      html.append('<li><a href="%s">%s (%s)</a></li>' % \
         (xmlesc(alt_path), xmlesc(c.name), xmlesc(c.media_type)))
-    html.append('</ul>')
     
     app.response.headers.append('TCN: list')
     app.response.headers.append('Alternates: '+','.join(header))
-    rsp['description'] = alternates
-    rsp['description_html'] = ''.join(html)
-    return rsp
+    app.response.headers.append('Content-Type: text/html; charset=%s' % self.HTML_CHARSET)
+    return (self.HTML_TEMPLATE % u'\n'.join(html)).encode(self.HTML_CHARSET)
   
 
 class Status404(Status):

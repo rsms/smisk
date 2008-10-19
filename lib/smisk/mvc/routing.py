@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # encoding: utf-8
+'''URL-to-function routing.
 '''
-URL-to-function routing.
-'''
-import re, logging
+import sys, re, logging
 from types import *
 from smisk.core import URL
-from smisk.util import None2, tokenize_path, wrap_exc_in_callable
+from smisk.util import None2, tokenize_path, wrap_exc_in_callable, introspect, Undefined
 import http, control
 
 log = logging.getLogger(__name__)
@@ -21,26 +20,72 @@ def _node_name(node, fallback):
   return n
 
 class Destination(object):
-  '''A callable destination.'''
+  '''A callable destination.
+  '''
   
   action = None
-  ''':type: callable'''
+  ''':type: callable
+  '''
   
   def __init__(self, action):
-    self.action = action
+    self.action = introspect.ensure_va_kwa(action)
+    self.formats = None
+    try:
+      self.formats = self.action.formats
+    except AttributeError:
+      pass
   
   def __call__(self, *args, **params):
-    '''Call action'''
-    return self.action(*args, **params)
+    '''Call action
+    '''
+    try:
+      return self.action(*args, **params)
+    except TypeError:
+      typ, val, tb = sys.exc_info()
+      # Get the last frame
+      while 1:
+        nxt = tb.tb_next
+        if nxt:
+          tb = nxt
+        else:
+          break
+      # If the exception occured in this very method, we know
+      # it's because required parameters are missing.
+      if tb.tb_frame.f_code == self.__call__.im_func.func_code:
+        info = introspect.callable_info(self.action)
+        args = []
+        for k,v in info['args']:
+          if v is Undefined:
+            args.append(k)
+        args = ', '.join(args)
+        raise http.BadRequest('%s requires parameters: %s' % (self.uri, args))
+      # TypeError from another source are delegated
+      raise
+      
   
   @property
   def path(self):
-    '''
-    Canonical path.
+    '''Canonical exposed path.
     
     :rtype: list
     '''
     return control.path_to(self.action)
+  
+  @property
+  def uri(self):
+    '''Canonical exposed URI.
+    
+    :rtype: string
+    '''
+    return control.uri_for(self.action)
+  
+  @property
+  def template_path(self):
+    '''Template path.
+    
+    :rtype: list
+    '''
+    return control.template_for(self.action)
   
   def __str__(self):
     if self.path:
@@ -49,10 +94,9 @@ class Destination(object):
       return self.__repr__()
   
   def __repr__(self):
-    return '%s(action=%r, path=%r)' \
-      % (self.__class__.__name__, self.action, self.path)
+    return '%s(action=%r, uri=%r)' \
+      % (self.__class__.__name__, self.action, self.uri)
   
-
 
 class Filter(object):
   def __init__(self, pattern, destination_path, match_on_full_url=False, **params):
@@ -92,13 +136,10 @@ class Router(object):
       def __call__(self, *args, **params):
         return {'employees': Employee.query.all()}
       
-      def show(self, employee_id, *args, **params):
-        return {'employee': Employee.get_by(id=employee_id)}
+      def show(self, name, *args, **params):
+        return {'employee': Employee.get_by(name=name)}
       
       class edit(employees):
-        def __call__(self, employee_id, *args, **params):
-          return employees.show(self, employee_id)
-        
         def save(self, employee_id, *args, **params):
           Employee.get_by(id=employee_id).save_or_update(**params)
   
@@ -106,17 +147,15 @@ class Router(object):
   Now, this list shows what URIs would map to what begin called:
   
   .. python::
-    /                             => root().__call__()
-    /employees                    => employees().__call__()
-    /employees/                   => employees().__call__()
-    /employees/show               => employees().show()
-    /employees/show/123           => employees().show(123)
-    /employees/show/123/456       => employees().show(123, 456)
-    /employees/show/123?other=456 => employees().show(123, other=456)
-    /employees/edit/123           => employees.edit().__call__(123)
-    /employees/edit/save/123      => employees.edit().save(123)
+    /                         => root().__call__()
+    /employees                => employees().__call__()
+    /employees/               => employees().__call__()
+    /employees/show           => employees().show()
+    /employees/show?name=foo  => employees().show(name='foo')
+    /employees/show/123       => None
+    /employees/edit/save      => employees.edit().save()
   
-  See `smisk.test.routing` for more examples.
+  See source of ``smisk.test.routing`` for more examples.
   '''
   
   def __init__(self):
@@ -155,8 +194,8 @@ class Router(object):
     
     :param url: The URL to consider
     :type  url: smisk.core.URL
-    :return: Destionation dest, list args, dict params.
-             `dest` might be none if no route to destination.
+    :return: ('Destionation' ``dest``, list ``args``, dict ``params``).
+             ``dest`` might be none if no route to destination.
     :rtype: tuple
     '''
     # Explicit mapping? (never cached)
@@ -165,17 +204,19 @@ class Router(object):
       if dargs is not None:
         dargs.extend(args)
         dparams.update(params)
-        return self._resolve(filter.destination_path, dargs, dparams)
+        return self._resolve_cached(filter.destination_path), dargs, dparams
     
-    return self._resolve(_prep_path(url.path), args, params)
+    return self._resolve_cached(_prep_path(url.path)), args, params
   
+  def _resolve_cached(self, raw_path):
+    try:
+      return self.cache[raw_path]
+    except KeyError:
+      dest = Destination(self._resolve(raw_path))
+      self.cache[raw_path] = dest
+      return dest
   
-  def _resolve(self, raw_path, args, params):
-    # Cached?
-    if raw_path in self.cache:
-      dest = self.cache[raw_path]
-      return dest, args, params
-    
+  def _resolve(self, raw_path):
     log.debug('Resolving %s', raw_path)
     
     # Tokenize path
@@ -184,22 +225,16 @@ class Router(object):
     
     # Check root
     if node is None:
-      e = http.ControllerNotFound('No root controller exists')
-      self.cache[raw_path] = wrap_exc_in_callable(e)
-      raise e
+      return wrap_exc_in_callable(http.ControllerNotFound('No root controller exists'))
     
     # Special case: empty path == root.__call__
     if not path:
       try:
         node = node().__call__
         log.debug('Found destination: %s', node)
-        dest = Destination(node)
-        self.cache[raw_path] = dest
-        return dest, args, params
+        return node
       except AttributeError:
-        e = http.MethodNotFound('/')
-        self.cache[raw_path] = wrap_exc_in_callable(e)
-        raise e
+        return wrap_exc_in_callable(http.MethodNotFound('/'))
     
     # Traverse tree
     for part in path:
@@ -236,9 +271,7 @@ class Router(object):
         # else we continue...
       else:
         # Not found
-        e = http.MethodNotFound('/'.join(path))
-        self.cache[raw_path] = wrap_exc_in_callable(e)
-        raise e
+        return wrap_exc_in_callable(http.MethodNotFound('/'.join(path)))
     
     # Did we hit a class/type at the end? If so, get its instance.
     if type(node) is type:
@@ -251,14 +284,10 @@ class Router(object):
     
     # Not callable?
     if node is None or not callable(node):
-      e = http.MethodNotFound('/'.join(path))
-      self.cache[raw_path] = wrap_exc_in_callable(e)
-      raise e
+      return wrap_exc_in_callable(http.MethodNotFound('/'.join(path)))
     
     log.debug('Found destination: %s', node)
-    dest = Destination(node)
-    self.cache[raw_path] = dest
-    return dest, args, params
+    return node
   
 
 if __name__ == '__main__':

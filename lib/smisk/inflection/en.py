@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 '''
-English inflections
+English
 '''
 if __name__ == '__main__': print "Can't be run directly"
 __docformat__ = 'restructuredtext en'

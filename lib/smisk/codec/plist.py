@@ -50,7 +50,9 @@ def encode_value(v, buf, level):
 def encode_map(d, buf, level=1):
   indent = '  '*level
   buf.append('%s<dict>' % indent)
-  for k,v in d.iteritems():
+  items = d.items()
+  items.sort()
+  for k,v in items:
     buf.append('  %s<key>%s</key>' % (indent, xml_escape(k)))
     encode_value(v, buf, level+1)
   buf.append('%s</dict>' % indent)

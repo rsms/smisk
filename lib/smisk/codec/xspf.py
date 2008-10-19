@@ -2,7 +2,7 @@
 '''
 XSPF v1.0 serialization.
 
-:Specification: http://xspf.org/xspf-v1.html
+:see: `XSPF v1.0 <http://xspf.org/xspf-v1.html>`__
 '''
 import re, logging
 from smisk.codec import codecs, BaseCodec

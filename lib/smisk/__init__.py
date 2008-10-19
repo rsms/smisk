@@ -4,6 +4,8 @@ Simple, high-performance and scalable web service framework for FastCGI
 – written in C, but controlled by Python.
 
 More information on http://trac.hunch.se/smisk
+
+.. packagetree::
 '''
 
 from smisk.release import version   as __version__, author  as __author__, \

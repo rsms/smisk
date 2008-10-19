@@ -134,6 +134,7 @@ PyDoc_STRVAR(smisk_Response_send_file_DOC,
   ":type   filename: string\n"
   ":raises EnvironmentError: If smisk does not know how to perform *sendfile* through "
     "the current host server.\n"
+  ":raises EnvironmentError: If response has already started.\n"
   ":raises `IOError`:\n"
   ":rtype: None");
 PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
@@ -142,6 +143,9 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   
   if (!filename || !PyString_Check(filename))
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
+  
+  if (self->has_begun == Py_True)
+    return PyErr_Format(PyExc_EnvironmentError, "output has already begun");
   
   char *server = NULL;
   if (smisk_Application_current)
@@ -180,11 +184,15 @@ PyDoc_STRVAR(smisk_Response_begin_DOC,
   "\n"
   "Automatically called on by mechanisms like `write()` and `Application.run()`."
   "\n"
+  ":raises EnvironmentError: if response has already started.\n"
   ":rtype: None");
 PyObject *smisk_Response_begin(smisk_Response* self) {
   log_trace("ENTER");
   int rc;
   Py_ssize_t num_headers, i;
+  
+  if (self->has_begun == Py_True)
+    return PyErr_Format(PyExc_EnvironmentError, "output has already begun");
   
   // Note: self->headers can be NULL at this point and that's by design.
   IFDEBUG(if (self->headers) 

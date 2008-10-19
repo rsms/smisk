@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
 '''
+Word transformation.
+
 Transforms words from singular to plural, class names to table names, 
 modularized class names to ones without, and class names to foreign keys.
 
@@ -8,6 +10,8 @@ Inflection is language specific and the default `inflection` handles English
 language inflection. You can access inflection handlers for other languages
 by importing the appropriate inflector. For example
 ``from miwa.inflection.sv import inflection`` to use Swedish inflection.
+
+.. packagetree::
 
 :Author:          Rasmus Andersson http://hunch.se/
 :var inflections: locale-to-Inflection-object map

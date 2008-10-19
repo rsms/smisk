@@ -1,8 +1,22 @@
 # encoding: utf-8
+'''Model-View-Controller-based sub-framework.
+
+Example application
+
+.. python::
+  from smisk.mvc import Controller, main
+  class root(Controller):
+    def __call__(self, *args, **params):
+      return {'message': 'Hello World!'}
+  
+  main()
+
+.. packagetree::
+'''
 import sys, os, logging, codecs as char_codecs
 from types import DictType
 import smisk, smisk.core
-import http, control
+import http, control, model
 
 from smisk.core import URL
 from smisk.util import *
@@ -39,48 +53,94 @@ def environment():
     return 'stable'
 
 
-class Response(smisk.core.Response):
-  format = None
+class Request(smisk.core.Request):
+  codec = None
+  '''Codec used for decoding request payload.
+  
+  Any initial value has no effect.
+  Available during a HTTP transaction.
+  
+  :type: smisk.codec.BaseCodec
   '''
-  Any value which is a valid key of the codecs.extensions dict.
+  
+  path = None
+  '''Requested URL path without any filename extension.
+  
+  Any initial value has no effect.
+  Available during a HTTP transaction.
   
   :type: string
   '''
+
+
+class Response(smisk.core.Response):
+  format = None
+  '''Any value which is a valid key of the codecs.extensions dict.
+  
+  Any initial value has no effect (replaced during runtime).
+  
+  :type: string
+  '''
+  
+  codec = None
+  '''Codec to use for encoding the response.
+  
+  The value of ``Response.codec`` (class property value) serves as
+  the application default codec, used in cases where we need to encode 
+  the response, but the client is not specific about which codec to use.
+  
+  If None, strict `TCN <http://www.ietf.org/rfc/rfc2295.txt>`__ applies.
+  
+  :see: `fallback_codec`
+  :type: smisk.codec.BaseCodec
+  '''
+  
+  fallback_codec = None
+  '''Last-resort codec, used for error responses and etc.
+  
+  If None when `application_will_start` is called, this will
+  be set to a HTML-codec, and if none is available, simply the first
+  registered codec will be used.
+  
+  The class property is the only one used, the instance property has no 
+  meaning and no effect, thus if you want to modify this during runtime,
+  you should do this ``Response.fallback_codec = my_codec`` instead of
+  this ``app.response.fallback_codec = my_codec``.
+  
+  :type: smisk.codec.BaseCodec
+  '''
+  
+  charset = 'utf-8'
+  '''Character encoding used to encode the response body.
+  
+  The value of ``Response.charset`` (class property value) serves as
+  the application default charset.
+  
+  :type: string
+  '''
+  
 
 
 class Application(smisk.core.Application):
-  '''MVC application'''
-  
-  default_response_charset = 'utf-8'
+  '''MVC application
   '''
-  Default response character encoding.
-  
-  :type: string
-  '''
-  
-  default_codec = None
-  ''':type: smisk.codec.BaseCodec'''
-  
-  fallback_codec = None
-  '''If None when `application_will_start` is called, this will
-  be set to a HTML-codec and if none is available, the first registered
-  codec is used.
-  
-  :type: smisk.codec.BaseCodec'''
   
   templates = None
-  ''':type: Templates'''
+  ''':type: Templates
+  '''
   
   autoreload = False
-  ''':type: bool'''
-  
-  strict_content_negotiation = True
+  ''':type: bool
   '''
-  Controls where there or not this application is strict about content
-  negotiation.
   
-  For example, if this is True and a client accepts only character sets 
-  none of which we can encode, a 206 Not Acceptable response is sent.
+  strict_tcn = True
+  '''Controls where there or not this application is strict about
+  transparent content negotiation.
+  
+  For example, if this is ``True`` and a client accepts a character
+  encoding which is not available, a 206 Not Acceptable response is sent.
+  If the value would have been ``False``, the response would be sent
+  using a data encoder default character set.
   
   This affects ``Accept*`` request headers which demands can not be met.
   
@@ -89,7 +149,8 @@ class Application(smisk.core.Application):
   Setting this to false will cause Smisk to encode text responses using
   a best-guess character encoding.
   
-  :type: bool'''
+  :type: bool
+  '''
   
   etag = None
   '''
@@ -144,6 +205,7 @@ class Application(smisk.core.Application):
                templates=None,
                show_traceback=False,
                *args, **kwargs):
+    self.request_class = Request
     self.response_class = Response
     super(Application, self).__init__(*args, **kwargs)
     
@@ -238,11 +300,14 @@ class Application(smisk.core.Application):
         self.templates.autoreload = self.autoreload
     
     # Set fallback codec
-    if self.fallback_codec is None:
+    if Response.fallback_codec is None:
       try:
-        self.fallback_codec = codecs.extensions['html']
+        Response.fallback_codec = codecs.extensions['html']
       except KeyError:
-        self.fallback_codec = codecs.first_in
+        Response.fallback_codec = codecs.first_in
+    
+    # Setup any models
+    model.setup_all()
     
     # Info about codecs
     if log.level <= logging.DEBUG:
@@ -255,17 +320,21 @@ class Application(smisk.core.Application):
     log.info('Accepting connections')
   
   
+  def application_did_stop(self):
+    model.cleanup_all()
+  
+  
   def response_codec(self, no_http_exc=False):
     '''
     Return the most appropriate codec for handling response encoding.
     
-    :param disable_http300: If true, HTTP statuses are never rised when no acceptable 
-                            codec is found. Instead a fallback codec will be returned:
-                            First we try to return a codec for format html, if that
-                            fails we return the first registered codec. If that also
-                            fails there is nothing more left to do but return None.
-                            Primarily used by `error()`.
-    :type  disable_http300: bool
+    :param no_http_exc: If true, HTTP statuses are never rised when no acceptable 
+                        codec is found. Instead a fallback codec will be returned:
+                        First we try to return a codec for format html, if that
+                        fails we return the first registered codec. If that also
+                        fails there is nothing more left to do but return None.
+                        Primarily used by `error()`.
+    :type  no_http_exc: bool
     :return: The most appropriate codec
     :rtype:  codec
     '''
@@ -285,7 +354,7 @@ class Application(smisk.core.Application):
         return codecs.media_types[content_type]
       except KeyError:
         if no_http_exc:
-          return self.fallback_codec
+          return Response.fallback_codec
         else:
           raise http.InternalServerError('Content-Type response header is set to type %r '\
             'which does not have any valid codec associated with it.' % content_type)
@@ -295,16 +364,17 @@ class Application(smisk.core.Application):
       filename = os.path.basename(self.request.url.path)
       p = filename.rfind('.')
       if p != -1:
-        ext = filename[p+1:].lower()
+        self.request.path = strip_filename_extension(self.request.url.path)
+        self.response.format = filename[p+1:].lower()
         if log.level <= logging.DEBUG:
-          log.debug('Client asked for format %r', ext)
+          log.debug('Client asked for format %r', self.response.format)
         try:
-          return codecs.extensions[ext]
+          return codecs.extensions[self.response.format]
         except KeyError:
           if no_http_exc:
-            return self.fallback_codec
+            return Response.fallback_codec
           else:
-            raise http.NotFound('Resource not available as %r' % ext)
+            raise http.NotFound('Resource not available as %r' % self.response.format)
     
     # Try media type
     accept_types = self.request.env.get('HTTP_ACCEPT', None)
@@ -316,10 +386,10 @@ class Application(smisk.core.Application):
       tqs, highqs, partials, accept_any = parse_qvalue_header(accept_types, '*/*', '/*')
       
       # If the default codec exists in the highest quality accept types, return it
-      if self.default_codec is not None:
-        for t in self.default_codec.media_types:
+      if Response.codec is not None:
+        for t in Response.codec.media_types:
           if t in highqs:
-            return self.default_codec
+            return Response.codec
       
       # Find a codec matching any accept type, ordered by qvalue
       available_types = codecs.media_types.keys()
@@ -329,19 +399,19 @@ class Application(smisk.core.Application):
           return codecs.media_types[t]
       
       # Accepts */* which is far more common than accepting partials, so we test this here
-      # and simply return default_codec if the client accepts anything.
+      # and simply return Response.codec if the client accepts anything.
       if accept_any:
-        if self.default_codec is not None:
-          return self.default_codec
+        if Response.codec is not None:
+          return Response.codec
         else:
-          return self.fallback_codec
+          return Response.fallback_codec
       
       # If the default codec matches any partial, return it (the likeliness of 
       # this happening is so small we wait until now)
-      if self.default_codec is not None:
-        for t in self.default_codec.media_types:
+      if Response.codec is not None:
+        for t in Response.codec.media_types:
           if t[:t.find('/', 0)] in partials:
-            return default_codec
+            return Response.codec
       
       # Test the rest of the partials
       for t, codec in codecs.media_types.items():
@@ -352,20 +422,20 @@ class Application(smisk.core.Application):
       # is acceptable according to the combined Accept field value, then the server SHOULD 
       # send a 406 (not acceptable) response. [RFC 2616]
       log.info('Client demanded content type(s) we can not respond in. "Accept: %s"', accept_types)
-      if self.strict_content_negotiation:
+      if self.strict_tcn:
         raise http.NotAcceptable()
     
     # The client did not ask for any type in particular
     
     # Strict TCN
-    if self.default_codec is None:
+    if Response.codec is None:
       if no_http_exc:
-        return self.fallback_codec
+        return Response.fallback_codec
       else:
         raise http.MultipleChoices(self.request.url)
       
     # Return the default codec
-    return self.default_codec
+    return Response.codec
   
   
   def parse_request(self):
@@ -380,12 +450,16 @@ class Application(smisk.core.Application):
     # Set params to the query string
     params = self.request.get
     
-    # Look at Accept-Charset header and set self.response_charset accordingly
+    # If request.path has not yet been deduced, simply set it to request.url.path
+    if self.request.path is None:
+      self.request.path = self.request.url.path
+    
+    # Look at Accept-Charset header and set self.response.charset accordingly
     accept_charset = self.request.env.get('HTTP_ACCEPT_CHARSET', False)
     if accept_charset:
       cqs, highqs, partials, accept_any = parse_qvalue_header(accept_charset.lower(), '*', None)
       # If the charset we have already set is not in highq, use the first usable encoding
-      if self.response_charset not in highqs:
+      if self.response.charset not in highqs:
         alt_cs = None
         for cq in cqs:
           c = cq[0]
@@ -397,18 +471,20 @@ class Application(smisk.core.Application):
             pass
         
         if alt_cs is not None:
-          self.response_charset = alt_cs
+          self.response.charset = alt_cs
         else:
           # If an Accept-Charset header is present, and if the server cannot send a response 
           # which is acceptable according to the Accept-Charset header, then the server 
           # SHOULD send an error response with the 406 (not acceptable) status code, though 
           # the sending of an unacceptable response is also allowed. [RFC 2616]
-          log.info('Client demanded charset(s) we can not respond using. "Accept-Charset: %s"', accept_charset)
-          if self.strict_content_negotiation:
+          log.info('Client demanded charset(s) we can not respond using. "Accept-Charset: %s"',
+            accept_charset)
+          if self.strict_tcn:
             raise http.NotAcceptable()
         
         if log.level <= logging.DEBUG:
-          log.debug('Using alternate response character encoding: %r (requested by client)', self.response_charset)
+          log.debug('Using alternate response character encoding: %r (requested by client)',
+            self.response.charset)
     
     # Parse body if POST request
     if self.request.env['REQUEST_METHOD'] == 'POST':
@@ -416,23 +492,50 @@ class Application(smisk.core.Application):
       if content_type == 'application/x-www-form-urlencoded' or len(content_type) == 0:
         # Standard urlencoded content
         params.update(self.request.post)
-      else:
-        # Different kind of content
-        codec = codecs.media_types.get(content_type, None)
-        
-        # Parse content
-        if codec is not None:
+      elif not content_type.startswith('multipart/'):
+        # Multiparts are parsed by smisk.core, so let's only try to
+        # decode the body if it's of another type.
+        try:
+          self.request.codec = codecs.media_types[content_type]
+          log.debug('decoding POST data using %s', self.request.codec)
           content_length = int(self.request.env.get('CONTENT_LENGTH', -1))
-          (eargs, eparams) = codec.decode(self.request.input, content_length)
+          (eargs, eparams) = self.request.codec.decode(self.request.input, content_length)
           if eargs is not None:
             args.extend(eargs)
           if eparams is not None:
             params.update(eparams)
-        else:
-          log.error('No codec found for request type %r -- unable to parse request', content_type)
-          raise http.HTTPExc(http.UnsupportedMediaType)
+        except KeyError:
+          log.error('Unable to parse request -- no codec able to decode %r', content_type)
+          raise http.UnsupportedMediaType()
     
     return (args, params)
+  
+  
+  def apply_action_format_restrictions(self):
+    '''Applies any format restrictions set by the current action.
+    
+    :rtype: None
+    '''
+    try:
+      action_formats = self.destination.action.formats
+      for ext in self.response.codec.extensions:
+        if ext not in action_formats:
+          self.response.codec = None
+          break
+      if self.response.codec is None:
+        log.warn('client requested a response type which is not available for the current action')
+        if self.response.format is not None:
+          raise http.NotFound('Resource not available as %r' % self.response.format)
+        elif self.strict_tcn or len(action_formats) == 0:
+          raise http.NotAcceptable()
+        else:
+          try:
+            self.response.codec = codecs.extensions[action_formats[0]]
+          except KeyError:
+            raise http.NotAcceptable()
+    except AttributeError:
+      # self.destination.action.formats does not exist -- no restrictions apply
+      pass
   
   
   def call_action(self, args, params):
@@ -442,13 +545,15 @@ class Application(smisk.core.Application):
     :returns: Response structure or None
     :rtype:   dict
     '''
-    # Find destination or return None
-    self.destination, args, params = self.routes(self.request.url, args, params)
-    
-    # Add Content-Location response header
-    if self.codec:
-      self.response.headers.append('Content-Location: /%s.%s' %\
-        ('/'.join(self.destination.path), self.codec.extension))
+    # Add Content-Location response header if data encoding was deduced through
+    # TCN or requested with a non-standard URI. (i.e. "/hello" instead of "/hello/")
+    if self.response.codec and (\
+          not self.response.format \
+        or \
+          (self.destination.uri and self.destination.uri != self.request.path)\
+        ):
+      self.response.headers.append('Content-Location: %s.%s' % \
+        (self.destination.uri, self.response.codec.extension))
     
     # Call action
     if log.level <= logging.DEBUG:
@@ -457,31 +562,31 @@ class Application(smisk.core.Application):
   
   
   def encode_response(self, rsp):
-    # No input at all
+    # No data to encode
     if rsp is None:
       if self.template:
-        return self.template.render_unicode().encode(self.response_charset)
+        return self.template.render_unicode().encode(self.response.charset)
       return None
     
     # If rsp is already a string, we do not process it further
     if isinstance(rsp, basestring):
       if not isinstance(rsp, str):
         if isinstance(rsp, unicode):
-          rsp = rsp.encode(self.response_charset)
+          rsp = rsp.encode(self.response.charset)
         else:
           rsp = str(rsp)
         return rsp
     
     # Make sure rsp is a dict
     if not isinstance(rsp, dict):
-      raise Exception('actions must return a dict, string or None -- not %s', type(rsp))
+      raise ValueError('Actions must return a dict, a string or None, not %s' % type(rsp).__name__)
     
     # Use template as codec, if available
     if self.template:
-      return self.template.render_unicode(**rsp).encode(self.response_charset)
+      return self.template.render_unicode(**rsp).encode(self.response.charset)
     
     # If we do not have a template, we use a data codec
-    self.response_charset, rsp = self.codec.encode(rsp, self.response_charset)
+    self.response.charset, rsp = self.response.codec.encode(rsp, self.response.charset)
     return rsp
   
   
@@ -501,7 +606,7 @@ class Application(smisk.core.Application):
       if self.response.find_header('Content-Length:') == -1:
         self.response.headers.append('Content-Length: %d' % len(rsp))
       # Add Content-Type header
-      self.codec.add_content_type_header(self.response, self.response_charset)
+      self.response.codec.add_content_type_header(self.response, self.response.charset)
       # Add ETag
       if self.etag is not None and len(rsp) > 0 and self.response.find_header('ETag:') == -1:
         h = self.etag(''.join(self.response.headers))
@@ -523,25 +628,34 @@ class Application(smisk.core.Application):
       log.info('Serving %s for client %s', request.url, request.env.get('REMOTE_ADDR','?'))
     
     # Reset pre-transaction properties
+    self.request.codec = None
+    self.request.path = None
     self.response.format = None
+    self.response.codec = None
+    self.response.charset = Response.charset
     self.destination = None
     self.template = None
-    self.response_charset = self.default_response_charset
-    self.codec = None
     
     # Aquire response codec.
     # We do this here already, because if response_codec() raises and
     # exception, we do not want any action to be performed. If we would do this
     # after calling an action, chances are an important answer gets replaced by
     # an error response, like 406 Not Acceptable.
-    self.codec = self.response_codec()
-    if self.codec.charset is not None:
-      self.response_charset = self.codec.charset
+    self.response.codec = self.response_codec()
+    if self.response.codec.charset is not None:
+      self.response.charset = self.response.codec.charset
     
     # Parse request (and decode if needed)
     req_args, req_params = self.parse_request()
     
-    # Always add the vary header
+    # Resolve route to destination
+    self.destination, req_args, req_params = \
+      self.routes(self.request.url, req_args, req_params)
+    
+    # Adjust formats if required by destination
+    self.apply_action_format_restrictions()
+    
+    # Always add the vary header, because we do (T)CN
     self.response.headers.append('Vary: negotiate, accept, accept-charset')
     
     # Call the action which might generate a response object: rsp
@@ -549,7 +663,7 @@ class Application(smisk.core.Application):
     
     # Aquire template, if any
     if self.template is None and self.templates is not None:
-      template_path = control.template_for(self.destination.action)
+      template_path = self.destination.template_path
       if template_path:
         self.template = self.template_for_path(os.path.join(*template_path))
     
@@ -564,7 +678,7 @@ class Application(smisk.core.Application):
       timer.finish()
       uri = None
       if self.destination is not None:
-        uri = '/%s.%s' % ('/'.join(self.destination.path), self.codec.extension)
+        uri = '%s.%s' % (self.destination.uri, self.response.codec.extension)
       else:
         uri = self.request.url.to_s(scheme=0, user=0, password=0, host=0, port=0)
       log.info('Processed %s in %.3fms', uri, timer.time()*1000.0)
@@ -575,7 +689,7 @@ class Application(smisk.core.Application):
   
   
   def template_uri_for_path(self, path):
-    return path + '.' + self.codec.extension
+    return path + '.' + self.response.codec.extension
   
   
   def template_for_uri(self, uri):
@@ -590,15 +704,25 @@ class Application(smisk.core.Application):
     log.debug('Sending response to %s: %r', self.request.env.get('REMOTE_ADDR','?'),
       '\r\n'.join(self.response.headers) + '\r\n\r\n' + _body)
   
+  def _pad_rsp_for_msie(self, status_code, rsp):
+    '''Get rid of MSIE "friendly" error messages
+    '''
+    if self.request.env.get('HTTP_USER_AGENT','').find('MSIE') != -1:
+      # See: http://support.microsoft.com/kb/q218155/
+      ielen = _MSIE_ERROR_SIZES.get(status_code, 0)
+      if ielen:
+        ielen += 1
+        blen = len(rsp)
+        if blen < ielen:
+          log.debug('Adding additional body content for MSIE')
+          rsp = rsp + (' ' * (ielen-blen))
+    return rsp
+  
   def error(self, typ, val, tb):
     try:
       status = getattr(val, 'status', http.InternalServerError)
-      
-      # Set headers
-      self.response.headers = [
-        'Status: %s' % status,
-        'Vary: negotiate, accept, accept-charset'
-      ]
+      params = {}
+      rsp = None
       
       # Log
       if status.is_error:
@@ -606,83 +730,78 @@ class Application(smisk.core.Application):
       else:
         log.warn('Request failed for %r -- %s: %s', self.request.url.path, typ.__name__, val)
       
-      # Ony perform the following block if status type has a body
+      # Set headers
+      self.response.headers = [
+        'Status: %s' % status,
+        'Vary: negotiate, accept, accept-charset'
+      ]
+      
+      # Set params
+      params['name'] = str(status.name)
+      params['code'] = status.code
+      params['server'] = '%s at %s' % (self.request.env['SERVER_SOFTWARE'],
+        self.request.env['SERVER_NAME'])
+      
+      # Include traceback if enabled
+      if self.show_traceback:
+        params['traceback'] = format_exc((typ, val, tb))
+      else:
+        params['traceback'] = None
+      
+      # HTTP exception has a bound action we want to call
+      if isinstance(val, http.HTTPExc):
+        status_service_rsp = val(self)
+        if isinstance(status_service_rsp, basestring):
+          rsp = status_service_rsp
+        elif status_service_rsp:
+          assert(type(status_service_rsp) is DictType)
+          params.update(status_service_rsp)
+      if not params.get('description', False):
+        params['description'] = str(val)
+      
+      # Ony perform the following block if status type has a body and if
+      # status_service_rsp did not contain a complete response body.
       if status.has_body:
-        params = {}
-        
-        # Try to use a codec
-        if self.codec is None:
-          # In this case, probably HTTP 300 or a very early error occured.
-          self.codec = self.fallback_codec()
-        
-        # Set format if a codec was found
-        format = self.codec.extension
-        
-        # HTTP exception has a bound action we want to call
-        if isinstance(val, http.HTTPExc):
-          params = val(self)
-          assert(type(params) is DictType)
-        
-        # Include basic info
-        params['name'] = str(status.name)
-        params['code'] = status.code
-        if 'description' not in params:
-          params['description'] = str(val)
-        params['server'] = '%s at %s' % (self.request.env['SERVER_SOFTWARE'],
-          self.request.env['SERVER_NAME'])
-        
-        # Include traceback if enabled
-        if self.show_traceback:
-          params['traceback'] = format_exc((typ, val, tb))
-        else:
-          params['traceback'] = None
-        
-        # Try to use a template...
-        rsp = None
-        if status.uses_template:
-          rsp = self.templates.render_error(status, params, format)
-        # ...or a codec
         if rsp is None:
-          self.response_charset, rsp = self.codec.encode_error(status, params, self.response_charset)
+          # Try to use a codec
+          if self.response.codec is None:
+            # In this case an error occured very early.
+            self.response.codec = Response.fallback_codec
+            log.info('Responding using fallback codec %s' % self.response.codec)
+          
+          # Set format if a codec was found
+          format = self.response.codec.extension
+          
+          # Try to use a template...
+          if status.uses_template:
+            rsp = self.templates.render_error(status, params, format)
+          
+          # ...or a codec
+          if rsp is None:
+            self.response.charset, rsp = self.response.codec.encode_error(status, params, \
+              self.response.charset)
         
-        # Get rid of MSIE "friendly" error messages
-        if self.request.env.get('HTTP_USER_AGENT','').find('MSIE') != -1:
-          # See: http://support.microsoft.com/kb/q218155/
-          ielen = _MSIE_ERROR_SIZES.get(status.code, 0)
-          if ielen:
-            ielen += 1
-            blen = len(rsp)
-            if blen < ielen:
-              log.debug('Adding additional body content for MSIE')
-              rsp = rsp + (' ' * (ielen-blen))
+        # MSIE body length fix
+        rsp = self._pad_rsp_for_msie(status.code, rsp)
       else:
         rsp = ''
       
-      # Send response
-      if rsp is not None:
-        # Set headers
-        if not self.response.has_begun:
-          if status.has_body and self.response.find_header('Content-Length:') == -1:
-            self.response.headers.append('Content-Length: %d' % len(rsp))
-          if status.is_error and self.response.find_header('Cache-Control:') == -1:
-            self.response.headers.append('Cache-Control: no-cache')
-          if status.has_body:
-            self.codec.add_content_type_header(self.response, self.response_charset)
-          else:
-            rsp = None
-        
-        # Debug print
-        if log.level <= logging.DEBUG:
-          self._log_debug_sending_rsp(rsp)
-        
-        # Write body (and send headers if not yet sent)
-        if rsp:
-          self.response.write(rsp)
-        
-        # We're done.
-        return
+      # Set standard headers
+      if not self.response.has_begun:
+        if self.response.codec:
+          self.response.codec.add_content_type_header(self.response, self.response.charset)
+        if self.response.find_header('Content-Length:') == -1:
+          self.response.headers.append('Content-Length: %d' % len(rsp))
+        if self.response.find_header('Cache-Control:') == -1:
+          self.response.headers.append('Cache-Control: no-cache')
       
-      # No rsp or error, so let smisk.core.Application.error() handle the response
+      # Send response
+      if log.level <= logging.DEBUG:
+        self._log_debug_sending_rsp(rsp)
+      self.response.write(rsp)
+      
+      return # We're done.
+    
     except:
       log.error('Failed to encode error', exc_info=1)
     log.error('Request failed for %r', self.request.url.path, exc_info=(typ, val, tb))
@@ -690,7 +809,7 @@ class Application(smisk.core.Application):
   
 
 
-def main(app=None, appdir=None, *args, **kwargs):
+def setup(app=None, appdir=None, *args, **kwargs):
   '''Helper for running an application.
   
   If `app` is not provided or None, app will be aquired by calling
@@ -710,67 +829,141 @@ def main(app=None, appdir=None, *args, **kwargs):
   by ``dirname(__main__.__file__)`` and if that's not possible, the current
   working directory is used.
   
+  Environment variables
+  ---------------------
+  
+  SMISK_APP_DIR
+    The physical location of the application.
+    If not set, the value will be calculated like ``abspath(appdir)`` if the
+    `appdir` argument is not None. In the case `appdir` is None, the value 
+    is calculated like this: ``dirname(<__main__ module>.__file__)``.
+  
+  SMISK_BIND
+    If set and not empty, a call to ``smisk.core.bind`` will occur, passing
+    the value to bind.
+  
+  SMISK_ENVIRONMENT
+    Name of the current environment. If not set, this will be set to the 
+    default value returned by 'environment()'.
+  
   :param app:     An application type or instance.
   :type  app:     Application
   :param appdir:  Path to the applications base directory.
   :type  appdir:  string
   :rtype: None'''
-  try:
-    # Make sure SMISK_APP_DIR is set correctly
-    if 'SMISK_APP_DIR' not in os.environ:
-      if appdir is None:
-        try:
-          appdir = os.path.abspath(os.path.dirname(sys.modules['__main__'].__file__))
-        except:
-          appdir = os.path.abspath('.')
-      os.environ['SMISK_APP_DIR'] = appdir
-    
-    # Simpler environment() function
-    global environment
-    os.environ['SMISK_ENVIRONMENT'] = environment()
-    def unsafe_environment():
-      return os.environ['SMISK_ENVIRONMENT']
-    environment = unsafe_environment
-    
-    # Aquire app
+  
+  # Make sure SMISK_APP_DIR is set correctly
+  if 'SMISK_APP_DIR' not in os.environ:
+    if appdir is None:
+      try:
+        appdir = os.path.dirname(sys.modules['__main__'].__file__)
+      except:
+        raise EnvironmentError('unable to calculate SMISK_APP_DIR because: %s' % sys.exc_info())
+    os.environ['SMISK_APP_DIR'] = os.path.abspath(appdir)
+  
+  # Simpler environment() function
+  global environment
+  os.environ['SMISK_ENVIRONMENT'] = environment()
+  def _environment():
+    return os.environ['SMISK_ENVIRONMENT']
+  environment = _environment
+  
+  # Aquire app
+  if app is None:
+    app = Application.current
     if app is None:
-      app = Application.current
-      if app is None:
-        app = Application(*args, **kwargs)
-    elif type(app) is type:
-      if not issubclass(app, smisk.core.Application):
-        raise ValueError('app is not a subclass of smisk.core.Application')
-      app = app(*args, **kwargs)
-    elif not isinstance(app, smisk.core.Application):
-      raise ValueError('app is not an instance of smisk.core.Application')
-    
-    # Load config
-    app.autoload_configuration()
-    
-    # Bind
-    if len(sys.argv) > 1:
-      smisk.bind(sys.argv[1])
-      log.info('Listening on %s', sys.argv[1])
-    
-    # Enable auto-reloading
-    if app.autoreload:
-      from smisk.autoreload import Autoreloader
-      ar = Autoreloader()
-      ar.start()
-    
-    # Run app
-    app.run()
+      app = Application(*args, **kwargs)
+  elif type(app) is type:
+    if not issubclass(app, smisk.core.Application):
+      raise ValueError('app is not a subclass of smisk.core.Application')
+    app = app(*args, **kwargs)
+  elif not isinstance(app, smisk.core.Application):
+    raise ValueError('app is not an instance of smisk.core.Application')
+  
+  # Load config
+  app.autoload_configuration()
+  
+  # Bind
+  if 'SMISK_BIND' in os.environ:
+    smisk.bind(os.environ['SMISK_BIND'])
+    log.info('Listening on %s', os.environ['SMISK_BIND'])
+  
+  # Enable auto-reloading
+  if app.autoreload:
+    from smisk.autoreload import Autoreloader
+    ar = Autoreloader()
+    ar.start()
+  
+  return app
+
+
+def run(app):
+  '''Helper for running an application.
+  
+  :param app:
+  :type  app: Application
+  '''
+  return wrap_call(app.run)
+
+
+def main(app=None, *args, **kwargs):
+  '''Helper for setting up and running an application.
+  
+  First calls `setup()` to set up the application, then calls `run()`.
+  
+  :param app:     An application type or instance.
+  :type  app:     Application
+  :rtype: None'''
+  app = wrap_call(setup, app=app, *args, **kwargs)
+  run(app)
+
+
+def wrap_call(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs):
+  '''Call `fnc` catching any errors and writing information to ``error.log``.
+  
+  ``error.log`` will be written to, or appended to if it aldready exists,
+  ``ENV["SMISK_LOG_DIR"]/error.log``. If ``SMISK_LOG_DIR`` is not set,
+  the file will be written to ``ENV["SMISK_APP_DIR"]/error.log``.
+  
+  * ``KeyboardInterrupt`` is discarded/passed, causing a call to `abort_cb`,
+    if set, without any arguments.
+  
+  * ``SystemExit`` is passed on to Python and in normal cases causes a program
+    termination, thus this function will not return.
+  
+  * Any other exception causes ``error.log`` to be written to and finally
+    a call to `error_cb` with a single argument; exit status code.
+  
+  :param  error_cb:   Called after an exception was caught and info 
+                               has been written to ``error.log``. Receives a
+                               single argument: Status code as an integer.
+                               Defaults to ``sys.exit`` causing normal program
+                               termination. The returned value of this callable
+                               will be returned by `wrap_call` itself.
+  :type   error_cb:   callable
+  :param  abort_cb:   Like `error_cb` but instead called when
+                      ``KeyboardInterrupt`` was raised.
+  :type   abort_cb:   callable
+  :rtype: object
+  '''
+  try:
+    # Run the wrapped callable
+    return fnc(*args, **kwargs)
   except KeyboardInterrupt:
-    pass
+    if abort_cb:
+      return abort_cb()
   except SystemExit:
     raise
   except:
+    # Log error
     try:
-      log.critical('died from:', exc_info=True)
+      log.critical('exception:', exc_info=True)
     except:
       pass
+    # Write to error.log
     try:
-      f = open(os.path.join(os.environ['SMISK_APP_DIR'], 'error.log'), 'a')
+      log_dir = os.environ.get('SMISK_LOG_DIR' ,os.environ['SMISK_APP_DIR'])
+      f = open(os.path.join(log_dir, 'error.log'), 'a')
       try:
         from traceback import print_exc
         print_exc(1000, f)
@@ -778,4 +971,6 @@ def main(app=None, appdir=None, *args, **kwargs):
         f.close()
     except:
       pass
-    sys.exit(1)
+    # Call error callback
+    if error_cb:
+      return error_cb(1)
