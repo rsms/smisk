@@ -128,19 +128,19 @@ PyDoc_STRVAR(smisk_xml_escape_DOC,
   ":param s: Raw string to be encoded\n"
   ":type  s: string\n"
   ":rtype: string");
-PyObject *smisk_xml_escape_py(PyObject *self, PyObject *pys) {
+PyObject *smisk_xml_escape_py(PyObject *self, PyObject *_pys) {
   size_t len, nlen;
-  PyObject *npys;
+  PyObject *npys, *pys;
   char *s, *dest;
-  int should_decref_pys = 0;
+  int unicode = 0;
+  pys = _pys;
   
   if (!PyString_CheckExact(pys)) {
     if (PyUnicode_Check(pys)) {
-      // Unicode (UTF-16?) to UTF-8
+      // Unicode temporary as UTF-8
       if ( (pys = PyUnicode_AsUTF8String(pys)) == NULL)
         return NULL;
-      
-      should_decref_pys = 1;
+      unicode = 1;
     }
     else {
       PyErr_SetString(PyExc_TypeError, "first argument must be a string");
@@ -153,22 +153,29 @@ PyObject *smisk_xml_escape_py(PyObject *self, PyObject *pys) {
   nlen = smisk_xml_encode_newlen(s, len);
   
   if (nlen == len) {
-    Py_INCREF(pys);
-    return pys;
+    if (unicode) {
+      Py_DECREF(pys);
+    }
+    Py_INCREF(_pys);
+    return _pys;
   }
   
-  npys = PyString_FromStringAndSize(NULL,(Py_ssize_t)nlen);
+  npys = PyString_FromStringAndSize(NULL, (Py_ssize_t)nlen);
   if (npys == NULL) {
-    if (should_decref_pys) {
+    if (unicode) {
       Py_DECREF(pys);
     }
     return NULL;
   }
+  
   dest = PyString_AS_STRING(npys);
   
   smisk_xml_encode_p(s, len, dest);
   
-  if (should_decref_pys) {
+  if (unicode) {
+    Py_DECREF(pys);
+    pys = npys;
+    npys = PyUnicode_FromEncodedObject(npys, "utf-8", NULL);
     Py_DECREF(pys);
   }
   
