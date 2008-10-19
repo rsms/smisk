@@ -45,7 +45,7 @@ def encode_value(v, buf, level):
   elif isinstance(v, datetime):
     buf.append('%s<date>%s</date>' % (indent, v.strftime('%Y-%m-%dT%H:%M:%SZ')))
   else:
-    raise EncodeError('Unserializeable type %s' % str(type(v)))
+    raise EncodeError(u'Unserializeable type %s' % type(v))
 
 def encode_map(d, buf, level=1):
   indent = '  '*level

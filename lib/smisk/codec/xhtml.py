@@ -18,7 +18,7 @@ def encode_value(v, buf, value_wraptag='tt'):
   elif isinstance(v, dict):
     encode_map(v, buf, value_wraptag)
   else:
-    buf.append(u'<%s>%s</%s>' % (value_wraptag, xml_escape(str(v)), value_wraptag) )
+    buf.append(u'<%s>%s</%s>' % (value_wraptag, xml_escape(unicode(v)), value_wraptag) )
   return buf
 
 def encode_map(d, buf, value_wraptag='tt'):
@@ -26,7 +26,7 @@ def encode_map(d, buf, value_wraptag='tt'):
   items = d.items()
   items.sort()
   for k,v in items:
-    buf.append(u'<li>%s: ' % xml_escape(str(k)) )
+    buf.append(u'<li>%s: ' % xml_escape(unicode(k)) )
     encode_value(v, buf, value_wraptag)
     buf.append(u'</li>')
   buf.append(u'</ul>')
@@ -86,7 +86,7 @@ class codec(BaseCodec):
       elif k == 'description':
         v = u''.join(encode_value(v, [], 'p'))
       else:
-        v = xml_escape(str(v))
+        v = xml_escape(unicode(v))
       xp[k] = v
     # Override if description_html is set
     if 'description_html' in params:

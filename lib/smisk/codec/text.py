@@ -14,10 +14,8 @@ def encode_value(v, buf, level):
     buf.append(u'%d' % v)
   elif isinstance(v, float):
     buf.append(u'%f' % v)
-  elif isinstance(v, unicode):
-    buf.append(v)
   elif isinstance(v, basestring):
-    buf.append(v.decode('utf-8'))
+    buf.append(unicode(v))
   elif isinstance(v, list) or isinstance(v, tuple):
     encode_sequence(v, buf, level)
   elif isinstance(v, dict):

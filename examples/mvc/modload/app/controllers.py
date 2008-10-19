@@ -39,7 +39,7 @@ class posts(root):
     ]
   
   def show(self, post_id=0, *args, **kwargs):
-    response("from root > %s.show(post_id=%s)\n" % (repr(self), str(post_id)))
+    response("from root > %s.show(post_id=%s)\n" % (repr(self), post_id))
   
   class edit(root):
     def __call__(self, *args, **kwargs):

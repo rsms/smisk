@@ -150,7 +150,7 @@ class Inflector(object):
   #   "the blue mailman".pluralize #=> "the blue mailmen"
   #   "CamelOctopus".pluralize #=> "CamelOctopi"
   def pluralize(self, word):
-    word = str(word)
+    word = unicode(word)
     if word.lower() in self.uncountables:
       return word
     else:
@@ -174,7 +174,7 @@ class Inflector(object):
     
     :param word: a possibly plural word which should be converted to singular form.
     '''
-    word = str(word)
+    word = unicode(word)
     if word.lower() in self.uncountables:
       return word
     else:
@@ -290,17 +290,17 @@ class Inflector(object):
   def ordinalize(self, number):
     i = int(number)
     if i % 100 in [11,12,13]:
-      return str(i)+"th"
+      return u'%dth' % i
     else:
       x = i % 10
       if x == 1:
-        return str(i)+"st"
+        return u'%st' % i
       elif x == 2:
-        return str(i)+"nd"
+        return u'%dnd' % i
       elif x == 3:
-        return str(i)+"rd"
+        return u'%drd' % i
       else:
-        return str(i)+"th"
+        return u'%dth' % i
   
   
 

@@ -8,10 +8,6 @@ class root(Controller):
   
   def echo(self, *args, **params):
     '''Echoes input arguments and parameters back.'''
-    return dict(args=args, params=params)
-  
-  @expose('grodan', formats=['xml', 'html'])
-  def moset(self):
-    return {'moset': ['bakat', 'gott']}
+    return params
 
 main(autoreload=True)

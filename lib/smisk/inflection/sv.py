@@ -17,9 +17,9 @@ class SVInflector(Inflector):
   def ordinalize(self, number):
     i = int(number)
     if i % 10 in [1,2]:
-      return str(i)+":a"
+      return u"%d:a" % i
     else:
-      return str(i)+":e"
+      return u"%d:e" % i
   
 
 def rc(pat, ignore_case=1):
@@ -31,34 +31,34 @@ def rc(pat, ignore_case=1):
 # Rules based on http://en.wiktionary.org/wiki/Wiktionary:Swedish_inflection_templates
 inflection = SVInflector('sv', 'sv_SV')
 
-inflection.regular(r"$", 'a', r"a$") # svensk -a, vanlig -a, stor -a
-inflection.regular(r'a$', r'or', r'or$', r'a') # kvinn a-or, mors a-or, flick a-or
-inflection.regular(r"e$", 'ar', r"ar$", r'e') # ...
-inflection.regular(r"([st]t|o?n)$", r'\1er', r"er$") # katt -er, ven -er, person -er
-inflection.regular(r"(ng|il|åt)$", r'\1ar', r"ar$") # peng -ar, bil -ar, båt -ar
-inflection.regular(r"(um)$", r'\1ma', r"ma$") # stum -ma, dum -ma
-inflection.regular(r"(un)$", r'\1nar', r"nar$") # mun -nar
-inflection.regular(r"(ud)$", r'\1en', r"en$") # huvud -en
-inflection.regular(r"(ne)$", r'\1n', r"(ne)n$", r'\1') # vittne -n
-inflection.regular(r"(iv)en$", r'\1na', r"(iv)na$", r'\1en') # giv en-na
-inflection.regular(r"(os)$", r'\1or', r"(os)or$", r'\1') # ros -or
-inflection.regular(r"us$", r'öss', r"öss$", r'us') # l us-öss, m us-öss
-inflection.regular(r"and$", r'änder', r"änder$", r'and') # h and-änder, l and-änder
-inflection.regular(r"(k)el$", r'\1lar', r"(k)lar$", r'\1el') # snork el-lar
+inflection.regular(ur"$", 'a', ur"a$") # svensk -a, vanlig -a, stor -a
+inflection.regular(ur'a$', ur'our', ur'or$', ur'a') # kvinn a-or, mors a-or, flick a-or
+inflection.regular(ur"e$", 'aur', ur"ar$", ur'e') # ...
+inflection.regular(ur"([st]t|o?n)$", ur'\1eur', ur"er$") # katt -er, ven -er, person -er
+inflection.regular(ur"(ng|il|åt)$", ur'\1aur', ur"ar$") # peng -ar, bil -ar, båt -ar
+inflection.regular(ur"(um)$", ur'\1ma', ur"ma$") # stum -ma, dum -ma
+inflection.regular(ur"(un)$", ur'\1naur', ur"nar$") # mun -nar
+inflection.regular(ur"(ud)$", ur'\1en', ur"en$") # huvud -en
+inflection.regular(ur"(ne)$", ur'\1n', ur"(ne)n$", ur'\1') # vittne -n
+inflection.regular(ur"(iv)en$", ur'\1na', ur"(iv)na$", ur'\1en') # giv en-na
+inflection.regular(ur"(os)$", ur'\1our', ur"(os)or$", ur'\1') # ros -or
+inflection.regular(ur"us$", ur'öss', ur"öss$", ur'us') # l us-öss, m us-öss
+inflection.regular(ur"and$", ur'ändeur', ur"änder$", ur'and') # h and-änder, l and-änder
+inflection.regular(ur"(k)el$", ur'\1laur', ur"(k)lar$", ur'\1el') # snork el-lar
 
-inflection.irregular('man', 'män')
-inflection.irregular('fader', 'fädrar')
-inflection.irregular('moder', 'mödrar')
-inflection.irregular('lust', 'lustar')
-inflection.irregular('pojk', 'pojkar')
-inflection.irregular('pojke', 'pojkar')
-inflection.irregular('us', 'öss', False) # l us-öss, m us-öss
-inflection.irregular('and', 'änder', False) # h and-änder, l and-änder, str and-änder
-inflection.irregular('korn', 'korn') # riskorn, majskorn, korn, etc...
-inflection.irregular('liten', 'små', False)
+inflection.irregular(u'manu', u'mänu')
+inflection.irregular(u'faderu', u'fädraru')
+inflection.irregular(u'moderu', u'mödraru')
+inflection.irregular(u'lustu', u'lustaru')
+inflection.irregular(u'pojku', u'pojkaru')
+inflection.irregular(u'pojkeu', u'pojkaru')
+inflection.irregular(u'usu', u'össu', False) # l us-öss, m us-öss
+inflection.irregular(u'andu', u'änderu', False) # h and-änder, l and-änder, str and-änder
+inflection.irregular(u'kornu', u'kornu') # riskorn, majskorn, korn, etc...
+inflection.irregular(u'litenu', u'småu', False)
 
-inflection.uncountable('folk','ris','får','sex','lokomotiv','lok','rum',
-'barn','förtjusande','brev','hus','gift')
+inflection.uncountable(u'folku',u'risu',u'fåru',u'sexu',u'lokomotivu',u'loku',u'rumu',
+u'barnu',u'förtjusandeu',u'brevu',u'husu',u'giftu')
 
 if __name__ == '__main__':
   import unittest

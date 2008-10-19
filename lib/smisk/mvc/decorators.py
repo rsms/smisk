@@ -5,11 +5,11 @@ import sys, types
 
 def expose(slug=None, template=None, formats=None):
   def entangle(func):
-    if slug is not None and isinstance(slug, basestring):
-      func.slug = str(slug)
+    if slug is not None:
+      func.slug = unicode(slug)
     
     if template is not None:
-      func.template = str(template)
+      func.template = unicode(template)
     
     if formats is not None:
       if isinstance(formats, list):

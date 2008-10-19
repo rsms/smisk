@@ -449,6 +449,8 @@ class Application(smisk.core.Application):
     
     # Set params to the query string
     params = self.request.get
+    for k,v in params.iteritems():
+      params[k.decode('utf-8')] = v.decode('utf-8')
     
     # If request.path has not yet been deduced, simply set it to request.url.path
     if self.request.path is None:
@@ -737,9 +739,9 @@ class Application(smisk.core.Application):
       ]
       
       # Set params
-      params['name'] = str(status.name)
+      params['name'] = unicode(status.name)
       params['code'] = status.code
-      params['server'] = '%s at %s' % (self.request.env['SERVER_SOFTWARE'],
+      params['server'] = u'%s at %s' % (self.request.env['SERVER_SOFTWARE'],
         self.request.env['SERVER_NAME'])
       
       # Include traceback if enabled
@@ -757,7 +759,7 @@ class Application(smisk.core.Application):
           assert(type(status_service_rsp) is DictType)
           params.update(status_service_rsp)
       if not params.get('description', False):
-        params['description'] = str(val)
+        params['description'] = unicode(val)
       
       # Ony perform the following block if status type has a body and if
       # status_service_rsp did not contain a complete response body.

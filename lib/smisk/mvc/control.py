@@ -186,7 +186,7 @@ def _path_to_class(node, path):
 
 def _filter_dict(d, rex):
   if rex is not None:
-    rex = str(rex).strip()
+    rex = unicode(rex).strip()
     if rex:
       dd = {}
       try:

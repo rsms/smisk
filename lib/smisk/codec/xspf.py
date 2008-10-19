@@ -14,7 +14,7 @@ DOM = getDOMImplementation()
 log = logging.getLogger(__name__)
 
 class ElementSpec(object):
-  def __init__(self, name, desc=None, mincount=0, maxcount=1, typ=basestring, childspecs=[]):
+  def __init__(self, name, desc=None, mincount=0, maxcount=1, typ=unicode, childspecs=[]):
     self.name = name
     self.mincount = mincount
     self.maxcount = maxcount
@@ -48,7 +48,7 @@ class codec(BaseCodec):
       elif k in cls.ELEMENTS:
         n = doc.createElement(k)
         if v is not None:
-          n.appendChild(doc.createTextNode(str(v)))
+          n.appendChild(doc.createTextNode(unicode(v)))
         root.appendChild(n)
       # else just skip the kv
     pretty_print = params.get('pretty_print', None)
@@ -65,7 +65,7 @@ class codec(BaseCodec):
         track = doc.createElement('track')
         for k,v in t.items():
           n = doc.createElement(k)
-          n.appendChild(doc.createTextNode(str(v)))
+          n.appendChild(doc.createTextNode(unicode(v)))
           track.appendChild(n)
         trackList.appendChild(track)
     return trackList
@@ -75,7 +75,7 @@ class codec(BaseCodec):
     from smisk.core import Application
     app = Application.current
     if app:
-      identifier = str(Application.current.request.url) + '#'
+      identifier = unicode(Application.current.request.url) + '#'
     else:
       identifier = 'urn:smisk:'
     identifier += 'error/%d' % status.code
@@ -101,7 +101,7 @@ class codec(BaseCodec):
         v = cls.decode_trackList(doc, n)
       else:
         v = n.firstChild.nodeValue.strip()
-      d[str(k)] = v
+      d[unicode(k)] = v
     return (None, d)
   
   INT_ELEMENTS_OF_TRACK = ('trackNum', 'duration')
@@ -120,7 +120,7 @@ class codec(BaseCodec):
         v = n.firstChild.nodeValue.strip()
         if k in cls.INT_ELEMENTS_OF_TRACK:
           v = int(v)
-        track[str(k)] = v
+        track[unicode(k)] = v
       tracks.append(track)
     return tracks
   

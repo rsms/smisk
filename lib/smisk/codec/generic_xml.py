@@ -21,40 +21,42 @@ def finalize_rsp(v, glue=u"\n"):
   return glue.join(v)
 
 def encode_value(v, buf, level):
-  indent = '  '*level
+  indent = u'  '*level
   if isinstance(v, bool):
-    s = 'false'
+    s = u'false'
     if v:
-      s = 'true'
-    buf.append('%s<%s />' % (indent, s))
+      s = u'true'
+    buf.append(u'%s<%s />' % (indent, s))
   elif isinstance(v, int):
-    buf.append('%s<int>%d</int>' % (indent, v))
+    buf.append(u'%s<int>%d</int>' % (indent, v))
   elif isinstance(v, float):
-    buf.append('%s<real>%f</real>' % (indent, v))
+    buf.append(u'%s<real>%f</real>' % (indent, v))
   elif isinstance(v, basestring):
-    if len(v) > 256 and v.find('<![CDATA[') == -1:
-      buf.append('%s<string><![CDATA[%s]]></string>' % (indent, v))
+    if isinstance(v, str):
+      v = unicode(v)
+    if len(v) > 256 and v.find(u'<![CDATA[') == -1:
+      buf.append(u'%s<string><![CDATA[%s]]></string>' % (indent, v))
     else:
-      buf.append('%s<string>%s</string>' % (indent, xml_escape(v)))
+      buf.append(u'%s<string>%s</string>' % (indent, xml_escape(v)))
   elif isinstance(v, list) or isinstance(v, tuple):
-    buf.append('%s<array>' % indent)
+    buf.append(u'%s<array>' % indent)
     encode_sequence(v, buf, level+1)
-    buf.append('%s</array>' % indent)
+    buf.append(u'%s</array>' % indent)
   elif isinstance(v, dict):
-    buf.append('%s<dict>' % indent)
+    buf.append(u'%s<dict>' % indent)
     encode_map(v, buf, level+1)
-    buf.append('%s</dict>' % indent)
+    buf.append(u'%s</dict>' % indent)
   else:
-    raise EncodeError('Unserializeable type %s' % str(type(v)))
+    raise EncodeError(u'Unserializeable type %s' % type(v))
 
 def encode_map(d, buf, level=1):
   indent = '  '*level
   items = d.items()
   items.sort()
   for k,v in items:
-    buf.append('%s<param name="%s">' % (indent, xml_escape(k)))
+    buf.append(u'%s<param name="%s">' % (indent, xml_escape(k)))
     encode_value(v, buf, level+1)
-    buf.append('%s</param>' % indent)
+    buf.append(u'%s</param>' % indent)
 
 def encode_sequence(l, buf, level):
   for v in l:
@@ -77,18 +79,18 @@ class codec(BaseCodec):
   @classmethod
   def encode_error(cls, status, params, charset):
     v = start_rsp(charset)
-    msg = ' '.join([params['name'], params['description']])
-    ends = ' />'
+    msg = u' '.join([params['name'], params['description']])
+    ends = u' />'
     if len(params) > 3:
-      ends = '>'
-    v.append('<err code="%d" msg="%s"%s' % \
+      ends = u'>'
+    v.append(u'<err code="%d" msg="%s"%s' % \
       (int(params['code']), xml_escape(msg), ends))
-    if ends == '>':
+    if ends == u'>':
       del params['code']
       del params['name']
       del params['description']
       encode_map(params, v)
-      v.append('</err>')
+      v.append(u'</err>')
     return (charset, finalize_rsp(v).encode(charset))
   
   #xxx todo implement decoder
