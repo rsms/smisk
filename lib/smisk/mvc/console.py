@@ -1,8 +1,6 @@
 #!/usr/bin/env python -i
 # encoding: utf-8
-'''Console.
-
-Run directly as a executable script or with the -i flag: python -i script.py.
+'''Interactive console.
 '''
 
 import sys, os, time, logging, __builtin__
