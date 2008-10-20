@@ -1,17 +1,25 @@
 # encoding: utf-8
 '''Miscellaneous utilities.
 '''
-import sys, os, time, threading, thread, logging, imp
+import sys, os, time, threading, thread, logging, imp, inspect
 try:
   import reprlib
 except ImportError:
   import repr as reprlib
 from smisk.core import Application, URL
+from types import *
 
 None2 = (None, None)
 ''':type: tuple'''
 
-log = logging.getLogger(__name__)
+# Regex type
+import re
+re = re.compile('.')
+RegexType = type(re)
+del re
+
+
+_log = logging.getLogger(__name__)
 
 
 class NamedObject:
@@ -27,6 +35,13 @@ class NamedObject:
 Undefined = NamedObject('Undefined')
 '''Indicates an undefined value.
 '''
+
+class Singleton(object):
+  def __new__(typ, *args, **kwargs):
+    if not '_instance' in typ.__dict__:
+      typ._instance = object.__new__(typ, *args, **kwargs)
+    return typ._instance
+  
 
 
 class frozendict(dict):
@@ -55,7 +70,7 @@ class frozendict(dict):
     items = self.items()
     res = hash(items[0])
     for item in items[1:]:
-        res ^= hash(item)
+      res ^= hash(item)
     return res
   
 
@@ -100,22 +115,22 @@ class Monitor(object):
         self.thread = PerpetualTimer(self.frequency, self.callback, self.setup_callback)
         self.thread.setName(threadname)
         self.thread.start()
-        log.debug("Started thread %r", threadname)
+        _log.debug("Started thread %r", threadname)
       else:
-        log.debug("Thread %r already started", threadname)
+        _log.debug("Thread %r already started", threadname)
   start.priority = 70
   
   def stop(self):
     '''Stop our callback's perpetual timer thread.'''
     if self.thread is None:
-      log.warn("No thread running for %s", self)
+      _log.warn("No thread running for %s", self)
     else:
       # Note: For some reason threading._active dict freezes in some conditions
       # here, so we compare thread ids rather than comparing using threading.currentThread.
       if self.thread.ident != thread.get_ident():
         self.thread.cancel()
         self.thread.join()
-        log.debug("Stopped thread %r", self.thread.getName())
+        _log.debug("Stopped thread %r", self.thread.getName())
       self.thread = None
   
   def restart(self):
@@ -164,6 +179,8 @@ class introspect(object):
   _repr.maxstring = 200
   _repr.maxother = 200
   
+  _info_cache = {}
+  
   @classmethod
   def callable_info(cls, f):
     '''Info about a callable.
@@ -174,48 +191,54 @@ class introspect(object):
     :type  f: callable
     :rtype: frozendict
     '''
-    try:
-      f = f.im_func
-    except AttributeError:
+    if not callable(f):
+      return None
+    
+    if isinstance(f, FunctionType):
+      # in case of ensure_va_kwa
       try:
-        f.func_code
+        f = f.wrapped_func
       except AttributeError:
-        f = f.__call__
+        pass
+    
     try:
-      return f.info
-    except AttributeError:
+      return cls._info_cache[f]
+    except KeyError:
       pass
-    args = []
-    code = f.func_code
-    arglist = list(code.co_varnames[:code.co_argcount][1:])
-    varargs = False
-    kwargs = False
-    if code.co_flags & cls.VARARGS:
-      varargs = True
-    if code.co_flags & cls.KWARGS:
-      kwargs = True
-    arglist_len = len(arglist)
-    co_locals = []
-    if arglist_len < code.co_argcount:
-      for i,n in enumerate(code.co_varnames[arglist_len+1:]):
-        co_locals.append(n)
-    func_defaults_len = 0
-    if f.func_defaults:
-      func_defaults_len = len(f.func_defaults)
-    for i,n in enumerate(arglist):
-      default_index = i-(arglist_len-func_defaults_len)
+    
+    args, varargs, varkw, defaults = inspect.getargspec(f)
+    method = False
+    
+    if isinstance(f, MethodType):
+      # Remove self
+      args = args[1:]
+      method = True
+    
+    _args = []
+    args_len = len(args)
+    defaults_len = 0
+    
+    if defaults is not None:
+      defaults_len = len(defaults)
+    
+    for i,n in enumerate(args):
+      default_index = i-(args_len-defaults_len)
       v = Undefined
       if default_index > -1:
-        v = f.func_defaults[default_index]
-      args.append((n, v))
-    f.info = frozendict({
+        v = defaults[default_index]
+      _args.append((n, v))
+    
+    info = frozendict({
       'name':f.func_name,
-      'args':args,
-      'varargs':varargs,
-      'kwargs':kwargs,
-      'locals':tuple(co_locals)
+      'args':tuple(_args),
+      'varargs':bool(varargs),
+      'varkw':bool(varkw),
+      'method':method
     })
-    return f.info
+    
+    cls._info_cache[f] = info
+    return info
+  
   
   @classmethod
   def format_members(cls, o, colorize=False):
@@ -252,6 +275,7 @@ class introspect(object):
     
     return '\n'.join(s)
   
+  
   @classmethod
   def ensure_va_kwa(cls, f, parent=None):
     '''Ensures `f` accepts both ``*varargs`` and ``**kwargs``.
@@ -271,24 +295,32 @@ class introspect(object):
     :rtype: callable
     '''
     info = cls.callable_info(f)
+    
+    if info is None:
+      return None
+    
     va_kwa_wrapper = None
-    if not info['varargs'] and not info['kwargs']:
+    
+    if not info['varargs'] and not info['varkw']:
       def va_kwa_wrapper(*args, **kwargs):
         return f(*args[:len(info['args'])])
     elif not info['varargs']:
       def va_kwa_wrapper(*args, **kwargs):
         return f(*args[:len(info['args'])], **kwargs)
-    elif not info['kwargs']:
+    elif not info['varkw']:
       def va_kwa_wrapper(*args, **kwargs):
         return f(*args)
+    
     if va_kwa_wrapper:
       va_kwa_wrapper.info = frozendict(info.update({
         'varargs': True,
-        'kwargs': True
+        'varkw': True
       }))
+      cls._info_cache[f] = va_kwa_wrapper.info
+      va_kwa_wrapper.wrapped_func = f
+      va_kwa_wrapper.im_func = f
       try:
         va_kwa_wrapper.im_class = f.im_class
-        va_kwa_wrapper.im_func = f
       except AttributeError:
         pass
       for k in dir(f):
@@ -404,25 +436,64 @@ def strip_filename_extension(fn):
   except:
     return fn
 
-def load_modules_in_dir(path, skip__init__=True):
+def load_modules(path, deep=False, skip_first_init=True):
   '''Import all modules in a directory.
   
-  :returns: A list of modules imported
-  :rtype:   list'''
-  loaded = []
+  :param path: Path of a directory
+  :type  path: string
+  :param deep: Search subdirectories
+  :type  deep: bool
+  :param skip_first_init: Do not load any __init__ directly under `path`.
+                          Note that if `deep` is ``True``, 
+                          subdirectory/__init__ will still be loaded, 
+                          even if `skip_first_init` is ``True``.
+  :type  skip_first_init: bool
+  :returns: A dictionary of modules imported, keyed by name.
+  :rtype:   dict'''
+  loaded = {}
+  _load_modules(path, deep, skip_first_init, '', loaded)
+  return loaded
+
+def _load_modules(path, deep, skip_init, parent_name, loaded):
+  seen = []
+  
   for f in os.listdir(path):
+    fpath = os.path.join(path, f)
+    
+    if os.path.isdir(fpath):
+      if deep:
+        _load_modules(fpath, deep, False, f, loaded)
+      else:
+        continue
+    
     name = strip_filename_extension(f)
-    if skip__init__ and name == '__init__':
+    
+    if skip_init and name == '__init__':
       continue
-    if f[0] != '.' and f[-3:] in ('.py', 'pyc') and name not in loaded:
+    
+    if f[0] != '.' and f[-3:] in ('.py', 'pyc') and name not in seen:
       fp, pathname, desc = imp.find_module(name, [path])
+      m = None
       try:
-        imp.load_module(name, fp, pathname, desc)
+        sys.path.append(path)
+        m = imp.load_module(name, fp, pathname, desc)
+        abs_name = name
+        if parent_name:
+          if name == '__init__':
+            abs_name = parent_name
+          else:
+            abs_name = '%s.%s' % (parent_name, name)
+        elif name == '__init__':
+          # in the case where skip_first_init is False
+          abs_name = os.path.basename(path)
+        loaded[abs_name] = m
       finally:
         if fp:
           fp.close()
-      loaded.append(name)
+      
+      seen.append(name)
   return loaded
+  
 
 def normalize_url(url):
   ''':rtype: string'''

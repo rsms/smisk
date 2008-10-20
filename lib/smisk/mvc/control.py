@@ -30,14 +30,16 @@ def root_controller():
 def controllers():
   '''Available controllers as a list, incuding the root.
   
+  :returns: List of controller instances in an undefined order.
   :rtype: list
   '''
-  node = root_controller()
-  _controllers = [node()]
-  def _r(node):
-    for c in node.__subclasses__():
-      _controllers.append(c())
-      _r(c)
+  root = root_controller()
+  _controllers = [root()]
+  def _r(baseclass, v):
+    for subclass in baseclass.__subclasses__():
+      v.append(subclass())
+      _r(subclass, v)
+  _r(root, _controllers)
   return _controllers
 
 
@@ -60,18 +62,28 @@ def node_name(node):
 
 
 def uri_for(node):
-  '''Returns the canonical exposed URI of a node.'''
+  '''Returns the canonical exposed URI of a node.
+  
+  If node is a controller or a __call__, the uri always ends in a slash.
+  Otherwise it never ends in a slash. 
+  
+  :param node:
+  :type  node: callable
+  :rtype: string
+  '''
+  cache_key = _callable_cache_key(node)
   try:
-    return _uri_for_cache[node]
+    return _uri_for_cache[cache_key]
   except KeyError:
     path = path_to(node)
     if path is None:
       uri = None
     else:
       uri = '/'+'/'.join(path)
-      if len(path) > 1 and (isinstance(node, Controller) or node.__name__ == '__call__'):
+      if len(path) > 0 and \
+        (not isinstance(node, (MethodType, FunctionType)) or node.__name__ == '__call__'):
         uri += '/'
-    _uri_for_cache[node] = uri
+    _uri_for_cache[cache_key] = uri
     return uri
 
 
@@ -82,7 +94,7 @@ def path_to(node):
   :type  node: object
   :rtype: list'''
   global _path_to_cache
-  return _cached_path_to(node, _path_to_cache, False)
+  return _cached_path_to(_callable_cache_key(node), node, _path_to_cache, False)
 
 
 def template_for(node):
@@ -92,25 +104,108 @@ def template_for(node):
   :type  node: object
   :rtype: list'''
   global _template_for_cache
-  return _cached_path_to(node, _template_for_cache, True)
+  return _cached_path_to(_callable_cache_key(node), node, _template_for_cache, True)
 
 
-def _cached_path_to(node, cache, resolve_template):
+def method_origin(method):
+  '''Return the class on which `method` was originally defined.
+  
+  .. python::
+    >>> class Animal(object):
+    >>>   def name(self):
+    >>>     pass
+    >>> 
+    >>> class Fish(Animal):
+    >>>   def color(self):
+    >>>     pass
+    >>> 
+    >>> o = Fish()
+    >>> 
+    >>> print method_origin(o.name)
+    <class '__main__.Animal'>
+    >>> print method_origin(o.color)
+    <class '__main__.Fish'>
+  
+  :param    method:
+  :type     method: callable
+  :returns: Class on which `method` was originally defined
+  :rtype:   object
+  '''
+  if not isinstance(method, MethodType):
+    raise ValueError('first argument must be a method, not %s' % type(method).__name__)
+  return _method_origin_r(method.im_func, method.im_class)
+
+
+def _method_origin_r(func, baseclass):
+  for subclass in baseclass.__bases__:
+    member = getattr(subclass, func.__name__, None)
+    if member is not None and isinstance(member, MethodType) \
+        and member.im_func.func_code == func.func_code:
+      return _method_origin_r(func, subclass)
+  return baseclass
+
+
+def leaf_is_visible(node, cls=None):
+  '''Return True if `node` defined on class `cls` is visible.
+  
+  :param  cls:
+  :type   cls: class
+  :param  node:
+  :type   node: object
+  :rtype: bool
+  '''
+  if not isinstance(node, (MethodType, FunctionType)):
+    try:
+      node = node.__call__
+    except AttributeError:
+      return False
+  if getattr(node, 'hidden', False):
+    return False
   try:
-    return cache[node]
+    delegates = node.delegates
+  except AttributeError:
+    delegates = False
+  if cls is None:
+    try: cls = node.im_class
+    except AttributeError: pass
+  if cls is None:
+    if not delegates:
+      return False
+  elif not delegates and method_origin(node) != cls:
+    return False
+  return True
+
+
+def _callable_cache_key(node):
+  if isinstance(node, MethodType):
+    return hash(node)^hash(node.im_class)
+  else:
+    return node
+
+def _cached_path_to(cache_key, node, cache, resolve_template):
+  try:
+    return cache[cache_key]
+  except TypeError:
+    return None
   except KeyError:
     path = _path_to(node, resolve_template)
     if path:
       if not resolve_template and path[0] == '__call__':
         path = path[1:]
       path.reverse()
-    cache[node] = path
+    cache[cache_key] = path
     return path
 
 
 def _node_name(node, fallback):
+  '''Name of node
+  
+  :rtype: unicode
+  '''
   try:
-    return node.slug
+    slug = node.slug
+    if slug is not None:
+      return unicode(slug)
   except AttributeError:
     pass
   return fallback
@@ -125,13 +220,16 @@ def _get_template(node):
 
 
 def _path_to(node, resolve_template):
-  node_type = type(node)
-  
-  if node_type in (MethodType, FunctionType):
-    # Leaf is Method or Function
-    if getattr(node, 'hidden', False) \
-        or getattr(node, 'im_class', None) is None \
+  if isinstance(node, (MethodType, FunctionType)):
+    # Leaf is Method or Function.
+    # Function supported because methods might be wrapped in functions
+    # which in those cases should have an im_class attribute.
+    if getattr(node, 'im_class', None) is None \
+        or getattr(node, 'im_func', None) is None \
         or not issubclass(node.im_class, root_controller()):
+      return None
+    
+    if not leaf_is_visible(node):
       return None
     
     if resolve_template:
@@ -141,18 +239,19 @@ def _path_to(node, resolve_template):
     
     path = [_node_name(node, node.im_func.__name__)]
     path = _path_to_class(node.im_class, path)
-    
   else:
     # Leaf is Class
-    if node_type is not type:
+    if not isinstance(node, TypeType):
       node = node.__class__
+    
+    assert isinstance(node, TypeType)
     
     try:
       node_callable = node.__call__
     except AttributeError:
       return None
     
-    if getattr(node_callable, 'hidden', False):
+    if not leaf_is_visible(node_callable, node):
       return None
     
     if resolve_template:
@@ -162,11 +261,14 @@ def _path_to(node, resolve_template):
     
     name = _node_name(node_callable, None)
     if name is None and resolve_template:
-      path = ['__call__']
+      path = [u'__call__']
     else:
       path = []
     
     path = _path_to_class(node, path)
+  
+  if path is not None:
+    assert None not in path
   
   return path
 
@@ -213,9 +315,7 @@ def _doc_intro(entity):
 
 class Controller(object):
   def __new__(typ):
-    try:
-      return typ._instance
-    except AttributeError:
+    if not '_instance' in typ.__dict__:
       o = object.__new__(typ)
       class_meths = classmethods(typ)
       for k in dir(o):
@@ -223,19 +323,23 @@ class Controller(object):
         if (k[0] != '_' or getattr(v, 'slug', False)) and k not in class_meths:
           o.__dict__[k] = v
       typ._instance = o
-      return typ._instance
+    return typ._instance
   
   @classmethod
   def controller_name(cls):
     '''Returns the canonical name of this controller.
     
     :rtype: string'''
-    return inflection.underscore(cls.__name__.replace('Controller',''))
+    try:
+      return cls.slug
+    except AttributeError:
+      return inflection.underscore(cls.__name__.replace('Controller',''))
   
   @classmethod
   def controller_path(cls):
     '''Returns the canonical path to this controller.
     
+    :returns: path as token list or None if no path to this controller.
     :rtype: list'''
     return path_to(cls)
   
@@ -260,8 +364,10 @@ class Controller(object):
       methods = {}
       for controller in controllers():
         leafs = controller.__dict__.values()
-        leafs.append(controller.__call__)
+        leafs.append(controller)
         for leaf in leafs:
+          if path_to(leaf) is None:
+            continue
           info = introspect.callable_info(leaf)
           
           params = {}
@@ -325,5 +431,10 @@ class Controller(object):
   
   
   def __repr__(self):
-    return '<Controller %s@%s>' % (self.__class__.__name__, '.'.join(['root'] + self.controller_path()))
+    uri = self.controller_uri()
+    if uri is None:
+      uri = '<None>'
+    else:
+      uri = '"%s"' % uri
+    return '<Controller %s %s>' % (self.__class__.__name__, uri)
   

@@ -3,10 +3,19 @@
 '''
 import sys, types
 
-def expose(slug=None, template=None, formats=None):
+def expose(slug=None, template=None, formats=None, delegates=False):
+  '''Explicitly expose a function, optionally configure how it is exposed.
+  '''
   def entangle(func):
     if slug is not None:
-      func.slug = unicode(slug)
+      # Slug might be the function if decorator called without ()
+      if isinstance(slug, basestring):
+        func.slug = unicode(slug)
+      elif isinstance(slug, unicode):
+        func.slug = slug
+    
+    if delegates is not None:
+      func.delegates = bool(delegates)
     
     if template is not None:
       func.template = unicode(template)

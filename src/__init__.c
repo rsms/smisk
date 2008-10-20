@@ -69,6 +69,8 @@ PyDoc_STRVAR(smisk_bind_DOC,
   ":type  backlog: int\n"
   ":raises smisk.IOError: If already bound.\n"
   ":raises IOError: If socket creation fails.\n"
+  ":see: `unbind()`\n"
+  ":see: `listening()`\n"
   ":rtype: None");
 PyObject *smisk_bind(PyObject *self, PyObject *args) {
   log_trace("ENTER");
@@ -128,6 +130,8 @@ PyDoc_STRVAR(smisk_unbind_DOC,
   "If not bound, calling this function has no effect.\n"
   "\n"
   ":raises IOError: On failure.\n"
+  ":see: `bind()`\n"
+  ":see: `listening()`\n"
   ":rtype: None");
 PyObject *smisk_unbind(PyObject *self) {
   log_trace("ENTER");
@@ -152,6 +156,8 @@ PyDoc_STRVAR(smisk_listening_DOC,
   "\n"
   ":raises smisk.IOError: On failure.\n"
   ":returns: Bound path/address or None if not bound.\n"
+  ":see: `bind()`\n"
+  ":see: `unbind()`\n"
   ":rtype: string");
 PyObject *smisk_listening(PyObject *self, PyObject *args) {
   log_trace("ENTER");
@@ -191,19 +197,18 @@ PyObject *smisk_listening(PyObject *self, PyObject *args) {
 PyDoc_STRVAR(smisk_uid_DOC,
   "Generate a universal Unique Identifier.\n"
   "\n"
-  "Note: This is _not_ a UUID (ISO/IEC 11578:1996) implementation. However it "
+  "Note: This is *not* a UUID (ISO/IEC 11578:1996) implementation. However it "
     "uses an algorithm very similar to UUID v5 (RFC 4122). Most notably, the "
     "format of the output is more compact than that of UUID v5.\n"
+  "\n"
+  "See documentation of `pack()` for an overview of ``nbits``.\n"
   "\n"
   "The UID is calculated like this:\n"
   "\n"
   ".. python::\n"
-   "\n"
    "  sha1 ( time.secs, time.usecs, pid, random[, node] )\n"
   "\n"
-  "nbits/length of returned string/characters used for encoding: ``0/20/\"0x00-0xff\", 4/40/\"0-9a-f\", 5/32/\"0-9a-v\", 6/27/\"0-9a-zA-Z,-\"``.\n"
-  "\n"
-  ":See: pack\n"
+  ":See: `pack()`\n"
   ":param nbits: Number of bits to pack into each byte when creating "
     "the string representation. A value in the range 4-6 or 0 in which "
     "case 20 raw bytes are returned. Defaults is 5.\n"
@@ -257,13 +262,24 @@ PyObject *smisk_uid(PyObject *self, PyObject *args) {
 PyDoc_STRVAR(smisk_pack_DOC,
   "Pack arbitrary bytes into a printable ASCII string.\n"
   "\n"
-  "nbits/characters used for encoding: ``4/\"0-9a-f\" (base 16), 5/\"0-9a-v\" (base 32), 6/\"0-9a-zA-Z,-\" (base 64)``.\n"
+  "Overview of ``nbits``\n"
+  "~~~~~~~~~~~~~~~~~~~~~\n"
+  "\n"
+   "0 bits, No packing:\n"
+   "  20 bytes ``\"0x00-0xff\"``\n"
+   "4 bits, Base 16:\n"
+   "  40 bytes ``\"0-9a-f\"``\n"
+   "5 bits, Base 32:\n"
+   "  32 bytes ``\"0-9a-v\"``\n"
+   "6 bits, Base 64:\n"
+   "  27 bytes ``\"0-9a-zA-Z,-\"``\n"
   "\n"
   ":param data:\n"
   ":type  data:  string\n"
   ":param nbits: Number of bits to pack into each byte when creating "
     "the string representation. A value in the range 4-6. Default is 5.\n"
   ":type  nbits: int\n"
+  ":see: `uid()`\n"
   ":rtype: string");
 PyObject *smisk_pack(PyObject *self, PyObject *args) {
   log_trace("ENTER");
@@ -309,6 +325,8 @@ static PyMethodDef module_methods[] = {
 PyDoc_STRVAR(smisk_module_DOC,
   "Smisk core library\n"
   "\n"
+  ":var __build__: Build identifier in URN form, distinguishing each unique build.\n"
+  ":type __build__: string\n"
   ":requires: `libfcgi <http://www.fastcgi.com/>`__");
 
 PyMODINIT_FUNC initcore(void) {

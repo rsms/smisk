@@ -107,3 +107,4 @@ for k in charsets:
     codecs.lookup(k)
   except LookupError:
     del charsets[k]
+del k

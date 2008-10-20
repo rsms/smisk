@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
+'''Swedish
 '''
-Swedish
-
-:Author: Rasmus Andersson
-'''
-__docformat__ = 'restructuredtext en'
-__revision__ = '$Revision: 0 $'.split(' ')[1]
 
 import re
 from smisk.inflection import Inflector

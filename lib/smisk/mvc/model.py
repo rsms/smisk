@@ -10,8 +10,9 @@ from warnings import filterwarnings
 filterwarnings('ignore', 'Using String type with no length for CREATE TABLE',
                SADeprecationWarning)
 
-# Import Elixir
+# Import Elixir & SQLAlchemy
 from elixir import *
+from sqlalchemy import func
 
 # Disable autosetup by recommendation from Jason R. Coombs:
 # http://groups.google.com/group/sqlelixir/msg/ed698d986bfeefdb

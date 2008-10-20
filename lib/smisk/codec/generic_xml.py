@@ -3,15 +3,10 @@
 XML serialization
 '''
 import re, logging
-from smisk.codec import codecs, BaseCodec
+from smisk.codec import codecs, BaseCodec, EncodingError
 from smisk.core.xml import escape as xml_escape
 
 log = logging.getLogger(__name__)
-
-class EncodeError(Exception):
-  '''Indicates an encoding error'''
-  pass
-
 
 def start_rsp(charset):
   return [u'<?xml version="1.0" encoding="%s" ?>' % charset, u'<rsp>']
@@ -47,7 +42,7 @@ def encode_value(v, buf, level):
     encode_map(v, buf, level+1)
     buf.append(u'%s</dict>' % indent)
   else:
-    raise EncodeError(u'Unserializeable type %s' % type(v))
+    raise EncodingError(u'Unserializeable type %s' % type(v))
 
 def encode_map(d, buf, level=1):
   indent = '  '*level

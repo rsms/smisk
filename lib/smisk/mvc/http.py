@@ -1,7 +1,7 @@
 # encoding: utf-8
 '''HTTP support (status codes, etc)
 '''
-from smisk.util import normalize_url, strip_filename_extension
+from smisk.util import normalize_url, strip_filename_extension, Singleton
 from smisk.core import URL
 from smisk.core.xml import escape as xmlesc
 
@@ -21,7 +21,7 @@ class HTTPExc(Exception):
     return '%s %s %s' % (self.status, self.args, self.kwargs)
   
 
-class Status(object):
+class Status(Singleton):
   def __init__(self, code, name, has_body=True, uses_template=True):
     self.code = code
     self.name = name

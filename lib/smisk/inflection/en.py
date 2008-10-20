@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
+'''English
 '''
-English
-'''
-if __name__ == '__main__': print "Can't be run directly"
-__docformat__ = 'restructuredtext en'
-__revision__ = '$Revision: 0$'.split(' ')[1][:-1]
-
 import re
 from smisk.inflection import Inflector
 
@@ -63,5 +58,5 @@ inflection.irregular(u'child', u'children')
 inflection.irregular(u'sex', u'sexes')
 inflection.irregular(u'move', u'moves')
 
-inflection.uncountable(u'equipmentu',u'informationu',u'riceu',u'moneyu',u'speciesu',u'seriesu',
-u'fishu',u'sheepu',u'commotionu')
+inflection.uncountable(u'equipment',u'information',u'rice',u'money',u'species',u'series',
+u'fish',u'sheep',u'commotion')

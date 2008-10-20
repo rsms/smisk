@@ -3,15 +3,16 @@
 '''URL-to-function routing.
 '''
 import sys, re, logging
+import http, control
 from types import *
 from smisk.core import URL
-from smisk.util import None2, tokenize_path, wrap_exc_in_callable, introspect, Undefined
-import http, control
+from smisk.util import None2, RegexType, Undefined,\
+  tokenize_path, wrap_exc_in_callable, introspect
 
 log = logging.getLogger(__name__)
 
 def _prep_path(path):
-  return path.rstrip('/').lower()
+  return unicode(path).rstrip(u'/').lower()
 
 def _node_name(node, fallback):
   n = getattr(node, 'slug', None)
@@ -28,7 +29,7 @@ class Destination(object):
   '''
   
   def __init__(self, action):
-    self.action = introspect.ensure_va_kwa(action)
+    self.action = action
     self.formats = None
     try:
       self.formats = self.action.formats
@@ -99,13 +100,53 @@ class Destination(object):
   
 
 class Filter(object):
-  def __init__(self, pattern, destination_path, match_on_full_url=False, **params):
-    self.pattern = pattern
+  def __init__(self, pattern, destination_path, regexp_flags=re.I, match_on_full_url=False, params={}):
+    '''Create a new filter.
+    
+    :param pattern:           Pattern
+    :type  pattern:           string or re.Regex
+    
+    :param destination_path:  Path to action, expressed in internal canonical form.
+                              i.e. "/controller/action".
+    :type  destination_path:  string
+    
+    :param regexp_flags:      Defaults to ``re.I`` (case-insensitive)
+    :type  regexp_flags:      int
+    
+    :param match_on_full_url: Where there or not to perform matches on complete
+                              URL (i.e. "https://foo.tld/bar?question=2").
+                              Defauts to False (i.e.matches on path only. "/bar")
+    :type  match_on_full_url: bool
+    
+    :param params:            Parameters are saved and later included in every call to
+                              actions taking this route.
+    :type  params:            dict
+    '''
+    if not isinstance(regexp_flags, int):
+      regexp_flags = 0
+    
+    if isinstance(pattern, RegexType):
+      self.pattern = pattern
+    elif not isinstance(pattern, basestring):
+      raise ValueError('first argument "pattern" must be a Regex object or a string, not %s'\
+        % type(pattern).__name__)
+    else:
+      self.pattern = re.compile(pattern, regexp_flags)
+    
+    if not isinstance(destination_path, basestring):
+      raise ValueError('second argument "destination_path" must be a string, not %s'\
+        % type(destination_path).__name__)
+    
     self.destination_path = _prep_path(destination_path)
     self.match_on_full_url = match_on_full_url
     self.params = params
   
   def match(self, url):
+    '''Test this filter against `url`.
+    
+    :returns: (list args, dict params) or None if no match
+    :rtype: tuple
+    '''
     if self.match_on_full_url:
       m = self.pattern.match(url)
     else:
@@ -167,28 +208,31 @@ class Router(object):
     self.cache = {}
     self.filters = []
   
-  def filter(self, regexp, destination_path, regexp_flags=re.I, match_on_full_url=False, **params):
-    '''Explicitly map an action to paths or urls matching regular expression `regexp`.
+  def filter(self, pattern, destination_path, regexp_flags=re.I, match_on_full_url=False, params={}):
+    '''Explicitly map an action to paths or urls matching regular expression `pattern`.
     
-    Excessive keyword arguments are saved and later included in every call to
-    action taking this route.
+    :param pattern:           Pattern
+    :type  pattern:           string or re.Regex
     
-    :param regexp:            Pattern
-    :type  regexp:            re.RegExp
     :param destination_path:  Path to action, expressed in internal canonical form.
                               i.e. "/controller/action".
     :type  destination_path:  string
+    
     :param regexp_flags:      Defaults to ``re.I`` (case-insensitive)
     :type  regexp_flags:      int
+    
     :param match_on_full_url: Where there or not to perform matches on complete
                               URL (i.e. "https://foo.tld/bar?question=2").
                               Defauts to False (i.e.matches on path only. "/bar")
     :type  match_on_full_url: bool
-    :rtype: None'''
-    if not isinstance(regexp_flags, int):
-      regexp_flags = 0
-    pattern = re.compile(regexp, regexp_flags)
-    filter = Filter(pattern, destination_path, match_on_full_url, **params)
+    
+    :param params:            Parameters are saved and later included in every call to
+                              actions taking this route.
+    :type  params:            dict
+    
+    :rtype: Filter
+    '''
+    filter = Filter(pattern, destination_path, regexp_flags, match_on_full_url, **params)
     self.filters.append(filter)
     return filter
   
@@ -217,7 +261,9 @@ class Router(object):
     try:
       return self.cache[raw_path]
     except KeyError:
-      dest = Destination(self._resolve(raw_path))
+      dest = introspect.ensure_va_kwa(self._resolve(raw_path))
+      if dest is not None:
+        dest = Destination(dest)
       self.cache[raw_path] = dest
       return dest
   
@@ -227,6 +273,7 @@ class Router(object):
     # Tokenize path
     path = tokenize_path(raw_path)
     node = control.root_controller()
+    cls = node
     
     # Check root
     if node is None:
@@ -246,15 +293,15 @@ class Router(object):
       found = None
       
       # 1. Search subclasses first
-      for cls in node.__subclasses__():
-        if _node_name(cls, cls.controller_name()) == part:
-          if getattr(cls, 'hidden', False):
+      for subclass in node.__subclasses__():
+        if _node_name(subclass, subclass.controller_name()) == part:
+          if getattr(subclass, 'hidden', False):
             continue
-          found = cls
+          found = subclass
           break
       if found is not None:
         node = found
-        #print '>> matched %s to class %s' % (part, node)
+        cls = node
         continue
       
       # 2. Search methods
@@ -263,33 +310,42 @@ class Router(object):
         node = node()
       for k,v in node.__dict__.items():
         if _node_name(v, k.lower()) == part:
+          # If the leaf is hidden, we skip it
           if getattr(v, 'hidden', False):
             continue
-          found = v
+          # If the leaf is not defined directly on parent node node, and
+          # node.delegate evaluates to False, we bail out
+          if not control.leaf_is_visible(v, cls):
+            node = None
+          else:
+            found = v
           break
+      
+      # Check found node
       if found is not None:
         node = found
         node_type = type(node)
         if node_type is MethodType or node_type is FunctionType:
-          #print '>> matched function/method -- LEAF'
           break
         # else we continue...
       else:
         # Not found
-        return wrap_exc_in_callable(http.MethodNotFound('/'.join(path)))
+        return wrap_exc_in_callable(http.MethodNotFound(raw_path))
     
     # Did we hit a class/type at the end? If so, get its instance.
     if type(node) is type:
-      #print '>> hit type %s at end -- converting' % node
       try:
-        node = node().__call__
+        cls = node
+        node = cls().__call__
+        if not control.leaf_is_visible(node, cls):
+          node = None
       except AttributeError:
         # Uncallable leaf
         node = None
     
     # Not callable?
     if node is None or not callable(node):
-      return wrap_exc_in_callable(http.MethodNotFound('/'.join(path)))
+      return wrap_exc_in_callable(http.MethodNotFound(raw_path))
     
     log.debug('Found destination: %s', node)
     return node

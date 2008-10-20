@@ -113,6 +113,43 @@ def rm_dir(path):
     remove_tree(path)
     log.info('removed directory %s', path)
 
+_core_build_id = None
+def core_build_id():
+  '''Unique id in URN form, distinguishing each unique build.
+  
+  If building from a repository checkout, the resulting string
+  will have the format "urn:rcsid:IDENTIFIER[+DIRTY]". If building
+  from source which is not under revision control, the build id 
+  will have the format "urn:utc:YYYYMMDDHHMMSS". (UTC timestamp)
+  
+  Dirty repositories generate a urn:rcsid with a trailing "+"
+  followed by a base 16 encoded timestamp.
+  
+  A "unique build" is defined as the sum of all source code bytes
+  combined. A single modification anywhere causes a new unique
+  instance to be "born".
+  
+  :return: URN
+  :rtype: string
+  '''
+  global _core_build_id
+  if _core_build_id is None:
+    try:
+      # Maybe under revision control
+      _core_build_id = Popen(['hg id --id'], shell=True, cwd=BASE_DIR, 
+        stdout=PIPE, stderr=PIPE).communicate()[0].strip()
+      if _core_build_id:
+        dirty_extra = ''
+        if _core_build_id[-1] == '+':
+          dirty_extra = '%x' % int(time.time())
+        _core_build_id = 'urn:rcsid:%s%s' % (_core_build_id, dirty_extra)
+    except OSError:
+      pass
+    if not _core_build_id:
+      # Not under revision control
+      _core_build_id = time.strftime('urn:utc:%Y%m%d%H%M%S', time.gmtime())
+  return _core_build_id
+
 # -----------------------------------------
 # Commands
 
@@ -155,13 +192,9 @@ class build_ext(_build_ext):
   def finalize_options(self):
     _build_ext.finalize_options(self)
     self.libraries.append('fcgi')
-    bid = tag
-    if bid:
-      bid += '-'
-    bid += time.strftime('%y%m%d%H%M%S', time.gmtime())
     self.define = [
       ('SMISK_VERSION', '"%s"' % version),
-      ('SMISK_BUILD_ID', '"%s"' % bid),
+      ('SMISK_BUILD_ID', '"%s"' % core_build_id()),
     ]
     self.undef = []
   

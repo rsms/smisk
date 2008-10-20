@@ -17,8 +17,10 @@ class codec(BaseCodec):
   Python Pickle codec
   
   Example client for interacting with a smisk service:
-  >>> import pickle, urllib
-  >>> print pickle.load(urllib.urlopen("http://localhost:8080/.pickle?hello=123"))
+  
+  .. python::
+    >>> import pickle, urllib
+    >>> print pickle.load(urllib.urlopen("http://localhost:8080/.pickle?hello=123"))
   '''
   name = 'Python Pickle'
   extensions = ('pickle',)

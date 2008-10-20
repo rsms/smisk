@@ -41,7 +41,6 @@ def main(appdir=None,
   if appdir is None:
     appdir = os.path.dirname(sys.modules['__main__'].__file__)
   appname = os.path.basename(appdir)
-  export_locals = {}
   
   # Load application
   if control.root_controller() is None:
@@ -50,7 +49,10 @@ def main(appdir=None,
       sys.path = [os.path.dirname(appdir)]
       m = __import__(appname, globals(), {}, ['*'])
       for k in dir(m):
-        export_locals[k] = getattr(m, k)
+        try:
+          setattr(__builtin__, k, getattr(m, k))
+        except:
+          pass
     except ImportError, e:
       raise EnvironmentError('Unable to automatically load application. Try to load it '\
         'yourself or provide an absolute appdir with your call to console.main(): %s' % e)
@@ -116,16 +118,19 @@ Type help() for interactive help, or help(object) for help about object.
   
   # Export locals and globals
   for k,v in locals().iteritems():
-    export_locals[k] = v
+    setattr(__builtin__, k, v)
   for k,v in globals().iteritems():
-    export_locals[k] = v
+    setattr(__builtin__, k, v)
   
   __builtin__.help = _Helper()
   __builtin__.ls = _ls()
   
   histfile = os.path.expanduser(os.path.join('~', '.%s_console_history' % appname))
-  console = Console(locals=export_locals, histfile=histfile)
-  console.locals['console'] = console
+  console = Console(locals=locals(), histfile=histfile)
+  __builtin__.console = console
   import platform
   console.interact('Smisk interactive console. Python v%s' % platform.python_version())
 
+
+if __name__ == '__main__':
+  main()

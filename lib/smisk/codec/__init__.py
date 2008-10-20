@@ -81,6 +81,11 @@ codecs = CodecRegistry()
 :type: Codecs
 '''
 
+class EncodingError(Exception):
+  '''Indicates an encoding error'''
+  pass
+
+
 class BaseCodec(object):
   '''
   Abstract baseclass for codecs
@@ -216,5 +221,5 @@ class BaseCodec(object):
 
 # Load built-in codecs
 import os
-from smisk.util import load_modules_in_dir
-load_modules_in_dir(os.path.dirname(__file__))
+from smisk.util import load_modules
+load_modules(os.path.dirname(__file__))

@@ -662,6 +662,9 @@ class Application(smisk.core.Application):
     # Call the action which might generate a response object: rsp
     rsp = self.call_action(req_args, req_params)
     
+    # Flush model session
+    model.session.flush()
+    
     # Aquire template, if any
     if self.template is None and self.templates is not None:
       template_path = self.destination.template_path
