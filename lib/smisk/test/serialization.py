@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
-import unittest
+from smisk.test import *
 
-class SerializationTest(unittest.TestCase):
+class SerializationTest(TestCase):
   pass
 
 def suite():

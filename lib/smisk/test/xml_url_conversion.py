@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
-import unittest
-
+from smisk.test import *
 import smisk.core.xml as xml
 
-class XMLTests(unittest.TestCase):
+class XMLTests(TestCase):
   def setUp(self):
     pass
   
@@ -16,7 +15,7 @@ class XMLTests(unittest.TestCase):
 
 from smisk import URL
 
-class URLTests(unittest.TestCase):
+class URLTests(TestCase):
   def test_codec(self):
     raw = "http://abc.se:12/mos/jäger/grek land/hej.html?mos=japp&öland=nej#ge-mig/då";
     escaped = URL.escape(raw)
@@ -83,84 +82,10 @@ class URLTests(unittest.TestCase):
     assert u.fragment == ''
   
 
-from smisk.util import introspect, Undefined
-
-class IntrospectTests(unittest.TestCase):
-  def setUp(self):
-    class A(object):
-      def hello(self, one, two, three=None, four=123, five='internets'):
-        foo = 'oof'
-        bar = 'rab'
-        two = 14
-        for baz in foo:
-          pass
-        return locals()
-      def ping(self, filter=None, *argz, **kwargz):
-        pass
-    
-    self.A = A
-    self.expect_hello_info = {
-      'name': 'hello', 
-      'args': [
-        ('one', Undefined),
-        ('two', Undefined),
-        ('three', None),
-        ('four', 123),
-        ('five', 'internets')
-      ], 
-      'varargs': False,
-      'kwargs': False,
-      'locals': ('foo', 'bar', 'baz')
-    }
-  
-  def test_1_info(self):
-    a = self.A()
-    assert introspect.callable_info(a.hello) == self.expect_hello_info
-  
-  def test_2_ensure_va_kwa(self):
-    a = self.A()
-    try:
-      assert a.hello(1,2,3,4,5,*('extra va1','extra va2')) == 0,\
-        'should throw TypeError'
-    except TypeError:
-      pass
-    
-    a.hello = introspect.ensure_va_kwa(a.hello)
-    
-    expect_hello_info = self.expect_hello_info.copy()
-    expect_hello_info['varargs'] = True
-    expect_hello_info['kwargs'] = True
-    assert introspect.callable_info(a.hello) == expect_hello_info
-    
-    assert a.hello(1,2,3,4,5, *('va1','va2'), **{'kw1':1, 'kw2':2}) == {
-      'self': a,
-      'one': 1,
-      'two': 14,
-      'three': 3,
-      'four': 4,
-      'five': 5,
-      'foo':'oof',
-      'bar':'rab',
-      'baz':'f'
-    }
-    assert a.hello('ett', 'tva') == {
-      'self': a,
-      'one': 'ett',
-      'two': 14,
-      'three': None,
-      'four': 123,
-      'five': 'internets',
-      'foo':'oof',
-      'bar':'rab',
-      'baz':'f'
-    }
-  
-
 def suite():
   return unittest.TestSuite([
     unittest.makeSuite(URLTests),
     unittest.makeSuite(XMLTests),
-    unittest.makeSuite(IntrospectTests),
   ])
 
 def test():
