@@ -41,6 +41,7 @@ THE SOFTWARE.
 
 #include <fcgiapp.h>
 #include <fastcgi.h>
+#include <fcgios.h>
 
 // Set default listensock
 int smisk_listensock_fileno = FCGI_LISTENSOCK_FILENO;
@@ -66,7 +67,8 @@ PyDoc_STRVAR(smisk_bind_DOC,
   ":param backlog: The listen queue depth used in the ''listen()'' call. "
     "Set to negative or zero to let the system decide (recommended).\n"
   ":type  backlog: int\n"
-  ":raises smisk.IOError: On failure.\n"
+  ":raises smisk.IOError: If already bound.\n"
+  ":raises IOError: If socket creation fails.\n"
   ":rtype: None");
 PyObject *smisk_bind(PyObject *self, PyObject *args) {
   log_trace("ENTER");
@@ -87,6 +89,10 @@ PyObject *smisk_bind(PyObject *self, PyObject *args) {
   if (path == NULL || !PyString_Check(path)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
+  }
+  
+  if (smisk_listensock_fileno != FCGI_LISTENSOCK_FILENO) {
+    return PyErr_Format(smisk_IOError, "already bound");
   }
   
   // Did we get excplicit backlog size?
@@ -116,13 +122,36 @@ PyObject *smisk_bind(PyObject *self, PyObject *args) {
 }
 
 
+PyDoc_STRVAR(smisk_unbind_DOC,
+  "Unbind from a previous call to `bind()`.\n"
+  "\n"
+  "If not bound, calling this function has no effect.\n"
+  "\n"
+  ":raises IOError: On failure.\n"
+  ":rtype: None");
+PyObject *smisk_unbind(PyObject *self) {
+  log_trace("ENTER");
+  
+  if (smisk_listensock_fileno != FCGI_LISTENSOCK_FILENO) {
+    if (OS_IpcClose(smisk_listensock_fileno) != 0) {
+      log_debug("ERROR: OS_IpcClose(%d) failed. errno: %d",
+        smisk_listensock_fileno, errno);
+      return PyErr_SET_FROM_ERRNO;
+    }
+    smisk_listensock_fileno = FCGI_LISTENSOCK_FILENO;
+  }
+  
+  Py_RETURN_NONE;
+}
+
+
 PyDoc_STRVAR(smisk_listening_DOC,
   "Find out if this process is a \"remote\" process, bound to a socket "
-  "by means of calling bind(). If it is listening, this function returns "
-  "the address and port or the UNIX socket path. If not bound, this "
-  "function returns None.\n"
+  "by means of calling `bind()`. If it is listening, this function returns "
+  "the address and port or the UNIX socket path.\n"
   "\n"
   ":raises smisk.IOError: On failure.\n"
+  ":returns: Bound path/address or None if not bound.\n"
   ":rtype: string");
 PyObject *smisk_listening(PyObject *self, PyObject *args) {
   log_trace("ENTER");
@@ -269,10 +298,11 @@ PyObject *smisk_pack(PyObject *self, PyObject *args) {
 /* ------------------------------------------------------------------------- */
 
 static PyMethodDef module_methods[] = {
-  {"bind",      (PyCFunction)smisk_bind,       METH_VARARGS, smisk_bind_DOC},
-  {"listening", (PyCFunction)smisk_listening,  METH_NOARGS,  smisk_listening_DOC},
-  {"uid",       (PyCFunction)smisk_uid,        METH_VARARGS, smisk_uid_DOC},
-  {"pack",      (PyCFunction)smisk_pack,       METH_VARARGS, smisk_pack_DOC},
+  {"bind",      (PyCFunction)smisk_bind,      METH_VARARGS, smisk_bind_DOC},
+  {"unbind",    (PyCFunction)smisk_unbind,    METH_NOARGS,  smisk_unbind_DOC},
+  {"listening", (PyCFunction)smisk_listening, METH_NOARGS,  smisk_listening_DOC},
+  {"uid",       (PyCFunction)smisk_uid,       METH_VARARGS, smisk_uid_DOC},
+  {"pack",      (PyCFunction)smisk_pack,      METH_VARARGS, smisk_pack_DOC},
   {NULL, NULL, 0, NULL}
 };
 
