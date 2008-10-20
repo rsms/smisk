@@ -997,6 +997,11 @@ def wrap_call(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs):
       f = open(os.path.join(log_dir, 'error.log'), 'a')
       try:
         from traceback import print_exc
+        from datetime import datetime
+        f.write(datetime.now().isoformat())
+        f.write(" [")
+        f.write(os.getpid())
+        f.write("] ")
         print_exc(1000, f)
       finally:
         f.close()

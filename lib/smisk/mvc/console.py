@@ -70,9 +70,9 @@ def main(appdir=None,
   
   class _ls(object):
     def __call__(self, obj):
-      print introspect.format_members(obj)
+      print introspect.format_members(obj, colorize=True)
     def __repr__(self):
-      return introspect.format_members(globals())
+      return introspect.format_members(globals(), colorize=True)
     
   
   class _Helper(object):

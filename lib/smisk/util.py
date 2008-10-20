@@ -218,15 +218,38 @@ class introspect(object):
     return f.info
   
   @classmethod
-  def format_members(cls, o):
+  def format_members(cls, o, colorize=False):
     s = []
+    items = []
     longest_k = 0
+    types = {}
+    type_i = 0
+    color = 0
+    
     for k in dir(o):
+      v = getattr(o,k)
       if len(k) > longest_k:
         longest_k = len(k)
-    pat = '%%-%ds = %%s' % longest_k
-    for k in dir(o):
-      s.append(pat % (k, cls._repr.repr(getattr(o,k))))
+      if colorize:
+        t = str(type(v))
+        if t not in types:
+          types[t] = type_i
+          type_i += 1
+        color = 31 + (types[t] % 5)
+      items.append((k,v,color))
+    
+    if colorize:
+      pat = '\033[1;%%dm%%-%ds\033[m = \033[1;%%dm%%s\033[m' % longest_k
+    else:
+      pat = '%%-%ds = %%s' % longest_k
+    
+    for k,v,color in items:
+      v = cls._repr.repr(v)
+      if colorize:
+        s.append(pat % (color, k, color, v))
+      else:
+        s.append(pat % (k, v))
+    
     return '\n'.join(s)
   
   @classmethod
