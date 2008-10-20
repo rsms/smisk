@@ -897,7 +897,7 @@ def setup(app=None, appdir=None, *args, **kwargs):
 def run(bind=None, app=None):
   '''Helper for running an application.
   
-  Note that because of the nature of ``libfcgi`` an application can not be started, stopped and then started again. That said, you can only start your application once per process. (Details: OS_ShutdownPending sets a process-wide flag causing any call to *accept to bail out)
+  Note that because of the nature of ``libfcgi`` an application can not be started, stopped and then started again. That said, you can only start your application once per process. (Details: OS_ShutdownPending sets a process-wide flag causing any call to accept to bail out)
   
   Environment variables
   ---------------------
