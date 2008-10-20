@@ -19,12 +19,12 @@ def root_controller():
   
   :rtype: Controller'''
   global _root_controller
-  if _root_controller is False:
-    _root_controller = None
-    for c in Controller.__subclasses__():
-      if c.__name__.lower() == 'root':
-        _root_controller = c
-  return _root_controller
+  if _root_controller is not False:
+    return _root_controller
+  for c in Controller.__subclasses__():
+    if c.__name__.lower() == 'root':
+      _root_controller = c
+      return _root_controller
 
 
 def controllers():

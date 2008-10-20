@@ -2,6 +2,10 @@
 '''Miscellaneous utilities.
 '''
 import sys, os, time, threading, thread, logging, imp
+try:
+  import reprlib
+except ImportError:
+  import repr as reprlib
 from smisk.core import Application, URL
 
 None2 = (None, None)
@@ -45,8 +49,6 @@ class frozendict(dict):
   
   copy = dict.copy
   '''Returns a mutable copy.
-  
-  :rtype: dict
   '''
   
   def __hash__(self):
@@ -157,6 +159,11 @@ class introspect(object):
   VARARGS = 4
   KWARGS = 8
   
+  _repr = reprlib.Repr()
+  _repr.maxlong = 100
+  _repr.maxstring = 200
+  _repr.maxother = 200
+  
   @classmethod
   def callable_info(cls, f):
     '''Info about a callable.
@@ -217,9 +224,9 @@ class introspect(object):
     for k in dir(o):
       if len(k) > longest_k:
         longest_k = len(k)
-    pat = '%%-%ds = %%r' % longest_k
+    pat = '%%-%ds = %%s' % longest_k
     for k in dir(o):
-      s.append(pat % (k, getattr(o,k)))
+      s.append(pat % (k, cls._repr.repr(getattr(o,k))))
     return '\n'.join(s)
   
   @classmethod
@@ -269,6 +276,13 @@ class introspect(object):
       return va_kwa_wrapper
     return f
   
+
+
+repr2 = introspect._repr.repr
+'''Limited ``repr``, only printing up to 4-6 levels and 100 chars per entry.
+
+:type: repr.Repr
+'''
 
 
 def classmethods(cls):

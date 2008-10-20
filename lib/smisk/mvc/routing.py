@@ -119,6 +119,11 @@ class Filter(object):
       return list(m.groups()), params
     return None2
   
+  def __repr__(self):
+    return '<%s.%s(%r, %r) @0x%x>' %\
+      (self.__module__, self.__class__.__name__, \
+      self.pattern.pattern, self.destination_path, id(self))
+  
 
 
 class Router(object):

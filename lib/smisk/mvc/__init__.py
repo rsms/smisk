@@ -98,7 +98,7 @@ class Response(smisk.core.Response):
   fallback_codec = None
   '''Last-resort codec, used for error responses and etc.
   
-  If None when `application_will_start` is called, this will
+  If None when `Application.application_will_start` is called, this will
   be set to a HTML-codec, and if none is available, simply the first
   registered codec will be used.
   
@@ -204,10 +204,19 @@ class Application(smisk.core.Application):
                router=None,
                templates=None,
                show_traceback=False,
+               log_level=logging.WARN,
+               log_format='%(levelname)-8s %(name)-20s %(message)s',
                *args, **kwargs):
     self.request_class = Request
     self.response_class = Response
     super(Application, self).__init__(*args, **kwargs)
+    
+    # Basic config
+    logging.basicConfig(
+      level=log_level,
+      format = log_format,
+      datefmt = '%d %b %H:%M:%S'
+    )
     
     self.etag = etag
     self.autoreload = autoreload
@@ -222,6 +231,8 @@ class Application(smisk.core.Application):
       self.templates = Templates(app=self)
     else:
       self.templates = templates
+    
+    self._setup = False
   
   
   def autoload_configuration(self, config_mod_name='config'):
@@ -229,7 +240,7 @@ class Application(smisk.core.Application):
     path = os.path.join(os.environ['SMISK_APP_DIR'], config_mod_name)
     locs = {'app': self}
     if not os.path.exists(path):
-      log.info('No configuration found -- no %s module in application.', config_mod_name)
+      log.info('No configuration found -- no %s module in %s.', config_mod_name, path)
       return
     if os.path.isdir(path):
       execfile(os.path.join(path, '__init__.py'), globals(), locs)
@@ -243,54 +254,20 @@ class Application(smisk.core.Application):
         log.debug('No configuration found for active environment (%s) -- '\
                   'no %s.%s module in application.', environment(), 
                   config_mod_name, environment())
-    return
-    
-    locs = {'app': self}
-    try:
-      __import__(config_mod_name, globals(), locs)
-      log.info('Loaded application-wide configuration from module %r', config_mod_name)
-      environment_mod_name = '%s.%s' % (config_mod_name, environment())
-      try:
-        __import__(environment_mod_name, globals(), locs)
-        log.info('Loaded application configuration for %s environment from module %r', 
-                 environment(), environment_mod_name)
-      except ImportError:
-        log.debug('No configuration found for active environment (%r). '\
-                 'No module %r in your application.', environment(), environment_mod_name)
-    except ImportError:
-      log.info('No configuration found. No module %r in your application.', config_mod_name)
   
   
-  def application_will_start(self):
-    # Make sure the router has a reference to to app
-    self.routes.app = self
+  def setup(self):
+    '''Setup application.
     
-    # Basic config
-    logging.basicConfig(
-      level=logging.WARN,
-      format = '%(levelname)-8s %(name)-20s %(message)s',
-      datefmt = '%d %b %H:%M:%S'
-    )
+    Can be called multiple times.
+    Automatically called by `application_will_start()`.
     
+    :rtype: None
+    '''
     # Setup ETag
     if self.etag is not None and isinstance(self.etag, basestring):
       import hashlib
       self.etag = getattr(hashlib, self.etag)
-    
-    # Initialize modules which need access to app, request and response
-    modules = find_modules_for_classtree(control.Controller)
-    modules.extend(find_modules_for_classtree(Entity))
-    for m in modules:
-      log.debug('Initializing app module %s', m.__name__)
-      m.app = self
-      m.request = self.request
-      m.response = self.response
-    
-    # Set references in this module to live instances
-    global application, request, response
-    application = self
-    request = self.request
-    response = self.response
     
     # Check templates config
     if self.templates:
@@ -310,11 +287,32 @@ class Application(smisk.core.Application):
     model.setup_all()
     
     # Info about codecs
-    if log.level <= logging.DEBUG:
+    if not self._setup and log.level <= logging.DEBUG:
       log.debug('installed codecs: %s', ', '.join(unique_sorted_modules_of_items(codecs)) )
       log.debug('acceptable media types: %s', ', '.join(codecs.media_types.keys()))
       log.debug('available filename extensions: %s', ', '.join(codecs.extensions.keys()))
       log.debug('Template directories: %s', ', '.join(self.templates.directories))
+    
+    self._setup = True
+  
+  
+  def application_will_start(self):
+    self.setup()
+    
+    # Initialize modules which need access to app, request and response
+    modules = find_modules_for_classtree(control.Controller)
+    modules.extend(find_modules_for_classtree(Entity))
+    for m in modules:
+      log.debug('Initializing app module %s', m.__name__)
+      m.app = self
+      m.request = self.request
+      m.response = self.response
+    
+    # Set references in this module to live instances
+    global application, request, response
+    application = self
+    request = self.request
+    response = self.response
     
     # When we return, accept() in smisk.core is called
     log.info('Accepting connections')
@@ -322,6 +320,7 @@ class Application(smisk.core.Application):
   
   def application_did_stop(self):
     model.cleanup_all()
+    smisk.core.unbind()
   
   
   def response_codec(self, no_http_exc=False):
@@ -810,6 +809,7 @@ class Application(smisk.core.Application):
     super(Application, self).error(typ, val, tb)
   
 
+_is_set_up = False
 
 def setup(app=None, appdir=None, *args, **kwargs):
   '''Helper for running an application.
@@ -840,10 +840,6 @@ def setup(app=None, appdir=None, *args, **kwargs):
     `appdir` argument is not None. In the case `appdir` is None, the value 
     is calculated like this: ``dirname(<__main__ module>.__file__)``.
   
-  SMISK_BIND
-    If set and not empty, a call to ``smisk.core.bind`` will occur, passing
-    the value to bind.
-  
   SMISK_ENVIRONMENT
     Name of the current environment. If not set, this will be set to the 
     default value returned by 'environment()'.
@@ -852,7 +848,14 @@ def setup(app=None, appdir=None, *args, **kwargs):
   :type  app:     Application
   :param appdir:  Path to the applications base directory.
   :type  appdir:  string
-  :rtype: None'''
+  :rtype: None
+  :see: `run()`
+  :see: `main()`
+  '''
+  global _is_set_up
+  if _is_set_up:
+    return Application.current
+  _is_set_up = True
   
   # Make sure SMISK_APP_DIR is set correctly
   if 'SMISK_APP_DIR' not in os.environ:
@@ -885,10 +888,44 @@ def setup(app=None, appdir=None, *args, **kwargs):
   # Load config
   app.autoload_configuration()
   
+  # Setup
+  app.setup()
+  
+  return app
+
+
+def run(bind=None, app=None):
+  '''Helper for running an application.
+  
+  Note that because of the nature of ``libfcgi`` an application can not be started, stopped and then started again. That said, you can only start your application once per process. (Details: OS_ShutdownPending sets a process-wide flag causing any call to *accept to bail out)
+  
+  Environment variables
+  ---------------------
+  
+  SMISK_BIND
+    If set and not empty, a call to ``smisk.core.bind`` will occur, passing
+    the value to bind.
+  
+  :param  bind:  Bind to address (and port). Note that this overrides SMISK_BIND.
+  :type   bind:  string
+  :param  app:   Uses Application.current is not set or None.
+  :type   app:   Application
+  :rtype: None
+  :see: `setup()`
+  :see: `main()`
+  '''
+  # Aquire app
+  if app is None:
+    app = Application.current
+  if app is None:
+    raise ValueError('No application has been set up. Run setup() before calling run()')
+  
   # Bind
+  if bind is not None:
+    os.environ['SMISK_BIND'] = bind
   if 'SMISK_BIND' in os.environ:
     smisk.bind(os.environ['SMISK_BIND'])
-    log.info('Listening on %s', os.environ['SMISK_BIND'])
+    log.info('Listening on %s', smisk.listening())
   
   # Enable auto-reloading
   if app.autoreload:
@@ -896,19 +933,11 @@ def setup(app=None, appdir=None, *args, **kwargs):
     ar = Autoreloader()
     ar.start()
   
-  return app
-
-
-def run(app):
-  '''Helper for running an application.
-  
-  :param app:
-  :type  app: Application
-  '''
+  # Call app.run()
   return wrap_call(app.run)
 
 
-def main(app=None, *args, **kwargs):
+def main(app=None, bind=None, *args, **kwargs):
   '''Helper for setting up and running an application.
   
   First calls `setup()` to set up the application, then calls `run()`.
@@ -917,7 +946,7 @@ def main(app=None, *args, **kwargs):
   :type  app:     Application
   :rtype: None'''
   app = wrap_call(setup, app=app, *args, **kwargs)
-  run(app)
+  run(bind=bind, app=app)
 
 
 def wrap_call(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs):
