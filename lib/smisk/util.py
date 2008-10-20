@@ -486,24 +486,6 @@ def find_modules_for_classtree(cls, exclude_root=True, unique=True):
   return modules
 
 
-def inspect(o, as_string=True):
-  '''Returns a dictionary or string of all members and their values in object `o`.
-  
-  :param o:         Object to inspect
-  :type  o:         object
-  :param as_string: Return a string formatted KEY=VALUE\\n...
-  :type  as_string: bool
-  :returns: string or dict
-  :rtype: object
-  '''
-  items = {}
-  for k in dir(o):
-    items[k] = eval('o.'+k)
-  if as_string:
-    return "\n".join(['%s=%r' % kv for kv in items.items()])
-  return items
-
-
 def list_unique_wild(seq):
   '''
   :param seq:
