@@ -295,6 +295,9 @@ class introspect(object):
     :returns: A callable which is guaranteed to accept both ``*args`` and ``**kwargs``.
     :rtype: callable
     '''
+    if f.__name__ == 'va_kwa_wrapper' and hasattr(f, 'wrapped_func'):
+      return f
+    
     info = cls.callable_info(f)
     
     if info is None:
