@@ -1,7 +1,12 @@
 Changes
 =======
 
-1.0.1 (**dev**)
+1.1.0 (**dev**)
+
+* MVC module
+* Better unicode support in core
+
+1.0.1
 
 * Full WSGI support – passes the wsgiref validation tests
 * Iterable request makes reading input data simple
