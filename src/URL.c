@@ -472,8 +472,8 @@ int smisk_URL_init(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   
   // Save reference to first argument (a string) and type check it
   str = PyTuple_GET_ITEM(args, 0);
-  if (!PyString_Check(str)) {
-    PyErr_SetString(PyExc_TypeError, "first argument must be a string");
+  if (!str || !PyString_Check(str)) {
+    PyErr_SetString(PyExc_TypeError, "first argument to URL() must be a string");
     Py_DECREF(self);
     return -1;
   }
@@ -498,7 +498,7 @@ void smisk_URL_dealloc(smisk_URL* self) {
   Py_DECREF(self->path);
   Py_DECREF(self->query);
   Py_DECREF(self->fragment);
-                            
+  
   self->ob_type->tp_free((PyObject*)self);
 }
 
