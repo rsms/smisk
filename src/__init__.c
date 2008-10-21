@@ -323,7 +323,9 @@ static PyMethodDef module_methods[] = {
 };
 
 PyDoc_STRVAR(smisk_module_DOC,
-  "Smisk core library\n"
+  "Smisk core library.\n"
+  "\n"
+  "This module is implemented in machine native code.\n"
   "\n"
   ":var __build__: Build identifier in URN form, distinguishing each unique build.\n"
   ":type __build__: string\n"
