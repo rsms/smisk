@@ -4,7 +4,6 @@ from smisk.test import *
 from smisk.mvc import *
 from smisk.mvc.routing import *
 from smisk.mvc.control import *
-from smisk.util import NamedObject
 import smisk.mvc.http as http
 
 from test_matter import *
@@ -76,6 +75,24 @@ class RoutingTests(TestCase):
     self.assertRoutes((
       ('/level2/level3/hidden_method_on_level3', http.NotFound),
     ))
+  
+  def test7_protected_on_Controller(self):
+    self.assertRoutes((
+      ('/controller_name', http.NotFound),
+      ('/controller_name', http.NotFound),
+      ('/controller_name', http.NotFound),
+    ))
+  
+  def test8_special_builtins(self):
+    # These should succeed
+    special_names = Controller.special_methods().keys()
+    not_found_tests = []
+    for name in special_names:
+      not_found_tests.append(('/level2/%s' % name, http.NotFound))
+      dest, args, params = self.router(URL('/%s' % name), [], {})
+      self.assertTrue(dest())
+    # These should fail
+    self.assertRoutes(not_found_tests)
   
   def assertRoutes(self, urls, router=None):
     if router is None:

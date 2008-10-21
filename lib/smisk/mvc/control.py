@@ -4,7 +4,8 @@
 import re, logging
 from types import *
 from smisk.inflection import inflection
-from smisk.util import tokenize_path, classmethods, introspect, Undefined
+from smisk.util import tokenize_path, classmethods, introspect, \
+                        Undefined, callable_cache_key
 from smisk.mvc.decorators import expose
 
 _root_controller = False
@@ -71,7 +72,7 @@ def uri_for(node):
   :type  node: callable
   :rtype: string
   '''
-  cache_key = _callable_cache_key(node)
+  cache_key = callable_cache_key(node)
   try:
     return _uri_for_cache[cache_key]
   except KeyError:
@@ -94,7 +95,7 @@ def path_to(node):
   :type  node: object
   :rtype: list'''
   global _path_to_cache
-  return _cached_path_to(_callable_cache_key(node), node, _path_to_cache, False)
+  return _cached_path_to(callable_cache_key(node), node, _path_to_cache, False)
 
 
 def template_for(node):
@@ -104,7 +105,7 @@ def template_for(node):
   :type  node: object
   :rtype: list'''
   global _template_for_cache
-  return _cached_path_to(_callable_cache_key(node), node, _template_for_cache, True)
+  return _cached_path_to(callable_cache_key(node), node, _template_for_cache, True)
 
 
 def method_origin(method):
@@ -171,16 +172,18 @@ def leaf_is_visible(node, cls=None):
   if cls is None:
     if not delegates:
       return False
-  elif not delegates and method_origin(node) != cls:
-    return False
+  elif not delegates:
+    origin = method_origin(node)
+    if origin is Controller \
+        and Controller.smisk_enable_specials \
+        and cls is root_controller() \
+        and node.__name__.startswith('smisk_'):
+      # the special methods on the root controller
+      return True
+    elif origin != cls:
+      return False
   return True
 
-
-def _callable_cache_key(node):
-  if isinstance(node, MethodType):
-    return hash(node)^hash(node.im_class)
-  else:
-    return node
 
 def _cached_path_to(cache_key, node, cache, resolve_template):
   try:
@@ -267,8 +270,8 @@ def _path_to(node, resolve_template):
     
     path = _path_to_class(node, path)
   
-  if path is not None:
-    assert None not in path
+  if path is not None and None in path:
+    return None
   
   return path
 
@@ -313,7 +316,34 @@ def _doc_intro(entity):
     s.append(ln)
   return u'\n'.join(s)
 
+
 class Controller(object):
+  '''The base controller from which the controller tree is grown.
+  
+  To grow a controller tree, you need to set a root first. This is done by defining a subclass of `Controller` with the special name 'root' (case-insensitive).
+  
+  Here is a very simple, but valid, controller tree:
+  
+  .. python::
+    class root(Controller):
+      def hello(self):
+        return {'message': 'Hello'}
+  
+  '''
+  
+  smisk_enable_specials = True
+  '''Enable exposure of the special ``smisk:``-methods.
+  
+  These special methods are defined in ``Controller`` prefixed ``smisk_``,
+  but actually exposed on the *root controller*.
+  
+  It is recommended to have this set to ``True``, as some clients might 
+  rely on the *reflection* provided by these special methods.
+  
+  :type: bool
+  :see: `special_methods()`
+  '''
+  
   def __new__(typ):
     if not '_instance' in typ.__dict__:
       o = object.__new__(typ)
@@ -350,8 +380,30 @@ class Controller(object):
     :rtype: string'''
     return uri_for(cls)
   
+  @classmethod
+  def special_methods(cls):
+    '''Returns a dictionary of available special methods, keyed by exposed name.
+    
+    :see: `smisk_enable_specials`
+    :rtype: list
+    '''
+    specials = {}
+    for k in dir(Controller):
+      if k.startswith('smisk_'):
+        v = getattr(Controller, k)
+        if isinstance(v, (MethodType, FunctionType)):
+          node_name = k
+          try:
+            slug = v.slug
+            if slug is not None:
+              node_name = unicode(slug)
+          except AttributeError:
+            pass
+          specials[node_name] = v
+    return specials
+  
   @expose('smisk:methods')
-  def _methods(self, filter=None, *args, **params):
+  def smisk_methods(self, filter=None, *args, **params):
     '''List available methods.
     
     :param filter: Only list methods which URI matches this regular expression.
@@ -366,6 +418,8 @@ class Controller(object):
         leafs = controller.__dict__.values()
         leafs.append(controller)
         for leaf in leafs:
+          if not isinstance(leaf, (MethodType, FunctionType, ClassType, TypeType)):
+            continue
           if path_to(leaf) is None:
             continue
           info = introspect.callable_info(leaf)
@@ -399,7 +453,7 @@ class Controller(object):
   
   
   @expose('smisk:charsets')
-  def _charsets(self, filter=None, *args, **params):
+  def smisk_charsets(self, filter=None, *args, **params):
     '''List available character sets.
     
     :param filter: Only list charsets matching this regular expression.
@@ -411,7 +465,7 @@ class Controller(object):
   
   
   @expose('smisk:codecs')
-  def _codecs(self, filter=None, *args, **params):
+  def smisk_codecs(self, filter=None, *args, **params):
     '''List available content codecs.
     
     :param filter: Only list codecs which name matches this regular expression.

@@ -207,9 +207,9 @@ class Application(smisk.core.Application):
                log_level=logging.WARN,
                log_format='%(levelname)-8s %(name)-20s %(message)s',
                *args, **kwargs):
+    super(Application, self).__init__(*args, **kwargs)
     self.request_class = Request
     self.response_class = Response
-    super(Application, self).__init__(*args, **kwargs)
     
     # Basic config
     logging.basicConfig(
@@ -725,6 +725,8 @@ class Application(smisk.core.Application):
   def error(self, typ, val, tb):
     try:
       status = getattr(val, 'status', http.InternalServerError)
+      if not isinstance(status, http.Status):
+        status = http.InternalServerError
       params = {}
       rsp = None
       

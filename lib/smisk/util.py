@@ -36,13 +36,6 @@ Undefined = NamedObject('Undefined')
 '''Indicates an undefined value.
 '''
 
-class Singleton(object):
-  def __new__(typ, *args, **kwargs):
-    if not '_instance' in typ.__dict__:
-      typ._instance = object.__new__(typ, *args, **kwargs)
-    return typ._instance
-  
-
 
 class frozendict(dict):
   '''Immutable dictionary.
@@ -201,10 +194,18 @@ class introspect(object):
       except AttributeError:
         pass
     
+    cache_key = callable_cache_key(f)
+    
     try:
-      return cls._info_cache[f]
+      return cls._info_cache[cache_key]
     except KeyError:
       pass
+    
+    if not isinstance(f, (MethodType, FunctionType)):
+      try:
+        f = f.__call__
+      except AttributeError:
+        return None
     
     args, varargs, varkw, defaults = inspect.getargspec(f)
     method = False
@@ -236,7 +237,7 @@ class introspect(object):
       'method':method
     })
     
-    cls._info_cache[f] = info
+    cls._info_cache[cache_key] = info
     return info
   
   
@@ -338,6 +339,17 @@ repr2 = introspect._repr.repr
 
 :type: repr.Repr
 '''
+
+
+def callable_cache_key(node):
+  '''Calculate key unique enought to be used for caching callables.
+  '''
+  if not isinstance(node, (MethodType, FunctionType)):
+    return hash(node.__call__)^hash(node)
+  elif isinstance(node, MethodType):
+    return hash(node)^hash(node.im_class)
+  return node
+
 
 
 def classmethods(cls):
