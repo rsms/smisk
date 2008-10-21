@@ -125,9 +125,11 @@ PyDoc_STRVAR(smisk_xml_escape_DOC,
   "\"Your's &#x26; not mine &#x3C;says&#x3E; &#x22;you&#x22;\"\n"
   ">>> \n"
   "\n"
-  ":param s: Raw string to be encoded\n"
+  ":param s: Raw string to be encoded. Supports both ``unicode`` and byte strings.\n"
   ":type  s: string\n"
-  ":rtype: string");
+  ":returns: The escaped string. If ``s`` was a ``unicode`` string, the returned "
+    "type is ``unicode``, otherwise ``str``.\n"
+  ":rtype: basestring");
 PyObject *smisk_xml_escape_py(PyObject *self, PyObject *_pys) {
   size_t len, nlen;
   PyObject *npys, *pys;
@@ -193,7 +195,7 @@ static PyMethodDef methods[] = {
 };
 
 PyDoc_STRVAR(smisk_xml_DOC,
-  "XML-related utilities");
+  "XML functions.");
 
 PyObject *smisk_xml_register (PyObject *parent) {
   log_trace("ENTER");

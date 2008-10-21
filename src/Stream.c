@@ -510,7 +510,10 @@ PyObject *smisk_Stream___iternext__(smisk_Stream *self) {
 #pragma mark Type construction
 
 PyDoc_STRVAR(smisk_Stream_DOC,
-  "FastCGI input/output stream");
+  "A file-like input/output stream.\n"
+  "\n"
+  "Due to the nature of the underlying libfcgi, this stream is buffered "
+  "(normally using a buffer size of " QUOTE(SMISK_STREAM_READLINE_LENGTH) " bytes).");
 
 // Methods
 static PyMethodDef smisk_Stream_methods[] = {

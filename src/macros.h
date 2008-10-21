@@ -57,6 +57,11 @@ typedef uint8_t byte;
 // Module identifier, used in logging
 #define MOD_IDENT "smisk.core"
 
+// Converting MY_MACRO to "<value of MY_MACRO>".
+// i.e. QUOTE(PY_MAJOR_VERSION) -> "2"
+#define _QUOTE(x) #x
+#define QUOTE(x) _QUOTE(x)
+
 // Replace a PyObject while counting references
 #define REPLACE_OBJ(destination, new_value, type) \
   do { \

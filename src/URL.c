@@ -612,9 +612,9 @@ PyDoc_STRVAR(smisk_URL_decompose_query_DOC,
   ":type   str: string\n"
   ":rtype: string\n"
   ":raises TypeError: if str is not a string\n"
-  ":see:   smisk.core.Request.get\n"
-  ":see:   smisk.core.Request.post");
-PyObject *smisk_URL_decompose_query(PyObject *self, PyObject *str) {
+  ":see:   `Request.get`\n"
+  ":see:   `Request.post`");
+PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *str) {
   log_trace("ENTER");
   char *s;
   PyObject *d;

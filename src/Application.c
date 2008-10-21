@@ -420,7 +420,10 @@ PyObject *smisk_Application_service(smisk_Application *self, PyObject *args) {
 
 
 PyDoc_STRVAR(smisk_Application_error_DOC,
-  "Service a error message.\n"
+  "Handle an error and produce an appropriate response.\n"
+  "\n"
+  "The built-in implementation renders error information as XHTML encoded "
+    "in UTF-8 with the HTTP status code 500 (Internal Server Error).\n"
   "\n"
   "You might override this to display a custom error response, but it is "
     "recommended you use this implementation, or at least filter certain "
@@ -431,7 +434,7 @@ PyDoc_STRVAR(smisk_Application_error_DOC,
   ".. python::\n"
   " class MyApp(Application):\n"
   "   def error(self, typ, val, tb):\n"
-  "     if issubclass(MyExceptionType, typ):\n"
+  "     if isinstance(val, MyExceptionType):\n"
   "       self.nice_error_response(typ, val)\n"
   "     else:\n"
   "       Application.error(self, typ, val, tb)\n"
@@ -447,7 +450,7 @@ PyDoc_STRVAR(smisk_Application_error_DOC,
     "a somewhat detailed backtrace. You should disable `show_traceback` in "
     "production environments.\n"
   "\n"
-  ":see:  Response.has_begun\n"
+  ":see:  `Response.has_begun`\n"
   ":param typ: Exception type\n"
   ":type  typ: type\n"
   ":param val: Exception value\n"
@@ -559,7 +562,7 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
     EXTERN_OP(
       rc = FCGX_FPrintF(self->response->out->stream,
         "Status: 500 Internal Server Error\r\n"
-        "Content-Type: text/html\r\n"
+        "Content-Type: text/html; charset=utf-8\r\n"
         "Content-Length: %ld\r\n"
         "Cache-Control: no-cache\r\n"
          "\r\n"
@@ -764,8 +767,10 @@ static struct PyMemberDef smisk_Application_members[] = {
     ":type: int\n\n"
     "Number of child processes to fork off into.\n"
     "\n"
-    "This must be set before calling `run` as it is in `run` where the "
-    "forking is done. Defaults to 0."},
+    "*Note:* Forking is experimental and needs testing.\n"
+    "\n"
+    "This must be set before calling `run()`, as it's in `run()` where the "
+    "forking goes down. Defaults to 0 (disabled)."},
   
   {NULL, 0, 0, 0, NULL}
 };

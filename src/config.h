@@ -31,6 +31,8 @@ THE SOFTWARE.
 #define SMISK_STREAM_READ_CHUNKSIZE 1024
 
 // Default readline length for smisk.Stream.readline()
+// Should probably match the buffer size lifcgi uses for 
+// streams. See creation of NewReader or NewWriter in fcgiapp.c
 #define SMISK_STREAM_READLINE_LENGTH 8192
 
 // How much post data can be stored in memory instead of being written to disk
