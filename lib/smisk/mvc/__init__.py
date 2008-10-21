@@ -126,7 +126,12 @@ class Application(smisk.core.Application):
   '''
   
   templates = None
-  ''':type: Templates
+  '''Templates handler.
+  
+  If this evaluates to false, templates are disabled.
+  
+  :see: `__init__()`
+  :type: Templates
   '''
   
   autoreload = False
@@ -231,8 +236,6 @@ class Application(smisk.core.Application):
       self.templates = Templates(app=self)
     else:
       self.templates = templates
-    
-    self._setup = False
   
   
   def autoload_configuration(self, config_mod_name='config'):
@@ -257,10 +260,19 @@ class Application(smisk.core.Application):
   
   
   def setup(self):
-    '''Setup application.
+    '''Setup application state.
     
-    Can be called multiple times.
-    Automatically called by `application_will_start()`.
+    Can be called multiple times and is automatically called, just after calling
+    `autoload_configuration()`, by `smisk.mvc.setup()` and `application_will_start()`.
+    
+    Outline
+    ~~~~~~~
+    1. If `etag` is enabled and is a string, replaces `etag` with the named hashing
+       algorithm from hashlib.
+    2. If `templates` are enabled but ``templates.directories`` evaluates to false,
+       set ``templates.directories`` to the default ``[SMISK_APP_DIR + "templates"]``.
+    3. Make sure `Response.fallback_codec` has a valid codec as it's value.
+    4. Setup any models.
     
     :rtype: None
     '''
@@ -272,9 +284,15 @@ class Application(smisk.core.Application):
     # Check templates config
     if self.templates:
       if not self.templates.directories:
-        self.templates.directories = [os.path.join(os.environ['SMISK_APP_DIR'], 'templates')]
+        path = os.path.join(os.environ['SMISK_APP_DIR'], 'templates')
+        if os.path.isdir(path):
+          self.templates.directories = [path]
+        else:
+          log.info('Template directory not found even though templates are enabled')
+          self.templates.directories = []
       if self.templates.autoreload is None:
         self.templates.autoreload = self.autoreload
+      log.debug('Using template directories: %s', ', '.join(self.templates.directories))
     
     # Set fallback codec
     if Response.fallback_codec is None:
@@ -287,13 +305,10 @@ class Application(smisk.core.Application):
     model.setup_all()
     
     # Info about codecs
-    if not self._setup and log.level <= logging.DEBUG:
+    if log.level <= logging.DEBUG:
       log.debug('installed codecs: %s', ', '.join(unique_sorted_modules_of_items(codecs)) )
       log.debug('acceptable media types: %s', ', '.join(codecs.media_types.keys()))
       log.debug('available filename extensions: %s', ', '.join(codecs.extensions.keys()))
-      log.debug('Template directories: %s', ', '.join(self.templates.directories))
-    
-    self._setup = True
   
   
   def application_will_start(self):
@@ -819,26 +834,45 @@ _is_set_up = False
 def setup(app=None, appdir=None, *args, **kwargs):
   '''Helper for running an application.
   
-  If `app` is not provided or None, app will be aquired by calling
-  ``Application.current`` if there is an application. Otherwise, a new
-  application instance of default type is created and in which case any extra
-  args and kwargs are passed to it's __init__.
+  Excessive arguments and keyword arguments are passed to the application
+  ``__init__`` method. If `app` is already an instance, these extra arguments
+  and keyword arguments have no effect.
   
-  If `app` is a type, it has to be a subclass of `smisk.core.Application` in
-  which case a new instance of that type is created and passed any extra
-  args and kwargs passed to this function.
+  This function can only be called once. Successive calls simply returns the
+  current application without making any modifications. If you want to update
+  the application state, see `Application.setup()` instead, which can be called
+  multiple times.
   
-  If `appdir` is specified and SMISK_APP_DIR is present in os.environ, the
-  value of appdir will be replaced by the value of SMISK_APP_DIR. It is
-  constructed like this to allow for overloading using the env.
+  The ``app`` argument
+  ~~~~~~~~~~~~~~~~~~~~
+  * If `app` is not provided or ``None``, app will be aquired by calling
+    `Application.current` if there is an application. Otherwise, a new
+    application instance of default type is created and in which case any extra
+    args and kwargs are passed to it's ``__init__``.
   
-  If `appdir` is not specified the application directory path will be aquired
-  by ``dirname(__main__.__file__)`` and if that's not possible, the current
-  working directory is used.
+  * If `app` is a type, it has to be a subclass of `smisk.core.Application` in
+    which case a new instance of that type is created and passed any extra
+    args and kwargs passed to this function.
+  
+  Application directory
+  ~~~~~~~~~~~~~~~~~~~~~
+  The application directory is the physical path in which your application module
+  resides in the file system. Smisk need to know this and tries to automatically
+  figure it out. However, there are cases where you need to explicitly define your
+  application directory. For instance, if you'r calling `main()` or `setup()` from
+  a sub-module of your application.
+  
+  There are currently two ways of manually setting the application directory:
+  
+  1. If `appdir` **is** specified, the environment variable ``SMISK_APP_DIR`` will
+     be set to it's value, effectively overwriting any previous value.
+    
+  2. If `appdir` is **not** specified the application directory path will be aquired
+     by ``dirname(__main__.__file__)``, and if that's not possible, the current
+     working directory is used.
   
   Environment variables
-  ---------------------
-  
+  ~~~~~~~~~~~~~~~~~~~~~
   SMISK_APP_DIR
     The physical location of the application.
     If not set, the value will be calculated like ``abspath(appdir)`` if the
@@ -849,9 +883,12 @@ def setup(app=None, appdir=None, *args, **kwargs):
     Name of the current environment. If not set, this will be set to the 
     default value returned by 'environment()'.
   
+  
   :param app:     An application type or instance.
   :type  app:     Application
-  :param appdir:  Path to the applications base directory.
+  :param appdir:  Path to the applications base directory. Setting this will
+                  overwrite any previous value of environment variable
+                  ``SMISK_APP_DIR``.
   :type  appdir:  string
   :rtype: None
   :see: `run()`
@@ -869,6 +906,7 @@ def setup(app=None, appdir=None, *args, **kwargs):
         appdir = os.path.dirname(sys.modules['__main__'].__file__)
       except:
         raise EnvironmentError('unable to calculate SMISK_APP_DIR because: %s' % sys.exc_info())
+  if appdir is not None:
     os.environ['SMISK_APP_DIR'] = os.path.abspath(appdir)
   
   # Simpler environment() function
@@ -899,22 +937,30 @@ def setup(app=None, appdir=None, *args, **kwargs):
   return app
 
 
-def run(bind=None, app=None):
+def run(bind=None, app=None, forks=None, handle_errors=False):
   '''Helper for running an application.
   
-  Note that because of the nature of ``libfcgi`` an application can not be started, stopped and then started again. That said, you can only start your application once per process. (Details: OS_ShutdownPending sets a process-wide flag causing any call to accept to bail out)
+  Note that because of the nature of ``libfcgi`` an application can not 
+  be started, stopped and then started again. That said, you can only start 
+  your application once per process. (Details: OS_ShutdownPending sets a 
+  process-wide flag causing any call to accept to bail out)
   
   Environment variables
   ---------------------
   
   SMISK_BIND
     If set and not empty, a call to ``smisk.core.bind`` will occur, passing
-    the value to bind.
+    the value to bind, effectively starting a stand-alone process.
   
-  :param  bind:  Bind to address (and port). Note that this overrides SMISK_BIND.
-  :type   bind:  string
-  :param  app:   Uses Application.current is not set or None.
-  :type   app:   Application
+  :param  bind:   Bind to address (and port). Note that this overrides SMISK_BIND.
+  :type   bind:   string
+  :param  app:    Uses Application.current is not set or None.
+  :type   app:    Application
+  :param  forks:  Number of child processes to spawn.
+  :type   forks:  int
+  :param  handle_errors:  Handle any errors by wrapping calls in
+                          `handle_errors_wrapper()`
+  :type   handle_errors:  bool
   :rtype: None
   :see: `setup()`
   :see: `main()`
@@ -924,6 +970,9 @@ def run(bind=None, app=None):
     app = Application.current
   if app is None:
     raise ValueError('No application has been set up. Run setup() before calling run()')
+  elif not isinstance(app, smisk.core.Application):
+    raise ValueError('attribute "app" must be an instance of smisk.core.Application or a '\
+      'subclass there of, not %s' % type(app).__name__)
   
   # Bind
   if bind is not None:
@@ -938,23 +987,114 @@ def run(bind=None, app=None):
     ar = Autoreloader()
     ar.start()
   
+  # Forks
+  if isinstance(forks, int):
+    app.forks = forks
+  
   # Call app.run()
-  return wrap_call(app.run)
+  if handle_errors:
+    return handle_errors_wrapper(app.run)
+  else:
+    return app.run()
 
 
-def main(app=None, bind=None, *args, **kwargs):
+def main(app=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=True, *args, **kwargs):
   '''Helper for setting up and running an application.
   
-  First calls `setup()` to set up the application, then calls `run()`.
+  This function handles command line options, calls `setup()` to set up the
+  application, and then calls `run()`, entering the runloop.
   
-  :param app:     An application type or instance.
-  :type  app:     Application
-  :rtype: None'''
-  app = wrap_call(setup, app=app, *args, **kwargs)
-  run(bind=bind, app=app)
+  This is normally what you do in your top module ``__init__``:
+  
+  .. python::
+    from smisk.mvc import main
+    if __name__ == '__main__':
+      main()
+  
+  Your module is now a runnable program which automatically configures and
+  runs your application.
+  
+  :param  app:    An application type or instance.
+  :type   app:    Application
+  :param  appdir: Path to the applications base directory.
+  :type   appdir: string
+  :param  bind:   Bind to address (and port). Note that this overrides SMISK_BIND.
+  :type   bind:   string
+  :param  handle_errors:  Handle any errors by wrapping calls in
+                          `handle_errors_wrapper()`
+  :type   handle_errors:  bool
+  :param  cli:    Act as a Command Line Interface, parsing command line arguments and
+                  options.
+  :type   cli:    bool
+  :rtype: None
+  :see:   `setup()`
+  :see:   `run()`
+  '''
+  if cli:
+    appdir, bind, forks = _main_cli(appdir=appdir, bind=bind)
+  
+  # Setup
+  if handle_errors:
+    app = handle_errors_wrapper(setup, app=app, appdir=appdir, *args, **kwargs)
+  else:
+    app = setup(app=app, appdir=appdir, *args, **kwargs)
+  
+  # Run
+  run(bind=bind, app=app, forks=forks, handle_errors=handle_errors)
 
 
-def wrap_call(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs):
+def _main_cli(appdir=None, bind=None):
+  '''Command Line Interface parser used by `main()`.
+  '''
+  appdir_defaults_to = ' Not set by default.'
+  bind_defaults_to = appdir_defaults_to
+  
+  if appdir:
+    appdir_defaults_to = ' Defaults to "%s".' % appdir
+  
+  if isinstance(bind, basestring):
+    bind_defaults_to = ' Defaults to "%s".' % s
+  else:
+    bind = None
+    
+  from optparse import OptionParser
+  parser = OptionParser(usage="usage: %prog [options]")
+  
+  parser.add_option("-d", "--appdir",
+                    dest="appdir",
+                    help='Set the application directory.%s' % appdir_defaults_to,
+                    action="store",
+                    type="string",
+                    metavar="PATH",
+                    default=appdir)
+  
+  parser.add_option("-b", "--bind",
+                    dest="bind",
+                    help='Start a stand-alone process, listening for FastCGI connection on TO, which can be a TCP/IP address with out without host or a UNIX socket (named pipe on Windows). For example "localhost:5000", "/tmp/my_process.sock" or ":5000".%s' % bind_defaults_to,
+                    metavar="TO",
+                    action="store",
+                    type="string",
+                    default=bind)
+  
+  parser.add_option("-c", "--forks",
+                    dest="forks",
+                    help='Set number of childs to fork.',
+                    metavar="FORKS",
+                    type="int",
+                    default=None)
+  
+  opts, args = parser.parse_args()
+  
+  # Make sure empty values are None
+  if not opts.bind:
+    opts.bind = None
+  if not opts.appdir:
+    opts.appdir = None
+  
+  return opts.appdir, opts.bind, opts.forks
+
+
+def handle_errors_wrapper(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs):
   '''Call `fnc` catching any errors and writing information to ``error.log``.
   
   ``error.log`` will be written to, or appended to if it aldready exists,
@@ -975,7 +1115,7 @@ def wrap_call(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs):
                                single argument: Status code as an integer.
                                Defaults to ``sys.exit`` causing normal program
                                termination. The returned value of this callable
-                               will be returned by `wrap_call` itself.
+                               will be returned by `handle_errors_wrapper` itself.
   :type   error_cb:   callable
   :param  abort_cb:   Like `error_cb` but instead called when
                       ``KeyboardInterrupt`` was raised.
