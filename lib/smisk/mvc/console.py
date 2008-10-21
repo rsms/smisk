@@ -63,13 +63,21 @@ def main(app=None,
     app : Application
       An application type or instance.
     appdir : string
-      Application directory.
+      Application directory. If not defined and running this module directly, the
+      current working directory will be used. If not defined and calling this function
+      from another module, ``dirname(<__main__ module>.__file__)`` will be used.
     log_format : string
       Custom logging format.
   :rtype: None
   '''
   if appdir is None:
-    appdir = os.path.dirname(sys.modules['__main__'].__file__)
+    if 'SMISK_APP_DIR' in os.environ and os.environ['SMISK_APP_DIR']:
+      appdir = os.environ['SMISK_APP_DIR']
+    else:
+      if __name__ == '__main__':
+        appdir = os.getcwd()
+      else:
+        appdir = os.path.dirname(sys.modules['__main__'].__file__)
   appname = os.path.basename(appdir)
   
   # Load application
