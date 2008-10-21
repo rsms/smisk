@@ -17,3 +17,8 @@ from sqlalchemy import func
 # Disable autosetup by recommendation from Jason R. Coombs:
 # http://groups.google.com/group/sqlelixir/msg/ed698d986bfeefdb
 options_defaults['autosetup'] = False
+
+# Control wheretere to include module name or not in table names.
+# If True, project.fruits.Apple -> table apples.
+# If False, project.fruits.Apple -> table project_fruits_apples.
+options_defaults['shortnames'] = True 
