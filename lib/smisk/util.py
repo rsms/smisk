@@ -317,7 +317,7 @@ class introspect(object):
         'varargs': True,
         'varkw': True
       }))
-      cls._info_cache[f] = va_kwa_wrapper.info
+      cls._info_cache[callable_cache_key(f)] = va_kwa_wrapper.info
       va_kwa_wrapper.wrapped_func = f
       va_kwa_wrapper.im_func = f
       try:
