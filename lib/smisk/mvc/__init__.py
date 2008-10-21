@@ -1,10 +1,33 @@
 # encoding: utf-8
 '''Model-View-Controller-based sub-framework.
 
-Example application
+This module and it's sub-modules constitutes the most common way of using
+Smisk, mapping URLs to the *control tree* – an actual class tree, growing
+from `control.Controller`.
+
+Key members
+~~~~~~~~~~~
+
+* `main()` is a helper function which facilitates the most common use case:
+  Setting up an application, configuring it, running it and logging uncaught
+  exceptions.
+  
+* The `Application` class is the type of application. Normally you do not
+  subclass `Application`, but rather configure it and its different
+  components.
+  
+* The `console` module is an interactive console, aiding in development and
+  management.
+
+* The `control` module contains many useful functions for inspecting the
+  *control tree*.
+
+
+Examples
+~~~~~~~~
 
 .. python::
-  from smisk.mvc import Controller, main
+  from smisk.mvc import *
   class root(Controller):
     def __call__(self, *args, **params):
       return {'message': 'Hello World!'}
@@ -39,14 +62,12 @@ _MSIE_ERROR_SIZES = { 400:512, 403:256, 404:512, 405:256, 406:512, 408:512,
                       409:512, 410:256, 500:512, 501:512, 505:512}
 
 def environment():
-  """Return the name of the current environment. Defaults to 'stable'.
+  '''Name of the current environment.
   
-  Returns the ``SMISK_ENVIRONMENT`` environment value if available,
-  otherwise returns the string 'stable'.
+  Returns the value of ``SMISK_ENVIRONMENT`` environment value and defaults to "``stable``".
   
-  :returns: Name of the current environment.
   :rtype: string
-  """
+  '''
   try:
     return os.environ['SMISK_ENVIRONMENT']
   except KeyError:
@@ -212,6 +233,8 @@ class Application(smisk.core.Application):
                log_level=logging.WARN,
                log_format='%(levelname)-8s %(name)-20s %(message)s',
                *args, **kwargs):
+    '''Initialize a new application.
+    '''
     super(Application, self).__init__(*args, **kwargs)
     self.request_class = Request
     self.response_class = Response
@@ -832,11 +855,11 @@ class Application(smisk.core.Application):
 _is_set_up = False
 
 def setup(app=None, appdir=None, *args, **kwargs):
-  '''Helper for running an application.
+  '''Helper for setting up an application.
   
-  Excessive arguments and keyword arguments are passed to the application
-  ``__init__`` method. If `app` is already an instance, these extra arguments
-  and keyword arguments have no effect.
+  Excessive arguments and keyword arguments are passed to `mvc.Application.__init__()`.
+  If `app` is already an instance, these extra arguments and keyword arguments
+  have no effect.
   
   This function can only be called once. Successive calls simply returns the
   current application without making any modifications. If you want to update
@@ -890,7 +913,8 @@ def setup(app=None, appdir=None, *args, **kwargs):
                   overwrite any previous value of environment variable
                   ``SMISK_APP_DIR``.
   :type  appdir:  string
-  :rtype: None
+  :returns: The application
+  :rtype: `Application`
   :see: `run()`
   :see: `main()`
   '''
@@ -946,22 +970,25 @@ def run(bind=None, app=None, forks=None, handle_errors=False):
   process-wide flag causing any call to accept to bail out)
   
   Environment variables
-  ---------------------
+  ~~~~~~~~~~~~~~~~~~~~~
   
   SMISK_BIND
     If set and not empty, a call to ``smisk.core.bind`` will occur, passing
     the value to bind, effectively starting a stand-alone process.
   
-  :param  bind:   Bind to address (and port). Note that this overrides SMISK_BIND.
-  :type   bind:   string
-  :param  app:    Uses Application.current is not set or None.
-  :type   app:    Application
-  :param  forks:  Number of child processes to spawn.
-  :type   forks:  int
-  :param  handle_errors:  Handle any errors by wrapping calls in
-                          `handle_errors_wrapper()`
-  :type   handle_errors:  bool
-  :rtype: None
+  :Parameters:
+    bind : string
+      Bind to address (and port). Note that this overrides ``SMISK_BIND``.
+    app : Application
+      An application type or instance.
+    forks : int
+      Number of child processes to spawn.
+    handle_errors : bool
+      Handle any errors by wrapping calls in `handle_errors_wrapper()`
+  
+  :returns: Anything returned by ``app.run()``
+  :rtype: object
+  
   :see: `setup()`
   :see: `main()`
   '''
@@ -1014,19 +1041,28 @@ def main(app=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=T
   Your module is now a runnable program which automatically configures and
   runs your application.
   
-  :param  app:    An application type or instance.
-  :type   app:    Application
-  :param  appdir: Path to the applications base directory.
-  :type   appdir: string
-  :param  bind:   Bind to address (and port). Note that this overrides SMISK_BIND.
-  :type   bind:   string
-  :param  handle_errors:  Handle any errors by wrapping calls in
-                          `handle_errors_wrapper()`
-  :type   handle_errors:  bool
-  :param  cli:    Act as a Command Line Interface, parsing command line arguments and
-                  options.
-  :type   cli:    bool
-  :rtype: None
+  Excessive arguments and keyword arguments are passed to `mvc.Application.__init__()`.
+  If `app` is already an instance, these extra arguments and keyword arguments
+  have no effect.
+  
+  :Parameters:
+    app : Application
+      An application type or instance.
+    appdir : string
+      Path to the applications base directory.
+    bind : string
+      Bind to address (and port). Note that this overrides ``SMISK_BIND``.
+    forks : int
+      Number of child processes to spawn.
+    handle_errors : bool
+      Handle any errors by wrapping calls in `handle_errors_wrapper()`
+    cli : bool
+      Act as a *Command Line Interface*, parsing command line arguments and
+      options.
+  
+  :Returns: Anything returned by ``app.run()``
+  :rtype: object
+  
   :see:   `setup()`
   :see:   `run()`
   '''
@@ -1040,7 +1076,7 @@ def main(app=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=T
     app = setup(app=app, appdir=appdir, *args, **kwargs)
   
   # Run
-  run(bind=bind, app=app, forks=forks, handle_errors=handle_errors)
+  return run(bind=bind, app=app, forks=forks, handle_errors=handle_errors)
 
 
 def _main_cli(appdir=None, bind=None):

@@ -1,6 +1,20 @@
-#!/usr/bin/env python -i
+#!/usr/bin/env python
 # encoding: utf-8
-'''Interactive console.
+'''Interactive console aiding in development and management.
+
+Start the console by importing and running its `main()` from a file in your
+application top module:
+
+.. python::  
+  #!/usr/bin/env python
+  from smisk.mvc.console import main
+  if __name__ == '__main__':
+    main()
+
+The console can also be run directly from the module::
+
+  python -m smisk.mvc.console
+
 '''
 
 import sys, os, time, logging, __builtin__
@@ -35,9 +49,25 @@ class Console(code.InteractiveConsole):
   
 
 
-def main(appdir=None,
+def main(app=None,
+         appdir=None,
          log_format='\033[1;33m%(levelname)-8s \033[1;31m%(name)-20s\033[0m %(message)s',
          *args, **kwargs):
+  '''Console entry point.
+  
+  Excessive arguments and keyword arguments are passed to `mvc.Application.__init__()`.
+  If `app` is already an instance, these extra arguments and keyword arguments
+  have no effect.
+  
+  :Parameters:
+    app : Application
+      An application type or instance.
+    appdir : string
+      Application directory.
+    log_format : string
+      Custom logging format.
+  :rtype: None
+  '''
   if appdir is None:
     appdir = os.path.dirname(sys.modules['__main__'].__file__)
   appname = os.path.basename(appdir)
@@ -59,10 +89,8 @@ def main(appdir=None,
     finally:
       sys.path = orig_syspath
   
-  log_format = '\033[1;33m%(levelname)-8s \033[1;31m%(name)-20s\033[0m %(message)s'
-  
   try:
-    app = setup(appdir=appdir, log_format=log_format, *args, **kwargs)
+    app = setup(app=app, appdir=appdir, log_format=log_format, *args, **kwargs)
     del log_format
   except:
     sys.stderr.write(format_exc(as_string=True))
