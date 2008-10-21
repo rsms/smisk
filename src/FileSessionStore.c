@@ -246,7 +246,7 @@ PyObject *smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject *se
   char *pathname;
   FILE *fp = NULL;
   
-  if ( !PyString_Check(session_id) ) {
+  if ( !SMISK_PyString_Check(session_id) ) {
     PyErr_SetString(PyExc_TypeError, "session_id must be a string");
     return NULL;
   }

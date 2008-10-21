@@ -336,7 +336,7 @@ PyObject *smisk_Request_log_error(smisk_Request* self, PyObject *msg) {
     return NULL;
   }
   
-  if (!msg || !PyString_Check(msg)) {
+  if (!msg || !SMISK_PyString_Check(msg)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }
@@ -652,13 +652,13 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
     self->session_id = PyDict_GetItem(self->cookies,
       ((smisk_SessionStore *)smisk_Application_current->sessions)->name);
     if ( self->session_id != NULL ) {
-      if (!PyString_Check(self->session_id)) {
+      if (!SMISK_PyString_Check(self->session_id)) {
         if (PyList_Check(self->session_id)) {
           log_debug("Ambiguous: Multiple SID supplied in request. Will use first one.");
           if ( (self->session_id = PyList_GetItem(self->session_id, 0)) == NULL ) {
             return NULL;
           }
-          else if (!PyString_Check(self->session_id)) {
+          else if (!SMISK_PyString_Check(self->session_id)) {
             PyErr_SetString(PyExc_TypeError, "self.session_id is not a string");
             self->session_id = NULL;
             return NULL;

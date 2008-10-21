@@ -88,7 +88,7 @@ PyObject *smisk_bind(PyObject *self, PyObject *args) {
   
   // Save reference to first argument and type check it
   path = PyTuple_GET_ITEM(args, 0);
-  if (path == NULL || !PyString_Check(path)) {
+  if (path == NULL || !SMISK_PyString_Check(path)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }
@@ -240,7 +240,7 @@ PyObject *smisk_uid(PyObject *self, PyObject *args) {
     if (node == Py_None) {
       node = NULL;
     }
-    else if (node == NULL || !PyString_Check(node)) {
+    else if (node == NULL || !SMISK_PyString_Check(node)) {
       PyErr_SetString(PyExc_TypeError, "second argument must be a string");
       return NULL;
     }
@@ -289,7 +289,7 @@ PyObject *smisk_pack(PyObject *self, PyObject *args) {
   // data
   if (PyTuple_GET_SIZE(args) > 0) {
     data = PyTuple_GET_ITEM(args, 0);
-    if (data == NULL || !PyString_Check(data)) {
+    if (data == NULL || !SMISK_PyString_Check(data)) {
       PyErr_SetString(PyExc_TypeError, "first argument must be a string");
       return NULL;
     }

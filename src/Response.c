@@ -141,7 +141,7 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   log_trace("ENTER");
   int rc;
   
-  if (!filename || !PyString_Check(filename))
+  if (!filename || !SMISK_PyString_Check(filename))
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
   if (self->has_begun == Py_True)
@@ -209,7 +209,7 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
       PyString_AS_STRING(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
       PyString_AS_STRING(smisk_Application_current->request->session_id));
     // First-time session!
-    if (!PyString_Check(((smisk_SessionStore *)smisk_Application_current->sessions)->name)) {
+    if (!SMISK_PyString_Check(((smisk_SessionStore *)smisk_Application_current->sessions)->name)) {
       PyErr_SetString(PyExc_TypeError, "sessions.name is not a string");
       EXTERN_OP_END;
       return NULL;
@@ -237,7 +237,7 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
     PyObject *str;
     for (i=0;i<num_headers;i++) {
       str = PyList_GET_ITEM(self->headers, i);
-      if (str && PyString_Check(str)) {
+      if (str && SMISK_PyString_Check(str)) {
         FCGX_PutStr(PyString_AS_STRING(str), PyString_GET_SIZE(str), self->out->stream);
         FCGX_PutChar('\r', self->out->stream);
         FCGX_PutChar('\n', self->out->stream);
@@ -281,7 +281,7 @@ PyObject *smisk_Response_write(smisk_Response* self, PyObject *str) {
   log_trace("ENTER");
   Py_ssize_t length;
   
-  if (!str || !PyString_Check(str))
+  if (!str || !SMISK_PyString_Check(str))
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
   // TODO: make this method accept a length argument and use that instead if available

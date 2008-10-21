@@ -93,6 +93,9 @@ typedef uint8_t byte;
   PyDict_SetItemString(*_PyObject_GetDictPtr((PyObject *)PyObject_ptr_type), char_ptr_name,\
   (PyObject *)PyObject_ptr_value)
 
+// Workaround for a nasty bug where PyString_Check() segfaults when given a unicode object.
+#define SMISK_PyString_Check(obj) (PyString_CheckExact(obj) || PyUnicode_Check(obj))
+
 // Set IOError with errno and filename info. Return NULL
 #define PyErr_SET_FROM_ERRNO   PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__)
 

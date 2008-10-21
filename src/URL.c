@@ -175,6 +175,7 @@ size_t smisk_url_decode(char *str, size_t len) {
 
 
 static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
+  log_trace("ENTER");
   char *orgstr, *newstr;
   Py_ssize_t orglen;
   Py_ssize_t newlen;
@@ -462,26 +463,42 @@ PyObject *smisk_URL_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 }
 
 
-int smisk_URL_init(smisk_URL* self, PyObject *args, PyObject *kwargs) {
+int smisk_URL_init(smisk_URL *self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   PyObject *str;
+  int unicode = 0;
   
   // No arguments? (new empty url)
-  if ( (args == NULL) || (PyTuple_GET_SIZE(args) == 0) )
+  if ( !args || (PyTuple_GET_SIZE(args) == 0) )
     return 0;
   
   // Save reference to first argument (a string) and type check it
   str = PyTuple_GET_ITEM(args, 0);
-  if (!str || !PyString_Check(str)) {
+  
+  if (!str || !SMISK_PyString_Check(str)) {
     PyErr_SetString(PyExc_TypeError, "first argument to URL() must be a string");
     Py_DECREF(self);
     return -1;
   }
   
+  // Convert unicode to UTF-8
+  if (PyUnicode_Check(str)) {
+    if ( (str = PyUnicode_AsUTF8String(str)) == NULL)
+      return -1;
+    unicode = 1;
+  }
+  
   if (!_parse(self, PyString_AS_STRING(str), PyString_GET_SIZE(str))) {
+    if (unicode) {
+      Py_DECREF(str);
+    }
     PyErr_SetString(PyExc_ValueError, "Failed to parse URL");
     Py_DECREF(self);
     return -1;
+  }
+  
+  if (unicode) {
+    Py_DECREF(str);
   }
   
   return 0;

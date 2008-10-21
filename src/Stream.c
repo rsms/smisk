@@ -375,7 +375,7 @@ PyObject *smisk_Stream_write(smisk_Stream* self, PyObject *args) {
   
   // Save reference to first argument and type check it
   str = PyTuple_GET_ITEM(args, 0);
-  if (!PyString_Check(str))
+  if (!SMISK_PyString_Check(str))
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
   // Figure out length
@@ -412,7 +412,7 @@ PyObject *smisk_Stream_perform_writelines(smisk_Stream *self,
     return NULL;
   
   while ( (string = PyIter_Next(iterator)) ) {
-    if (!PyString_Check(string)) {
+    if (!SMISK_PyString_Check(string)) {
       PyErr_Format(PyExc_TypeError, "iteration on sequence returned non-string object");
       Py_DECREF(string);
       break;
