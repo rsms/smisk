@@ -79,8 +79,10 @@ class RoutingTests(TestCase):
   def test7_protected_on_Controller(self):
     self.assertRoutes((
       ('/controller_name', http.NotFound),
-      ('/controller_name', http.NotFound),
-      ('/controller_name', http.NotFound),
+      ('/controller_path', http.NotFound),
+      ('/controller_uri', http.NotFound),
+      ('/special_methods', http.NotFound),
+      ('/__new__', http.NotFound),
     ))
   
   def test8_special_builtins(self):

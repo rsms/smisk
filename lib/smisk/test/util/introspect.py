@@ -108,15 +108,12 @@ class IntrospectTests(TestCase):
       assert a.hello(1,2,3,4,5,*('extra va1','extra va2')) == 0, 'should throw TypeError'
     except TypeError:
       pass
-    
     a.hello = introspect.ensure_va_kwa(a.hello)
-    
     expected = self.expect_hello_info.copy()
     expected['varargs'] = True
     expected['varkw'] = True
     returned = introspect.callable_info(a.hello)
     assert returned == expected, '%s\n!=\n%s' % (returned, expected)
-    
     assert a.hello(1,2,3,4,5, *('va1','va2'), **{'kw1':1, 'kw2':2}) == {
       'self': a,
       'one': 1,

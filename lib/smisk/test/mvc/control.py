@@ -27,7 +27,7 @@ class misc_tests(TestCase):
     self.assertEquals(method_origin(o.on_fiesta), EnglishBass)
   
   def test4_leaf_visibility(self):
-    # Visible
+    # Visible:
     self.assertTrue(leaf_is_visible(root))
     self.assertTrue(leaf_is_visible(root.__call__))
     self.assertTrue(leaf_is_visible(root.func_on_root))
@@ -43,7 +43,7 @@ class misc_tests(TestCase):
     self.assertTrue(leaf_is_visible(level3.delegating_func_on_root))
     self.assertTrue(leaf_is_visible(PostsController.delegating_func_on_root))
     self.assertTrue(leaf_is_visible(level2.foo_bar))
-    # Invisible
+    # Invisible:
     self.assertFalse(leaf_is_visible(level2.func_on_root))
     self.assertFalse(leaf_is_visible(level3.func_on_level2))
     self.assertFalse(leaf_is_visible(level3B))
@@ -89,6 +89,9 @@ class node_name_tests(TestCase):
   
   def test5_hidden(self):
     self.assertEquals(node_name(level3.hidden_method_on_level3), None)
+    self.assertEquals(node_name(root.controller_name), None)
+    self.assertEquals(node_name(Controller.controller_name), None)
+    self.assertEquals(node_name(level2.special_methods), None)
   
 
 class path_to_tests(TestCase):
