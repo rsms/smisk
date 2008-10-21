@@ -891,8 +891,7 @@ def setup(app=None, appdir=None, *args, **kwargs):
      be set to it's value, effectively overwriting any previous value.
     
   2. If `appdir` is **not** specified the application directory path will be aquired
-     by ``dirname(__main__.__file__)``, and if that's not possible, the current
-     working directory is used.
+     by ``dirname(__main__.__file__)``.
   
   Environment variables
   ~~~~~~~~~~~~~~~~~~~~~
