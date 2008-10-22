@@ -65,7 +65,7 @@ static int _gc_run(smisk_FileSessionStore *self) {
   char *p, *path_p, *fn_prefix, *path_buf;
   size_t fn_prefix_len, path_p_len;
   
-  path_p = PyString_AS_STRING(self->file_prefix);
+  path_p = PyString_AsString(self->file_prefix);
   p = strrchr(path_p, '/');
   fn_prefix = p+1;
   fn_prefix_len = strlen(fn_prefix);
@@ -226,7 +226,8 @@ PyDoc_STRVAR(smisk_FileSessionStore_path_DOC,
 static PyObject *smisk_FileSessionStore_path(smisk_FileSessionStore *self, PyObject *session_id) {
   log_trace("ENTER");
   PyObject *fn;
-  fn = PyString_FromStringAndSize(PyString_AS_STRING(self->file_prefix), PyString_GET_SIZE(self->file_prefix));
+  
+  fn = PyObject_Str(self->file_prefix);
   
   if (fn)
     PyString_Concat(&fn, session_id);
@@ -254,13 +255,13 @@ PyObject *smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject *se
   if ( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL )
     return NULL;
   
-  pathname = PyString_AS_STRING(fn);
+  pathname = PyString_AsString(fn);
   
   // Read file data
   if (smisk_file_exist(pathname)) {
     if ( _is_garbage(self, pathname, -1) ) {
       log_debug("Garbage session %s (older than ttl=%d)",
-                PyString_AS_STRING(session_id),
+                PyString_AsString(session_id),
                 ((smisk_SessionStore *)self)->ttl);
       
       if (_unlink(pathname) != 0)
@@ -291,7 +292,7 @@ PyObject *smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject *se
     }
   }
   else {
-    log_debug("No session data. File not found '%s'", PyString_AS_STRING(fn));
+    log_debug("No session data. File not found '%s'", PyString_AsString(fn));
     PyErr_SetString(smisk_InvalidSessionError, "no data");
   }
   
@@ -327,7 +328,7 @@ PyObject *smisk_FileSessionStore_write(smisk_FileSessionStore *self, PyObject *a
   if ( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL )
     return NULL;
   
-  pathname = PyString_AS_STRING(fn);
+  pathname = PyString_AsString(fn);
   
   if ( (fp = fopen(pathname, "wb")) == NULL)
     return PyErr_SET_FROM_ERRNO;
@@ -367,13 +368,13 @@ PyDoc_STRVAR(smisk_FileSessionStore_refresh_DOC,
   ":type   session_id: string\n"
   ":rtype: None");
 PyObject *smisk_FileSessionStore_refresh(smisk_FileSessionStore *self, PyObject *session_id) {
-  log_trace("ENTER %s", PyString_AS_STRING(session_id));
+  log_trace("ENTER");
   PyObject *fn;
   
   if ( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL )
     return NULL;
   
-  if (smisk_file_mtime_set_now(PyString_AS_STRING(fn), -1) != 0) {
+  if (smisk_file_mtime_set_now(PyString_AsString(fn), -1) != 0) {
     if (errno != ENOENT) {
       PyErr_SET_FROM_ERRNO;
       Py_DECREF(fn);
@@ -381,7 +382,7 @@ PyObject *smisk_FileSessionStore_refresh(smisk_FileSessionStore *self, PyObject 
     }
 #if SMISK_DEBUG
     else {
-      log_debug("utimes() failed: '%s' don't exist", PyString_AS_STRING(fn));
+      log_debug("utimes() failed: '%s' don't exist", PyString_AsString(fn));
     }
 #endif
   }
@@ -403,7 +404,7 @@ PyObject *smisk_FileSessionStore_destroy(smisk_FileSessionStore *self, PyObject 
   if ( (fn = smisk_FileSessionStore_path(self, session_id)) == NULL )
     return NULL;
   
-  pathname = PyString_AS_STRING(fn);
+  pathname = PyString_AsString(fn);
   
   int failed = smisk_file_exist(pathname) && (_unlink(pathname) != 0);
   Py_DECREF(fn);

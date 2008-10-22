@@ -110,10 +110,10 @@ PyObject *smisk_bind(PyObject *self, PyObject *args) {
   }
   
   // Bind/listen
-  fd = FCGX_OpenSocket(PyString_AS_STRING(path), backlog);
+  fd = FCGX_OpenSocket(PyString_AsString(path), backlog);
   if (fd < 0) {
     log_debug("ERROR: FCGX_OpenSocket(\"%s\", %d) returned %d. errno: %d", 
-      PyString_AS_STRING(path), backlog, fd, errno);
+      PyString_AsString(path), backlog, fd, errno);
     return PyErr_SET_FROM_ERRNO;
   }
   
@@ -246,7 +246,7 @@ PyObject *smisk_uid(PyObject *self, PyObject *args) {
     }
   }
   
-  if ((node ? smisk_uid_create(&uid, PyString_AS_STRING(node), PyString_GET_SIZE(node))
+  if ((node ? smisk_uid_create(&uid, PyString_AsString(node), PyString_Size(node))
             : smisk_uid_create(&uid, NULL, 0)) == -1) {
     PyErr_SetString(PyExc_SystemError, "smisk_uid_create() failed");
     return NULL;
@@ -307,7 +307,7 @@ PyObject *smisk_pack(PyObject *self, PyObject *args) {
     }
   }
   
-  return smisk_util_pack((const byte *)PyString_AS_STRING(data), PyString_GET_SIZE(data), nbits);
+  return smisk_util_pack((const byte *)PyString_AsString(data), PyString_Size(data), nbits);
 }
 
 

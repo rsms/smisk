@@ -162,7 +162,7 @@ static int _cleanup_session(smisk_Request* self) {
   if (self->session_id) {
     long h = 0;
     
-    log_debug("self->session_id = %s", self->session_id ? PyString_AS_STRING(self->session_id) : "NULL");
+    log_debug("self->session_id = %s", self->session_id ? PyString_AsString(self->session_id) : "NULL");
     log_debug("self->session = %p", self->session);
     log_debug("self->initial_session_hash = %lu", self->initial_session_hash);
     log_debug("PyObject_Hash(self->session) = %lu", self->session ? PyObject_Hash(self->session) : 0);
@@ -569,9 +569,9 @@ PyObject *smisk_Request_get_get(smisk_Request* self) {
       return NULL;
     );
     
-    if (self->url->query && (self->url->query != Py_None) && (PyString_GET_SIZE(self->url->query) > 0)) {
+    if (self->url->query && (self->url->query != Py_None) && (PyString_Size(self->url->query) > 0)) {
       assert_refcount(self->get, == 1);
-      if (smisk_parse_input_data(PyString_AS_STRING(self->url->query), "&", 0, self->get) != 0) {
+      if (smisk_parse_input_data(PyString_AsString(self->url->query), "&", 0, self->get) != 0) {
         Py_DECREF(self->get);
         self->get = NULL;
         return NULL;
@@ -671,10 +671,10 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
           return NULL;
         }
       }
-      log_debug("SID '%s' provided by request", PyString_AS_STRING(self->session_id));
+      log_debug("SID '%s' provided by request", PyString_AsString(self->session_id));
       // As this is the first time we aquire the SID and it was provided by the user,
       // we will also read up the session to validate wherethere this SID is valid.
-      if (!_valid_sid(PyString_AS_STRING(self->session_id), PyString_GET_SIZE(self->session_id))) {
+      if (!_valid_sid(PyString_AsString(self->session_id), PyString_Size(self->session_id))) {
         log_debug("Invalid SID provided by request (illegal format)");
         self->session_id = NULL;
       }
@@ -776,7 +776,7 @@ static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
   // Passing None causes the current session to be destroyed
   if (val == Py_None) {
     if (self->session != Py_None) {
-      log_debug("Destroying session '%s'", PyString_AS_STRING(self->session_id));
+      log_debug("Destroying session '%s'", PyString_AsString(self->session_id));
       assert(smisk_Application_current);
       assert(smisk_Application_current->sessions);
       

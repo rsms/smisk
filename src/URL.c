@@ -180,35 +180,21 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   Py_ssize_t orglen;
   Py_ssize_t newlen;
   PyObject *newstr_py;
-  int should_decref_str = 0;
   
-  if (!PyString_CheckExact(str)) {
-    if (PyUnicode_Check(str)) {
-      str = PyUnicode_AsUTF8String(str);
-      if (str == NULL)
-        return NULL;
-      should_decref_str = 1;
-    }
-    else {
-      PyErr_SetString(PyExc_TypeError, "first argument must be a string");
-      return NULL;
-    }
+  if (!SMISK_PyString_Check(str)) {
+    PyErr_SetString(PyExc_TypeError, "first argument must be a string");
+    return NULL;
   }
   
   if ((orgstr = PyString_AsString(str)) == NULL) {
-    if (should_decref_str) {
-      Py_DECREF(str);
-    }
     return NULL; // TypeError was raised
   }
   
-  orglen = PyString_GET_SIZE(str);
+  orglen = PyString_Size(str);
   
   if (orglen < 1) {
     // Empty string
-    if (!should_decref_str) {
-      Py_INCREF(str);
-    }
+    Py_INCREF(str);
     return str;
   }
   
@@ -224,27 +210,17 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   
   if (orglen == newlen) {
     // No need to encode - return original string
-    if (!should_decref_str)
-      Py_INCREF(str);
+    Py_INCREF(str);
     return str;
   }
   
   // Initialize new PyString
-  if ((newstr_py = PyString_FromStringAndSize(NULL, newlen)) == NULL) {
-    if (should_decref_str) {
-      Py_DECREF(str);
-    }
+  if ((newstr_py = PyString_FromStringAndSize(NULL, newlen)) == NULL)
     return NULL;
-  }
   
   // Do the actual encoding
   newstr = PyString_AS_STRING(newstr_py);
   _url_encode(orgstr, newstr, mask);
-  
-  
-  if (should_decref_str) {
-    Py_DECREF(str);
-  }
   
   // Return new string
   return newstr_py;
@@ -466,7 +442,6 @@ PyObject *smisk_URL_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 int smisk_URL_init(smisk_URL *self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   PyObject *str;
-  int unicode = 0;
   
   // No arguments? (new empty url)
   if ( !args || (PyTuple_GET_SIZE(args) == 0) )
@@ -481,24 +456,10 @@ int smisk_URL_init(smisk_URL *self, PyObject *args, PyObject *kwargs) {
     return -1;
   }
   
-  // Convert unicode to UTF-8
-  if (PyUnicode_Check(str)) {
-    if ( (str = PyUnicode_AsUTF8String(str)) == NULL)
-      return -1;
-    unicode = 1;
-  }
-  
-  if (!_parse(self, PyString_AS_STRING(str), PyString_GET_SIZE(str))) {
-    if (unicode) {
-      Py_DECREF(str);
-    }
+  if (!_parse(self, PyString_AsString(str), PyString_Size(str))) {
     PyErr_SetString(PyExc_ValueError, "Failed to parse URL");
     Py_DECREF(self);
     return -1;
-  }
-  
-  if (unicode) {
-    Py_DECREF(str);
   }
   
   return 0;
@@ -594,7 +555,7 @@ PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
   if ((orgstr = PyString_AsString(str)) == NULL)
     return NULL; // TypeError raised
   
-  orglen = PyString_GET_SIZE(str);
+  orglen = PyString_Size(str);
   if (orglen < 1) {
     // Empty string
     Py_INCREF(str);

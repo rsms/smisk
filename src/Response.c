@@ -206,8 +206,8 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
     && (smisk_Application_current->request->initial_session_hash == 0))
   {
     log_debug("New session - sending SID with Set-Cookie: %s=%s;Version=1;Path=/",
-      PyString_AS_STRING(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
-      PyString_AS_STRING(smisk_Application_current->request->session_id));
+      PyString_AsString(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
+      PyString_AsString(smisk_Application_current->request->session_id));
     // First-time session!
     if (!SMISK_PyString_Check(((smisk_SessionStore *)smisk_Application_current->sessions)->name)) {
       PyErr_SetString(PyExc_TypeError, "sessions.name is not a string");
@@ -216,8 +216,8 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
     }
     assert(smisk_Application_current->request->session_id);
     FCGX_FPrintF(self->out->stream, "Set-Cookie: %s=%s;Version=1;Path=/\r\n",
-      PyString_AS_STRING(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
-      PyString_AS_STRING(smisk_Application_current->request->session_id)
+      PyString_AsString(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
+      PyString_AsString(smisk_Application_current->request->session_id)
     );
   }
   
@@ -238,7 +238,7 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
     for (i=0;i<num_headers;i++) {
       str = PyList_GET_ITEM(self->headers, i);
       if (str && SMISK_PyString_Check(str)) {
-        FCGX_PutStr(PyString_AS_STRING(str), PyString_GET_SIZE(str), self->out->stream);
+        FCGX_PutStr(PyString_AsString(str), PyString_Size(str), self->out->stream);
         FCGX_PutChar('\r', self->out->stream);
         FCGX_PutChar('\n', self->out->stream);
       }
@@ -285,7 +285,7 @@ PyObject *smisk_Response_write(smisk_Response* self, PyObject *str) {
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
   // TODO: make this method accept a length argument and use that instead if available
-  length = PyString_GET_SIZE(str);
+  length = PyString_Size(str);
   if (!length) // No data/Empty string
     Py_RETURN_NONE;
   
@@ -294,7 +294,7 @@ PyObject *smisk_Response_write(smisk_Response* self, PyObject *str) {
     return NULL;
   
   // Write data
-  if ( smisk_Stream_perform_write(self->out, str, PyString_GET_SIZE(str)) == -1 )
+  if ( smisk_Stream_perform_write(self->out, str, PyString_Size(str)) == -1 )
     return NULL;
   
   Py_RETURN_NONE;
@@ -476,7 +476,7 @@ PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObje
     // XXX check for NULL returns
     PyObject *expires = PyString_FromStringAndSize(NULL, 36);
     time_t t = time(NULL) + max_age;
-    strftime(PyString_AS_STRING(expires), 36, ";Expires=%a, %d-%b-%g %H:%M:%S GMT", gmtime(&t));
+    strftime(PyString_AsString(expires), 36, ";Expires=%a, %d-%b-%g %H:%M:%S GMT", gmtime(&t));
     PyString_ConcatAndDel(&s, expires);
   }
   else {

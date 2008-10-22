@@ -56,7 +56,7 @@ static int _get_opt_ssize_arg(Py_ssize_t *length, PyObject *args, Py_ssize_t pos
 
 
 int smisk_Stream_perform_write(smisk_Stream* self, PyObject *str, Py_ssize_t length) {
-  EXTERN_OP( int rc = FCGX_PutStr(PyString_AS_STRING(str), length, self->stream) );
+  EXTERN_OP( int rc = FCGX_PutStr(PyString_AsString(str), length, self->stream) );
   if (rc == -1) {
     PyErr_SET_FROM_ERRNO;
     return -1;
@@ -386,7 +386,7 @@ PyObject *smisk_Stream_write(smisk_Stream* self, PyObject *args) {
     length = PyInt_AS_LONG(arg1);
   }
   else {
-    length = PyString_GET_SIZE(str);
+    length = PyString_Size(str);
   }
   
   // Write to stream
@@ -420,7 +420,7 @@ PyObject *smisk_Stream_perform_writelines(smisk_Stream *self,
     
     // We save length, so we can skip calling smisk_Stream_perform_write at all if
     // the string is empty.
-    string_length = PyString_GET_SIZE(string);
+    string_length = PyString_Size(string);
     if ( string_length ) {
       if (first_write_cb && first_write_cb(cb_user_data) != 0)
         return NULL;
@@ -498,6 +498,8 @@ PyObject *smisk_Stream___iternext__(smisk_Stream *self) {
   log_trace("ENTER");
   // Conforms to PEP 234 <http://www.python.org/dev/peps/pep-0234/>
   PyObject *str = smisk_Stream_readline(self, NULL);
+  // we know smisk_Stream_readline returns a str and not unicode,
+  // so we are safe to use PyString_GET_SIZE here:
   if (PyString_GET_SIZE(str) == 0) {
     Py_DECREF(str);
     return NULL; // End iteration

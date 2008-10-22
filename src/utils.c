@@ -296,22 +296,22 @@ char *smisk_encode_bin(const byte *in, size_t inlen, char *out, char nbits) {
 
 
 PyObject *smisk_util_pack (const byte *data, size_t size, int nbits) {
-  PyObject *s;
+  PyObject *return_str;
   switch(nbits) {
     case 6:
-      s = PyString_FromStringAndSize(NULL, 27);
+      return_str = PyString_FromStringAndSize(NULL, 27);
       break;
     case 5:
-      s = PyString_FromStringAndSize(NULL, 32);
+      return_str = PyString_FromStringAndSize(NULL, 32);
       break;
     case 4:
-      s = PyString_FromStringAndSize(NULL, 40);
+      return_str = PyString_FromStringAndSize(NULL, 40);
       break;
     default:
       return PyErr_Format(PyExc_ValueError, "Invalid number of bits: %d", nbits);
   }
-  smisk_encode_bin(data, size, PyString_AS_STRING(s), nbits);
-  return s;
+  smisk_encode_bin(data, size, PyString_AS_STRING(return_str), nbits);
+  return return_str;
 }
 
 
@@ -327,16 +327,16 @@ PyObject *smisk_find_string_by_prefix_in_dict(PyObject *list, PyObject *prefix) 
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
   num_items = PyList_GET_SIZE(list);
-  prefix_len = PyString_GET_SIZE(prefix);
-  prefix_ptr = PyString_AS_STRING(prefix);
+  prefix_len = PyString_Size(prefix);
+  prefix_ptr = PyString_AsString(prefix);
   
   // Iterate over headers
   for (i=0; i<num_items; i++) {
     if ( (item = PyList_GET_ITEM(list, i)) && SMISK_PyString_Check(item) ) {
-      item_len = PyString_GET_SIZE(item);
+      item_len = PyString_Size(item);
       if (item_len < prefix_len)
         continue;
-      item_ptr = PyString_AS_STRING(item);
+      item_ptr = PyString_AsString(item);
       prefix_it = prefix_ptr;
       
       for (x = 0; x < prefix_len; x++) {

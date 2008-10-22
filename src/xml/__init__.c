@@ -125,61 +125,34 @@ PyDoc_STRVAR(smisk_xml_escape_DOC,
   "\"Your's &#x26; not mine &#x3C;says&#x3E; &#x22;you&#x22;\"\n"
   ">>> \n"
   "\n"
-  ":param s: Raw string to be encoded. Supports both ``unicode`` and byte strings.\n"
+  ":param s: String to be encoded.\n"
   ":type  s: string\n"
-  ":returns: The escaped string. If ``s`` was a ``unicode`` string, the returned "
-    "type is ``unicode``, otherwise ``str``.\n"
-  ":rtype: basestring");
+  ":returns: The escaped string.\n"
+  ":rtype: str");
 PyObject *smisk_xml_escape_py(PyObject *self, PyObject *_pys) {
   size_t len, nlen;
   PyObject *npys, *pys;
-  char *s, *dest;
-  int unicode = 0;
+  char *s;
   pys = _pys;
   
-  if (!PyString_CheckExact(pys)) {
-    if (PyUnicode_Check(pys)) {
-      // Unicode temporary as UTF-8
-      if ( (pys = PyUnicode_AsUTF8String(pys)) == NULL)
-        return NULL;
-      unicode = 1;
-    }
-    else {
-      PyErr_SetString(PyExc_TypeError, "first argument must be a string");
-      return NULL;
-    }
+  if (!SMISK_PyString_Check(pys)) {
+    PyErr_SetString(PyExc_TypeError, "first argument must be a string");
+    return NULL;
   }
   
-  len = (size_t)PyString_GET_SIZE(pys);
-  s = PyString_AS_STRING(pys);
+  len = (size_t)PyString_Size(pys);
+  s = PyString_AsString(pys);
   nlen = smisk_xml_encode_newlen(s, len);
   
   if (nlen == len) {
-    if (unicode) {
-      Py_DECREF(pys);
-    }
     Py_INCREF(_pys);
     return _pys;
   }
   
-  npys = PyString_FromStringAndSize(NULL, (Py_ssize_t)nlen);
-  if (npys == NULL) {
-    if (unicode) {
-      Py_DECREF(pys);
-    }
+  if ( (npys = PyString_FromStringAndSize(NULL, (Py_ssize_t)nlen)) == NULL)
     return NULL;
-  }
   
-  dest = PyString_AS_STRING(npys);
-  
-  smisk_xml_encode_p(s, len, dest);
-  
-  if (unicode) {
-    Py_DECREF(pys);
-    pys = npys;
-    npys = PyUnicode_FromEncodedObject(npys, "utf-8", NULL);
-    Py_DECREF(pys);
-  }
+  smisk_xml_encode_p(s, len, PyString_AS_STRING(npys));
   
   return npys;
 }

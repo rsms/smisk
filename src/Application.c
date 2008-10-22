@@ -307,7 +307,7 @@ PyObject *smisk_Application_run(smisk_Application *self) {
     #if SMISK_DEBUG
       else if (!smisk_Application_trapped_signal) {
         PyObject *repr = PyObject_Repr((PyObject *)self);
-        log_debug("%s.service() failed", PyString_AS_STRING(repr));
+        log_debug("%s.service() failed", PyString_AsString(repr));
         Py_DECREF(repr);
       }
     #endif
@@ -328,8 +328,8 @@ PyObject *smisk_Application_run(smisk_Application *self) {
           type_repr = PyObject_Repr((PyObject *)type);
           value_repr = PyObject_Repr((PyObject *)value);
           tb_repr = PyObject_Repr((PyObject *)tb);
-          log_debug("Exeption: type=%s, value=%s, tb=%s", PyString_AS_STRING(type_repr),
-                    PyString_AS_STRING(value_repr), PyString_AS_STRING(tb_repr));
+          log_debug("Exeption: type=%s, value=%s, tb=%s", PyString_AsString(type_repr),
+                    PyString_AsString(value_repr), PyString_AsString(tb_repr));
           Py_DECREF(type_repr);
           Py_DECREF(value_repr);
           Py_DECREF(tb_repr);
@@ -485,8 +485,8 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
   );
   
   // Get reference to last line of trace, containing short message
-  exc_strp = PyString_AS_STRING(exc_str);
-  Py_ssize_t len = PyString_GET_SIZE(exc_str)-2;
+  exc_strp = PyString_AsString(exc_str);
+  Py_ssize_t len = PyString_Size(exc_str)-2;
   for (; len; len-- ) {
     if (exc_strp[len] == '\n') {
       log_debug("%s", exc_strp+len);
@@ -521,21 +521,21 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
     "<hr/><address>%s at %s port %s</address>\n",
     value_repr ? value_repr : "",
     ((self->show_traceback == Py_True) ? exc_strp : "Additional information has been logged."),
-    PyString_AS_STRING(PyDict_GetItemString(self->request->env, "SERVER_SOFTWARE")),
+    PyString_AsString(PyDict_GetItemString(self->request->env, "SERVER_SOFTWARE")),
     hostname ? hostname : "?",
     port ? port : "?");
   
   // Log exception throught fcgi error stream
   EXTERN_OP(
-    rc = FCGX_PutStr(PyString_AS_STRING(exc_str), 
-                     PyString_GET_SIZE(exc_str),
+    rc = FCGX_PutStr(PyString_AsString(exc_str), 
+                     PyString_Size(exc_str),
                      self->request->errors->stream)
   );
   if (rc == -1) {
     // Fall back to stderr
     log_error("Error in %s.error(): %s",
-      PyString_AS_STRING(PyObject_Str((PyObject *)self)),
-      PyString_AS_STRING(exc_str));
+      PyString_AsString(PyObject_Str((PyObject *)self)),
+      PyString_AsString(exc_str));
     goto return_error_from_errno;
   }
   
@@ -567,13 +567,15 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
         "Cache-Control: no-cache\r\n"
          "\r\n"
          "%s%s%s\r\n",
+        // we know this is a normal string, thus no unicode support
         strlen(header)+PyString_GET_SIZE(msg)+strlen(footer)+2,
         header,
-        PyString_AS_STRING(msg),
+        PyString_AS_STRING(msg), 
         footer);
     );
   }
   else {
+    // we know this is a normal string, thus no unicode support
     EXTERN_OP( rc = FCGX_PutStr(PyString_AS_STRING(msg),
                                 PyString_GET_SIZE(msg),
                                 self->response->out->stream) );
