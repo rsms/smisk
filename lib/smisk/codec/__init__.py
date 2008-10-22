@@ -5,6 +5,27 @@
 .. importgraph::
 '''
 
+class data(str):
+  '''Represents arbitrary bytes.
+  '''
+  def __init__(self, source):
+    '''Wrap source as data.
+    
+    :Parameters:
+      source : object
+        String or file object. If this is a file object, it will
+        be closed automatically.
+    '''
+    if hasattr(source, 'read'):
+      try:
+        str.__init__(self, source.read())
+      finally:
+        source.close()
+    else:
+      str.__init__(self, source)
+  
+
+
 class CodecRegistry(object):
   first_in = None
   '''First registered codec.
