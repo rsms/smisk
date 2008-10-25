@@ -1,185 +1,196 @@
 # encoding: utf-8
-'''
-XSPF v1.0 serialization.
+'''XSPF v1.0 serialization.
 
 :see: `XSPF v1.0 <http://xspf.org/xspf-v1.html>`__
 '''
-import re, logging
-from smisk.codec import codecs, BaseCodec
-from smisk.core.xml import escape as xml_escape
-from smisk.util import to_bool
-from xml.dom.minidom import getDOMImplementation, parseString as parse_xml
+import base64
+from smisk.codec.xmlbase import *
+from datetime import datetime
+from smisk.util import DateTime
+from types import *
+try:
+  from xml.etree.ElementTree import QName
+except ImportError:
+  pass
 
-DOM = getDOMImplementation()
-log = logging.getLogger(__name__)
+__all__ = [
+  'XSPFEncodingError',
+  'XSPFDecodingError',
+  'XSPFCodec']
 
-class ElementSpec(object):
-  def __init__(self, name, desc=None, mincount=0, maxcount=1, typ=unicode, childspecs=[]):
-    self.name = name
-    self.mincount = mincount
-    self.maxcount = maxcount
-    self.typ = typ
-    self.childspecs = childspecs
-    self.desc = desc
-  
+class XSPFEncodingError(Exception):
+  pass
 
-class codec(BaseCodec):
-  '''XSPF codec'''
+class XSPFDecodingError(Exception):
+  pass
+
+class XSPFCodec(XMLBaseCodec):
+  '''XML Property List codec
+  '''
   name = 'XSPF: XML Shareable Playlist Format'
   extensions = ('xspf',)
   media_types = ('application/xspf+xml',)
-  charset = 'utf-8'
+  charset = 'utf-8'  
   
-  # Options
-  pretty_print = False
+  xml_default_ns = 'http://xspf.org/ns/0/'
+  xml_root_name = 'playlist'
+  xml_root_attrs = {'version':'1.0'}
   
-  # Setup by setup
-  ELEMENTS = {}
+  BASE_TAGS = (
+    'title',
+    'creator',
+    'annotation',
+    'info',
+    'location',
+    'identifier',
+    'image',
+    'date',
+    'license',
+    'attribution',
+    'link',
+    'meta',
+    'extension',
+    'trackList',
+  )
+  TRACK_TEXT_TAGS = (
+    'location',
+    'identifier',
+    'title',
+    'creator',
+    'annotation',
+    'info',
+    'image',
+    'album',
+  )
+  TRACK_INT_TAGS = (
+    'trackNum',
+    'duration',
+  )
+  TRACK_XML_TAGS = (
+    'extension',
+  )
+  TRACK_META_TAGS = (
+    'link',
+    'content',
+  )
+  
+  # Reading
   
   @classmethod
-  def encode(cls, params, charset):
-    doc = DOM.createDocument('http://xspf.org/ns/0/', "playlist", None)
-    root = doc.documentElement
-    root.setAttribute('xmlns', 'http://xspf.org/ns/0/')
-    root.setAttribute('version', '1.0')
-    for k,v in params.items():
+  def parse_document(cls, elem):
+    playlist = {}
+    for child in elem.getchildren():
+      k,ns = cls.xml_tag(child)
       if k == 'trackList':
-        root.appendChild(cls.encode_trackList(doc, v))
-      elif k in cls.ELEMENTS:
-        n = doc.createElement(k)
-        if v is not None:
-          n.appendChild(doc.createTextNode(unicode(v)))
-        root.appendChild(n)
-      # else just skip the kv
-    pretty_print = params.get('pretty_print', None)
-    if (pretty_print is None and cls.pretty_print) or to_bool(pretty_print):
-      return (charset, doc.toprettyxml('  ', encoding=charset))
-    else:
-      return (charset, doc.toxml(encoding=charset))
+        v = cls.parse_trackList(child)
+      elif k == 'date':
+        v = DateTime.parse_xml_schema_dateTime(child.text)
+      elif k in cls.BASE_TAGS:
+        v = child.text
+      playlist[k] = v
+    return playlist
   
   @classmethod
-  def encode_trackList(cls, doc, tracks):
-    trackList = doc.createElement('trackList')
-    if tracks:
-      for t in tracks:
-        track = doc.createElement('track')
-        for k,v in t.items():
-          n = doc.createElement(k)
-          n.appendChild(doc.createTextNode(unicode(v)))
-          track.appendChild(n)
-        trackList.appendChild(track)
-    return trackList
+  def parse_trackList(cls, elem):
+    tracks = []
+    for child in elem.getchildren():
+      if cls.xml_tag(child)[0] == 'track':
+        tracks.append(cls.parse_track(child))
+    return tracks
+  
+  @classmethod
+  def parse_track(cls, elem):
+    track = {}
+    for child in elem.getchildren():
+      k,ns = cls.xml_tag(child)
+      if k in cls.TRACK_TEXT_TAGS:
+        track[k] = child.text
+      elif k in cls.TRACK_INT_TAGS:
+        track[k] = int(child.text)
+      elif k in cls.TRACK_META_TAGS:
+        track[k] = cls.prase_track_meta(child)
+      elif k in cls.TRACK_XML_TAGS:
+        track[k] = child
+    return track
+  
+  @classmethod
+  def parse_track_meta(cls, elem):
+    return {
+      'rel':elem.get('rel'),
+      'content':elem.text
+    }
+  
+  # Writing
+  
+  @classmethod
+  def build_document(cls, obj):
+    root = Element(cls.xml_root_name, **cls.xml_root_attrs)
+    for k,v in obj.iteritems():
+      if k == 'trackList':
+        root.append(cls.build_trackList(v))
+      else:
+        if isinstance(v, datetime):
+          v = DateTime(v).as_utc().strftime('%Y-%m-%dT%H:%M:%SZ')
+        elif not isinstance(v, basestring):
+          v = str(v)
+        root.append(cls.xml_mktext(k, v))
+    return root
+  
+  @classmethod
+  def build_trackList(cls, iterable):
+    e = Element('trackList')
+    for track in iterable:
+      e.append(cls.build_track(track))
+    return e
+  
+  @classmethod
+  def build_track(cls, track):
+    e = Element('track')
+    for k,v in track.iteritems():
+      if not isinstance(v, basestring):
+        v = str(v)
+      e.append(cls.xml_mktext(k, v))
+    return e
+  
+  # Encoding errors
   
   @classmethod
   def encode_error(cls, status, params, charset):
     from smisk.core import Application
-    app = Application.current
-    if app:
-      identifier = unicode(Application.current.request.url) + '#'
+    if Application.current:
+      identifier = unicode(Application.current.request.url) + u'#'
     else:
-      identifier = 'urn:smisk:'
-    identifier += 'error/%d' % status.code
+      identifier = u'smisk:'
+    identifier += u'error:%d' % status.code
     return cls.encode({
-      'title':      params['name'],
-      'annotation': params['description'],
-      'identifier': identifier,
-      'trackList':  None
+      u'title':      params['name'],
+      u'annotation': params['description'],
+      u'identifier': identifier,
+      u'trackList':  None
     }, charset)
   
-  @classmethod
-  def decode(cls, file, length=-1, charset=None):
-    ''':returns: (list args, dict params)'''
-    doc = parse_xml(file.read(length))
-    d = {}
-    playlist = doc.firstChild
-    for n in playlist.childNodes:
-      if n.nodeType is not doc.ELEMENT_NODE:
-        continue
-      k = n.nodeName
-      v = None
-      if k == 'trackList':
-        v = cls.decode_trackList(doc, n)
-      else:
-        v = n.firstChild.nodeValue.strip()
-      d[unicode(k)] = v
-    return (None, d)
-  
-  INT_ELEMENTS_OF_TRACK = ('trackNum', 'duration')
-  
-  @classmethod
-  def decode_trackList(cls, doc, trackList):
-    tracks = []
-    for track_node in trackList.childNodes:
-      if track_node.nodeType is not doc.ELEMENT_NODE:
-        continue
-      track = {}
-      for n in track_node.childNodes:
-        if n.nodeType is not doc.ELEMENT_NODE:
-          continue
-        k = n.nodeName
-        v = n.firstChild.nodeValue.strip()
-        if k in cls.INT_ELEMENTS_OF_TRACK:
-          v = int(v)
-        track[unicode(k)] = v
-      tracks.append(track)
-    return tracks
-  
-  @classmethod
-  def setup(cls):
-    _E = ElementSpec
-    tree = [
-      _E('title', 'A human-readable title for the playlist.'),
-      _E('creator', 'Human-readable name of the entity (author, authors, '\
-        'group, company, etc) that authored the playlist.'),
-      _E('annotation', 'A human-readable comment on the playlist. This is character '\
-        'data, not HTML, and it may not contain markup.'),
-      _E('info', 'URI of a web page to find out more about this playlist. Likely '\
-        'to be homepage of the author, and would be used to find out more '\
-        'about the author and to find more playlists by the author.'),
-      _E('location', 'Source URI for this playlist.'),
-      _E('identifier', 'Canonical ID for this playlist. Likely to be a hash or other '\
-        'location-independent name. MUST be a legal URI.'),
-      _E('image', 'URI of an image to display in the absence of a '\
-        '//playlist/trackList/image element.'),
-      _E('date', 'Creation date (not last-modified date) of the playlist, '\
-        'formatted as a XML schema dateTime.'),
-      _E('license', 'URI of a resource that describes the license under which this '\
-        'playlist was released'),
-      _E('attribution', 'An ordered list of URIs. The purpose is to satisfy licenses '\
-        'allowing modification but requiring attribution.'),
-      _E('link', 'The link element allows XSPF to be extended without the use of '\
-        'XML namespaces.',
-        maxcount=0),
-      _E('meta', 'The meta element allows metadata fields to be added to XSPF.',
-        maxcount=0),
-      _E('extension', 'The extension element allows non-XSPF XML to be included in XSPF '\
-        'documents. The purpose is to allow nested XML, which the meta and '\
-        'link elements do not.',
-        maxcount=0),
-      _E('trackList', 'Ordered list of xspf:track elements to be rendered. The sequence '\
-        'is a hint, not a requirement; renderers are advised to play tracks '\
-        'from top to bottom unless there is an indication otherwise.',
-        mincount=1),
-    ]
-    for e in tree:
-      cls.ELEMENTS[e.name] = e
+  # Set these to None for documentation puroses
+  parse_object = None
+  build_object = None
   
 
-codec.setup()
-codecs.register(codec)
+# Only register if xml.etree is available
+if ElementTree is not None:
+  codecs.register(XSPFCodec)
 
 if __name__ == '__main__':
-  codec.pretty_print = True
-  try:
-    raise Exception('Mosmaster!')
-  except:
-    import sys
-    from smisk.mvc.http import InternalServerError
-    #print codec.encode_error(InternalServerError, {}, *sys.exc_info())
-  charset, xml = codec.encode({
+  if 0:
+    try:
+      raise Exception('Mosmaster!')
+    except:
+      import sys
+      from smisk.mvc.http import InternalServerError
+      print XSPFCodec.encode_error(InternalServerError, {}, 'utf-8')
+  charset, xmlstr = XSPFCodec.encode({
     'title': 'Spellistan frum hell',
     'creator': 'rasmus',
-    'trackList': [
+    'date': DateTime.now(),
+    'trackList': (
       {
         'location': 'spotify:track:0yR57jH25o1jXGP4T6vNGR',
         'identifier': 'spotify:track:0yR57jH25o1jXGP4T6vNGR',
@@ -207,9 +218,8 @@ if __name__ == '__main__':
         'trackNum': 3,
         'duration': 410007
       },
-    ]
-  })
-  #print xml
+    )
+  }, 'utf-8')
+  print xmlstr
   from StringIO import StringIO
-  f = StringIO(xml)
-  print codec.decode(f)
+  print repr(XSPFCodec.decode(StringIO(xmlstr)))
