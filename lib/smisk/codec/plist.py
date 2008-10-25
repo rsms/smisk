@@ -98,7 +98,7 @@ class XMLPlistCodec(XMLBaseCodec):
       return Element('true')
     elif obj is False:
       return Element('false')
-    elif isinstance(obj, list):
+    elif isinstance(obj, (ListType, TupleType)):
       return cls.build_array(obj)
     elif isinstance(obj, data): # must be tested before basestr since its a subclass of str
       return cls.xml_mktext('data', base64.b64encode(obj))
@@ -108,9 +108,9 @@ class XMLPlistCodec(XMLBaseCodec):
       return cls.build_dict(obj)
     elif isinstance(obj, float):
       return cls.xml_mktext('real', obj.__str__())
-    elif isinstance(obj, int):
+    elif isinstance(obj, (IntType, LongType)):
       return cls.xml_mktext('integer', obj.__str__())
-    elif isinstance(obj, basestring):
+    elif isinstance(obj, StringType):
       return cls.xml_mktext('string', obj)
     else:
       raise PlistEncodingError('Unsupported type: %s' % type(obj).__name__)
