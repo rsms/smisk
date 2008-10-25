@@ -4,6 +4,7 @@
 .. packagetree::
 .. importgraph::
 '''
+from StringIO import StringIO
 
 class data(str):
   '''Represents arbitrary bytes.
@@ -72,6 +73,7 @@ class CodecRegistry(object):
     # Set first_in
     if self.first_in is None:
       self.first_in = codec
+    codec.did_register(self)
   
   def unregister(self, codec):
     '''Unregister a previously registered codec.
@@ -91,6 +93,7 @@ class CodecRegistry(object):
         self.first_in = self.codecs[0]
       else:
         self.first_in = None
+    codec.did_unregister(self)
   
   def __iter__(self):
     return self.codecs.__iter__()
@@ -229,15 +232,62 @@ class BaseCodec(object):
   
   @classmethod
   def directions(cls):
-    '''List of possible directions: "encode", "decode".
+    '''List of possible directions.
     
+    :Returns:
+      ``["read", "write"]``, ``["read"]``, ``["write"]`` or ``[]``
     :rtype: list'''
-    l = []
-    if cls.encode.im_func.func_code != BaseCodec.encode.im_func.func_code:
-      l.append('encode')
-    if cls.decode.im_func.func_code != BaseCodec.decode.im_func.func_code:
-      l.append('decode')
-    return l
+    try:
+      return cls._directions
+    except AttributeError:
+      cls._directions = []
+      # test decode
+      can_read = True
+      try:
+        cls.decode(StringIO(''), 0)
+      except NotImplementedError, e:
+        can_read = False
+      except:
+        pass
+      if can_read:
+        cls._directions.append('read')
+      # test encode
+      try:
+        if cls.encode({'a':1}, 'utf-8') is not None:
+          cls._directions.append('write')
+      except NotImplementedError:
+        pass
+      return cls._directions
+  
+  @classmethod
+  def did_register(cls, registry):
+    '''Called when this codec has been successfully registered in a `CodecRegistry`.
+    
+    Default implementation does nothing. This is meant to be overridden in
+    subclasses to allow a kind of *initialization routine*, setting up
+    `cls` if needed.
+    
+    :Parameters:
+      registry : CodecRegistry
+        The registry in which this codec was just registered
+    :rtype: None
+    '''
+    pass
+  
+  @classmethod
+  def did_unregister(cls, registry):
+    '''Called when this codec has been removed from a `CodecRegistry`.
+    
+    Default implementation does nothing. This is meant to be overridden in
+    subclasses to allow a kind of *initialization routine*, tearing down
+    `cls` if needed.
+    
+    :Parameters:
+      registry : CodecRegistry
+        The registry from which this codec was removed
+    :rtype: None
+    '''
+    pass
   
 
 # Load built-in codecs
