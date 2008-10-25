@@ -230,17 +230,12 @@ class Application(smisk.core.Application):
                router=None,
                templates=None,
                show_traceback=False,
-               log_level=logging.WARN,
-               log_format='%(levelname)-8s %(name)-20s %(message)s',
                *args, **kwargs):
     '''Initialize a new application.
     '''
     super(Application, self).__init__(*args, **kwargs)
     self.request_class = Request
     self.response_class = Response
-    
-    # Basic config of logging
-    logging.basicConfig(format=log_format)
     
     self.etag = etag
     self.autoreload = autoreload
@@ -262,20 +257,12 @@ class Application(smisk.core.Application):
     path = os.path.join(os.environ['SMISK_APP_DIR'], config_mod_name)
     locs = {'app': self}
     if not os.path.exists(path):
-      log.info('No configuration found -- no %s module in %s.', config_mod_name, path)
       return
     if os.path.isdir(path):
       execfile(os.path.join(path, '__init__.py'), globals(), locs)
-      log.info('Loaded configuration from module %r', config_mod_name)
       path = os.path.join(path, '%s.py' % environment())
       if os.path.exists(path):
         execfile(path, globals(), locs)
-        log.info('Loaded configuration (for %r environment) from module %s.%s',
-                 environment(), config_mod_name, environment())
-      else:
-        log.debug('No configuration found for active environment (%s) -- '\
-                  'no %s.%s module in application.', environment(), 
-                  config_mod_name, environment())
   
   
   def setup(self):
@@ -295,6 +282,11 @@ class Application(smisk.core.Application):
     
     :rtype: None
     '''
+    # Setup logging
+    # Calling basicConfig has no effect if logging is already configured.
+    # (for example by an application configuration)
+    logging.basicConfig(format='%(levelname)-8s %(name)-20s %(message)s')
+    
     # Setup ETag
     if self.etag is not None and isinstance(self.etag, basestring):
       import hashlib
@@ -306,14 +298,13 @@ class Application(smisk.core.Application):
         path = os.path.join(os.environ['SMISK_APP_DIR'], 'templates')
         if os.path.isdir(path):
           self.templates.directories = [path]
+          log.debug('Using template directories: %s', ', '.join(self.templates.directories))
         else:
           log.info('Template directory not found -- disabling templates.')
           self.templates.directories = []
           self.templates = None
-      if self.templates:
-        if self.templates.autoreload is None:
-          self.templates.autoreload = self.autoreload
-        log.debug('Using template directories: %s', ', '.join(self.templates.directories))
+      if self.templates and self.templates.autoreload is None:
+        self.templates.autoreload = self.autoreload
     
     # Set fallback codec
     if Response.fallback_codec is None:
