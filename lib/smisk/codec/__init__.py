@@ -6,6 +6,11 @@
 '''
 from StringIO import StringIO
 
+__all__ = [
+  'codecs',
+  'data', 'CodecRegistry', 'EncodingError', 'DecodingError', 'BaseCodec',
+]
+
 class data(str):
   '''Represents arbitrary bytes.
   '''
