@@ -4,7 +4,7 @@ Plain text encoding
 '''
 from smisk.codec import codecs, BaseCodec
 
-class codec(BaseCodec):
+class PythonPyCodec(BaseCodec):
   '''Python code codec.'''
   name = 'Python code'
   extensions = ('py',)
@@ -26,11 +26,11 @@ class codec(BaseCodec):
       return ((st,), None)
   
 
-codecs.register(codec)
+codecs.register(PythonPyCodec)
 
 if __name__ == '__main__':
   from datetime import datetime
-  print codec.encode({
+  print PythonPyCodec.encode({
     'message': 'Hello worlds',
     'internets': [
       'interesting',
