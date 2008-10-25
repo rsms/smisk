@@ -1,6 +1,5 @@
 # encoding: utf-8
-'''
-JSON serialization (RFC 4627)
+'''XHTML generic serialization
 '''
 from smisk.codec import codecs, BaseCodec
 from smisk.mvc import http
@@ -42,7 +41,7 @@ def encode_sequence(l, buf, value_wraptag='tt'):
   return buf
 
 
-class codec(BaseCodec):
+class XHTMLCodec(BaseCodec):
   '''XHTML codec'''
   name = 'XHTML: Extensible Hypertext Markup Language'
   extensions = ('html',)
@@ -95,7 +94,7 @@ class codec(BaseCodec):
     return (charset, s.encode(charset))
   
 
-codecs.register(codec)
+codecs.register(XHTMLCodec)
 
 ERROR_TEMPLATE = ur'''<?xml version="1.0" encoding="%(charset)s" ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -124,7 +123,7 @@ ERROR_TEMPLATE = ur'''<?xml version="1.0" encoding="%(charset)s" ?>
 
 if __name__ == '__main__':
   from datetime import datetime
-  s = codec.encode({
+  s = XHTMLCodec.encode({
     'message': 'Hello worlds',
     'internets': [
       'interesting',
@@ -149,5 +148,5 @@ if __name__ == '__main__':
       }
     ],
     'today': datetime.now()
-  })
+  }, XHTMLCodec.charset)
   print s
