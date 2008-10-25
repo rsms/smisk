@@ -239,12 +239,8 @@ class Application(smisk.core.Application):
     self.request_class = Request
     self.response_class = Response
     
-    # Basic config
-    logging.basicConfig(
-      level=log_level,
-      format=log_format,
-      datefmt='%d %b %H:%M:%S'
-    )
+    # Basic config of logging
+    logging.basicConfig(format=log_format)
     
     self.etag = etag
     self.autoreload = autoreload
