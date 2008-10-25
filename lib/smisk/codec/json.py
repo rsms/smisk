@@ -20,7 +20,7 @@ except ImportError:
     from warnings import warn
     warn('No JSON implementation available. Install cjson or minjson.')
 
-class codec(BaseCodec):
+class JSONCodec(BaseCodec):
   '''JSON with JSONP support.
   
   JSONP support through passing the special ``callback`` query string parameter.
@@ -57,10 +57,10 @@ class codec(BaseCodec):
 
 # Don't register if we did not find a json implementation
 if json_encode is not None:
-  codecs.register(codec)
+  codecs.register(JSONCodec)
 
 if __name__ == '__main__':
-  s = codec.encode({
+  s = JSONCodec.encode({
     'message': 'Hello worlds',
     'internets': [
       'interesting',
