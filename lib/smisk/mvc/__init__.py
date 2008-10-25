@@ -242,8 +242,8 @@ class Application(smisk.core.Application):
     # Basic config
     logging.basicConfig(
       level=log_level,
-      format = log_format,
-      datefmt = '%d %b %H:%M:%S'
+      format=log_format,
+      datefmt='%d %b %H:%M:%S'
     )
     
     self.etag = etag
@@ -311,11 +311,13 @@ class Application(smisk.core.Application):
         if os.path.isdir(path):
           self.templates.directories = [path]
         else:
-          log.info('Template directory not found even though templates are enabled')
+          log.info('Template directory not found -- disabling templates.')
           self.templates.directories = []
-      if self.templates.autoreload is None:
-        self.templates.autoreload = self.autoreload
-      log.debug('Using template directories: %s', ', '.join(self.templates.directories))
+          self.templates = None
+      if self.templates:
+        if self.templates.autoreload is None:
+          self.templates.autoreload = self.autoreload
+        log.debug('Using template directories: %s', ', '.join(self.templates.directories))
     
     # Set fallback codec
     if Response.fallback_codec is None:
@@ -326,12 +328,6 @@ class Application(smisk.core.Application):
     
     # Setup any models
     model.setup_all()
-    
-    # Info about codecs
-    if log.level <= logging.DEBUG:
-      log.debug('installed codecs: %s', ', '.join(unique_sorted_modules_of_items(codecs)) )
-      log.debug('acceptable media types: %s', ', '.join(codecs.media_types.keys()))
-      log.debug('available filename extensions: %s', ', '.join(codecs.extensions.keys()))
   
   
   def application_will_start(self):
@@ -351,6 +347,12 @@ class Application(smisk.core.Application):
     application = self
     request = self.request
     response = self.response
+    
+    # Info about codecs
+    if log.level <= logging.DEBUG:
+      log.debug('installed codecs: %s', ', '.join(unique_sorted_modules_of_items(codecs)) )
+      log.debug('acceptable media types: %s', ', '.join(codecs.media_types.keys()))
+      log.debug('available filename extensions: %s', ', '.join(codecs.extensions.keys()))
     
     # When we return, accept() in smisk.core is called
     log.info('Accepting connections')
@@ -817,7 +819,7 @@ class Application(smisk.core.Application):
           format = self.response.codec.extension
           
           # Try to use a template...
-          if status.uses_template:
+          if status.uses_template and self.templates:
             rsp = self.templates.render_error(status, params, format)
           
           # ...or a codec
