@@ -12,7 +12,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-class codec(BaseCodec):
+class PythonPickleCodec(BaseCodec):
   '''
   Python Pickle codec
   
@@ -47,4 +47,4 @@ class codec(BaseCodec):
       return ((st,), None)
   
 
-codecs.register(codec)
+codecs.register(PythonPickleCodec)
