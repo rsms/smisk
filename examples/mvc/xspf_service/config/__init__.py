@@ -4,13 +4,7 @@ app.show_traceback = True
 
 Application.default_format = 'xspf'
 
-# Pretty-print XSPF by default
-from smisk.codec import xspf
-xspf.codec.pretty_print = True
-
-# Logging
 logging.basicConfig(
-  level=logging.INFO,
-  format = '%(levelname)-8s %(name)-20s %(message)s',
-  datefmt = '%d %b %H:%M:%S'
+  format='%(levelname)-8s %(name)-20s %(message)s',
+  level=logging.INFO
 )
