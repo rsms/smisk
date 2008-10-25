@@ -2,7 +2,7 @@
 '''XML support.
 '''
 import logging
-from smisk.codec import codecs, data, BaseCodec
+from smisk.codec import codecs, data, BaseCodec, EncodingError, DecodingError
 from smisk.core import Application
 
 try:
@@ -15,8 +15,17 @@ except ImportError:
 
 log = logging.getLogger(__name__)
 
-__all__ = ['codecs', 'data', 'XMLBaseCodec', 'ElementTree', 'Element']
+__all__ = [
+  'codecs',
+  'data', 'XMLBaseCodec', 'XMLEncodingError', 'XMLDecodingError',
+  'ElementTree', 'Element'
+]
 
+class XMLEncodingError(EncodingError):
+  pass
+
+class XMLDecodingError(DecodingError):
+  pass
 
 class XMLBaseCodec(BaseCodec):
   '''XML codec baseclass.

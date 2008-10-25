@@ -1,5 +1,5 @@
 # encoding: utf-8
-'''Apple/NeXT Property Lists.
+'''Apple/NeXT Property List serialization.
 '''
 import base64
 from smisk.codec.xmlbase import *
@@ -12,10 +12,10 @@ __all__ = [
   'PlistDecodingError',
   'XMLPlistCodec']
 
-class PlistEncodingError(Exception):
+class PlistEncodingError(XMLEncodingError):
   pass
 
-class PlistDecodingError(Exception):
+class PlistDecodingError(XMLDecodingError):
   pass
 
 class XMLPlistCodec(XMLBaseCodec):
@@ -100,7 +100,7 @@ class XMLPlistCodec(XMLBaseCodec):
       return Element('false')
     elif isinstance(obj, list):
       return cls.build_array(obj)
-    elif isinstance(obj, data): # must be tested before basestr
+    elif isinstance(obj, data): # must be tested before basestr since its a subclass of str
       return cls.xml_mktext('data', base64.b64encode(obj))
     elif isinstance(obj, datetime):
       return cls.xml_mktext('date', obj.strftime('%Y-%m-%dT%H:%M:%SZ'))

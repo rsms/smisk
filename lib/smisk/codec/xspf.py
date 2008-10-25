@@ -18,10 +18,10 @@ __all__ = [
   'XSPFDecodingError',
   'XSPFCodec']
 
-class XSPFEncodingError(Exception):
+class XSPFEncodingError(XMLEncodingError):
   pass
 
-class XSPFDecodingError(Exception):
+class XSPFDecodingError(XMLDecodingError):
   pass
 
 class XSPFCodec(XMLBaseCodec):

@@ -109,6 +109,10 @@ class EncodingError(Exception):
   '''Indicates an encoding error'''
   pass
 
+class DecodingError(Exception):
+  '''Indicates an encoding error'''
+  pass
+
 
 class BaseCodec(object):
   '''
