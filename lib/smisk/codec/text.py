@@ -50,7 +50,7 @@ def encode_sequence(l, buf, level):
     i += 1
   return buf
 
-class codec(BaseCodec):
+class PlainTextCodec(BaseCodec):
   '''Plain Text codec.'''
   name = 'Plain text'
   extensions = ('txt',)
@@ -63,11 +63,11 @@ class codec(BaseCodec):
     return (charset, s.encode(charset))
   
 
-codecs.register(codec)
+codecs.register(PlainTextCodec)
 
 if __name__ == '__main__':
   from datetime import datetime
-  print codec.encode({
+  print PlainTextCodec.encode({
     u'message': 'Hello worlds',
     'internets': [
       'interesting',
@@ -96,4 +96,4 @@ if __name__ == '__main__':
       }
     ],
     'today': datetime.now()
-  }, codec.charset)[1]
+  }, PlainTextCodec.charset)[1]
