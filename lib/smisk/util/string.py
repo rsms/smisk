@@ -2,7 +2,7 @@
 '''string
 '''
 import sys, os
-from smisk.core import URL
+from smisk.core import URL, request
 
 __all__ = ['parse_qvalue_header', 'tokenize_path', 'strip_filename_extension', 'normalize_url']
 
@@ -74,20 +74,33 @@ def strip_filename_extension(fn):
   except:
     return fn
 
-def normalize_url(url):
-  ''':rtype: string'''
+def normalize_url(url, default_absolute_url=None):
+  '''
+  :Parameters:
+    url : string
+      An absolute URL, absolute path or relative path
+    default_absolute_url : URL
+      Default absolute URL used to expand a path to a full URL.
+      Uses `smisk.core.request.url` if not set.
+  :rtype: string
+  '''
   if url.find('://') == -1:
     # url is actually a path
     path = url
-    if request:
+    if default_absolute_url:
+      url = default_absolute_url
+    elif request:
       url = request.url
     else:
       url = URL()
     if len(path) == 0:
       path = '/'
     elif path[0] != '/':
-      path = os.path.normpath(url.path) + '/' + os.path.normpath(path)
+      if url.path:
+        path = os.path.normpath(url.path) + '/' + os.path.normpath(path)
+      else:
+        path = '/' + os.path.normpath(path)
     else:
       path = os.path.normpath(path)
-    url = url.to_s(port=url.port!=80, path=False) + path
+    url = url.to_s(port=url.port!=80, path=0, query=0, fragment=0) + path
   return url
