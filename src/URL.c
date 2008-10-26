@@ -450,18 +450,23 @@ int smisk_URL_init(smisk_URL *self, PyObject *args, PyObject *kwargs) {
   // Save reference to first argument (a string) and type check it
   str = PyTuple_GET_ITEM(args, 0);
   
-  if (!str || !SMISK_PyString_Check(str)) {
-    PyErr_SetString(PyExc_TypeError, "first argument to URL() must be a string");
-    Py_DECREF(self);
-    return -1;
+  if (!SMISK_PyString_Check(str)) {
+    str = PyObject_Str(str);
+    if (str == NULL)
+      return -1;
+  }
+  else {
+    Py_INCREF(str);
   }
   
   if (!_parse(self, PyString_AsString(str), PyString_Size(str))) {
     PyErr_SetString(PyExc_ValueError, "Failed to parse URL");
+    Py_DECREF(str);
     Py_DECREF(self);
     return -1;
   }
   
+  Py_DECREF(str);
   return 0;
 }
 
