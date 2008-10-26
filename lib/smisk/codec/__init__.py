@@ -301,5 +301,5 @@ class BaseCodec(object):
 
 # Load built-in codecs
 import os
-from smisk.util import load_modules
+from smisk.util.python import load_modules
 load_modules(os.path.dirname(__file__))

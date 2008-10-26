@@ -5,7 +5,7 @@ JSON: JavaScript Object Notation
 :see: `RFC 4627 <http://tools.ietf.org/html/rfc4627>`__
 :requires: `cjson <http://pypi.python.org/pypi/python-cjson>`__ | minjson
 '''
-from smisk.core import Application
+from smisk.core import request
 from smisk.codec import codecs, BaseCodec
 try:
   from cjson import encode as json_encode, decode as json_decode,\
@@ -32,8 +32,8 @@ class JSONCodec(BaseCodec):
   @classmethod
   def encode(cls, params, charset):
     callback = None
-    if Application.current:
-      callback = Application.current.request.get.get('callback', None)
+    if request:
+      callback = request.get.get('callback', None)
     if callback:
       return (None, '%s(%s);' % (callback, json_encode(params)))
     else:

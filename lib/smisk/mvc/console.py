@@ -19,10 +19,9 @@ The console can also be run directly from the module::
 
 import sys, os, time, logging, __builtin__
 import code, readline, atexit
-from smisk.mvc import *
+from smisk import *
 from smisk.mvc.control import *
 from smisk.mvc.model import *
-from smisk.util import *
 
 class Console(code.InteractiveConsole):
   def __init__(self, locals=None, filename="<console>",

@@ -3,8 +3,6 @@
 '''Unit test suite.
 '''
 import unittest, os
-from smisk.util import *
-from smisk.mvc.control import *
 
 class TestCase(unittest.TestCase):
   def assertContains(self, collection1, collection2):
@@ -24,7 +22,7 @@ class TestCase(unittest.TestCase):
   
 
 def suite():
-  from smisk.util import load_modules
+  from smisk.util.python import load_modules
   suites = []
   for m in load_modules(os.path.dirname(__file__), deep=True).values():
     try:

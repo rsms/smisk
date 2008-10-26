@@ -35,8 +35,7 @@ mako.filters.url_unescape = URL.decode
 
 class Templates(object):
   cache_limit = -1
-  '''
-  Limit cache size.
+  '''Limit cache size.
   
   0 means no cache.
   -1 means no limit.
@@ -46,33 +45,30 @@ class Templates(object):
   '''
   
   cache_type = 'memory'
-  '''
-  Type of cache.
+  '''Type of cache.
   
   :type: string
   '''
   
   imports = [
     'import os, sys, time, logging',
-    'from smisk.mvc import application, request, response',
+    'from smisk.mvc import app, request, response',
     'from smisk.mvc.template.filters import j',
     'log = logging.getLogger(\'template:\' + _template_uri)'
   ]
   ''':type: list'''
   
   autoreload = None
-  '''
-  Automatically reload templates which has been modified.
+  '''Automatically reload templates which has been modified.
   
-  If this is set to None when `app` starts accepting requests, the application
-  will set the value according to its own autoreload value.
+  If this is set to None when the application start accepting requests,
+  the application will set the value according to its own autoreload value.
   
   :type: bool
   '''
   
   format_template_exceptions = True
-  '''
-  Let the templating engine render information about template formatting exceptions.
+  '''Let the templating engine render information about template formatting exceptions.
   
   Things like missing or misspelled variables etc.
   
@@ -80,26 +76,20 @@ class Templates(object):
   '''
   
   directories = None
-  '''
-  Directories in which to find templates.
+  '''Directories in which to find templates.
   
   :type: list
   '''
   
   errors = {}
-  '''
-  Map http error to a template path.
+  '''Map http error to a template path.
   
   i.e. 500: 'errors/server_error'
   
   :type: dict
   '''
   
-  app = None
-  ''':type: smisk.core.Application'''
-  
-  def __init__(self, app):
-    self.app = app
+  def __init__(self):
     self.directories = []
     self.get_template = self.template_for_uri # for compat with mako
     self.reset_cache()

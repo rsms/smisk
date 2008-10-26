@@ -28,12 +28,15 @@ int smisk_listensock_fileno;
 PyObject *os_module;
 PyThreadState *smisk_py_thstate;
 
+// The smisk.core module
+PyObject *smisk_core_module;
+
 // static objects at module-level
 PyObject *smisk_Error; // extends PyExc_StandardError
 PyObject *smisk_IOError; // extends PyExc_IOError
 PyObject *smisk_InvalidSessionError; // extends PyExc_ValueError
 
-// Other static strings (only used in C API)
+// String constants
 PyObject *kString_http;
 PyObject *kString_https;
 

@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 # encoding: utf-8
 from smisk.mvc import *
+from smisk.core import app
 
 class root(Controller):
+  #def __init__(self, *args, **kwa):
+  #  Controller.__init__(self, *args, **kwa)
+  #  print >> sys.stderr, 'in root.__init__ app =', app
+  
   def __call__(self, *args, **params):
     raise http.Found('/example')
   

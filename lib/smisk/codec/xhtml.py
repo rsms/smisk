@@ -4,7 +4,7 @@
 from smisk.codec import codecs, BaseCodec
 from smisk.mvc import http
 from smisk.core.xml import escape as xml_escape
-from smisk.core import Application
+from smisk.core import app, request
 
 def encode_value(v, buf, value_wraptag='tt'):
   if isinstance(v, bool):
@@ -52,9 +52,9 @@ class XHTMLCodec(BaseCodec):
   def encode(cls, params, charset):
     title = u'Response'
     server = u''
-    if Application.current is not None and Application.current.destination is not None:
-      title = u'/%s.html' % u'/'.join(Application.current.destination.path)
-      server = Application.current.request.env['SERVER_SOFTWARE']
+    if app and app.destination is not None:
+      title = u'/%s.html' % u'/'.join(app.destination.path)
+      server = request.env['SERVER_SOFTWARE']
     d = [u'<?xml version="1.0" encoding="%s" ?>' % charset]
     d.append(u'<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '\
              u'"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')

@@ -21,7 +21,7 @@ class PHPSerialCodec(BaseCodec):
   def encode_key(cls, obj, f):
     if isinstance(obj, (IntType, FloatType, LongType, BooleanType)):
       f.write('i:%d;' % int(obj))
-    elif isinstance(obj, StringType):
+    elif isinstance(obj, basestring):
       try:
         f.write('i:%d;' % int(obj))
       except ValueError:
@@ -39,7 +39,9 @@ class PHPSerialCodec(BaseCodec):
       f.write('d:%s;' % obj)
     elif isinstance(obj, IntType):
       f.write('i:%d;' % obj)
-    elif isinstance(obj, StringType):
+    elif isinstance(obj, data):
+      f.write('s:%d:"%s";' % (len(obj), obj))
+    elif isinstance(obj, basestring):
       try:
         f.write('i:%d;' % int(obj))
       except ValueError:
@@ -47,13 +49,17 @@ class PHPSerialCodec(BaseCodec):
     elif isinstance(obj, NoneType):
       f.write('N;')
     elif isinstance(obj, (ListType, TupleType)):
+      f.write('a:%i:{' % len(obj))
       for k,v in enumerate(obj):
         f.write('i:%d;' % k)
         cls.encode_object(v, f)
+      f.write('}')
     elif isinstance(obj, DictType):
+      f.write('a:%i:{' % len(obj))
       for k,v in obj.iteritems():
         cls.encode_key(k, f)
         cls.encode_object(v, f)
+      f.write('}')
     else:
       raise PHPSerialEncodingError('Unsupported type: %s' % type(obj).__name__)
   

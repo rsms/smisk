@@ -29,6 +29,7 @@ class level3(level2):
   @hide
   def hidden_method_on_level3(self): pass
   def func_on_level3(self, *va): return '/level2/level3/func_on_level3'
+  def func_on_level3_wonlykwa(self, **kva): return '/level2/level3/func_on_level3_wonlykwa'
 
 class level3B(level2):
   slug = 'level-3-b'

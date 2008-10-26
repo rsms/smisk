@@ -6,7 +6,7 @@
 import base64
 from smisk.codec.xmlbase import *
 from datetime import datetime
-from smisk.util import DateTime
+from smisk.util.DateTime import DateTime
 from types import *
 try:
   from xml.etree.ElementTree import QName
@@ -156,9 +156,9 @@ class XSPFCodec(XMLBaseCodec):
   
   @classmethod
   def encode_error(cls, status, params, charset):
-    from smisk.core import Application
-    if Application.current:
-      identifier = unicode(Application.current.request.url) + u'#'
+    from smisk.core import request
+    if request:
+      identifier = unicode(request.url) + u'#'
     else:
       identifier = u'smisk:'
     identifier += u'error:%d' % status.code

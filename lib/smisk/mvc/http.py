@@ -1,7 +1,7 @@
 # encoding: utf-8
 '''HTTP support (status codes, etc)
 '''
-from smisk.util import normalize_url, strip_filename_extension
+from smisk.util.string import normalize_url, strip_filename_extension
 from smisk.core import URL
 from smisk.core.xml import escape as xmlesc
 

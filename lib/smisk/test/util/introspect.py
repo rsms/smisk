@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
 from smisk.test import *
-from smisk.util import *
+from smisk.util.introspect import *
+from smisk.util.type import Undefined
 
 class A(object):
   def __call__(self):

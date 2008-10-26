@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 import sys, os, platform
-from smisk import Application, Request, Response
+from smisk import Application, Request, Response, request
 
 class MyRequest(Request):
   def accepts_charsets(self):
@@ -23,7 +23,7 @@ class MyRequest(Request):
 
 class MyResponse(Response):
   def redirect_to_path(self, path):
-    url = Application.current.request.url
+    url = request.url
     include_port = True
     if url.port == 80:
       include_port = False

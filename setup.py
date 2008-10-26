@@ -507,6 +507,7 @@ setup(
     'smisk.mvc',
     'smisk.mvc.template',
     'smisk.codec',
+    'smisk.util',
     'smisk.test',
   ],
   include_package_data=True,

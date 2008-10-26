@@ -333,6 +333,7 @@ PyDoc_STRVAR(smisk_module_DOC,
 
 PyMODINIT_FUNC initcore(void) {
   log_trace("ENTER");
+  int rc;
   
   // Initialize libfcgi
   if(FCGX_Init() != 0) {
@@ -341,16 +342,13 @@ PyMODINIT_FUNC initcore(void) {
 	}
   
   // Create module
-  PyObject *module;
-  module = Py_InitModule("smisk.core", module_methods);
+  smisk_core_module = Py_InitModule("smisk.core", module_methods);
   
   // Initialize crash dumper
   smisk_crash_dump_init();
   
-  // Load os module
-  PyObject *os_str = PyString_FromString("os");
-  os_module = PyImport_Import(os_str);
-  Py_DECREF(os_str);
+  // import os
+  os_module = PyImport_ImportModule("os");
   if (os_module == NULL)
     return;
   
@@ -359,32 +357,59 @@ PyMODINIT_FUNC initcore(void) {
   kString_https = PyString_FromString("https");
   
   // Constants: Special variables
-  if (PyModule_AddStringConstant(module, "__build__", SMISK_BUILD_ID) != 0)
+  if (PyModule_AddStringConstant(smisk_core_module, "__build__", SMISK_BUILD_ID) != 0)
     return;
-  if (PyModule_AddStringConstant(module, "__doc__", smisk_module_DOC) != 0)
+  if (PyModule_AddStringConstant(smisk_core_module, "__doc__", smisk_module_DOC) != 0)
     return;
   
   // Register types
-  if (!module ||
-    (smisk_Application_register_types(module) != 0) ||
-    (smisk_Request_register_types(module) != 0) ||
-    (smisk_Response_register_types(module) != 0) ||
-    (smisk_Stream_register_types(module) != 0) ||
-    (smisk_URL_register_types(module) != 0) ||
-    (smisk_SessionStore_register_types(module) != 0) ||
-    (smisk_FileSessionStore_register_types(module) != 0) ||
-    (smisk_xml_register(module) == NULL)
+  if (!smisk_core_module ||
+    (smisk_Application_register_types(smisk_core_module) != 0) ||
+    (smisk_Request_register_types(smisk_core_module) != 0) ||
+    (smisk_Response_register_types(smisk_core_module) != 0) ||
+    (smisk_Stream_register_types(smisk_core_module) != 0) ||
+    (smisk_URL_register_types(smisk_core_module) != 0) ||
+    (smisk_SessionStore_register_types(smisk_core_module) != 0) ||
+    (smisk_FileSessionStore_register_types(smisk_core_module) != 0) ||
+    (smisk_xml_register(smisk_core_module) == NULL)
     ) {
       return;
   }
   
   // Exceptions
-  if (!(smisk_Error = PyErr_NewException("smisk.core.Error", PyExc_StandardError, NULL))) return;
-  PyModule_AddObject(module, "Error", smisk_Error);
-  if (!(smisk_IOError = PyErr_NewException("smisk.core.IOError", PyExc_IOError, NULL))) return;
-  PyModule_AddObject(module, "IOError", smisk_IOError);
-  if (!(smisk_InvalidSessionError = PyErr_NewException("smisk.core.InvalidSessionError", PyExc_ValueError, NULL))) return;
-  PyModule_AddObject(module, "InvalidSessionError", smisk_InvalidSessionError);
+  if (!(smisk_Error = PyErr_NewException("smisk.core.Error", PyExc_StandardError, NULL))
+    ||
+    (PyModule_AddObject(smisk_core_module, "Error", smisk_Error) == -1) )
+    return;
+  if (!(smisk_IOError = PyErr_NewException("smisk.core.IOError", PyExc_IOError, NULL))
+    ||
+    (PyModule_AddObject(smisk_core_module, "IOError", smisk_IOError) == -1) )
+    return;
+  if (!(smisk_InvalidSessionError = PyErr_NewException("smisk.core.InvalidSessionError",
+      PyExc_ValueError, NULL))
+    ||
+    (PyModule_AddObject(smisk_core_module, "InvalidSessionError", smisk_InvalidSessionError) == -1)
+    )
+    return;
+  
+  // Setup ObjectProxies for app, request and response
+  PyObject *smisk_util_objectproxy = PyImport_ImportModule("smisk.util.objectproxy");
+  if (smisk_util_objectproxy == NULL)
+    return;
+  PyObject *ObjectProxy = PyObject_GetAttrString(smisk_util_objectproxy, "ObjectProxy");
+  Py_DECREF(smisk_util_objectproxy);
+  if (ObjectProxy == NULL)
+    return;
+  rc = PyModule_AddObject(smisk_core_module, "app", PyObject_CallMethod(ObjectProxy, "__new__", "O", ObjectProxy));
+  if (rc == 0)
+    rc = PyModule_AddObject(smisk_core_module, "request", PyObject_CallMethod(ObjectProxy, "__new__", "O", ObjectProxy));
+  if (rc == 0)
+    rc = PyModule_AddObject(smisk_core_module, "response", PyObject_CallMethod(ObjectProxy, "__new__", "O", ObjectProxy));
+  Py_DECREF(ObjectProxy);
+  if (rc != 0) {
+    // Error occured in one of the calls to PyModule_AddObject
+    return;
+  }
   
   /* Original comment from _bsddb.c in the Python core. This is also still
    * needed nowadays for Python 2.3/2.4.

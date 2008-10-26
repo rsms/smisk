@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
 from smisk.test import *
-from smisk.util import *
-from smisk.mvc.control import *
-
 from test_matter import *
+from smisk.mvc.control import *
 
 class misc_tests(TestCase):
   def test1_root_controller(self):
@@ -39,6 +37,7 @@ class misc_tests(TestCase):
     self.assertTrue(leaf_is_visible(level3))
     self.assertTrue(leaf_is_visible(level3.__call__))
     self.assertTrue(leaf_is_visible(level3.func_on_level3))
+    self.assertTrue(leaf_is_visible(level3.func_on_level3_wonlykwa))
     self.assertTrue(leaf_is_visible(level2.delegating_func_on_root))
     self.assertTrue(leaf_is_visible(level3.delegating_func_on_root))
     self.assertTrue(leaf_is_visible(PostsController.delegating_func_on_root))
@@ -70,6 +69,7 @@ class node_name_tests(TestCase):
     self.assertEquals(node_name(level3), u'level3')
     self.assertEquals(node_name(level3.__call__), u'level3')
     self.assertEquals(node_name(level3.func_on_level3), u'func_on_level3')
+    self.assertEquals(node_name(level3.func_on_level3_wonlykwa), u'func_on_level3_wonlykwa')
   
   def test2_non_delegating(self):
     self.assertEquals(node_name(level2.func_on_root), None)
@@ -80,8 +80,7 @@ class node_name_tests(TestCase):
   def test3_delegating(self):
     self.assertEquals(node_name(level2.delegating_func_on_root), u'delegating_func_on_root')
     self.assertEquals(node_name(level3.delegating_func_on_root), u'delegating_func_on_root')
-    self.assertEquals(node_name(PostsController.delegating_func_on_root),\
-      u'delegating_func_on_root')
+    self.assertEquals(node_name(PostsController.delegating_func_on_root), u'delegating_func_on_root')
   
   def test4_renamed(self):
     self.assertEquals(node_name(level2.foo_bar), u'foo-bar')
@@ -96,28 +95,18 @@ class node_name_tests(TestCase):
 
 class path_to_tests(TestCase):
   def test1_basic(self):
-    self.assertEquals(path_to(root), \
-      [])
-    self.assertEquals(path_to(root.__call__), \
-      [])
-    self.assertEquals(path_to(root.func_on_root), \
-      [u'func_on_root'])
-    self.assertEquals(path_to(root.delegating_func_on_root),\
-      [u'delegating_func_on_root'])
-    self.assertEquals(path_to(level2), \
-      [u'level2'])
-    self.assertEquals(path_to(level2.__call__), \
-      [u'level2'])
-    self.assertEquals(path_to(level2.func_on_level2),\
-      [u'level2',u'func_on_level2'])
-    self.assertEquals(path_to(level2.level3),\
-      [u'level2',u'level3']) # shadowed with purpose
-    self.assertEquals(path_to(level3),\
-      [u'level2',u'level3'])
-    self.assertEquals(path_to(level3.__call__),\
-      [u'level2',u'level3'])
-    self.assertEquals(path_to(level3.func_on_level3),\
-      [u'level2',u'level3',u'func_on_level3'])
+    self.assertEquals(path_to(root), [])
+    self.assertEquals(path_to(root.__call__), [])
+    self.assertEquals(path_to(root.func_on_root), [u'func_on_root'])
+    self.assertEquals(path_to(root.delegating_func_on_root), [u'delegating_func_on_root'])
+    self.assertEquals(path_to(level2), [u'level2'])
+    self.assertEquals(path_to(level2.__call__), [u'level2'])
+    self.assertEquals(path_to(level2.func_on_level2), [u'level2',u'func_on_level2'])
+    self.assertEquals(path_to(level2.level3), [u'level2',u'level3']) # shadowed with purpose
+    self.assertEquals(path_to(level3), [u'level2',u'level3'])
+    self.assertEquals(path_to(level3.__call__), [u'level2',u'level3'])
+    self.assertEquals(path_to(level3.func_on_level3), [u'level2',u'level3',u'func_on_level3'])
+    self.assertEquals(path_to(level3.func_on_level3_wonlykwa), [u'level2',u'level3',u'func_on_level3_wonlykwa'])
   
   def test2_non_delegating(self):
     self.assertEquals(path_to(level2.func_on_root), None)
@@ -126,12 +115,9 @@ class path_to_tests(TestCase):
     self.assertEquals(path_to(level3B.__call__), None)
   
   def test3_delegating(self):
-    self.assertEquals(path_to(level2.delegating_func_on_root),\
-      [u'level2',u'delegating_func_on_root'])
-    self.assertEquals(path_to(level3.delegating_func_on_root),\
-      [u'level2',u'level3',u'delegating_func_on_root'])
-    self.assertEquals(path_to(PostsController.delegating_func_on_root),\
-      [u'level2',u'level3',u'posts',u'delegating_func_on_root'])
+    self.assertEquals(path_to(level2.delegating_func_on_root),[u'level2',u'delegating_func_on_root'])
+    self.assertEquals(path_to(level3.delegating_func_on_root),[u'level2',u'level3',u'delegating_func_on_root'])
+    self.assertEquals(path_to(PostsController.delegating_func_on_root), [u'level2',u'level3',u'posts',u'delegating_func_on_root'])
   
   def test4_renamed(self):
     self.assertEquals(path_to(level2.foo_bar), [u'level2',u'foo-bar'])
@@ -143,28 +129,18 @@ class path_to_tests(TestCase):
 
 class uri_for_tests(TestCase):
   def test1_basic(self):
-    self.assertEquals(uri_for(root), \
-      u'/')
-    self.assertEquals(uri_for(root.__call__), \
-      u'/')
-    self.assertEquals(uri_for(root.func_on_root), \
-      u'/func_on_root')
-    self.assertEquals(uri_for(root.delegating_func_on_root),\
-      u'/delegating_func_on_root')
-    self.assertEquals(uri_for(level2), \
-      u'/level2/')
-    self.assertEquals(uri_for(level2.__call__), \
-      u'/level2/')
-    self.assertEquals(uri_for(level2.func_on_level2),\
-      u'/level2/func_on_level2')
-    self.assertEquals(uri_for(level2.level3),\
-      u'/level2/level3') # shadowed with purpose
-    self.assertEquals(uri_for(level3),\
-      u'/level2/level3/')
-    self.assertEquals(uri_for(level3.__call__),\
-      u'/level2/level3/')
-    self.assertEquals(uri_for(level3.func_on_level3),\
-      u'/level2/level3/func_on_level3')
+    self.assertEquals(uri_for(root), u'/')
+    self.assertEquals(uri_for(root.__call__), u'/')
+    self.assertEquals(uri_for(root.func_on_root), u'/func_on_root')
+    self.assertEquals(uri_for(root.delegating_func_on_root), u'/delegating_func_on_root')
+    self.assertEquals(uri_for(level2), u'/level2/')
+    self.assertEquals(uri_for(level2.__call__), u'/level2/')
+    self.assertEquals(uri_for(level2.func_on_level2), u'/level2/func_on_level2')
+    self.assertEquals(uri_for(level2.level3), u'/level2/level3') # shadowed with purpose
+    self.assertEquals(uri_for(level3), u'/level2/level3/')
+    self.assertEquals(uri_for(level3.__call__), u'/level2/level3/')
+    self.assertEquals(uri_for(level3.func_on_level3), u'/level2/level3/func_on_level3')
+    self.assertEquals(uri_for(level3.func_on_level3_wonlykwa), u'/level2/level3/func_on_level3_wonlykwa')
   
   def test2_non_delegating(self):
     self.assertEquals(uri_for(level2.func_on_root), None)
@@ -173,12 +149,9 @@ class uri_for_tests(TestCase):
     self.assertEquals(uri_for(level3B.__call__), None)
   
   def test3_delegating(self):
-    self.assertEquals(uri_for(level2.delegating_func_on_root),\
-      u'/level2/delegating_func_on_root')
-    self.assertEquals(uri_for(level3.delegating_func_on_root),\
-      u'/level2/level3/delegating_func_on_root')
-    self.assertEquals(uri_for(PostsController.delegating_func_on_root),\
-      u'/level2/level3/posts/delegating_func_on_root')
+    self.assertEquals(uri_for(level2.delegating_func_on_root), u'/level2/delegating_func_on_root')
+    self.assertEquals(uri_for(level3.delegating_func_on_root), u'/level2/level3/delegating_func_on_root')
+    self.assertEquals(uri_for(PostsController.delegating_func_on_root), u'/level2/level3/posts/delegating_func_on_root')
   
   def test4_renamed(self):
     self.assertEquals(uri_for(level2.foo_bar), u'/level2/foo-bar')
@@ -190,28 +163,17 @@ class uri_for_tests(TestCase):
 
 class template_for_tests(TestCase):
   def test1_basic(self):
-    self.assertEquals(template_for(root), \
-      [u'__call__'])
-    self.assertEquals(template_for(root.__call__), \
-      [u'__call__'])
-    self.assertEquals(template_for(root.func_on_root), \
-      [u'func_on_root'])
-    self.assertEquals(template_for(root.delegating_func_on_root),\
-      [u'delegating_func_on_root'])
-    self.assertEquals(template_for(level2), \
-      [u'level2',u'__call__'])
-    self.assertEquals(template_for(level2.__call__), \
-      [u'level2',u'__call__'])
-    self.assertEquals(template_for(level2.func_on_level2),\
-      [u'level2',u'func_on_level2'])
-    self.assertEquals(template_for(level2.level3),\
-      [u'level2',u'level3']) # shadowed with purpose
-    self.assertEquals(template_for(level3),\
-      [u'level2',u'level3',u'__call__'])
-    self.assertEquals(template_for(level3.__call__),\
-      [u'level2',u'level3',u'__call__'])
-    self.assertEquals(template_for(level3.func_on_level3),\
-      [u'level2',u'level3',u'func_on_level3'])
+    self.assertEquals(template_for(root), [u'__call__'])
+    self.assertEquals(template_for(root.__call__), [u'__call__'])
+    self.assertEquals(template_for(root.func_on_root), [u'func_on_root'])
+    self.assertEquals(template_for(root.delegating_func_on_root), [u'delegating_func_on_root'])
+    self.assertEquals(template_for(level2), [u'level2',u'__call__'])
+    self.assertEquals(template_for(level2.__call__), [u'level2',u'__call__'])
+    self.assertEquals(template_for(level2.func_on_level2), [u'level2',u'func_on_level2'])
+    self.assertEquals(template_for(level2.level3), [u'level2',u'level3']) # shadowed with purpose
+    self.assertEquals(template_for(level3), [u'level2',u'level3',u'__call__'])
+    self.assertEquals(template_for(level3.__call__), [u'level2',u'level3',u'__call__'])
+    self.assertEquals(template_for(level3.func_on_level3), [u'level2',u'level3',u'func_on_level3'])
   
   def test2_non_delegating(self):
     self.assertEquals(template_for(level2.func_on_root), None)
@@ -220,12 +182,9 @@ class template_for_tests(TestCase):
     self.assertEquals(template_for(level3B.__call__), None)
   
   def test3_delegating(self):
-    self.assertEquals(template_for(level2.delegating_func_on_root),\
-      [u'level2',u'delegating_func_on_root'])
-    self.assertEquals(template_for(level3.delegating_func_on_root),\
-      [u'level2',u'level3',u'delegating_func_on_root'])
-    self.assertEquals(template_for(PostsController.delegating_func_on_root),\
-      [u'level2',u'level3',u'posts',u'delegating_func_on_root'])
+    self.assertEquals(template_for(level2.delegating_func_on_root), [u'level2',u'delegating_func_on_root'])
+    self.assertEquals(template_for(level3.delegating_func_on_root), [u'level2',u'level3',u'delegating_func_on_root'])
+    self.assertEquals(template_for(PostsController.delegating_func_on_root), [u'level2',u'level3',u'posts',u'delegating_func_on_root'])
   
   def test4_renamed(self):
     self.assertEquals(template_for(level2.foo_bar), [u'level2',u'foo-bar'])

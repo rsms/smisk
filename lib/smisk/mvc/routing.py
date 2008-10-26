@@ -6,8 +6,10 @@ import sys, re, logging
 import http, control
 from types import *
 from smisk.core import URL
-from smisk.util import None2, RegexType, Undefined,\
-  tokenize_path, wrap_exc_in_callable, introspect
+from smisk.util.type import None2, RegexType, Undefined
+from smisk.util.python import wrap_exc_in_callable
+from smisk.util.string import tokenize_path
+from smisk.util.introspect import introspect
 
 log = logging.getLogger(__name__)
 

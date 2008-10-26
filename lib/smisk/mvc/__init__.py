@@ -37,14 +37,22 @@ Examples
 .. packagetree::
 '''
 import sys, os, logging, codecs as char_codecs
-from types import DictType
 import smisk, smisk.core
 import http, control, model
 
+from smisk import app, request, response
 from smisk.core import URL
-from smisk.util import *
 from smisk.codec import codecs
-
+from smisk.util.cache import *
+from smisk.util.collections import *
+from smisk.util.DateTime import *
+from smisk.util.introspect import *
+from smisk.util.python import *
+from smisk.util.string import *
+from smisk.util.threads import *
+from smisk.util.timing import *
+from smisk.util.type import *
+from types import DictType, StringType
 from control import Controller
 from model import Entity
 from template import Templates
@@ -53,9 +61,6 @@ from exceptions import *
 from decorators import *
 
 log = logging.getLogger(__name__)
-application = None
-request = None
-response = None
 
 # MSIE error body sizes
 _MSIE_ERROR_SIZES = { 400:512, 403:256, 404:512, 405:256, 406:512, 408:512,
@@ -247,7 +252,7 @@ class Application(smisk.core.Application):
       self.routes = router
     
     if templates is None:
-      self.templates = Templates(app=self)
+      self.templates = Templates()
     else:
       self.templates = templates
   
@@ -318,22 +323,8 @@ class Application(smisk.core.Application):
   
   
   def application_will_start(self):
+    # Call setup()
     self.setup()
-    
-    # Initialize modules which need access to app, request and response
-    modules = find_modules_for_classtree(control.Controller)
-    modules.extend(find_modules_for_classtree(Entity))
-    for m in modules:
-      log.debug('Initializing app module %s', m.__name__)
-      m.app = self
-      m.request = self.request
-      m.response = self.response
-    
-    # Set references in this module to live instances
-    global application, request, response
-    application = self
-    request = self.request
-    response = self.response
     
     # Info about codecs
     if log.level <= logging.DEBUG:
@@ -784,10 +775,10 @@ class Application(smisk.core.Application):
       # HTTP exception has a bound action we want to call
       if isinstance(val, http.HTTPExc):
         status_service_rsp = val(self)
-        if isinstance(status_service_rsp, basestring):
+        if isinstance(status_service_rsp, StringType):
           rsp = status_service_rsp
         elif status_service_rsp:
-          assert(type(status_service_rsp) is DictType)
+          assert isinstance(status_service_rsp, DictType)
           params.update(status_service_rsp)
       if not params.get('description', False):
         params['description'] = unicode(val)
@@ -843,11 +834,11 @@ class Application(smisk.core.Application):
 
 _is_set_up = False
 
-def setup(app=None, appdir=None, *args, **kwargs):
+def setup(application=None, appdir=None, *args, **kwargs):
   '''Helper for setting up an application.
   
   Excessive arguments and keyword arguments are passed to `mvc.Application.__init__()`.
-  If `app` is already an instance, these extra arguments and keyword arguments
+  If `application` is already an instance, these extra arguments and keyword arguments
   have no effect.
   
   This function can only be called once. Successive calls simply returns the
@@ -855,14 +846,14 @@ def setup(app=None, appdir=None, *args, **kwargs):
   the application state, see `Application.setup()` instead, which can be called
   multiple times.
   
-  The ``app`` argument
+  The ``application`` argument
   ~~~~~~~~~~~~~~~~~~~~
-  * If `app` is not provided or ``None``, app will be aquired by calling
+  * If `application` is not provided or ``None``, app will be aquired by calling
     `Application.current` if there is an application. Otherwise, a new
     application instance of default type is created and in which case any extra
     args and kwargs are passed to it's ``__init__``.
   
-  * If `app` is a type, it has to be a subclass of `smisk.core.Application` in
+  * If `application` is a type, it has to be a subclass of `smisk.core.Application` in
     which case a new instance of that type is created and passed any extra
     args and kwargs passed to this function.
   
@@ -908,7 +899,7 @@ def setup(app=None, appdir=None, *args, **kwargs):
   '''
   global _is_set_up
   if _is_set_up:
-    return Application.current
+    return app
   _is_set_up = True
   
   # Make sure SMISK_APP_DIR is set correctly
@@ -929,27 +920,27 @@ def setup(app=None, appdir=None, *args, **kwargs):
   environment = _environment
   
   # Aquire app
-  if app is None:
-    app = Application.current
-    if app is None:
-      app = Application(*args, **kwargs)
-  elif type(app) is type:
-    if not issubclass(app, smisk.core.Application):
-      raise ValueError('app is not a subclass of smisk.core.Application')
-    app = app(*args, **kwargs)
-  elif not isinstance(app, smisk.core.Application):
-    raise ValueError('app is not an instance of smisk.core.Application')
+  if not application:
+    application = app
+    if not application:
+      application = Application(*args, **kwargs)
+  elif type(application) is type:
+    if not issubclass(application, smisk.core.Application):
+      raise ValueError('application is not a subclass of smisk.core.Application')
+    application = application(*args, **kwargs)
+  elif not isinstance(application, smisk.core.Application):
+    raise ValueError('application is not an instance of smisk.core.Application')
   
   # Load config
-  app.autoload_configuration()
+  application.autoload_configuration()
   
   # Setup
-  app.setup()
+  application.setup()
   
-  return app
+  return application
 
 
-def run(bind=None, app=None, forks=None, handle_errors=False):
+def run(bind=None, application=None, forks=None, handle_errors=False):
   '''Helper for running an application.
   
   Note that because of the nature of ``libfcgi`` an application can not 
@@ -967,27 +958,28 @@ def run(bind=None, app=None, forks=None, handle_errors=False):
   :Parameters:
     bind : string
       Bind to address (and port). Note that this overrides ``SMISK_BIND``.
-    app : Application
+    application : Application
       An application type or instance.
     forks : int
       Number of child processes to spawn.
     handle_errors : bool
       Handle any errors by wrapping calls in `handle_errors_wrapper()`
   
-  :returns: Anything returned by ``app.run()``
+  :returns: Anything returned by ``application.run()``
   :rtype: object
   
   :see: `setup()`
   :see: `main()`
   '''
   # Aquire app
-  if app is None:
-    app = Application.current
-  if app is None:
-    raise ValueError('No application has been set up. Run setup() before calling run()')
-  elif not isinstance(app, smisk.core.Application):
-    raise ValueError('attribute "app" must be an instance of smisk.core.Application or a '\
-      'subclass there of, not %s' % type(app).__name__)
+  if not application:
+    if app:
+      application = app
+    else:
+      raise ValueError('No application has been set up. Run setup() before calling run()')
+  elif not isinstance(application, smisk.core.Application):
+    raise ValueError('"application" attribute must be an instance of smisk.core.Application or a '\
+      'subclass there of, not %s' % type(application).__name__)
   
   # Bind
   if bind is not None:
@@ -997,23 +989,23 @@ def run(bind=None, app=None, forks=None, handle_errors=False):
     log.info('Listening on %s', smisk.listening())
   
   # Enable auto-reloading
-  if app.autoreload:
+  if application.autoreload:
     from smisk.autoreload import Autoreloader
     ar = Autoreloader()
     ar.start()
   
   # Forks
   if isinstance(forks, int):
-    app.forks = forks
+    application.forks = forks
   
   # Call app.run()
   if handle_errors:
-    return handle_errors_wrapper(app.run)
+    return handle_errors_wrapper(application.run)
   else:
-    return app.run()
+    return application.run()
 
 
-def main(app=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=True, *args, **kwargs):
+def main(application=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=True, *args, **kwargs):
   '''Helper for setting up and running an application.
   
   This function handles command line options, calls `setup()` to set up the
@@ -1030,11 +1022,11 @@ def main(app=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=T
   runs your application.
   
   Excessive arguments and keyword arguments are passed to `mvc.Application.__init__()`.
-  If `app` is already an instance, these extra arguments and keyword arguments
+  If `application` is already an instance, these extra arguments and keyword arguments
   have no effect.
   
   :Parameters:
-    app : Application
+    application : Application
       An application type or instance.
     appdir : string
       Path to the applications base directory.
@@ -1059,12 +1051,13 @@ def main(app=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=T
   
   # Setup
   if handle_errors:
-    app = handle_errors_wrapper(setup, app=app, appdir=appdir, *args, **kwargs)
+    application = handle_errors_wrapper(setup, application=application, 
+      appdir=appdir, *args, **kwargs)
   else:
-    app = setup(app=app, appdir=appdir, *args, **kwargs)
+    application = setup(application=application, appdir=appdir, *args, **kwargs)
   
   # Run
-  return run(bind=bind, app=app, forks=forks, handle_errors=handle_errors)
+  return run(bind=bind, application=application, forks=forks, handle_errors=handle_errors)
 
 
 def _main_cli(appdir=None, bind=None):
@@ -1155,6 +1148,7 @@ def handle_errors_wrapper(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs
   except SystemExit:
     raise
   except:
+    logging.basicConfig(level=logging.WARN)
     # Log error
     try:
       log.critical('exception:', exc_info=True)
@@ -1162,15 +1156,13 @@ def handle_errors_wrapper(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs
       pass
     # Write to error.log
     try:
-      log_dir = os.environ.get('SMISK_LOG_DIR' ,os.environ['SMISK_APP_DIR'])
+      log_dir = os.environ.get('SMISK_LOG_DIR', os.environ.get(os.environ['SMISK_APP_DIR'], '.'))
       f = open(os.path.join(log_dir, 'error.log'), 'a')
       try:
         from traceback import print_exc
         from datetime import datetime
         f.write(datetime.now().isoformat())
-        f.write(" [")
-        f.write(os.getpid())
-        f.write("] ")
+        f.write(" [%d] " % os.getpid())
         print_exc(1000, f)
       finally:
         f.close()

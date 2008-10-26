@@ -47,25 +47,6 @@ int smisk_require_app (void) {
   return 0;
 }
 
-// Returns 0 on success, -1 on failure.
-int smisk_Application_set_current (PyObject *app) {
-  PyObject *old = SMISK_PyObject_GET(&smisk_ApplicationType, "current");
-  int st = SMISK_PyObject_SET(&smisk_ApplicationType, "current", app);
-  if (st == -1) {
-    Py_INCREF(Py_None);
-    smisk_Application_current = (smisk_Application *)Py_None;
-    if (SMISK_PyObject_SET(&smisk_ApplicationType, "current", Py_None) == -1) {
-      Py_DECREF(Py_None);
-    }
-  }
-  else {
-    Py_INCREF(app);
-    smisk_Application_current = (smisk_Application *)app;
-  }
-  Py_XDECREF(old);
-  return st;
-}
-
 
 #pragma mark -
 #pragma mark Internal
@@ -73,7 +54,7 @@ int smisk_Application_set_current (PyObject *app) {
 
 static int _setup_transaction_context(smisk_Application *self) {
   log_trace("ENTER");
-  PyObject *request, *response;
+  PyObject *request, *response, *objproxy, *rc;
   
   // Request
   if ((request = smisk_Request_new(self->request_class, NULL, NULL)) == NULL)
@@ -82,6 +63,14 @@ static int _setup_transaction_context(smisk_Application *self) {
   REPLACE_OBJ(self->request, request, smisk_Request);
   assert_refcount(self->request, > 0);
   
+  // smisk.core.request = self.request
+  objproxy = PyObject_GetAttrString(smisk_core_module, "request");
+  rc = PyObject_CallMethod(objproxy, "_set_object", "O", (PyObject *)self->request);
+  Py_DECREF(objproxy);
+  if (rc == NULL)
+    return -1;
+  Py_DECREF(rc);
+  
   
   // Response
   if ((response = smisk_Response_new(self->response_class, NULL, NULL)) == NULL)
@@ -89,7 +78,14 @@ static int _setup_transaction_context(smisk_Application *self) {
   
   REPLACE_OBJ(self->response, response, smisk_Response);
   assert_refcount(self->response, > 0);
-  
+    
+  // smisk.core.response = self.response
+  objproxy = PyObject_GetAttrString(smisk_core_module, "response");
+  rc = PyObject_CallMethod(objproxy, "_set_object", "O", (PyObject *)self->response);
+  Py_DECREF(objproxy);
+  if (rc == NULL)
+    return -1;
+  Py_DECREF(rc);
   
   return 0;
 }
@@ -131,7 +127,7 @@ static int _fork(smisk_Application *self) {
 }
 
 
-static int _wait_on_child_procs(smisk_Application *self) {
+static int _wait_for_child_procs(smisk_Application *self) {
   log_trace("ENTER");
   int i = 0, child_exit_status;
   for (; i < self->forks; i++) {
@@ -178,6 +174,7 @@ static void _sighandler_close_fcgi(int sig) {
 PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
   log_trace("ENTER");
   smisk_Application *self;
+  PyObject *objproxy, *rc;
   
   self = (smisk_Application *)type->tp_alloc(type, 0);
   if (self != NULL) {
@@ -198,8 +195,15 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
     self->forks = 0;
     self->fork_pids = NULL;
     
-    // Application.current = self
-    smisk_Application_set_current((PyObject *)self);
+    smisk_Application_current = self;
+    
+    // smisk.core.app = self
+    objproxy = PyObject_GetAttrString(smisk_core_module, "app");
+    rc = PyObject_CallMethod(objproxy, "_set_object", "O", (PyObject *)self);
+    Py_DECREF(objproxy);
+    if (rc == NULL)
+      return NULL;
+    Py_DECREF(rc);
   }
   
   return (PyObject *)self;
@@ -214,8 +218,10 @@ int smisk_Application_init(smisk_Application *self, PyObject *args, PyObject *kw
 void smisk_Application_dealloc(smisk_Application *self) {
   log_trace("ENTER");
   
-  if (smisk_Application_current == self)
-    smisk_Application_set_current(Py_None);
+  if (smisk_Application_current == self) {
+    // No refcounting for this one
+    smisk_Application_current = (smisk_Application *)Py_None;
+  }
   
   Py_DECREF(self->request);
   Py_DECREF(self->response);
@@ -387,7 +393,7 @@ PyObject *smisk_Application_run(smisk_Application *self) {
   }
   
   // Wait for child processes to exit
-  if ( (self->forks > 0) && (!is_child_process) && (_wait_on_child_procs(self) != 0) )
+  if ( (self->forks > 0) && (!is_child_process) && (_wait_for_child_procs(self) != 0) )
     return NULL;
   
   if (ret == Py_None)
@@ -828,9 +834,7 @@ int smisk_Application_register_types(PyObject *module) {
     Py_INCREF(Py_None);
   }
   if (PyType_Ready(&smisk_ApplicationType) == 0) {
-    if(PyModule_AddObject(module, "Application", (PyObject *)&smisk_ApplicationType) == 0) {
-      return SMISK_PyObject_SET(&smisk_ApplicationType, "current", smisk_Application_current);
-    }
+    return PyModule_AddObject(module, "Application", (PyObject *)&smisk_ApplicationType);
   }
   return -1;
 }

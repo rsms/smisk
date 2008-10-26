@@ -53,9 +53,6 @@ PyTypeObject smisk_ApplicationType;
 // Set error if smisk_Application_current is NULL and return -1. Returns 0 when app is available.
 int smisk_require_app (void);
 
-// Set Application.current to app. Returns 0 on success, -1 on failure.
-int smisk_Application_set_current (PyObject *app);
-
 // Type setup
 int smisk_Application_register_types (PyObject *module);
 

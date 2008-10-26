@@ -2,7 +2,7 @@
 '''Automatically reload processes when components are updated.
 '''
 import sys, os, logging, re
-from smisk.util import Monitor
+from smisk.util.threads import Monitor
 
 log = logging.getLogger(__name__)
 
@@ -77,7 +77,7 @@ class Autoreloader(Monitor):
             self.thread.cancel()
             self.log.debug("Stopped autoreload monitor (thread %r)", self.thread.getName())
             import smisk.core
-            smisk.core.Application.current.exit()
+            smisk.core.app.exit()
             return
   
 

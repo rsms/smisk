@@ -4,8 +4,11 @@
 import re, logging
 from types import *
 from smisk.inflection import inflection
-from smisk.util import tokenize_path, classmethods, introspect, \
-                        Undefined, callable_cache_key
+from smisk.util.string import tokenize_path
+from smisk.util.python import classmethods
+from smisk.util.introspect import introspect
+from smisk.util.type import Undefined
+from smisk.util.cache import callable_cache_key
 from smisk.mvc.decorators import expose
 
 _root_controller = False
@@ -132,9 +135,10 @@ def method_origin(method):
   :returns: Class on which `method` was originally defined
   :rtype:   object
   '''
-  if not isinstance(method, MethodType):
-    raise ValueError('first argument must be a method, not %s' % type(method).__name__)
-  return _method_origin_r(method.im_func, method.im_class)
+  try:
+    return _method_origin_r(method.im_func, method.im_class)
+  except AttributeError:
+    raise ValueError('first argument "method" is missing attributes "im_class" and "im_func"')
 
 
 def _method_origin_r(func, baseclass):

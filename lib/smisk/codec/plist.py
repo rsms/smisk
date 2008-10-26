@@ -3,7 +3,7 @@
 '''
 import base64
 from smisk.codec.xmlbase import *
-from smisk.util import DateTime
+from smisk.util.DateTime import DateTime
 from datetime import datetime
 from types import *
 
