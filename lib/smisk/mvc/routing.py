@@ -3,8 +3,8 @@
 '''URL-to-function routing.
 '''
 import sys, re, logging
-import smisk.mvc.http as http
-import smisk.mvc.control as control
+from smisk.mvc import http
+from smisk.mvc import control
 from smisk.core import URL
 from smisk.util.type import *
 from smisk.util.python import wrap_exc_in_callable
