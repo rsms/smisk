@@ -127,7 +127,7 @@ class XMLBaseCodec(BaseCodec):
       string = ''
     if cls.xml_doctype:
       string += cls.xml_doctype
-    string += ElementTree.tostring(doc, charset).encode(charset)
+    string += ElementTree.tostring(doc, charset).encode(charset, cls.unicode_errors)
     return (charset, string)
   
   @classmethod

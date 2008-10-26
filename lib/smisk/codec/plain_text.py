@@ -60,7 +60,7 @@ class PlainTextCodec(BaseCodec):
   @classmethod
   def encode(cls, params, charset):
     s = u'%s\n' % u''.join(encode_map(params, [])).strip()
-    return (charset, s.encode(charset))
+    return (charset, s.encode(charset, cls.unicode_errors))
   
 
 codecs.register(PlainTextCodec)

@@ -4,16 +4,24 @@
 .. packagetree::
 .. importgraph::
 '''
-from StringIO import StringIO
+import base64
+try:
+  import cStringIO as StringIO
+except ImportError:
+  import StringIO
 
 __all__ = [
   'codecs',
   'data', 'CodecRegistry', 'EncodingError', 'DecodingError', 'BaseCodec',
 ]
 
-class data(str):
+class data(object):
   '''Represents arbitrary bytes.
   '''
+  bytes = None
+  ''':type: buffer
+  '''
+  
   def __init__(self, source):
     '''Wrap source as data.
     
@@ -23,14 +31,49 @@ class data(str):
         be closed automatically.
     '''
     if hasattr(source, 'read'):
+      f = source
       try:
-        str.__init__(self, source.read())
+        source = source.read()
       finally:
-        source.close()
-    else:
-      str.__init__(self, source)
+        f.close()
+    self.bytes = buffer(source)
   
-
+  def encode(self):
+    '''Return a base-64 encoded representation of this data.
+    
+    :rtype: string
+    '''
+    return base64.b64encode(self.bytes)
+  
+  @classmethod
+  def decode(cls, string):
+    '''Decode data which is a base-64 encoded string.
+    
+    :Parameters:
+      string : string
+        Base-64 encoded data
+    :rtype: data
+    '''
+    return cls(base64.decodestring(string))
+  
+  def __str__(self):
+    return self.bytes or ''
+  
+  def __cmp__(self, other):
+    if isinstance(other, self.__class__):
+      other = other.bytes
+    return cmp(self.bytes, other)
+  
+  def __len__(self):
+    return len(self.bytes)
+  
+  def __repr__(self):
+    return '<read-only %s.%s, %d bytes at 0x%x>' %\
+      (self.__class__.__module__, self.__class__.__name__, len(self.bytes), id(self))
+  
+  def __str__(self):
+    return self.bytes.__str__()
+  
 
 class CodecRegistry(object):
   first_in = None
@@ -67,11 +110,13 @@ class CodecRegistry(object):
     self.codecs.append(codec)
     # Register Media types
     for t in codec.media_types:
+      t = intern(t)
       if codec.media_type is None:
         codec.media_type = t
       self.media_types[t] = codec
     # Register extensions/formats
     for ext in codec.extensions:
+      ext = intern(ext)
       if codec.extension is None:
         codec.extension = ext
       self.extensions[ext] = codec
@@ -120,28 +165,24 @@ class DecodingError(Exception):
 
 
 class BaseCodec(object):
-  '''
-  Abstract baseclass for codecs
+  '''Abstract baseclass for codecs
   '''
   
   name = 'Untitled codec'
-  '''
-  A human readable and descriptive but short name of the codec.
+  '''A human readable short and descriptive name of the codec.
   
   :type: string
   '''
   
   extension = None
-  '''
-  Primary filename extension.
+  '''Primary filename extension.
   
   This is set by codecs.register. You should define your extensions in `extensions`.
   
   :type: string'''
   
   media_type = None
-  '''
-  Primary media type.
+  '''Primary media type.
   
   This is set by codecs.register. You should define your types in `media_types`.
   
@@ -153,8 +194,7 @@ class BaseCodec(object):
   '''
   
   extensions = tuple()
-  '''
-  Filename extensions this codec can handle.
+  '''Filename extensions this codec can handle.
   
   The first item will be assigned to `extension` and used as primary extension.
   
@@ -162,8 +202,7 @@ class BaseCodec(object):
   '''
   
   media_types = tuple()
-  '''
-  Media types this codec can handle.
+  '''Media types this codec can handle.
   
   The first item will be assigned to `media_type` and used as primary media type.
   
@@ -171,8 +210,15 @@ class BaseCodec(object):
   '''
   
   charset = None
+  '''Preferred character encoding.
+  
+  :type: string
   '''
-  Preferred character encoding.
+  
+  unicode_errors = 'replace'
+  '''How to handle unicode conversions.
+  
+  Possible values: ``strict, ignore, replace, xmlcharrefreplace, backslashreplace``
   
   :type: string
   '''

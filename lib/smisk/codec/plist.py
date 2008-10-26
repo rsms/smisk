@@ -1,7 +1,6 @@
 # encoding: utf-8
 '''Apple/NeXT Property List serialization.
 '''
-import base64
 from smisk.codec.xmlbase import *
 from smisk.util.DateTime import DateTime
 from datetime import datetime
@@ -46,7 +45,7 @@ class XMLPlistCodec(XMLBaseCodec):
   
   @classmethod
   def parse_plist_data(cls, elem):
-    return  base64.b64decode(elem.text)
+    return data.decode(elem.text)
   
   @classmethod
   def parse_plist_date(cls, elem):
@@ -100,8 +99,10 @@ class XMLPlistCodec(XMLBaseCodec):
       return Element('false')
     elif isinstance(obj, (ListType, TupleType)):
       return cls.build_array(obj)
-    elif isinstance(obj, data): # must be tested before basestr since its a subclass of str
-      return cls.xml_mktext('data', base64.b64encode(obj))
+    elif isinstance(obj, data):
+      return cls.xml_mktext('data', obj.encode())
+    elif isinstance(obj, buffer):
+      return cls.xml_mktext('data', data(obj).encode())
     elif isinstance(obj, datetime):
       return cls.xml_mktext('date', obj.strftime('%Y-%m-%dT%H:%M:%SZ'))
     elif isinstance(obj, dict):
@@ -135,7 +136,7 @@ class XMLPlistCodec(XMLBaseCodec):
   @classmethod
   def did_register(cls, registry):
     # setup parse handlers
-    cls._HANDLERS = dict((name, getattr(cls, 'parse_plist_' + name))
+    cls._HANDLERS = dict((intern(name), getattr(cls, 'parse_plist_' + name))
       for name in 'array data date dict real integer string true false'.split())
   
 
@@ -152,7 +153,8 @@ if __name__ == '__main__':
       42.0,
       {
         'tubes': [1,3,16,18,24],
-        'persons': True
+        'persons': True,
+        'image': data("You bastard! These are pure, innocent bytes you're dealing with.")
       }
     ],
     'today': datetime.now()
