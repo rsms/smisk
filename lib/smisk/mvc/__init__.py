@@ -270,13 +270,19 @@ class Application(smisk.core.Application):
     import imp
     path = os.path.join(os.environ['SMISK_APP_DIR'], config_mod_name)
     locs = {'app': self}
-    if not os.path.exists(path):
-      return
     if os.path.isdir(path):
+      # config/__init__.py
       execfile(os.path.join(path, '__init__.py'), globals(), locs)
       path = os.path.join(path, '%s.py' % environment())
-      if os.path.exists(path):
+      if os.path.isfile(path):
+        # config/environment.py
         execfile(path, globals(), locs)
+    elif os.path.isfile(path + '.py'):
+      # config.py
+      execfile(path + '.py', globals(), locs)
+    elif os.path.isfile(path + '.pyc'):
+      # config.pyc
+      execfile(path + '.pyc', globals(), locs)
   
   
   def setup(self):
