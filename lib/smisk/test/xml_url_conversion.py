@@ -16,7 +16,7 @@ class XMLTests(TestCase):
 from smisk import URL
 
 class URLTests(TestCase):
-  def test_codec(self):
+  def test_serializer(self):
     raw = "http://abc.se:12/mos/jäger/grek land/hej.html?mos=japp&öland=nej#ge-mig/då";
     escaped = URL.escape(raw)
     assert escaped == 'http%3A//abc.se%3A12/mos/j%C3%A4ger/grek%20land/hej.html?mos=japp&%C3%B6land=nej%23ge-mig/d%C3%A5'

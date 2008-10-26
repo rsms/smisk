@@ -1,18 +1,18 @@
 # encoding: utf-8
 '''PHP serial serialization
 '''
-from smisk.codec import *
+from smisk.serialization import *
 from types import *
 try:
   from cStringIO import StringIO
 except:
   from StringIO import StringIO
 
-class PHPSerialEncodingError(EncodingError):
+class PHPSerialSerializationError(SerializationError):
   pass
 
-class PHPSerialCodec(BaseCodec):
-  '''PHP serial codec.'''
+class PHPSerialSerializer(Serializer):
+  '''PHP serial serializer.'''
   name = 'PHP serial'
   extensions = ('phpser',)
   media_types = ('application/php', 'application/vnd.php.serialized')
@@ -29,7 +29,7 @@ class PHPSerialCodec(BaseCodec):
     elif isinstance(obj, NoneType):
       f.write('s:0:"";')
     else:
-      raise PHPSerialEncodingError('Unsupported type: %s' % type(obj).__name__)
+      raise PHPSerialSerializationError('Unsupported type: %s' % type(obj).__name__)
   
   @classmethod
   def encode_object(cls, obj, f):
@@ -61,20 +61,20 @@ class PHPSerialCodec(BaseCodec):
         cls.encode_object(v, f)
       f.write('}')
     else:
-      raise PHPSerialEncodingError('Unsupported type: %s' % type(obj).__name__)
+      raise PHPSerialSerializationError('Unsupported type: %s' % type(obj).__name__)
   
   @classmethod
-  def encode(cls, params, charset):
+  def serialize(cls, params, charset):
     f = StringIO()
     cls.encode_object(params, f)
     return (None, f.getvalue())
   
 
-codecs.register(PHPSerialCodec)
+serializers.register(PHPSerialSerializer)
 
 if __name__ == '__main__':
   from datetime import datetime
-  print PHPSerialCodec.encode({
+  print PHPSerialSerializer.serialize({
     'message': 'Hello worlds',
     'internets': [
       'interesting',

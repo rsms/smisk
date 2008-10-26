@@ -14,9 +14,8 @@ class root(Controller):
   def echo(self, *args, **params):
     return params
   
-  def example(self, pretty_print=None, *args, **params):
+  def example(self, *args, **params):
     return {
-      'pretty_print': pretty_print,
       'title': 'Spellistan frum hell',
       'creator': 'rasmus',
       'trackList': [

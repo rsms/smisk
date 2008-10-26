@@ -4,7 +4,7 @@
 :see: `XSPF v1.0 <http://xspf.org/xspf-v1.html>`__
 '''
 import base64
-from smisk.codec.xmlbase import *
+from smisk.serialization.xmlbase import *
 from datetime import datetime
 from smisk.util.DateTime import DateTime
 from types import *
@@ -14,18 +14,18 @@ except ImportError:
   pass
 
 __all__ = [
-  'XSPFEncodingError',
-  'XSPFDecodingError',
-  'XSPFCodec']
+  'XSPFSerializationError',
+  'XSPFUnserializationError',
+  'XSPFSerializer']
 
-class XSPFEncodingError(XMLEncodingError):
+class XSPFSerializationError(XMLSerializationError):
   pass
 
-class XSPFDecodingError(XMLDecodingError):
+class XSPFUnserializationError(XMLUnserializationError):
   pass
 
-class XSPFCodec(XMLBaseCodec):
-  '''XML Property List codec
+class XSPFSerializer(XMLSerializer):
+  '''XML Property List serializer
   '''
   name = 'XSPF: XML Shareable Playlist Format'
   extensions = ('xspf',)
@@ -155,7 +155,7 @@ class XSPFCodec(XMLBaseCodec):
   # Encoding errors
   
   @classmethod
-  def encode_error(cls, status, params, charset):
+  def serialize_error(cls, status, params, charset):
     from smisk.core import request
     if request:
       identifier = unicode(request.url) + u'#'
@@ -176,7 +176,7 @@ class XSPFCodec(XMLBaseCodec):
 
 # Only register if xml.etree is available
 if ElementTree is not None:
-  codecs.register(XSPFCodec)
+  serializers.register(XSPFSerializer)
 
 if __name__ == '__main__':
   if 0:
@@ -185,8 +185,8 @@ if __name__ == '__main__':
     except:
       import sys
       from smisk.mvc.http import InternalServerError
-      print XSPFCodec.encode_error(InternalServerError, {}, 'utf-8')
-  charset, xmlstr = XSPFCodec.encode({
+      print XSPFSerializer.serialize_error(InternalServerError, {}, 'utf-8')
+  charset, xmlstr = XSPFSerializer.serialize({
     'title': 'Spellistan frum hell',
     'creator': 'rasmus',
     'date': DateTime.now(),
@@ -222,4 +222,4 @@ if __name__ == '__main__':
   }, 'utf-8')
   print xmlstr
   from StringIO import StringIO
-  print repr(XSPFCodec.decode(StringIO(xmlstr)))
+  print repr(XSPFSerializer.unserialize(StringIO(xmlstr)))

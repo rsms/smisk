@@ -42,7 +42,7 @@ import http, control, model
 
 from smisk import app, request, response
 from smisk.core import URL
-from smisk.codec import codecs
+from smisk.serialization import serializers
 from smisk.util.cache import *
 from smisk.util.collections import *
 from smisk.util.DateTime import *
@@ -81,13 +81,13 @@ def environment():
 
 
 class Request(smisk.core.Request):
-  codec = None
-  '''Codec used for decoding request payload.
+  serializer = None
+  '''Serializer used for decoding request payload.
   
   Any initial value has no effect.
   Available during a HTTP transaction.
   
-  :type: smisk.codec.BaseCodec
+  :type: smisk.serialization.Serializer
   '''
   
   path = None
@@ -102,39 +102,39 @@ class Request(smisk.core.Request):
 
 class Response(smisk.core.Response):
   format = None
-  '''Any value which is a valid key of the codecs.extensions dict.
+  '''Any value which is a valid key of the serializers.extensions dict.
   
   Any initial value has no effect (replaced during runtime).
   
   :type: string
   '''
   
-  codec = None
-  '''Codec to use for encoding the response.
+  serializer = None
+  '''Serializer to use for encoding the response.
   
-  The value of ``Response.codec`` (class property value) serves as
-  the application default codec, used in cases where we need to encode 
-  the response, but the client is not specific about which codec to use.
+  The value of ``Response.serializer`` (class property value) serves as
+  the application default serializer, used in cases where we need to encode 
+  the response, but the client is not specific about which serializer to use.
   
   If None, strict `TCN <http://www.ietf.org/rfc/rfc2295.txt>`__ applies.
   
-  :see: `fallback_codec`
-  :type: smisk.codec.BaseCodec
+  :see: `fallback_serializer`
+  :type: smisk.serialization.Serializer
   '''
   
-  fallback_codec = None
-  '''Last-resort codec, used for error responses and etc.
+  fallback_serializer = None
+  '''Last-resort serializer, used for error responses and etc.
   
   If None when `Application.application_will_start` is called, this will
-  be set to a HTML-codec, and if none is available, simply the first
-  registered codec will be used.
+  be set to a HTML-serializer, and if none is available, simply the first
+  registered serializer will be used.
   
   The class property is the only one used, the instance property has no 
   meaning and no effect, thus if you want to modify this during runtime,
-  you should do this ``Response.fallback_codec = my_codec`` instead of
-  this ``app.response.fallback_codec = my_codec``.
+  you should do this ``Response.fallback_serializer = my_serializer`` instead of
+  this ``app.response.fallback_serializer = my_serializer``.
   
-  :type: smisk.codec.BaseCodec
+  :type: smisk.serialization.Serializer
   '''
   
   charset = 'utf-8'
@@ -207,18 +207,18 @@ class Application(smisk.core.Application):
   :type: object
   '''
   
-  codec = None
+  serializer = None
   '''
   Used during runtime.
   Here because we want to use it in error()
   
-  :type: codec
+  :type: Serializer
   '''
   
   destination = None
   '''
   Used during runtime.
-  Available in actions, codecs and templates.
+  Available in actions, serializers and templates.
   
   :type: smisk.mvc.routing.Destination
   '''
@@ -228,6 +228,14 @@ class Application(smisk.core.Application):
   Used during runtime.
   
   :type: mako.template.Template
+  '''
+  
+  unicode_errors = 'replace'
+  '''How to handle unicode conversions.
+  
+  Possible values: ``strict, ignore, replace, xmlcharrefreplace, backslashreplace``
+  
+  :type: string
   '''
   
   def __init__(self,
@@ -283,7 +291,7 @@ class Application(smisk.core.Application):
        algorithm from hashlib.
     2. If `templates` are enabled but ``templates.directories`` evaluates to false,
        set ``templates.directories`` to the default ``[SMISK_APP_DIR + "templates"]``.
-    3. Make sure `Response.fallback_codec` has a valid codec as it's value.
+    3. Make sure `Response.fallback_serializer` has a valid serializer as it's value.
     4. Setup any models.
     
     :rtype: None
@@ -312,12 +320,12 @@ class Application(smisk.core.Application):
       if self.templates and self.templates.autoreload is None:
         self.templates.autoreload = self.autoreload
     
-    # Set fallback codec
-    if Response.fallback_codec is None:
+    # Set fallback serializer
+    if Response.fallback_serializer is None:
       try:
-        Response.fallback_codec = codecs.extensions['html']
+        Response.fallback_serializer = serializers.extensions['html']
       except KeyError:
-        Response.fallback_codec = codecs.first_in
+        Response.fallback_serializer = serializers.first_in
     
     # Setup any models
     model.setup_all()
@@ -327,11 +335,11 @@ class Application(smisk.core.Application):
     # Call setup()
     self.setup()
     
-    # Info about codecs
+    # Info about serializers
     if log.level <= logging.DEBUG:
-      log.debug('installed codecs: %s', ', '.join(unique_sorted_modules_of_items(codecs)) )
-      log.debug('acceptable media types: %s', ', '.join(codecs.media_types.keys()))
-      log.debug('available filename extensions: %s', ', '.join(codecs.extensions.keys()))
+      log.debug('installed serializers: %s', ', '.join(unique_sorted_modules_of_items(serializers)) )
+      log.debug('acceptable media types: %s', ', '.join(serializers.media_types.keys()))
+      log.debug('available filename extensions: %s', ', '.join(serializers.extensions.keys()))
     
     # When we return, accept() in smisk.core is called
     log.info('Accepting connections')
@@ -342,24 +350,24 @@ class Application(smisk.core.Application):
     smisk.core.unbind()
   
   
-  def response_codec(self, no_http_exc=False):
+  def response_serializer(self, no_http_exc=False):
     '''
-    Return the most appropriate codec for handling response encoding.
+    Return the most appropriate serializer for handling response encoding.
     
     :param no_http_exc: If true, HTTP statuses are never rised when no acceptable 
-                        codec is found. Instead a fallback codec will be returned:
-                        First we try to return a codec for format html, if that
-                        fails we return the first registered codec. If that also
+                        serializer is found. Instead a fallback serializer will be returned:
+                        First we try to return a serializer for format html, if that
+                        fails we return the first registered serializer. If that also
                         fails there is nothing more left to do but return None.
                         Primarily used by `error()`.
     :type  no_http_exc: bool
-    :return: The most appropriate codec
-    :rtype:  codec
+    :return: The most appropriate serializer
+    :rtype:  serializer
     '''
     # Overridden by explicit response.format?
     if self.response.format is not None:
       # Should fail if not exists
-      return codecs.extensions[self.response.format]
+      return serializers.extensions[self.response.format]
     
     # Overridden internally by explicit Content-Type header?
     p = self.response.find_header('Content-Type:')
@@ -369,13 +377,13 @@ class Application(smisk.core.Application):
       if p != -1:
         content_type = content_type[:p].rstrip("\t ")
       try:
-        return codecs.media_types[content_type]
+        return serializers.media_types[content_type]
       except KeyError:
         if no_http_exc:
-          return Response.fallback_codec
+          return Response.fallback_serializer
         else:
           raise http.InternalServerError('Content-Type response header is set to type %r '\
-            'which does not have any valid codec associated with it.' % content_type)
+            'which does not have any valid serializer associated with it.' % content_type)
     
     # Try filename extension
     if self.request.url.path.rfind('.') != -1:
@@ -387,10 +395,10 @@ class Application(smisk.core.Application):
         if log.level <= logging.DEBUG:
           log.debug('Client asked for format %r', self.response.format)
         try:
-          return codecs.extensions[self.response.format]
+          return serializers.extensions[self.response.format]
         except KeyError:
           if no_http_exc:
-            return Response.fallback_codec
+            return Response.fallback_serializer
           else:
             raise http.NotFound('Resource not available as %r' % self.response.format)
     
@@ -403,38 +411,38 @@ class Application(smisk.core.Application):
       # Parse the qvalue header
       tqs, highqs, partials, accept_any = parse_qvalue_header(accept_types, '*/*', '/*')
       
-      # If the default codec exists in the highest quality accept types, return it
-      if Response.codec is not None:
-        for t in Response.codec.media_types:
+      # If the default serializer exists in the highest quality accept types, return it
+      if Response.serializer is not None:
+        for t in Response.serializer.media_types:
           if t in highqs:
-            return Response.codec
+            return Response.serializer
       
-      # Find a codec matching any accept type, ordered by qvalue
-      available_types = codecs.media_types.keys()
+      # Find a serializer matching any accept type, ordered by qvalue
+      available_types = serializers.media_types.keys()
       for tq in tqs:
         t = tq[0]
         if t in available_types:
-          return codecs.media_types[t]
+          return serializers.media_types[t]
       
       # Accepts */* which is far more common than accepting partials, so we test this here
-      # and simply return Response.codec if the client accepts anything.
+      # and simply return Response.serializer if the client accepts anything.
       if accept_any:
-        if Response.codec is not None:
-          return Response.codec
+        if Response.serializer is not None:
+          return Response.serializer
         else:
-          return Response.fallback_codec
+          return Response.fallback_serializer
       
-      # If the default codec matches any partial, return it (the likeliness of 
+      # If the default serializer matches any partial, return it (the likeliness of 
       # this happening is so small we wait until now)
-      if Response.codec is not None:
-        for t in Response.codec.media_types:
+      if Response.serializer is not None:
+        for t in Response.serializer.media_types:
           if t[:t.find('/', 0)] in partials:
-            return Response.codec
+            return Response.serializer
       
       # Test the rest of the partials
-      for t, codec in codecs.media_types.items():
+      for t, serializer in serializers.media_types.items():
         if t[:t.find('/', 0)] in partials:
-          return codec
+          return serializer
       
       # If an Accept header field is present, and if the server cannot send a response which 
       # is acceptable according to the combined Accept field value, then the server SHOULD 
@@ -446,19 +454,19 @@ class Application(smisk.core.Application):
     # The client did not ask for any type in particular
     
     # Strict TCN
-    if Response.codec is None:
+    if Response.serializer is None:
       if no_http_exc:
-        return Response.fallback_codec
+        return Response.fallback_serializer
       else:
         raise http.MultipleChoices(self.request.url)
       
-    # Return the default codec
-    return Response.codec
+    # Return the default serializer
+    return Response.serializer
   
   
   def parse_request(self):
     '''
-    Parses the request, involving appropriate codec if needed.
+    Parses the request, involving appropriate serializer if needed.
     
     :returns: (list arguments, dict parameters)
     :rtype:   tuple
@@ -469,8 +477,8 @@ class Application(smisk.core.Application):
     params = self.request.get
     for k,v in params.iteritems():
       if type(v) is not list:
-        v = v.decode('utf-8')
-      params[k.decode('utf-8')] = v
+        v = v.decode('utf-8', self.unicode_errors)
+      params[k.decode('utf-8', self.unicode_errors)] = v
     
     # If request.path has not yet been deduced, simply set it to request.url.path
     if self.request.path is None:
@@ -518,16 +526,16 @@ class Application(smisk.core.Application):
         # Multiparts are parsed by smisk.core, so let's only try to
         # decode the body if it's of another type.
         try:
-          self.request.codec = codecs.media_types[content_type]
-          log.debug('decoding POST data using %s', self.request.codec)
+          self.request.serializer = serializers.media_types[content_type]
+          log.debug('decoding POST data using %s', self.request.serializer)
           content_length = int(self.request.env.get('CONTENT_LENGTH', -1))
-          (eargs, eparams) = self.request.codec.decode(self.request.input, content_length)
+          (eargs, eparams) = self.request.serializer.unserialize(self.request.input, content_length)
           if eargs is not None:
             args.extend(eargs)
           if eparams is not None:
             params.update(eparams)
         except KeyError:
-          log.error('Unable to parse request -- no codec able to decode %r', content_type)
+          log.error('Unable to parse request -- no serializer able to decode %r', content_type)
           raise http.UnsupportedMediaType()
     
     return (args, params)
@@ -540,11 +548,11 @@ class Application(smisk.core.Application):
     '''
     try:
       action_formats = self.destination.action.formats
-      for ext in self.response.codec.extensions:
+      for ext in self.response.serializer.extensions:
         if ext not in action_formats:
-          self.response.codec = None
+          self.response.serializer = None
           break
-      if self.response.codec is None:
+      if self.response.serializer is None:
         log.warn('client requested a response type which is not available for the current action')
         if self.response.format is not None:
           raise http.NotFound('Resource not available as %r' % self.response.format)
@@ -552,7 +560,7 @@ class Application(smisk.core.Application):
           raise http.NotAcceptable()
         else:
           try:
-            self.response.codec = codecs.extensions[action_formats[0]]
+            self.response.serializer = serializers.extensions[action_formats[0]]
           except KeyError:
             raise http.NotAcceptable()
     except AttributeError:
@@ -569,13 +577,13 @@ class Application(smisk.core.Application):
     '''
     # Add Content-Location response header if data encoding was deduced through
     # TCN or requested with a non-standard URI. (i.e. "/hello" instead of "/hello/")
-    if self.response.codec and (\
+    if self.response.serializer and (\
           not self.response.format \
         or \
           (self.destination.uri and self.destination.uri != self.request.path)\
         ):
       self.response.headers.append('Content-Location: %s.%s' % \
-        (self.destination.uri, self.response.codec.extension))
+        (self.destination.uri, self.response.serializer.extension))
     
     # Call action
     if log.level <= logging.DEBUG:
@@ -587,14 +595,14 @@ class Application(smisk.core.Application):
     # No data to encode
     if rsp is None:
       if self.template:
-        return self.template.render_unicode().encode(self.response.charset)
+        return self.template.render_unicode().encode(self.response.charset, self.unicode_errors)
       return None
     
     # If rsp is already a string, we do not process it further
     if isinstance(rsp, basestring):
       if not isinstance(rsp, str):
         if isinstance(rsp, unicode):
-          rsp = rsp.encode(self.response.charset)
+          rsp = rsp.encode(self.response.charset, self.unicode_errors)
         else:
           rsp = str(rsp)
         return rsp
@@ -603,12 +611,12 @@ class Application(smisk.core.Application):
     if not isinstance(rsp, dict):
       raise ValueError('Actions must return a dict, a string or None, not %s' % type(rsp).__name__)
     
-    # Use template as codec, if available
+    # Use template as serializer, if available
     if self.template:
-      return self.template.render_unicode(**rsp).encode(self.response.charset)
+      return self.template.render_unicode(**rsp).encode(self.response.charset, self.unicode_errors)
     
-    # If we do not have a template, we use a data codec
-    self.response.charset, rsp = self.response.codec.encode(rsp, self.response.charset)
+    # If we do not have a template, we use a data serializer
+    self.response.charset, rsp = self.response.serializer.serialize(rsp, self.response.charset)
     return rsp
   
   
@@ -628,7 +636,7 @@ class Application(smisk.core.Application):
       if self.response.find_header('Content-Length:') == -1:
         self.response.headers.append('Content-Length: %d' % len(rsp))
       # Add Content-Type header
-      self.response.codec.add_content_type_header(self.response, self.response.charset)
+      self.response.serializer.add_content_type_header(self.response, self.response.charset)
       # Add ETag
       if self.etag is not None and len(rsp) > 0 and self.response.find_header('ETag:') == -1:
         h = self.etag(''.join(self.response.headers))
@@ -650,22 +658,22 @@ class Application(smisk.core.Application):
       log.info('Serving %s for client %s', request.url, request.env.get('REMOTE_ADDR','?'))
     
     # Reset pre-transaction properties
-    self.request.codec = None
+    self.request.serializer = None
     self.request.path = None
     self.response.format = None
-    self.response.codec = None
+    self.response.serializer = None
     self.response.charset = Response.charset
     self.destination = None
     self.template = None
     
-    # Aquire response codec.
-    # We do this here already, because if response_codec() raises and
+    # Aquire response serializer.
+    # We do this here already, because if response_serializer() raises and
     # exception, we do not want any action to be performed. If we would do this
     # after calling an action, chances are an important answer gets replaced by
     # an error response, like 406 Not Acceptable.
-    self.response.codec = self.response_codec()
-    if self.response.codec.charset is not None:
-      self.response.charset = self.response.codec.charset
+    self.response.serializer = self.response_serializer()
+    if self.response.serializer.charset is not None:
+      self.response.charset = self.response.serializer.charset
     
     # Parse request (and decode if needed)
     req_args, req_params = self.parse_request()
@@ -703,7 +711,7 @@ class Application(smisk.core.Application):
       timer.finish()
       uri = None
       if self.destination is not None:
-        uri = '%s.%s' % (self.destination.uri, self.response.codec.extension)
+        uri = '%s.%s' % (self.destination.uri, self.response.serializer.extension)
       else:
         uri = self.request.url.to_s(scheme=0, user=0, password=0, host=0, port=0)
       log.info('Processed %s in %.3fms', uri, timer.time()*1000.0)
@@ -714,7 +722,7 @@ class Application(smisk.core.Application):
   
   
   def template_uri_for_path(self, path):
-    return path + '.' + self.response.codec.extension
+    return path + '.' + self.response.serializer.extension
   
   
   def template_for_uri(self, uri):
@@ -790,22 +798,22 @@ class Application(smisk.core.Application):
       # status_service_rsp did not contain a complete response body.
       if status.has_body:
         if rsp is None:
-          # Try to use a codec
-          if self.response.codec is None:
+          # Try to use a serializer
+          if self.response.serializer is None:
             # In this case an error occured very early.
-            self.response.codec = Response.fallback_codec
-            log.info('Responding using fallback codec %s' % self.response.codec)
+            self.response.serializer = Response.fallback_serializer
+            log.info('Responding using fallback serializer %s' % self.response.serializer)
           
-          # Set format if a codec was found
-          format = self.response.codec.extension
+          # Set format if a serializer was found
+          format = self.response.serializer.extension
           
           # Try to use a template...
           if status.uses_template and self.templates:
             rsp = self.templates.render_error(status, params, format)
           
-          # ...or a codec
+          # ...or a serializer
           if rsp is None:
-            self.response.charset, rsp = self.response.codec.encode_error(status, params, \
+            self.response.charset, rsp = self.response.serializer.serialize_error(status, params, \
               self.response.charset)
         
         # MSIE body length fix
@@ -815,8 +823,8 @@ class Application(smisk.core.Application):
       
       # Set standard headers
       if not self.response.has_begun:
-        if self.response.codec:
-          self.response.codec.add_content_type_header(self.response, self.response.charset)
+        if self.response.serializer:
+          self.response.serializer.add_content_type_header(self.response, self.response.charset)
         if self.response.find_header('Content-Length:') == -1:
           self.response.headers.append('Content-Length: %d' % len(rsp))
         if self.response.find_header('Cache-Control:') == -1:

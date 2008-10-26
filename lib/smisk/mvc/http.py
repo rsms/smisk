@@ -85,7 +85,7 @@ class Status300(Status):
   '''
   
   def service(self, app, url=None, *args, **kwargs):
-    from smisk.codec import codecs
+    from smisk.serialization import serializers
     rsp = Status.service(self, app)
     if url is None:
       url = app.request.url
@@ -95,17 +95,17 @@ class Status300(Status):
     
     header = []
     html = []
-    for c in codecs:
-      alt_path = '%s.%s' % (path, c.extension)
-      header_s = '"%s" 1.0 {type %s}' % (alt_path, c.media_type)
+    for serializer in serializers:
+      alt_path = '%s.%s' % (path, serializer.extension)
+      header_s = '"%s" 1.0 {type %s}' % (alt_path, serializer.media_type)
       header.append('{%s}' % header_s)
       html.append('<li><a href="%s">%s (%s)</a></li>' % \
-        (xmlesc(alt_path), xmlesc(c.name), xmlesc(c.media_type)))
+        (xmlesc(alt_path), xmlesc(serializer.name), xmlesc(serializer.media_type)))
     
     app.response.headers.append('TCN: list')
     app.response.headers.append('Alternates: '+','.join(header))
     app.response.headers.append('Content-Type: text/html; charset=%s' % self.HTML_CHARSET)
-    return (self.HTML_TEMPLATE % u'\n'.join(html)).encode(self.HTML_CHARSET)
+    return (self.HTML_TEMPLATE % u'\n'.join(html)).encode(self.HTML_CHARSET, app.unicode_errors)
   
 
 class Status404(Status):

@@ -506,7 +506,7 @@ setup(
     'smisk.inflection',
     'smisk.mvc',
     'smisk.mvc.template',
-    'smisk.codec',
+    'smisk.serialization',
     'smisk.util',
     'smisk.test',
   ],

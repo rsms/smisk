@@ -2,7 +2,7 @@
 '''
 Plain text encoding
 '''
-from smisk.codec import codecs, BaseCodec
+from smisk.serialization import serializers, Serializer
 
 def encode_value(v, buf, level):
   if isinstance(v, bool):
@@ -50,24 +50,24 @@ def encode_sequence(l, buf, level):
     i += 1
   return buf
 
-class PlainTextCodec(BaseCodec):
-  '''Plain Text codec.'''
+class PlainTextSerializer(Serializer):
+  '''Plain Text serializer.'''
   name = 'Plain text'
   extensions = ('txt',)
   media_types = ('text/plain',)
   charset = 'utf-8'
   
   @classmethod
-  def encode(cls, params, charset):
+  def serialize(cls, params, charset):
     s = u'%s\n' % u''.join(encode_map(params, [])).strip()
     return (charset, s.encode(charset, cls.unicode_errors))
   
 
-codecs.register(PlainTextCodec)
+serializers.register(PlainTextSerializer)
 
 if __name__ == '__main__':
   from datetime import datetime
-  print PlainTextCodec.encode({
+  print PlainTextSerializer.serialize({
     u'message': 'Hello worlds',
     'internets': [
       'interesting',
@@ -96,4 +96,4 @@ if __name__ == '__main__':
       }
     ],
     'today': datetime.now()
-  }, PlainTextCodec.charset)[1]
+  }, PlainTextSerializer.charset)[1]

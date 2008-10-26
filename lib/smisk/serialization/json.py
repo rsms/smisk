@@ -6,7 +6,7 @@ JSON: JavaScript Object Notation
 :requires: `cjson <http://pypi.python.org/pypi/python-cjson>`__ | minjson
 '''
 from smisk.core import request
-from smisk.codec import codecs, BaseCodec
+from smisk.serialization import serializers, Serializer
 try:
   from cjson import encode as json_encode, decode as json_decode,\
                     DecodeError, EncodeError
@@ -20,7 +20,7 @@ except ImportError:
     from warnings import warn
     warn('No JSON implementation available. Install cjson or minjson.')
 
-class JSONCodec(BaseCodec):
+class JSONSerializer(Serializer):
   '''JSON with JSONP support.
   
   JSONP support through passing the special ``callback`` query string parameter.
@@ -30,7 +30,7 @@ class JSONCodec(BaseCodec):
   media_types = ('application/json',)
   
   @classmethod
-  def encode(cls, params, charset):
+  def serialize(cls, params, charset):
     callback = None
     if request:
       callback = request.get.get('callback', None)
@@ -40,11 +40,11 @@ class JSONCodec(BaseCodec):
       return (None, json_encode(params))
   
   @classmethod
-  def encode_error(cls, status, params, charset):
+  def serialize_error(cls, status, params, charset):
     return (None, json_encode(params))
   
   @classmethod
-  def decode(cls, file, length=-1, charset=None):
+  def unserialize(cls, file, length=-1, charset=None):
     # return (list args, dict params)
     st = json_decode(file.read(length))
     if isinstance(st, dict):
@@ -57,10 +57,10 @@ class JSONCodec(BaseCodec):
 
 # Don't register if we did not find a json implementation
 if json_encode is not None:
-  codecs.register(JSONCodec)
+  serializers.register(JSONSerializer)
 
 if __name__ == '__main__':
-  s = JSONCodec.encode({
+  s = JSONSerializer.serialize({
     'message': 'Hello worlds',
     'internets': [
       'interesting',

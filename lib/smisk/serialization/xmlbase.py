@@ -2,7 +2,7 @@
 '''XML support.
 '''
 import logging
-from smisk.codec import codecs, data, BaseCodec, EncodingError, DecodingError
+from smisk.serialization import serializers, data, Serializer, SerializationError, UnserializationError
 from smisk.core import Application
 
 try:
@@ -16,21 +16,21 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 __all__ = [
-  'codecs',
-  'data', 'XMLBaseCodec', 'XMLEncodingError', 'XMLDecodingError',
+  'serializers',
+  'data', 'XMLSerializer', 'XMLSerializationError', 'XMLUnserializationError',
   'ElementTree', 'Element'
 ]
 
-class XMLEncodingError(EncodingError):
+class XMLSerializationError(SerializationError):
   pass
 
-class XMLDecodingError(DecodingError):
+class XMLUnserializationError(UnserializationError):
   pass
 
-class XMLBaseCodec(BaseCodec):
-  '''XML codec baseclass.
+class XMLSerializer(Serializer):
+  '''XML serializer baseclass.
   
-  Baseclass for XML codecs.
+  Baseclass for XML serializers.
   '''
   name = 'XML'
   charset = 'utf-8'
@@ -119,7 +119,7 @@ class XMLBaseCodec(BaseCodec):
       return root
   
   @classmethod
-  def encode(cls, params, charset):
+  def serialize(cls, params, charset):
     doc = cls.build_document(params)
     if cls.xml_declaration:
       string = (cls.xml_declaration % charset)
@@ -131,7 +131,7 @@ class XMLBaseCodec(BaseCodec):
     return (charset, string)
   
   @classmethod
-  def decode(cls, file, length=-1, charset=None):
+  def unserialize(cls, file, length=-1, charset=None):
     # return (list args, dict params)
     st = cls.parse_document(ElementTree.fromstring(file.read(length)))
     if isinstance(st, dict):
@@ -175,7 +175,7 @@ class XMLBaseCodec(BaseCodec):
     return e
 
 if __name__ == '__main__':
-  print XMLPlistETreeCodec.encode({
+  print XMLPlistETreeSerializer.serialize({
     'message': 'Hello worlds',
     'internets': [
       'interesting',

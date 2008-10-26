@@ -470,24 +470,24 @@ class Controller(object):
     return _filter_dict(charsets, filter)
   
   
-  @expose('smisk:codecs')
-  def smisk_codecs(self, filter=None, *args, **params):
-    '''List available content codecs.
+  @expose('smisk:serializers')
+  def smisk_serializers(self, filter=None, *args, **params):
+    '''List available content serializers.
     
-    :param filter: Only list codecs which name matches this regular expression.
+    :param filter: Only list serializers which name matches this regular expression.
     :type filter:  string
-    :returns: Codecs keyed by name
+    :returns: Serializers keyed by name
     '''
-    import smisk.codec
-    codecs = {}
-    for codec in smisk.codec.codecs:
-      codecs[codec.name] = {
-        'extensions': ', '.join(codec.extensions),
-        'media_types': ', '.join(codec.media_types),
-        'description': _doc_intro(codec),
-        'directions': ', '.join(codec.directions())
+    import smisk.serialization
+    serializers = {}
+    for serializer in smisk.serialization.serializers:
+      serializers[serializer.name] = {
+        'extensions': ', '.join(serializer.extensions),
+        'media_types': ', '.join(serializer.media_types),
+        'description': _doc_intro(serializer),
+        'directions': ', '.join(serializer.directions())
       }
-    return _filter_dict(codecs, filter)
+    return _filter_dict(serializers, filter)
   
   
   def __repr__(self):

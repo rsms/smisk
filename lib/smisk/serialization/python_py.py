@@ -2,20 +2,20 @@
 '''
 Plain text encoding
 '''
-from smisk.codec import codecs, BaseCodec
+from smisk.serialization import serializers, Serializer
 
-class PythonPyCodec(BaseCodec):
-  '''Python code codec.'''
+class PythonPySerializer(Serializer):
+  '''Python code serializer.'''
   name = 'Python code'
   extensions = ('py',)
   media_types = ('text/x-python',)
   
   @classmethod
-  def encode(cls, params, charset):
+  def serialize(cls, params, charset):
     return (None, repr(params))
   
   @classmethod
-  def decode(cls, file, length=-1, charset=None):
+  def unserialize(cls, file, length=-1, charset=None):
     # return (list args, dict params)
     st = eval(file.read(length), {}, {})
     if isinstance(st, dict):
@@ -26,11 +26,11 @@ class PythonPyCodec(BaseCodec):
       return ((st,), None)
   
 
-codecs.register(PythonPyCodec)
+serializers.register(PythonPySerializer)
 
 if __name__ == '__main__':
   from datetime import datetime
-  print PythonPyCodec.encode({
+  print PythonPySerializer.encode({
     'message': 'Hello worlds',
     'internets': [
       'interesting',

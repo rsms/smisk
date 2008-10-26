@@ -1,24 +1,24 @@
 # encoding: utf-8
 '''Apple/NeXT Property List serialization.
 '''
-from smisk.codec.xmlbase import *
+from smisk.serialization.xmlbase import *
 from smisk.util.DateTime import DateTime
 from datetime import datetime
 from types import *
 
 __all__ = [
-  'PlistEncodingError',
-  'PlistDecodingError',
-  'XMLPlistCodec']
+  'PlistSerializationError',
+  'PlistUnserializationError',
+  'XMLPlistSerializer']
 
-class PlistEncodingError(XMLEncodingError):
+class PlistSerializationError(XMLSerializationError):
   pass
 
-class PlistDecodingError(XMLDecodingError):
+class PlistUnserializationError(XMLUnserializationError):
   pass
 
-class XMLPlistCodec(XMLBaseCodec):
-  '''XML Property List codec
+class XMLPlistSerializer(XMLSerializer):
+  '''XML Property List serializer
   '''
   name = 'XML Property List'
   extensions = ('plist',)
@@ -37,7 +37,7 @@ class XMLPlistCodec(XMLBaseCodec):
     try:
       return cls._HANDLERS[elem.tag](elem)
     except KeyError:
-      raise PlistDecodingError('%s not supported' % elem.tag)
+      raise PlistUnserializationError('%s not supported' % elem.tag)
   
   @classmethod
   def parse_plist_array(cls, elem):
@@ -56,7 +56,7 @@ class XMLPlistCodec(XMLBaseCodec):
     children = elem.getchildren()
     
     if len(children) % 2 != 0:
-      raise PlistDecodingError('dict must have even childrens')
+      raise PlistUnserializationError('dict must have even childrens')
     
     dic = dict()
     for i in xrange(len(children) / 2):
@@ -64,7 +64,7 @@ class XMLPlistCodec(XMLBaseCodec):
       value = children[i * 2 + 1]
   
       if key.tag != 'key':
-        raise PlistDecodingError('key element not found')
+        raise PlistUnserializationError('key element not found')
       dic[key.text] = cls.parse_object(value)
     
     return dic
@@ -111,10 +111,10 @@ class XMLPlistCodec(XMLBaseCodec):
       return cls.xml_mktext('real', obj.__str__())
     elif isinstance(obj, (IntType, LongType)):
       return cls.xml_mktext('integer', obj.__str__())
-    elif isinstance(obj, StringType):
+    elif isinstance(obj, (StringType, UnicodeType)):
       return cls.xml_mktext('string', obj)
     else:
-      raise PlistEncodingError('Unsupported type: %s' % type(obj).__name__)
+      raise PlistSerializationError('Unsupported type: %s' % type(obj).__name__)
   
   @classmethod
   def build_array(cls, obj):
@@ -142,10 +142,10 @@ class XMLPlistCodec(XMLBaseCodec):
 
 # Only register if xml.etree is available
 if ElementTree is not None:
-  codecs.register(XMLPlistCodec)
+  serializers.register(XMLPlistSerializer)
 
 if __name__ == '__main__':
-  charset, xmlstr = XMLPlistCodec.encode({
+  charset, xmlstr = XMLPlistSerializer.serialize({
     'message': 'Hello worlds',
     'internets': [
       'interesting',
@@ -161,4 +161,4 @@ if __name__ == '__main__':
   }, charset='utf-8')
   print xmlstr
   from StringIO import StringIO
-  print repr(XMLPlistCodec.decode(StringIO(xmlstr)))
+  print repr(XMLPlistSerializer.unserialize(StringIO(xmlstr)))

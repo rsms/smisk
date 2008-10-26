@@ -1,7 +1,7 @@
 # encoding: utf-8
 '''XHTML generic serialization
 '''
-from smisk.codec import codecs, BaseCodec
+from smisk.serialization import serializers, Serializer
 from smisk.mvc import http
 from smisk.core.xml import escape as xml_escape
 from smisk.core import app, request
@@ -41,15 +41,15 @@ def encode_sequence(l, buf, value_wraptag='tt'):
   return buf
 
 
-class XHTMLCodec(BaseCodec):
-  '''XHTML codec'''
+class XHTMLSerializer(Serializer):
+  '''XHTML serializer'''
   name = 'XHTML: Extensible Hypertext Markup Language'
   extensions = ('html',)
   media_types = ('text/html', 'application/xhtml+xml')
   charset = 'utf-8'
   
   @classmethod
-  def encode(cls, params, charset):
+  def serialize(cls, params, charset):
     title = u'Response'
     server = u''
     if app and app.destination is not None:
@@ -71,10 +71,10 @@ class XHTMLCodec(BaseCodec):
     if server:
       d.append(u'<hr/><address>%s</address>' % server)
     d.append(u'</body></html>')
-    return (charset, u''.join(d).encode(charset))
+    return (charset, u''.join(d).encode(charset, cls.unicode_errors))
   
   @classmethod
-  def encode_error(cls, status, params, charset):
+  def serialize_error(cls, status, params, charset):
     xp = {'charset':charset}
     for k,v in params.iteritems():
       if k == 'traceback':
@@ -91,10 +91,10 @@ class XHTMLCodec(BaseCodec):
     if 'description_html' in params:
       xp['description'] = params['description_html']
     s = ERROR_TEMPLATE % xp
-    return (charset, s.encode(charset))
+    return (charset, s.encode(charset, cls.unicode_errors))
   
 
-codecs.register(XHTMLCodec)
+serializers.register(XHTMLSerializer)
 
 ERROR_TEMPLATE = ur'''<?xml version="1.0" encoding="%(charset)s" ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -123,7 +123,7 @@ ERROR_TEMPLATE = ur'''<?xml version="1.0" encoding="%(charset)s" ?>
 
 if __name__ == '__main__':
   from datetime import datetime
-  s = XHTMLCodec.encode({
+  s = XHTMLSerializer.serialize({
     'message': 'Hello worlds',
     'internets': [
       'interesting',
@@ -148,5 +148,5 @@ if __name__ == '__main__':
       }
     ],
     'today': datetime.now()
-  }, XHTMLCodec.charset)
+  }, XHTMLSerializer.charset)
   print s

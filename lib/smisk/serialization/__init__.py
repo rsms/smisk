@@ -1,5 +1,5 @@
 # encoding: utf-8
-'''Data codecs
+'''Data serialization
 
 .. packagetree::
 .. importgraph::
@@ -11,8 +11,12 @@ except ImportError:
   import StringIO
 
 __all__ = [
-  'codecs',
-  'data', 'CodecRegistry', 'EncodingError', 'DecodingError', 'BaseCodec',
+  'serializers', # codecs
+  'data',
+  'Registry', # CodecRegistry
+  'SerializationError', # SerializationError
+  'UnserializationError', # UnserializationError
+  'Serializer', # BaseCodec
 ]
 
 class data(object):
@@ -75,101 +79,101 @@ class data(object):
     return self.bytes.__str__()
   
 
-class CodecRegistry(object):
+class Registry(object):
   first_in = None
-  '''First registered codec.
+  '''First registered serializer.
   
-  :type: BaseCodec
+  :type: Serializer
   '''
   
   media_types = {}
-  '''Media type-to-Codec map.
+  '''Media type-to-Serializer map.
   
   :type: dict
   '''
   
   extensions = {}
-  '''Filename extension-to-Codec map.
+  '''Filename extension-to-Serializer map.
   
   :type: dict
   '''
   
-  codecs = []
-  '''List of available codecs.
+  serializers = []
+  '''List of available serializers.
   
   :type: list
   '''
   
-  def register(self, codec):
-    '''Register a new codec
+  def register(self, serializer):
+    '''Register a new Serializer
     '''
     # Already registered?
-    if codec in self.codecs:
+    if serializer in self.serializers:
       return
-    # Register Codec
-    self.codecs.append(codec)
+    # Register Serializer
+    self.serializers.append(serializer)
     # Register Media types
-    for t in codec.media_types:
+    for t in serializer.media_types:
       t = intern(t)
-      if codec.media_type is None:
-        codec.media_type = t
-      self.media_types[t] = codec
+      if serializer.media_type is None:
+        serializer.media_type = t
+      self.media_types[t] = serializer
     # Register extensions/formats
-    for ext in codec.extensions:
+    for ext in serializer.extensions:
       ext = intern(ext)
-      if codec.extension is None:
-        codec.extension = ext
-      self.extensions[ext] = codec
+      if serializer.extension is None:
+        serializer.extension = ext
+      self.extensions[ext] = serializer
     # Set first_in
     if self.first_in is None:
-      self.first_in = codec
-    codec.did_register(self)
+      self.first_in = serializer
+    serializer.did_register(self)
   
-  def unregister(self, codec):
-    '''Unregister a previously registered codec.
+  def unregister(self, serializer):
+    '''Unregister a previously registered serializer.
     '''
-    for i in range(len(self.codecs)):
-      if self.codecs[i] == codec:
-        del self.codecs[i]
+    for i in range(len(self.serializers)):
+      if self.serializers[i] == serializer:
+        del self.serializers[i]
         break
     for k,v in self.media_types.items():
-      if v == codec:
+      if v == serializer:
         del self.media_types[k]
     for k,v in self.extensions.items():
-      if v == codec:
+      if v == serializer:
         del self.extensions[k]
-    if self.first_in == codec:
-      if self.codecs:
-        self.first_in = self.codecs[0]
+    if self.first_in == serializer:
+      if self.serializers:
+        self.first_in = self.serializers[0]
       else:
         self.first_in = None
-    codec.did_unregister(self)
+    serializer.did_unregister(self)
   
   def __iter__(self):
-    return self.codecs.__iter__()
+    return self.serializers.__iter__()
   
 
-codecs = CodecRegistry()
-'''The codec registry.
+serializers = Registry()
+'''The serializer registry.
 
-:type: Codecs
+:type: Registry
 '''
 
-class EncodingError(Exception):
+class SerializationError(Exception):
   '''Indicates an encoding error'''
   pass
 
-class DecodingError(Exception):
+class UnserializationError(Exception):
   '''Indicates an encoding error'''
   pass
 
 
-class BaseCodec(object):
-  '''Abstract baseclass for codecs
+class Serializer(object):
+  '''Abstract baseclass for serializers
   '''
   
-  name = 'Untitled codec'
-  '''A human readable short and descriptive name of the codec.
+  name = 'Untitled serializer'
+  '''A human readable short and descriptive name of the serializer.
   
   :type: string
   '''
@@ -177,16 +181,16 @@ class BaseCodec(object):
   extension = None
   '''Primary filename extension.
   
-  This is set by codecs.register. You should define your extensions in `extensions`.
+  This is set by ``serializers.register``. You should define your extensions in `extensions`.
   
   :type: string'''
   
   media_type = None
   '''Primary media type.
   
-  This is set by codecs.register. You should define your types in `media_types`.
+  This is set by ``serializer.register``. You should define your types in `media_types`.
   
-  codecs register themselves in the module-level dictionary `codecs`
+  serializers register themselves in the module-level dictionary `serializers`
   for any MIME types they can handle. This directive, mime_type, is only used
   for output.
   
@@ -194,7 +198,7 @@ class BaseCodec(object):
   '''
   
   extensions = tuple()
-  '''Filename extensions this codec can handle.
+  '''Filename extensions this serializer can handle.
   
   The first item will be assigned to `extension` and used as primary extension.
   
@@ -202,7 +206,7 @@ class BaseCodec(object):
   '''
   
   media_types = tuple()
-  '''Media types this codec can handle.
+  '''Media types this serializer can handle.
   
   The first item will be assigned to `media_type` and used as primary media type.
   
@@ -224,7 +228,7 @@ class BaseCodec(object):
   '''
   
   @classmethod
-  def encode(cls, params, charset):
+  def serialize(cls, params, charset):
     '''
     :param params:    Parameters
     :type  params:    dict
@@ -237,7 +241,7 @@ class BaseCodec(object):
     raise NotImplementedError('%s.encode' % cls.__name__)
   
   @classmethod
-  def encode_error(cls, status, params, charset):
+  def serialize_error(cls, status, params, charset):
     '''
     Encode an error.
     
@@ -260,10 +264,10 @@ class BaseCodec(object):
                       actual charset used and might be None if binary or unknown.
     :rtype:           tuple
     '''
-    return cls.encode(params, charset)
+    return cls.serialize(params, charset)
   
   @classmethod
-  def decode(cls, file, length=-1, charset=None):
+  def unserialize(cls, file, length=-1, charset=None):
     '''
     :param file:      A file-like object implementing at least the read() method
     :type  file:      object
@@ -299,7 +303,7 @@ class BaseCodec(object):
       # test decode
       can_read = True
       try:
-        cls.decode(StringIO(''), 0)
+        cls.unserialize(StringIO(''), 0)
       except NotImplementedError, e:
         can_read = False
       except:
@@ -308,7 +312,7 @@ class BaseCodec(object):
         cls._directions.append('read')
       # test encode
       try:
-        if cls.encode({'a':1}, 'utf-8') is not None:
+        if cls.serialize({'a':1}, 'utf-8') is not None:
           cls._directions.append('write')
       except NotImplementedError:
         pass
@@ -316,36 +320,36 @@ class BaseCodec(object):
   
   @classmethod
   def did_register(cls, registry):
-    '''Called when this codec has been successfully registered in a `CodecRegistry`.
+    '''Called when this serializer has been successfully registered in a `Registry`.
     
     Default implementation does nothing. This is meant to be overridden in
     subclasses to allow a kind of *initialization routine*, setting up
     `cls` if needed.
     
     :Parameters:
-      registry : CodecRegistry
-        The registry in which this codec was just registered
+      registry : Registry
+        The registry in which this serializer was just registered
     :rtype: None
     '''
     pass
   
   @classmethod
   def did_unregister(cls, registry):
-    '''Called when this codec has been removed from a `CodecRegistry`.
+    '''Called when this serializer has been removed from a `Registry`.
     
     Default implementation does nothing. This is meant to be overridden in
     subclasses to allow a kind of *initialization routine*, tearing down
     `cls` if needed.
     
     :Parameters:
-      registry : CodecRegistry
-        The registry from which this codec was removed
+      registry : Registry
+        The registry from which this serializer was removed
     :rtype: None
     '''
     pass
   
 
-# Load built-in codecs
+# Load built-in serializers
 import os
 from smisk.util.python import load_modules
 load_modules(os.path.dirname(__file__))
