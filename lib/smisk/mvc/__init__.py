@@ -161,6 +161,12 @@ class Application(smisk.core.Application):
   :type: Templates
   '''
   
+  routes = None
+  '''Router.
+  
+  :type: Router
+  '''
+  
   autoreload = False
   ''':type: bool
   '''
@@ -614,6 +620,7 @@ class Application(smisk.core.Application):
     :Returns:
       `rsp` encoded as a series of bytes
     :rtype: buffer
+    :see: `send_response()`
     '''
     # No data to encode
     if rsp is None:
@@ -629,8 +636,7 @@ class Application(smisk.core.Application):
       return rsp
     
     # Make sure rsp is a dict
-    if not isinstance(rsp, dict):
-      raise ValueError('Actions must return a dict, a string or None, not %s' % type(rsp).__name__)
+    assert isinstance(rsp, dict), 'controller leafs must return a dict, a string or None'
     
     # Use template as serializer, if available
     if self.template:
@@ -643,6 +649,15 @@ class Application(smisk.core.Application):
   
   
   def send_response(self, rsp):
+    '''Send the response to the current client, finalizing the current HTTP
+    transaction.
+    
+    :Parameters:
+      rsp : str
+        Response body
+    :rtype: None
+    :see: `encode_response()`
+    '''
     # Empty rsp
     if rsp is None:
       # The action might have sent content using low-level functions,
@@ -675,6 +690,87 @@ class Application(smisk.core.Application):
   
   
   def service(self):
+    '''Manages the life of a HTTP transaction.
+    
+    Summary
+    ~~~~~~~
+    
+    #. Reset current shared `request`, `response` and `self`.
+    
+    #. Aquire response serializer from `response_serializer()`.
+    
+       #. Try looking at ``response.format``, if set.
+    
+       #. Try looking at any explicitly set ``Content-Type`` in `response`.
+    
+       #. Try looking at request filename extension, derived from
+          ``request.url.path``.
+    
+       #. Try looking at media types in request ``Accept`` header.
+    
+       #. Use `Response.fallback_serializer` or raise `http.MultipleChoices`,
+          depending on value of ``no_http_exc`` method argument.
+    
+    #. Parse request using `parse_request()`.
+   
+       #. Update request parameters with any query string parameters.
+   
+       #. Register for the client acceptable character encodings by looking 
+          at any ``Accept-Charset`` header.
+   
+       #. Update request parameters and arguments with any POST body, possibly
+          by using a serializer to decode the request body.
+    
+    #. Resolve *controller leaf* by calling `routes`.
+    
+       #. Apply any route filters.
+   
+       #. Resolve *leaf* on the *controller tree*.
+    
+    #. Apply any format restrictions defined by the current *controller leaf*.
+    
+    #. Append ``Vary`` header to response, with the value ``negotiate, accept,
+       accept-charset``.
+    
+    #. Call the *controller leaf* which will return a *response object*.
+    
+    #. Flush the model/database session, if started or modified, committing any
+       modifications.
+    
+    #. If a templates are used, and the current *controller leaf* is associated 
+       with a template – aquire the template object for later use in 
+       `encode_response()`.
+    
+    #. Encode the *response object* using `encode_response()`, resulting in a
+       string of opaque bytes which constitutes the response body, or payload.
+    
+       #. If the *response object* is ``None``, either render the current template
+          (if any) without any parameters or fall back to `encode_response()` 
+          returning ``None``.
+    
+       #. If the *response object* is a string, encode it if needed and simply
+          return the string, resulting in the input to `encode_response()`
+          compares equally to the output.
+    
+       #. If a template object has been deduced from previous algorithms, 
+          serialize the *response object* using that template object.
+    
+       #. Otherwise, if no template is used, serialize the *response object* using
+          the previously deduced response serializer.
+    
+    #. Complete (or commit) the current HTTP transaction by sending the response
+       through calling `send_response()`.
+    
+       #. Set ``Content-Length`` and other response headers, unless the response has
+          already begun.
+    
+       #. Calculate *ETag* if enabled through the `etag` attribute.
+    
+       #. Write the response body.
+    
+    
+    :rtype: None
+    '''
     if log.level <= logging.INFO:
       timer = Timer()
       log.info('Serving %s for client %s', request.url, request.env.get('REMOTE_ADDR','?'))
@@ -740,7 +836,7 @@ class Application(smisk.core.Application):
   
   
   def template_for_path(self, path):
-    '''Aquire template URI for `uri`.
+    '''Aquire template URI for `path`.
     
     :Parameters:
       path : string
@@ -751,7 +847,7 @@ class Application(smisk.core.Application):
   
   
   def template_uri_for_path(self, path):
-    '''Get template URI for `uri`.
+    '''Get template URI for `path`.
     
     :Parameters:
       path : string

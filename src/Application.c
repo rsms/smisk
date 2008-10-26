@@ -717,7 +717,7 @@ PyDoc_STRVAR(smisk_Application_DOC,
   " \n"
   " MyApp().run()\n"
   "\n"
-  ":cvar current: Current application instance, if any.\n"
+  ":cvar current: Current application instance, if any. See also: `smisk.core.app`.\n"
   ":type current: Application\n");
 
 // Methods

@@ -3,7 +3,7 @@ body {
   color: #333; margin: 1em 0; padding: 0 1em 1em;
 }
 body, th, td {
-  font: normal small helvetica,arial,'Bitstream Vera Sans',sans-serif;
+  font: normal small helvetica,arial,'Bitstream Vera Sans',sans-serif; line-height:1.3;
 }
 h1, h2, h3, h4 {
   font-family: helvetica,arial,'Bitstream Vera Sans',sans-serif;
@@ -17,7 +17,7 @@ hr { border: none;  border-top: 1px solid #ccb; margin: 2em 0; }
 p { margin: 0 0 1em; }
 :link, :visited {
   text-decoration: none; border-bottom: 1px dotted #bbb;
-  color: #048;
+  color: #074;
 }
 :link:hover, :visited:hover { background-color: #eee; color: #555; }
 
@@ -41,6 +41,13 @@ pre.py-doctest, pre.variable, pre.rst-literal-block { background: #eee;
   overflow: auto;
 }
 pre.variable { margin: 0; }
+
+ol.rst-arabic li { margin-bottom:.1em; margin-top:.1em; }
+ol.rst-arabic { margin-bottom:.5em; }
+ol.rst-arabic ol { list-style:outside; }
+
+table.summary ul { margin-bottom:.5em; }
+table.summary ul li { margin-bottom:.1em; margin-top:.1em; }
 
 /* Summary tables */
 

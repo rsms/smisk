@@ -5,11 +5,17 @@ from smisk.util.string import normalize_url, strip_filename_extension
 from smisk.core import URL
 from smisk.core.xml import escape as xmlesc
 
-__all__ = ['STATUS', 'HTTPExc', 'Status', 'Status30x', 'Status300', 'Status404', 'Continue', 'SwitchingProtocols', 'OK', 'Created', 'Accepted', 'NonAuthoritativeInformation', 'NoContent', 'ResetContent', 'PartialContent', 'MultipleChoices', 'MovedPermanently', 'Found', 'SeeOther', 'NotModified', 'UseProxy', 'TemporaryRedirect', 'BadRequest', 'Unauthorized', 'PaymentRequired', 'Forbidden', 'NotFound', 'ControllerNotFound', 'MethodNotFound', 'TemplateNotFound', 'MethodNotAllowed', 'NotAcceptable', 'ProxyAuthenticationRequired', 'RequestTimeout', 'Conflict', 'Gone', 'LengthRequired', 'PreconditionFailed', 'RequestEntityTooLarge', 'RequestURITooLarge', 'UnsupportedMediaType', 'RequestedRangeNotSatisfiable', 'ExpectationFailed', 'InternalServerError', 'NotImplemented', 'BadGateway', 'ServiceUnavailable', 'GatewayTimeout', 'HTTPVersionNotSupported']
+__all__ = ['STATUS', 'HTTPExc', 'Status', 'Status3xx', 'Status300', 'Status404', 'Continue', 'SwitchingProtocols', 'OK', 'Created', 'Accepted', 'NonAuthoritativeInformation', 'NoContent', 'ResetContent', 'PartialContent', 'MultipleChoices', 'MovedPermanently', 'Found', 'SeeOther', 'NotModified', 'UseProxy', 'TemporaryRedirect', 'BadRequest', 'Unauthorized', 'PaymentRequired', 'Forbidden', 'NotFound', 'ControllerNotFound', 'MethodNotFound', 'TemplateNotFound', 'MethodNotAllowed', 'NotAcceptable', 'ProxyAuthenticationRequired', 'RequestTimeout', 'Conflict', 'Gone', 'LengthRequired', 'PreconditionFailed', 'RequestEntityTooLarge', 'RequestURITooLarge', 'UnsupportedMediaType', 'RequestedRangeNotSatisfiable', 'ExpectationFailed', 'InternalServerError', 'NotImplemented', 'BadGateway', 'ServiceUnavailable', 'GatewayTimeout', 'HTTPVersionNotSupported']
 
 STATUS = {}
+'''Mapping HTTP status codes to `Status` objects.
+
+:type: dict
+'''
 
 class HTTPExc(Exception):
+  '''Wraps a HTTP status.
+  '''
   def __init__(self, status, *args, **kwargs):
     super(HTTPExc, self).__init__()
     self.status = status
@@ -24,6 +30,8 @@ class HTTPExc(Exception):
   
 
 class Status(object):
+  '''Represents a HTTP status.
+  '''
   def __new__(typ, code, *args, **kwargs):
     k = '_instance_%d' % code
     if not k in typ.__dict__:
@@ -38,9 +46,26 @@ class Status(object):
     STATUS[code] = self
   
   def __call__(self, *args, **kwargs):
+    '''Return a `HTTPExc` wrapping this status.
+    
+    ``*args`` and ``**kwargs`` will be passed unmodified to `service()` 
+    when someone ``call`` the returned `HTTPExc` object.
+    
+    :rtype: HTTPExc
+    '''
     return HTTPExc(self, *args, **kwargs)
   
   def service(self, app, *args, **kwargs):
+    '''Called when someone calls a `HTTPExc` object, wrapping this status.
+    
+    This interface is compatible with the callables returned by routers.
+    Mainly used by `mvc.Application.error()`
+    
+    :Parameters:
+      app : mvc.Application
+        The calling application
+    :rtype: dict
+    '''
     app.response.status = self
     if self.has_body:
       desc = self.name
@@ -59,10 +84,12 @@ class Status(object):
     return 'Status(%r, %r)' % (self.code, self.name)
   
 
-class Status30x(Status):
+class Status3xx(Status):
+  '''Represents HTTP status 301-307.
+  '''
   def service(self, app, url=None, *args, **kwargs):
     if url is None:
-      raise Exception('http.Status30x requires a 3:rd argument "url"')
+      raise Exception('http.Status3xx requires a 3:rd argument "url"')
     rsp = Status.service(self, app)
     app.response.headers.append('Location: ' + normalize_url(url))
     rsp['description'] = 'The resource has moved to %s' % url
@@ -70,7 +97,16 @@ class Status30x(Status):
   
 
 class Status300(Status):
+  '''Represents HTTP status 300, related to Content Negotiation.
+  '''
+  
   HTML_CHARSET = 'iso-8859-1'
+  '''Latin-1 is defined as the default fallback for HTTP 1.1 responses,
+  thus maximizing compatibility.
+  
+  :type: string
+  '''
+  
   HTML_TEMPLATE = ur'''<html>
   <head>
     <title>Multiple Choices</title>
@@ -82,6 +118,8 @@ class Status300(Status):
     </ul>
   </body>
 </html>
+  '''
+  ''':type: string
   '''
   
   def service(self, app, url=None, *args, **kwargs):
@@ -109,6 +147,8 @@ class Status300(Status):
   
 
 class Status404(Status):
+  '''Represents HTTP status 404.
+  '''
   def service(self, app, description=None, *args, **kwargs):
     rsp = Status.service(self, app)
     if description is not None:
@@ -131,12 +171,12 @@ ResetContent                 = Status(205, "Reset Content")
 PartialContent               = Status(206, "Partial Content")
 
 MultipleChoices              = Status300(300, "Multiple Choices", uses_template=False)
-MovedPermanently             = Status30x(301, "Moved Permanently")
-Found                        = Status30x(302, "Found")
-SeeOther                     = Status30x(303, "See Other")
-NotModified                  = Status30x(304, "Not Modified")
-UseProxy                     = Status30x(305, "Use Proxy")
-TemporaryRedirect            = Status30x(307, "Temporary Redirect")
+MovedPermanently             = Status3xx(301, "Moved Permanently")
+Found                        = Status3xx(302, "Found")
+SeeOther                     = Status3xx(303, "See Other")
+NotModified                  = Status3xx(304, "Not Modified")
+UseProxy                     = Status3xx(305, "Use Proxy")
+TemporaryRedirect            = Status3xx(307, "Temporary Redirect")
 
 BadRequest                   = Status(400, "Bad Request")
 Unauthorized                 = Status(401, "Unauthorized")

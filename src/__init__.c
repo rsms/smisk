@@ -327,8 +327,15 @@ PyDoc_STRVAR(smisk_module_DOC,
   "\n"
   "This module is implemented in machine native code.\n"
   "\n"
-  ":var __build__: Build identifier in URN form, distinguishing each unique build.\n"
+  ":var  __build__: Build identifier in URN form, distinguishing each unique build.\n"
   ":type __build__: string\n"
+  ":var  app:       Current application. ``None`` if no application has been created. "
+  "                 See also: `Application.current`.\n"
+  ":type app:       Application\n"
+  ":var  request:   Current request. ``None`` if not application is running.\n"
+  ":type request:   Request\n"
+  ":var  response:  Current response. ``None`` if not application is running.\n"
+  ":type response:  Response\n"
   ":requires: `libfcgi <http://www.fastcgi.com/>`__");
 
 PyMODINIT_FUNC initcore(void) {
