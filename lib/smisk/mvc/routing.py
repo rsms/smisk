@@ -3,14 +3,15 @@
 '''URL-to-function routing.
 '''
 import sys, re, logging
-import http, control
-from types import *
+import smisk.mvc.http as http
+import smisk.mvc.control as control
 from smisk.core import URL
-from smisk.util.type import None2, RegexType, Undefined
+from smisk.util.type import *
 from smisk.util.python import wrap_exc_in_callable
 from smisk.util.string import tokenize_path
 from smisk.util.introspect import introspect
 
+__all__ = ['Destination', 'Filter', 'Router']
 log = logging.getLogger(__name__)
 
 def _prep_path(path):
@@ -352,7 +353,3 @@ class Router(object):
     log.debug('Found destination: %s', node)
     return node
   
-
-if __name__ == '__main__':
-  from smisk.test.routing import test
-  test()

@@ -1,5 +1,5 @@
 # encoding: utf-8
-'''HTTP session support protocols.
+'''HTTP session store protocol.
 '''
 
 class Store:

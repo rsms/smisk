@@ -24,10 +24,11 @@ from smisk.mvc import http
 import smisk.mvc
 import filters
 
+__all__ = ['Template', 'Templates']
 log = logging.getLogger(__name__)
 exceptions.TopLevelLookupException.status = http.NotFound
 
-# Replace Mako filter with the faster Smisk implementations
+# Replace Mako filter with the faster Smisk C implementations
 mako.filters.html_escape = smisk.core.xml.escape
 mako.filters.xml_escape = smisk.core.xml.escape
 mako.filters.url_escape = URL.encode

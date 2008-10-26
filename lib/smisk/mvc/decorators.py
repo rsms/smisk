@@ -3,6 +3,8 @@
 '''
 import sys, types
 
+__all__ = ['expose', 'hide']
+
 def expose(slug=None, template=None, formats=None, delegates=False):
   '''Explicitly expose a function, optionally configure how it is exposed.
   '''
