@@ -1,23 +1,4 @@
 # encoding: utf-8
-'''
-This module provides a way to use Smisk as a WSGI backend.
-
-Conforms to `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`__
-
-Simple example:
-
-.. python::
-  from smisk.wsgi import Gateway
-  def hello_app(env, start_response):
-    start_response("200 OK", [])
-    return ["Hello, World"]
-  
-  Gateway(hello_app).run()
-
-:see: http://www.python.org/dev/peps/pep-0333/
-:author: Eric Moritz
-:author: Rasmus Andersson
-'''
 # Copyright (c) 2008, Eric Moritz <eric@themoritzfamily.com>
 # All rights reserved.
 # 
@@ -46,11 +27,29 @@ Simple example:
 # THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+'''
+This module provides a way to use Smisk as a WSGI backend.
 
-import smisk
+Conforms to `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`__
 
+Example:
+
+.. python::
+  def hello_app(env, start_response):
+    start_response("200 OK", [])
+    return ["Hello, World"]
+  from smisk.wsgi import main
+  main(hello_app)
+
+:see: http://www.python.org/dev/peps/pep-0333/
+:author: Eric Moritz
+:author: Rasmus Andersson
+'''
+import os, sys, smisk.core, logging
+from smisk.util.main import *
+
+__all__ = ['__version__', 'Request', 'Gateway', 'main']
 __version__ = (0,1,0)
-
 _hop_headers = {
   'connection':1, 'keep-alive':1, 'proxy-authenticate':1,
   'proxy-authorization':1, 'te':1, 'trailers':1, 'transfer-encoding':1,
@@ -61,7 +60,7 @@ def is_hop_by_hop(header_name):
   '''Return true if 'header_name' is an HTTP/1.1 "Hop-by-Hop" header'''
   return header_name.lower() in _hop_headers
 
-class Request(smisk.Request):
+class Request(smisk.core.Request):
   '''WSGI request'''
   def prepare(self, app):
     '''Set up the environment for one request'''
@@ -82,11 +81,12 @@ class Request(smisk.Request):
     self.send_file = app.response.send_file
   
   def send_file(self, path):
-    raise NotImplementedError('unprepared request does not have a valid send_file')
+    raise NotImplementedError('unprepared request does not have a valid send_file method')
   
 
-class Gateway(smisk.Application):
-  '''This is the Smisk WSGI adapter'''
+class Gateway(smisk.core.Application):
+  '''WSGI adapter
+  '''
   # Configuration parameters; can override per-subclass or per-instance
   wsgi_version = (1,0)
   wsgi_multithread = False
@@ -129,28 +129,93 @@ class Gateway(smisk.Application):
     self.response.headers = ['Status: '+status]
     # Append each of the headers provided by wsgi
     self.response.headers += [": ".join(header) for header in headers]
-    # Add the X-Powered-By header to show off Smisk
-    self.response.headers.append("X-Powered-By: smisk/%s smisk+wsgi/%d.%d.%d" %
-      (smisk.__version__, __version__[0], __version__[1], __version__[2]))
+    # Add the X-Powered-By header to show off this extension
+    self.response.headers.append("X-Powered-By: smisk+wsgi/%d.%d.%d" % __version__)
     # Return the write function as required by the WSGI spec
     return self.response.write
   
   def service(self):
     self.request.prepare(self)
     output = self.wsgi_app(self.request.env, self.start_response)
-    # Discussion:
-    #  output might be an iterable in which case we can not trust len()
+    # Discussion about Content-Length:
+    #  Output might be an iterable in which case we can not trust len()
     #  but in a perfect world, we did know how many parts we got and if
     #  we only got _one_ we could also add a Content-length. But no.
     #  Instead, we rely on the host server splitting up things in nice
-    #  chunks, using chunked transfer encoding. (If the server complies
-    #  to HTTP/1.1 it is required to do so, so we are pretty safe)
+    #  chunks, using chunked transfer encoding, (If the server complies
+    #  to HTTP/1.1 it is required to do so, so we are pretty safe) or
+    #  simply rely on the host server setting the Content-Length header.
     for data in output:
       self.response.write(data)
   
 
+def main(wsgi_app, appdir=None, bind=None, forks=None, handle_errors=True, cli=True):
+  '''Helper for setting up and running an application.
+  
+  This function handles command line options, calls `setup()` to set up the
+  application, and then calls `run()`, entering the runloop.
+  
+  This is normally what you do in your top module ``__init__``:
+  
+  .. python::
+    from smisk.wsgi import main
+    from your.app import wsgi_app
+    main(wsgi_app)
+  
+  Your module is now a runnable program which automatically configures and
+  runs your application. There is also a Command Line Interface if `cli` 
+  evaluates to ``True``.
+  
+  :Parameters:
+    wsgi_app : callable
+      A WSGI application
+    appdir : string
+      Path to the applications base directory.
+    bind : string
+      Bind to address (and port). Note that this overrides ``SMISK_BIND``.
+    forks : int
+      Number of child processes to spawn.
+    handle_errors : bool
+      Handle any errors by wrapping calls in `handle_errors_wrapper()`
+    cli : bool
+      Act as a *Command Line Interface*, parsing command line arguments and
+      options.
+  
+  :rtype: None
+  '''
+  if cli:
+    appdir, bind, forks = main_cli_filter(appdir=appdir, bind=bind, forks=forks)
+  
+  # Setup logging
+  # Calling basicConfig has no effect if logging is already configured.
+  logging.basicConfig(format='%(levelname)-8s %(name)-20s %(message)s')
+  
+  # Bind
+  if bind is not None:
+    os.environ['SMISK_BIND'] = bind
+  if 'SMISK_BIND' in os.environ:
+    smisk.bind(os.environ['SMISK_BIND'])
+    log.info('Listening on %s', smisk.listening())
+  
+  # Configure appdir
+  setup_appdir(appdir)
+  
+  # Forks
+  if isinstance(forks, int) and forks > -1:
+    application.forks = forks
+  
+  # Create the application
+  application = Gateway(wsgi_app=wsgi_app)
+  
+  # Runloop
+  if handle_errors:
+    return handle_errors_wrapper(application.run)
+  else:
+    return application.run()
+
+
+
 if __name__ == '__main__':
-  import sys
   from wsgiref.validate import validator # Import the wsgi validator app
 
   def hello_app(env, start_response):
