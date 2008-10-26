@@ -38,6 +38,7 @@ THE SOFTWARE.
 
 smisk_Application *smisk_Application_current = NULL;
 
+// Set error if smisk_Application_current is NULL.
 int smisk_require_app (void) {
   log_trace("ENTER");
   if ( (smisk_Application_current == NULL) || (smisk_Application_current == (smisk_Application *)Py_None) ) {
@@ -45,6 +46,28 @@ int smisk_require_app (void) {
     return -1;
   }
   return 0;
+}
+
+// Returns 0 on success, -1 on failure.
+int smisk_Application_set_current (PyObject *app) {
+  PyObject *old = SMISK_PyObject_GET(&smisk_ApplicationType, "current");
+  int st = SMISK_PyObject_SET(&smisk_ApplicationType, "current", app);
+  if (st == -1) {
+    // Revert to None on error
+    Py_INCREF(Py_None);
+    smisk_Application_current = (smisk_Application *)Py_None;
+    if (SMISK_PyObject_SET(&smisk_ApplicationType, "current", Py_None) == -1) {
+      Py_DECREF(Py_None);
+    }
+  }
+  else {
+    // Aquire a new reference
+    Py_INCREF(app);
+    smisk_Application_current = (smisk_Application *)app;
+  }
+  // Release any reference to old object
+  Py_XDECREF(old);
+  return st;
 }
 
 
@@ -195,7 +218,8 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
     self->forks = 0;
     self->fork_pids = NULL;
     
-    smisk_Application_current = self;
+    // Application.current = self
+    smisk_Application_set_current((PyObject *)self);
     
     // smisk.core.app = self
     objproxy = PyObject_GetAttrString(smisk_core_module, "app");
@@ -218,10 +242,8 @@ int smisk_Application_init(smisk_Application *self, PyObject *args, PyObject *kw
 void smisk_Application_dealloc(smisk_Application *self) {
   log_trace("ENTER");
   
-  if (smisk_Application_current == self) {
-    // No refcounting for this one
-    smisk_Application_current = (smisk_Application *)Py_None;
-  }
+  if (smisk_Application_current == self)
+    smisk_Application_set_current(Py_None);
   
   Py_DECREF(self->request);
   Py_DECREF(self->response);
@@ -834,7 +856,9 @@ int smisk_Application_register_types(PyObject *module) {
     Py_INCREF(Py_None);
   }
   if (PyType_Ready(&smisk_ApplicationType) == 0) {
-    return PyModule_AddObject(module, "Application", (PyObject *)&smisk_ApplicationType);
+    if(PyModule_AddObject(module, "Application", (PyObject *)&smisk_ApplicationType) == 0) {
+      return SMISK_PyObject_SET(&smisk_ApplicationType, "current", smisk_Application_current);
+    }
   }
   return -1;
 }
