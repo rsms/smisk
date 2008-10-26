@@ -28,11 +28,7 @@ typedef struct {
   
   // Public Python & C
   PyObject *file_prefix; // string
-  
-  // Private C
-  long gc_tid;
-  int gc_run;
-  
+  float gc_probability;
 } smisk_FileSessionStore;
 
 PyTypeObject smisk_FileSessionStoreType;

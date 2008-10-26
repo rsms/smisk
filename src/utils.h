@@ -80,4 +80,20 @@ PyObject *smisk_util_pack (const byte *data, size_t size, int nbits);
  */
 PyObject *smisk_find_string_by_prefix_in_dict (PyObject *list, PyObject *prefix);
 
+/**
+ * Callback signature for probably_call()
+ */
+typedef int probably_call_cb(void *arg1);
+
+/**
+ * Calls cb depending on probability.
+ *
+ * @param probability float Likeliness of cb being called. A value between 0 and 1.
+ * @param cb                Function to call.
+ * @param cb_arg            Arbirtrary argument to be passed on to cb when called.
+ * @returns int             -1 on error (if so, a Python Error have been set) or 0 on
+ *                          success.
+ */
+int probably_call (float probability, probably_call_cb *cb, void *cb_arg);
+
 #endif

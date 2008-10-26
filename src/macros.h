@@ -159,22 +159,22 @@ typedef uint8_t byte;
 // in __init__.c
 #define EXTERN_OP_START \
 	smisk_py_thstate = PyThreadState_Swap(NULL); \
-	PyEval_ReleaseLock();
+	PyEval_ReleaseLock()
 
 #define EXTERN_OP_END \
 	PyEval_AcquireLock(); \
-	PyThreadState_Swap(smisk_py_thstate);
+	PyThreadState_Swap(smisk_py_thstate)
 
 #define _EXTERN_OP(state_var, section) \
 	state_var = PyThreadState_Swap(NULL); \
 	PyEval_ReleaseLock(); \
 	section; \
 	PyEval_AcquireLock(); \
-	PyThreadState_Swap(state_var);
+  PyThreadState_Swap(state_var);
 
 // Smisk main state_var
 #define EXTERN_OP(section) \
-	_EXTERN_OP(smisk_py_thstate, section)
+  _EXTERN_OP(smisk_py_thstate, section)
 
 // Temporary state_var
 #define EXTERN_OP2(section) \

@@ -32,6 +32,7 @@ THE SOFTWARE.
 #include <structmember.h>
 #include <marshal.h>
 #include <pythread.h>
+#include <stdlib.h>
 
 
 #pragma mark Internal
@@ -56,7 +57,7 @@ static time_t _is_garbage(smisk_FileSessionStore *self, const char *fn, int fd) 
 }
 
 
-static int _gc_run(smisk_FileSessionStore *self) {
+static int _gc_run(void *_self) {
   log_trace("ENTER");
   // XXX Some non-windows compliant code here.
   //     ...but who cares about Windows anyway?
@@ -64,6 +65,7 @@ static int _gc_run(smisk_FileSessionStore *self) {
   struct dirent *f;
   char *p, *path_p, *fn_prefix, *path_buf;
   size_t fn_prefix_len, path_p_len;
+  smisk_FileSessionStore *self = (smisk_FileSessionStore *)_self;
   
   path_p = PyString_AsString(self->file_prefix);
   p = strrchr(path_p, '/');
@@ -71,6 +73,7 @@ static int _gc_run(smisk_FileSessionStore *self) {
   fn_prefix_len = strlen(fn_prefix);
   
   if (p) {
+    EXTERN_OP_START;
     *p = '\0';
     d = opendir(path_p);
     if (d) {
@@ -103,46 +106,12 @@ static int _gc_run(smisk_FileSessionStore *self) {
         log_error("Failed to opendir(\"%s\")", path_p);
       }
     #endif
+    EXTERN_OP_END;
     *p = '/';
   }
   
   return 0;
 }
-
-
-static void _gc_thread(void *_self) {
-  log_trace("ENTER started on thread #%ld", PyThread_get_thread_ident());
-  unsigned int sleeptime;
-  int r;
-  
-  sleep(1);
-  smisk_FileSessionStore *self = (smisk_FileSessionStore *)_self;
-  
-  while (self->gc_run) {
-    EXTERN_OP(r = _gc_run(self));
-    
-    // print errors to stdout since we're in another thread (not managed by Python!?)
-    if (r != 0)
-      PyErr_Print();
-    
-    if (((smisk_SessionStore *)self)->ttl > 0) {
-      sleeptime = (unsigned int)(((smisk_SessionStore *)self)->ttl / 2);
-      if (sleeptime < 2)
-        sleeptime = 2;
-      sleep(sleeptime); // will be interrupted by exit signal
-    }
-    else {
-      sleep(30);
-    }
-  }
-  
-  log_debug("_gc_thread is exiting from thread #%ld", PyThread_get_thread_ident());
-  self->gc_tid = -1;
-  self->gc_run = 0;
-  PyThread_exit_thread();
-}
-
-
 
 
 #pragma mark Initialization & deallocation
@@ -152,18 +121,12 @@ static PyObject *tempfile_mod = NULL;
 
 int smisk_FileSessionStore_init(smisk_FileSessionStore *self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
-  PyObject *s;
   
-  // Load required modules
+  // Load tempfile module
   if (tempfile_mod == NULL) {
-    // tempfile
-    s = PyString_FromString("tempfile");
-    tempfile_mod = PyImport_Import(s);
-    Py_DECREF(s);
-    
+    tempfile_mod = PyImport_ImportModule("tempfile");
     if (tempfile_mod == NULL)
       tempfile_mod = Py_None;
-    
   }
   
   if (tempfile_mod != Py_None) {
@@ -183,15 +146,7 @@ int smisk_FileSessionStore_init(smisk_FileSessionStore *self, PyObject *args, Py
     self->file_prefix = PyString_FromString("/tmp/smisk-sess.");
   }
   
-  
-  // Start GC thread
-  self->gc_run = 1;
-  self->gc_tid = PyThread_start_new_thread(_gc_thread, (void *)self);
-  
-  if (self->gc_tid == -1) {
-    Py_DECREF((PyObject *)self);
-    return -1;
-  }
+  self->gc_probability = 0.1;
   
   return 0;
 }
@@ -200,16 +155,7 @@ int smisk_FileSessionStore_init(smisk_FileSessionStore *self, PyObject *args, Py
 void smisk_FileSessionStore_dealloc(smisk_FileSessionStore *self) {
   log_trace("ENTER");
   
-  // Stop GC thread
-  if (self->gc_tid != -1) {
-    self->gc_run = 0;
-    // Note: Due to the level of abstraction in PyThread, this is as good as it gets.
-    //       The gc thread might live beyond this point... However, sleep() in the thread
-    //       should get interrupted by the exit signal we rise in Application.run().
-  }
-  
   Py_DECREF(self->file_prefix);
-  
   ((smisk_SessionStore *)self)->ob_type->tp_base->tp_dealloc((PyObject *)self);
   
   log_debug("EXIT smisk_FileSessionStore_dealloc");
@@ -246,6 +192,9 @@ PyObject *smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject *se
   PyObject *fn, *data = NULL;
   char *pathname;
   FILE *fp = NULL;
+  
+  if (probably_call(self->gc_probability, _gc_run, (void *)self) == -1)
+    return NULL;
   
   if ( !SMISK_PyString_Check(session_id) ) {
     PyErr_SetString(PyExc_TypeError, "session_id must be a string");
@@ -440,6 +389,16 @@ static struct PyMemberDef smisk_FileSessionStore_members[] = {
     "A string to prepend to each file stored in `dir`.\n"
     "\n"
     "Defaults to ``tempfile.tempdir + \"smisk-sess.\"`` - for example: ``/tmp/smisk-sess.``"},
+  
+  {"gc_probability", T_FLOAT, offsetof(smisk_FileSessionStore, gc_probability), 0,
+    ":type: float\n\n"
+    "A value between 0 and 1 which defines the probability that sessions "
+      "are garbage collected.\n"
+    "\n"
+    "Garbage collection is only triggered when trying to read a session object, "
+      "so this only effects requests which involves reading sessions.\n"
+    "\n"
+    "Defaults to ``0.1`` (10% probability)"},
   
   {NULL, 0, 0, 0, NULL}
 };

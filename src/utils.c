@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include <fcgiapp.h>
 #include <Python.h>
 
+#include "utils.h"
 #include "__init__.h"
 #include "URL.h"
 
@@ -351,5 +352,20 @@ PyObject *smisk_find_string_by_prefix_in_dict(PyObject *list, PyObject *prefix) 
   }
   
   return PyInt_FromLong(-1L);
+}
+
+
+int probably_call(float probability, probably_call_cb *cb, void *cb_arg) {
+  int rc = 0;
+  static float rand_max_f = (float)RAND_MAX;
+  
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  srandom(tv.tv_usec);
+  
+  if ( ((float)random()) / rand_max_f < probability )
+    rc = cb(cb_arg);
+  
+  return rc;
 }
 
