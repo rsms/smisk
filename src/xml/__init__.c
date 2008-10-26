@@ -23,6 +23,9 @@ THE SOFTWARE.
 #include "__init__.h"
 #include <structmember.h>
 
+#undef MOD_IDENT
+#define MOD_IDENT "smisk.core.xml"
+
 #define IS_RESERVED(c) (chr_table[(unsigned char)(c)])
 
 PyObject *smisk_xml = NULL; // the module
