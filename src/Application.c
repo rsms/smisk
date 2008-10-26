@@ -621,7 +621,7 @@ PyObject *smisk_Application_exit(smisk_Application *self) {
 PyDoc_STRVAR(smisk_Application_application_will_start_DOC,
   "Called just before the application starts accepting incoming requests.\n"
   "\n"
-  "The default implementations does nothing. It's ment to be overridden."
+  "The default implementation in `smisk.core.Application` does nothing.\n"
   "\n"
   ":rtype: None");
 PyObject *smisk_Application_application_will_start(smisk_Application *self) {
@@ -633,7 +633,7 @@ PyObject *smisk_Application_application_will_start(smisk_Application *self) {
 PyDoc_STRVAR(smisk_Application_application_did_stop_DOC,
   "Called when the application stops accepting incoming requests.\n"
   "\n"
-  "The default implementations does nothing. It's ment to be overridden."
+  "The default implementation in `smisk.core.Application` does nothing.\n"
   "\n"
   ":rtype: None");
 PyObject *smisk_Application_application_did_stop(smisk_Application *self) {

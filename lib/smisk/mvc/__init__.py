@@ -268,6 +268,13 @@ class Application(smisk.core.Application):
   
   
   def autoload_configuration(self, config_mod_name='config'):
+    '''Automatically load configuration from application sub-module named `config_mod_name`.
+    
+    :Parameters:
+      config_mod_name : string
+        Name of the application configuration sub-module
+    :rtype: None
+    '''
     import imp
     path = os.path.join(os.environ['SMISK_APP_DIR'], config_mod_name)
     locs = {'app': self}
@@ -369,7 +376,7 @@ class Application(smisk.core.Application):
                         Primarily used by `error()`.
     :type  no_http_exc: bool
     :return: The most appropriate serializer
-    :rtype:  serializer
+    :rtype:  Serializer
     '''
     # Overridden by explicit response.format?
     if self.response.format is not None:
@@ -599,20 +606,27 @@ class Application(smisk.core.Application):
   
   
   def encode_response(self, rsp):
+    '''Encode the response object `rsp`
+    
+    :Parameters:
+      rsp : object
+        Must be a string, a dict or None
+    :Returns:
+      `rsp` encoded as a series of bytes
+    :rtype: buffer
+    '''
     # No data to encode
     if rsp is None:
       if self.template:
-        return self.template.render_unicode().encode(self.response.charset, self.unicode_errors)
+        return self.template.render_unicode().encode(
+          self.response.charset, self.unicode_errors)
       return None
     
     # If rsp is already a string, we do not process it further
     if isinstance(rsp, basestring):
-      if not isinstance(rsp, str):
-        if isinstance(rsp, unicode):
-          rsp = rsp.encode(self.response.charset, self.unicode_errors)
-        else:
-          rsp = str(rsp)
-        return rsp
+      if isinstance(rsp, unicode):
+        rsp = rsp.encode(self.response.charset, self.unicode_errors)
+      return rsp
     
     # Make sure rsp is a dict
     if not isinstance(rsp, dict):
@@ -620,7 +634,8 @@ class Application(smisk.core.Application):
     
     # Use template as serializer, if available
     if self.template:
-      return self.template.render_unicode(**rsp).encode(self.response.charset, self.unicode_errors)
+      return self.template.render_unicode(**rsp).encode(
+        self.response.charset, self.unicode_errors)
     
     # If we do not have a template, we use a data serializer
     self.response.charset, rsp = self.response.serializer.serialize(rsp, self.response.charset)
@@ -655,7 +670,7 @@ class Application(smisk.core.Application):
       self._log_debug_sending_rsp(rsp)
     
     # Send body
-    assert(isinstance(rsp, basestring))
+    assert isinstance(rsp, str)
     self.response.write(rsp)
   
   
@@ -725,14 +740,35 @@ class Application(smisk.core.Application):
   
   
   def template_for_path(self, path):
+    '''Aquire template URI for `uri`.
+    
+    :Parameters:
+      path : string
+        A relative path
+    :rtype: template.Template
+    '''
     return self.template_for_uri(self.template_uri_for_path(path))
   
   
   def template_uri_for_path(self, path):
+    '''Get template URI for `uri`.
+    
+    :Parameters:
+      path : string
+        A relative path
+    :rtype: string
+    '''
     return path + '.' + self.response.serializer.extension
   
   
   def template_for_uri(self, uri):
+    '''Aquire template for `uri`.
+    
+    :Parameters:
+      uri : string
+        Path
+    :rtype: template.Template
+    '''
     if log.level <= logging.DEBUG:
       log.debug('Looking for template %s', uri)
     return self.templates.template_for_uri(uri, exc_if_not_found=False)
@@ -759,6 +795,17 @@ class Application(smisk.core.Application):
     return rsp
   
   def error(self, typ, val, tb):
+    '''Handle an error and produce an appropriate response.
+    
+    :Parameters:
+      typ : type
+        Exception type
+      val : object
+        Exception value
+      tb : traceback
+        Traceback
+    :rtype: None
+    '''
     try:
       status = getattr(val, 'status', http.InternalServerError)
       if not isinstance(status, http.Status):

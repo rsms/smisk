@@ -24,7 +24,7 @@ from smisk.mvc import http
 import smisk.mvc
 import filters
 
-__all__ = ['Templates']
+__all__ = ['Templates', 'Template']
 log = logging.getLogger(__name__)
 exceptions.TopLevelLookupException.status = http.NotFound
 

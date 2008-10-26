@@ -139,8 +139,9 @@ class XSPFSerializer(XMLSerializer):
   @classmethod
   def build_trackList(cls, iterable):
     e = Element('trackList')
-    for track in iterable:
-      e.append(cls.build_track(track))
+    if iterable:
+      for track in iterable:
+        e.append(cls.build_track(track))
     return e
   
   @classmethod
@@ -162,7 +163,7 @@ class XSPFSerializer(XMLSerializer):
     else:
       identifier = u'smisk:'
     identifier += u'error:%d' % status.code
-    return cls.encode({
+    return cls.serialize({
       u'title':      params['name'],
       u'annotation': params['description'],
       u'identifier': identifier,
