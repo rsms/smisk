@@ -5,6 +5,6 @@ from smisk.mvc import *
 class root(Controller):
   def __call__(self, **params):
     '''Simply returns the request'''
-    return params
+    return {'request parameters': params}
 
 main(autoreload=True)

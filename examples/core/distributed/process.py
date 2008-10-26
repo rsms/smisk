@@ -2,27 +2,28 @@
 # encoding: utf-8
 import sys, os, socket
 from datetime import datetime
-import smisk
+from smisk import *
 
-class MyApp(smisk.Application):
+class MyApp(Application):
+  # This is used to simulate processes dying for testing failover.
+  # Set to -1 to disable
+  die_after_num_requests = 4
+  
   def __init__(self):
-    smisk.Application.__init__(self)
+    Application.__init__(self)
     self.time_started = datetime.now()
-    # This is used to simulate processes dying for testing failover.
-    # Set to -1 to disable
-    self.die_after_num_requests = 4
   
   def service(self):
     self.response.headers = ["Content-Type: text/plain"]
-    w = self.response.write
     
-    w("This comes from a separately running process.\n\n")
-    
-    w("Host:          %s\n" % socket.getfqdn())
-    w("Listening on:  %s\n" % smisk.listening())
-    w("Process id:    %d\n" % os.getpid())
-    w("Process owner: %s\n" % os.getenv('USER'))
-    w("Time started:  %s\n" % self.time_started.strftime('%Y-%m-%d %H:%M:%S'))
+    response(
+      "This comes from a separately running process.\n\n",
+      "Host:          %s\n" % socket.getfqdn(),
+      "Listening on:  %s\n" % listening(),
+      "Process id:    %d\n" % os.getpid(),
+      "Process owner: %s\n" % os.getenv('USER'),
+      "Time started:  %s\n" % self.time_started.strftime('%Y-%m-%d %H:%M:%S')
+    )
     
     if self.die_after_num_requests != -1:
       self.die_after_num_requests -= 1
@@ -36,9 +37,9 @@ def main(argv):
       sys.stderr.write("usage: %s [address]\n" % argv[0])
       sys.stderr.write("example: %s 127.0.0.1:5000\n" % argv[0])
       sys.exit(1)
-    smisk.bind(argv[1])
+    bind(argv[1])
   else:
-    smisk.bind("*:5000")
+    bind("*:5000")
   MyApp().run()
 
 
