@@ -1,6 +1,5 @@
 # encoding: utf-8
-'''
-Plain text encoding
+'''Plain text serialization.
 '''
 from smisk.serialization import serializers, Serializer
 

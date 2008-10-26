@@ -1,5 +1,5 @@
 # encoding: utf-8
-'''error
+'''Program main routine helpers.
 '''
 import sys, os, logging
 

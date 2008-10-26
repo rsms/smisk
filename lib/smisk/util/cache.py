@@ -1,5 +1,5 @@
 # encoding: utf-8
-'''cache
+'''Cache-related utilities.
 '''
 from types import *
 

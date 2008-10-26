@@ -194,6 +194,7 @@ class Application(smisk.core.Application):
   string rep when:
   
   .. python::
+  
     h = self.etag(data)
     h.update(more_data)
     etag_value = h.hexdigest()
@@ -864,7 +865,7 @@ def setup(application=None, appdir=None, *args, **kwargs):
   multiple times.
   
   The ``application`` argument
-  ~~~~~~~~~~~~~~~~~~~~
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * If `application` is not provided or ``None``, app will be aquired by calling
     `Application.current` if there is an application. Otherwise, a new
     application instance of default type is created and in which case any extra
@@ -903,12 +904,13 @@ def setup(application=None, appdir=None, *args, **kwargs):
     default value returned by 'environment()'.
   
   
-  :param app:     An application type or instance.
-  :type  app:     Application
-  :param appdir:  Path to the applications base directory. Setting this will
-                  overwrite any previous value of environment variable
-                  ``SMISK_APP_DIR``.
-  :type  appdir:  string
+  :Parameters:
+    application : Application
+      An application type or instance.
+    appdir : string
+      Path to the applications base directory. Setting this will overwrite
+      any previous value of environment variable ``SMISK_APP_DIR``.
+  
   :returns: The application
   :rtype: `Application`
   :see: `run()`

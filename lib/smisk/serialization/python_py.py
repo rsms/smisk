@@ -1,6 +1,5 @@
 # encoding: utf-8
-'''
-Plain text encoding
+'''Python repr serialization.
 '''
 from smisk.serialization import serializers, Serializer
 

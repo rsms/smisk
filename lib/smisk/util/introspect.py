@@ -1,5 +1,5 @@
 # encoding: utf-8
-'''introspect
+'''Introspection
 '''
 import inspect
 try:

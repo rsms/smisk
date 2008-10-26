@@ -1,5 +1,5 @@
 # encoding: utf-8
-'''string
+'''String parsing, formatting, etc.
 '''
 import sys, os
 from smisk.core import URL, request
@@ -81,7 +81,7 @@ def normalize_url(url, default_absolute_url=None):
       An absolute URL, absolute path or relative path
     default_absolute_url : URL
       Default absolute URL used to expand a path to a full URL.
-      Uses `smisk.core.request.url` if not set.
+      Uses ``smisk.core.request.url`` if not set.
   :rtype: string
   '''
   if url.find('://') == -1:

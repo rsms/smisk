@@ -152,9 +152,6 @@ class Gateway(smisk.core.Application):
 def main(wsgi_app, appdir=None, bind=None, forks=None, handle_errors=True, cli=True):
   '''Helper for setting up and running an application.
   
-  This function handles command line options, calls `setup()` to set up the
-  application, and then calls `run()`, entering the runloop.
-  
   This is normally what you do in your top module ``__init__``:
   
   .. python::
