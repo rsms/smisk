@@ -2,7 +2,7 @@
 # encoding: utf-8
 import sys, os, socket
 from datetime import datetime
-from smisk import *
+from smisk.core import *
 
 class MyApp(Application):
   # This is used to simulate processes dying for testing failover.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 import sys, os
-from smisk import *
+from smisk.core import *
 
 class MyApp(Application):
   def service(self):
