@@ -1,20 +1,23 @@
-body { background: #fff url(../style/vertbars.png) repeat-x;
- color: #000; margin: 1em 0; padding: 0 1em 1em;
+body {
+  background: #fff url(../style/vertbars.png) repeat-x;
+  color: #333; margin: 1em 0; padding: 0 1em 1em;
 }
 body, th, td {
-  font: normal small 'Lucida grande',Verdana,Arial,'Bitstream Vera Sans',Helvetica,sans-serif;
+  font: normal small helvetica,arial,'Bitstream Vera Sans',sans-serif;
 }
 h1, h2, h3, h4 {
-  font-family: Arial,Verdana,'Bitstream Vera Sans',Helvetica,sans-serif;
+  font-family: helvetica,arial,'Bitstream Vera Sans',sans-serif;
   font-weight: bold; letter-spacing: -0.018em;
 }
 h1 { font-size: 19px; margin: 2em 0 .5em; }
+h1.toc { margin-bottom:0.5em; margin-top:0; }
 h2 { font-size: 16px; margin: 1.5em 0 .5em; }
 h3 { font-size: 14px; margin: 1.2em 0 .5em; }
 hr { border: none;  border-top: 1px solid #ccb; margin: 2em 0; }
 p { margin: 0 0 1em; }
-:link, :visited { text-decoration: none; border-bottom: 1px dotted #bbb;
-  color: #b00;
+:link, :visited {
+  text-decoration: none; border-bottom: 1px dotted #bbb;
+  color: #048;
 }
 :link:hover, :visited:hover { background-color: #eee; color: #555; }
 
@@ -104,12 +107,17 @@ table td.footer :link:hover, table td.footer :visited:hover {
 
 /* Syntax highlighting */
 
-.py-prompt, .py-more, .variable-ellipsis, .variable-op { color: #999; }
-.variable-group { color: #666; font-weight: bold; }
-.py-string, .variable-string, .variable-quote { color: #093; }
-.py-comment { color: #06f; font-style: italic; }
-.py-keyword { color: #00f; }
-.py-output { background: #f6f6f0; color: #666; font-weight: bold; }
+pre.py-doctest { padding:1em; margin-left:0; margin-right:0; background-color:#f9f9f9; }
+.py-prompt { color: #900; }
+.py-more { color: #090; }
+.py-keyword { color: #06a; font-weight:bold; }
+.py-string, .variable-string  { color:#b84; }
+.variable-quote { color: #aa5800; }
+.variable-ellipsis { color: #009; }
+.variable-op { color: #c00; }
+.variable-group { color: #575; }
+.py-comment { color: #888; font-style: italic; }
+.py-output { background: #fff; color: #666; font-weight: bold; }
 
 /* Index */
 
