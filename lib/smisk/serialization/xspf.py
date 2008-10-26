@@ -169,10 +169,6 @@ class XSPFSerializer(XMLSerializer):
       u'trackList':  None
     }, charset)
   
-  # Set these to None for documentation puroses
-  parse_object = None
-  build_object = None
-  
 
 # Only register if xml.etree is available
 if ElementTree is not None:
