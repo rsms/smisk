@@ -25,8 +25,8 @@ THE SOFTWARE.
 
 // fcgi socket fd
 int smisk_listensock_fileno;
-PyObject *os_module;
-PyThreadState *smisk_py_thstate;
+PyObject *os_module; // private
+PyThreadState *smisk_py_thstate; // private
 
 // The smisk.core module
 PyObject *smisk_core_module;
@@ -39,5 +39,13 @@ PyObject *smisk_InvalidSessionError; // extends PyExc_ValueError
 // String constants
 PyObject *kString_http;
 PyObject *kString_https;
+
+// Functions
+PyObject *smisk_bind (PyObject *self, PyObject *args);
+PyObject *smisk_unbind (PyObject *self);
+PyObject *smisk_listening (PyObject *self, PyObject *args);
+PyObject *smisk_uid (PyObject *self, PyObject *args);
+PyObject *smisk_pack (PyObject *self, PyObject *args);
+
 
 #endif

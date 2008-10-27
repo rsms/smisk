@@ -57,21 +57,7 @@ PyObject *kString_https;
 // Smisk main thread python global interp. lock thread state.
 PyThreadState *smisk_py_thstate;
 
-PyDoc_STRVAR(smisk_bind_DOC,
-  "Bind to a specific unix socket or host (and/or port).\n"
-  "\n"
-  ":param path: The Unix domain socket (named pipe for WinNT), hostname, "
-    "hostname and port or just a colon followed by a port number. e.g. "
-    "\"/tmp/fastcgi/mysocket\", \"some.host:5000\", \":5000\", \"\\*:5000\".\n"
-  ":type  path: string\n"
-  ":param backlog: The listen queue depth used in the ''listen()'' call. "
-    "Set to negative or zero to let the system decide (recommended).\n"
-  ":type  backlog: int\n"
-  ":raises smisk.IOError: If already bound.\n"
-  ":raises IOError: If socket creation fails.\n"
-  ":see: `unbind()`\n"
-  ":see: `listening()`\n"
-  ":rtype: None");
+
 PyObject *smisk_bind(PyObject *self, PyObject *args) {
   log_trace("ENTER");
   int fd, backlog;
@@ -124,15 +110,6 @@ PyObject *smisk_bind(PyObject *self, PyObject *args) {
 }
 
 
-PyDoc_STRVAR(smisk_unbind_DOC,
-  "Unbind from a previous call to `bind()`.\n"
-  "\n"
-  "If not bound, calling this function has no effect.\n"
-  "\n"
-  ":raises IOError: On failure.\n"
-  ":see: `bind()`\n"
-  ":see: `listening()`\n"
-  ":rtype: None");
 PyObject *smisk_unbind(PyObject *self) {
   log_trace("ENTER");
   
@@ -149,16 +126,6 @@ PyObject *smisk_unbind(PyObject *self) {
 }
 
 
-PyDoc_STRVAR(smisk_listening_DOC,
-  "Find out if this process is a \"remote\" process, bound to a socket "
-  "by means of calling `bind()`. If it is listening, this function returns "
-  "the address and port or the UNIX socket path.\n"
-  "\n"
-  ":raises smisk.IOError: On failure.\n"
-  ":returns: Bound path/address or None if not bound.\n"
-  ":see: `bind()`\n"
-  ":see: `unbind()`\n"
-  ":rtype: string");
 PyObject *smisk_listening(PyObject *self, PyObject *args) {
   log_trace("ENTER");
   PyObject *s = Py_None;
@@ -194,28 +161,6 @@ PyObject *smisk_listening(PyObject *self, PyObject *args) {
 }
 
 
-PyDoc_STRVAR(smisk_uid_DOC,
-  "Generate a universal Unique Identifier.\n"
-  "\n"
-  "Note: This is *not* a UUID (ISO/IEC 11578:1996) implementation. However it "
-    "uses an algorithm very similar to UUID v5 (RFC 4122). Most notably, the "
-    "format of the output is more compact than that of UUID v5.\n"
-  "\n"
-  "See documentation of `pack()` for an overview of ``nbits``.\n"
-  "\n"
-  "The UID is calculated like this:\n"
-  "\n"
-  ".. python::\n"
-   "  sha1 ( time.secs, time.usecs, pid, random[, node] )\n"
-  "\n"
-  ":See: `pack()`\n"
-  ":param nbits: Number of bits to pack into each byte when creating "
-    "the string representation. A value in the range 4-6 or 0 in which "
-    "case 20 raw bytes are returned. Defaults is 5.\n"
-  ":type  nbits: int\n"
-  ":param node: Optional data to be used when creating the uid.\n"
-  ":type  node: string\n"
-  ":rtype: string");
 PyObject *smisk_uid(PyObject *self, PyObject *args) {
   log_trace("ENTER");
   PyObject *node = NULL;
@@ -259,28 +204,6 @@ PyObject *smisk_uid(PyObject *self, PyObject *args) {
 }
 
 
-PyDoc_STRVAR(smisk_pack_DOC,
-  "Pack arbitrary bytes into a printable ASCII string.\n"
-  "\n"
-  "Overview of ``nbits``\n"
-  "~~~~~~~~~~~~~~~~~~~~~\n"
-  "\n"
-   "0 bits, No packing:\n"
-   "  20 bytes ``\"0x00-0xff\"``\n"
-   "4 bits, Base 16:\n"
-   "  40 bytes ``\"0-9a-f\"``\n"
-   "5 bits, Base 32:\n"
-   "  32 bytes ``\"0-9a-v\"``\n"
-   "6 bits, Base 64:\n"
-   "  27 bytes ``\"0-9a-zA-Z,-\"``\n"
-  "\n"
-  ":param data:\n"
-  ":type  data:  string\n"
-  ":param nbits: Number of bits to pack into each byte when creating "
-    "the string representation. A value in the range 4-6. Default is 5.\n"
-  ":type  nbits: int\n"
-  ":see: `uid()`\n"
-  ":rtype: string");
 PyObject *smisk_pack(PyObject *self, PyObject *args) {
   log_trace("ENTER");
   PyObject *data = NULL;
@@ -314,29 +237,14 @@ PyObject *smisk_pack(PyObject *self, PyObject *args) {
 /* ------------------------------------------------------------------------- */
 
 static PyMethodDef module_methods[] = {
-  {"bind",      (PyCFunction)smisk_bind,      METH_VARARGS, smisk_bind_DOC},
-  {"unbind",    (PyCFunction)smisk_unbind,    METH_NOARGS,  smisk_unbind_DOC},
-  {"listening", (PyCFunction)smisk_listening, METH_NOARGS,  smisk_listening_DOC},
-  {"uid",       (PyCFunction)smisk_uid,       METH_VARARGS, smisk_uid_DOC},
-  {"pack",      (PyCFunction)smisk_pack,      METH_VARARGS, smisk_pack_DOC},
+  {"bind",      (PyCFunction)smisk_bind,      METH_VARARGS, NULL},
+  {"unbind",    (PyCFunction)smisk_unbind,    METH_NOARGS,  NULL},
+  {"listening", (PyCFunction)smisk_listening, METH_NOARGS,  NULL},
+  {"uid",       (PyCFunction)smisk_uid,       METH_VARARGS, NULL},
+  {"pack",      (PyCFunction)smisk_pack,      METH_VARARGS, NULL},
   {NULL, NULL, 0, NULL}
 };
 
-PyDoc_STRVAR(smisk_module_DOC,
-  "Smisk core library.\n"
-  "\n"
-  "This module is implemented in machine native code.\n"
-  "\n"
-  ":var  __build__: Build identifier in URN form, distinguishing each unique build.\n"
-  ":type __build__: string\n"
-  ":var  app:       Current application. ``None`` if no application has been created. "
-  "                 See also: `Application.current`.\n"
-  ":type app:       Application\n"
-  ":var  request:   Current request. ``None`` if not application is running.\n"
-  ":type request:   Request\n"
-  ":var  response:  Current response. ``None`` if not application is running.\n"
-  ":type response:  Response\n"
-  ":requires: `libfcgi <http://www.fastcgi.com/>`__");
 
 PyMODINIT_FUNC initcore(void) {
   log_trace("ENTER");
@@ -360,13 +268,11 @@ PyMODINIT_FUNC initcore(void) {
     return;
   
   // Constants: Other static strings (only used in C API)
-  kString_http = PyString_FromString("http");
-  kString_https = PyString_FromString("https");
+  kString_http = PyString_InternFromString("http");
+  kString_https = PyString_InternFromString("https");
   
   // Constants: Special variables
   if (PyModule_AddStringConstant(smisk_core_module, "__build__", SMISK_BUILD_ID) != 0)
-    return;
-  if (PyModule_AddStringConstant(smisk_core_module, "__doc__", smisk_module_DOC) != 0)
     return;
   
   // Register types
@@ -384,7 +290,7 @@ PyMODINIT_FUNC initcore(void) {
   }
   
   // Exceptions
-  if (!(smisk_Error = PyErr_NewException("smisk.core.Error", PyExc_StandardError, NULL))
+  if (!(smisk_Error = PyErr_NewException("smisk.core.Error", NULL, NULL))
     ||
     (PyModule_AddObject(smisk_core_module, "Error", smisk_Error) == -1) )
     return;
@@ -392,8 +298,7 @@ PyMODINIT_FUNC initcore(void) {
     ||
     (PyModule_AddObject(smisk_core_module, "IOError", smisk_IOError) == -1) )
     return;
-  if (!(smisk_InvalidSessionError = PyErr_NewException("smisk.core.InvalidSessionError",
-      PyExc_ValueError, NULL))
+  if (!(smisk_InvalidSessionError = PyErr_NewException("smisk.core.InvalidSessionError", PyExc_ValueError, NULL))
     ||
     (PyModule_AddObject(smisk_core_module, "InvalidSessionError", smisk_InvalidSessionError) == -1)
     )

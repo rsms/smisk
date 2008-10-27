@@ -30,18 +30,16 @@
 '''
 This module provides a way to use Smisk as a WSGI backend.
 
-Conforms to `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`__
+Conforms to :pep:`333`
 
-Example:
+Example::
 
-.. python::
   def hello_app(env, start_response):
     start_response("200 OK", [])
     return ["Hello, World"]
   from smisk.wsgi import main
   main(hello_app)
 
-:see: http://www.python.org/dev/peps/pep-0333/
 :author: Eric Moritz
 :author: Rasmus Andersson
 '''
@@ -152,9 +150,8 @@ class Gateway(smisk.core.Application):
 def main(wsgi_app, appdir=None, bind=None, forks=None, handle_errors=True, cli=True):
   '''Helper for setting up and running an application.
   
-  This is normally what you do in your top module ``__init__``:
+  This is normally what you do in your top module ``__init__``::
   
-  .. python::
     from smisk.wsgi import main
     from your.app import wsgi_app
     main(wsgi_app)

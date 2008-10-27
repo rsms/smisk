@@ -1,6 +1,8 @@
 '''Release information.
 '''
-version = "1.1.0dev" # Major.Minor.Build[tag]
+__all__ = ['version','author','email','copyright','license','version_info']
+
+version = "1.1.0dev" # Major.Minor[.Build][tag]
 author = "Rasmus Andersson"
 email = "rasmus@flajm.com"
 copyright = "Copyright 2007-2008 Rasmus Andersson and contributors"
@@ -23,3 +25,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.'''
+
+import re
+version_info = list(re.match(r'([0-9]+)\.([0-9]+)(?:\.([0-9]+)|)(.*)', version).groups())
+if version_info[2] is None:
+  version_info[2] = '0'
+version_info = tuple(version_info)
