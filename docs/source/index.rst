@@ -3,6 +3,9 @@ Smisk v |version| documentation
 
 Welcome to the documentation of Smisk |version|.
 
+:Release: |release|
+:Date: |today|
+
 
 Contents
 --------
@@ -11,7 +14,7 @@ Contents
   :maxdepth: 2
   
   modules/index
-  c-api
+  c-api/index
 
 
 Indices and tables
