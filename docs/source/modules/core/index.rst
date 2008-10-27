@@ -1,5 +1,5 @@
-:mod:`smisk.core` – Core functionality (native library)
-=======================================================
+:mod:`smisk.core` – Core functionality
+===========================================================
 
 This module is implemented in machine native code.
 

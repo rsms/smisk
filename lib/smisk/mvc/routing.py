@@ -174,9 +174,8 @@ class Router(object):
   '''
   Default router handling both RegExp mappings and class tree mappings.
   
-  Consider the following tree of controllers:
+  Consider the following tree of controllers::
   
-  .. python::
     class root(Controller):
       def __call__(self, *args, **params):
         return 'Welcome!'
@@ -193,9 +192,8 @@ class Router(object):
           Employee.get_by(id=employee_id).save_or_update(**params)
   
   
-  Now, this list shows what URIs would map to what begin called:
+  Now, this list shows what URIs would map to what begin called::
   
-  .. python::
     /                         => root().__call__()
     /employees                => employees().__call__()
     /employees/               => employees().__call__()

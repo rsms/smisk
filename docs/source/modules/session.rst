@@ -4,4 +4,3 @@
 .. automodule:: smisk.session
   :members:
   :undoc-members:
-  :inherited-members:

@@ -3,9 +3,8 @@
 '''Interactive console aiding in development and management.
 
 Start the console by importing and running its `main()` from a file in your
-application top module:
+application top module::
 
-.. python::  
   #!/usr/bin/env python
   from smisk.mvc.console import main
   if __name__ == '__main__':

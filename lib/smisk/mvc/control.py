@@ -116,7 +116,9 @@ def template_for(node):
 def method_origin(method):
   '''Return the class on which `method` was originally defined.
   
-  .. python::
+  .. code-block:: python
+  
+    >>> from smisk.mvc.control import method_origin
     >>> class Animal(object):
     >>>   def name(self):
     >>>     pass
@@ -126,7 +128,6 @@ def method_origin(method):
     >>>     pass
     >>> 
     >>> o = Fish()
-    >>> 
     >>> print method_origin(o.name)
     <class '__main__.Animal'>
     >>> print method_origin(o.color)
@@ -328,9 +329,8 @@ class Controller(object):
   
   To grow a controller tree, you need to set a root first. This is done by defining a subclass of `Controller` with the special name 'root' (case-insensitive).
   
-  Here is a very simple, but valid, controller tree:
+  Here is a very simple, but valid, controller tree::
   
-  .. python::
     class root(Controller):
       def hello(self):
         return {'message': 'Hello'}

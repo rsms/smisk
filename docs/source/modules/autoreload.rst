@@ -4,4 +4,3 @@
 .. automodule:: smisk.autoreload
   :members:
   :undoc-members:
-  :inherited-members:

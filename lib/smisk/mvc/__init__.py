@@ -5,8 +5,7 @@ This module and it's sub-modules constitutes the most common way of using
 Smisk, mapping URLs to the *control tree* – an actual class tree, growing
 from `control.Controller`.
 
-Key members
-~~~~~~~~~~~
+**Key members**
 
 * `main()` is a helper function which facilitates the most common use case:
   Setting up an application, configuring it, running it and logging uncaught
@@ -23,10 +22,8 @@ Key members
   *control tree*.
 
 
-Examples
-~~~~~~~~
+**Examples**::
 
-.. python::
   from smisk.mvc import *
   class root(Controller):
     def __call__(self, *args, **params):
@@ -34,7 +31,7 @@ Examples
   
   main()
 
-.. packagetree::
+.. packagetree (xxx todo fix for Sphinx)
 '''
 import sys, os, logging, codecs as char_codecs
 import smisk, smisk.core
@@ -197,9 +194,7 @@ class Application(smisk.core.Application):
   The value needs to be either the name of a valid hash function in the
   ``hashlib`` module (i.e. "md5"), or a something respoding in the same way
   as the hash functions in hashlib. (i.e. need to return a hexadecimal
-  string rep when:
-  
-  .. python::
+  string rep when::
   
     h = self.etag(data)
     h.update(more_data)
@@ -305,8 +300,8 @@ class Application(smisk.core.Application):
     Can be called multiple times and is automatically called, just after calling
     `autoload_configuration()`, by `smisk.mvc.setup()` and `application_will_start()`.
     
-    Outline
-    ~~~~~~~
+    **Outline**
+    
     1. If `etag` is enabled and is a string, replaces `etag` with the named hashing
        algorithm from hashlib.
     2. If `templates` are enabled but ``templates.directories`` evaluates to false,
@@ -692,8 +687,7 @@ class Application(smisk.core.Application):
   def service(self):
     '''Manages the life of a HTTP transaction.
     
-    Summary
-    ~~~~~~~
+    **Summary**
     
     #. Reset current shared `request`, `response` and `self`.
     
@@ -1007,8 +1001,8 @@ def setup(application=None, appdir=None, *args, **kwargs):
   the application state, see `Application.setup()` instead, which can be called
   multiple times.
   
-  The ``application`` argument
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  **The application argument**
+  
   * If `application` is not provided or ``None``, app will be aquired by calling
     `Application.current` if there is an application. Otherwise, a new
     application instance of default type is created and in which case any extra
@@ -1018,8 +1012,8 @@ def setup(application=None, appdir=None, *args, **kwargs):
     which case a new instance of that type is created and passed any extra
     args and kwargs passed to this function.
   
-  Application directory
-  ~~~~~~~~~~~~~~~~~~~~~
+  **Application directory**
+  
   The application directory is the physical path in which your application module
   resides in the file system. Smisk need to know this and tries to automatically
   figure it out. However, there are cases where you need to explicitly define your
@@ -1034,8 +1028,8 @@ def setup(application=None, appdir=None, *args, **kwargs):
   2. If `appdir` is **not** specified the application directory path will be aquired
      by ``dirname(__main__.__file__)``.
   
-  Environment variables
-  ~~~~~~~~~~~~~~~~~~~~~
+  **Environment variables**
+  
   SMISK_APP_DIR
     The physical location of the application.
     If not set, the value will be calculated like ``abspath(appdir)`` if the
@@ -1103,8 +1097,7 @@ def run(bind=None, application=None, forks=None, handle_errors=False):
   your application once per process. (Details: OS_ShutdownPending sets a 
   process-wide flag causing any call to accept to bail out)
   
-  Environment variables
-  ~~~~~~~~~~~~~~~~~~~~~
+  **Environment variables**
   
   SMISK_BIND
     If set and not empty, a call to ``smisk.core.bind`` will occur, passing
@@ -1166,9 +1159,8 @@ def main(application=None, appdir=None, bind=None, forks=None, handle_errors=Tru
   This function handles command line options, calls `setup()` to set up the
   application, and then calls `run()`, entering the runloop.
   
-  This is normally what you do in your top module ``__init__``:
+  This is normally what you do in your top module ``__init__``::
   
-  .. python::
     from smisk.mvc import main
     if __name__ == '__main__':
       main()

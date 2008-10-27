@@ -4,13 +4,23 @@ Modules
 .. toctree::
   :glob:
   
-  **
+  autoreload
+  charsets
+  core/index
+  inflection
+  mvc/index
+  mvc/**
+  release
+  serialization/**
+  session
+  util/**
+  wsgi
+  
 
-:mod:`smisk` – Root module
+:mod:`smisk`
 --------------------------
 
 .. automodule:: smisk
   :members:
   :undoc-members:
-  :inherited-members:
   
