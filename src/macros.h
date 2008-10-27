@@ -115,18 +115,18 @@ typedef uint8_t byte;
   #define assert_refcount(o, count_test) \
     do { \
       if (!((o)->ob_refcnt count_test)){ \
-        log_debug(MOD_IDENT " assert_refcount(%ld, %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test);\
+        log_debug("assert_refcount(%ld, %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test);\
       }\
       assert((o)->ob_refcnt count_test); \
     } while (0)
-  #define DUMP_REFCOUNT(o) log_debug(MOD_IDENT " *** %s: %ld", #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
+  #define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
   #define DUMP_REPR(o) \
     do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
       if (repr) {\
-        log_debug(MOD_IDENT " repr(%s) = %s", #o, PyString_AS_STRING(repr));\
+        log_debug("repr(%s) = %s", #o, PyString_AS_STRING(repr));\
         Py_DECREF(repr);\
       } else {\
-        log_debug(MOD_IDENT " repr(%s) = <NULL>", #o);\
+        log_debug("repr(%s) = <NULL>", #o);\
       }\
     } while (0)
 #else
