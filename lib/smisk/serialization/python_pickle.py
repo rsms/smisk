@@ -16,9 +16,8 @@ class PythonPickleSerializer(Serializer):
   '''
   Python Pickle serializer
   
-  Example client for interacting with a smisk service:
+  Example client for interacting with a smisk service::
   
-  .. python::
     >>> import pickle, urllib
     >>> print pickle.load(urllib.urlopen("http://localhost:8080/.pickle?hello=123"))
   '''

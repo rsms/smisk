@@ -1,7 +1,7 @@
 # encoding: utf-8
 '''Data serialization
 
-.. packagetree::
+.. packagetree (xxx todo fix for Sphinx)
 .. importgraph::
 '''
 import base64

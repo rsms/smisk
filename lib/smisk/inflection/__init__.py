@@ -11,7 +11,7 @@ language inflection. You can access inflection handlers for other languages
 by importing the appropriate inflector. For example
 ``from miwa.inflection.sv import inflection`` to use Swedish inflection.
 
-.. packagetree::
+.. packagetree (xxx todo fix for Sphinx)
 
 :Author:          Rasmus Andersson http://hunch.se/
 :var inflections: locale-to-Inflection-object map

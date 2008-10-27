@@ -9,7 +9,7 @@
 #
 '''View in MVC – Templating.
 
-.. packagetree::
+.. packagetree (xxx todo fix for Sphinx)
 
 :requires: mako
 '''
