@@ -3,7 +3,7 @@ python-smisk (1.1.0-3) unstable; urgency=low
   * Reworked serialization and TCN logic
   * Upstream release 1.1a
 
- -- Rasmus Andersson <rasmus@flajm.com>  Wed, 24 Sep 2008 00:35:00 +0200
+ -- Rasmus Andersson <rasmus@flajm.com>  Wed, 30 Sep 2008 00:52:00 +0200
 
 python-smisk (1.1.0-2) unstable; urgency=low
 
