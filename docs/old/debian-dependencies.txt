@@ -4,7 +4,7 @@
 python python-mako python-elixir python-cjson libfcgi
 
 # building
-openssl gcc python-setuptools python-all-dev libfcgi-dev dpkg-dev debhelper fakeroot
+openssl gcc python-setuptools python-all-dev libfcgi-dev dpkg-dev debhelper fakeroot devscripts
 
   # Build with
   cd smisk
