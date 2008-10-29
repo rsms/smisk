@@ -13,7 +13,7 @@ class XMLTests(TestCase):
     assert encoded == expected
   
 
-from smisk import URL
+from smisk.core import URL
 
 class URLTests(TestCase):
   def test_serializer(self):
