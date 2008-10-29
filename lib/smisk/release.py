@@ -2,7 +2,7 @@
 '''
 __all__ = ['version','author','email','copyright','license','version_info']
 
-version = "1.1.0dev" # Major.Minor[.Build][tag]
+version = "1.1a" # Major.Minor[.Build][tag]
 author = "Rasmus Andersson"
 email = "rasmus@flajm.com"
 copyright = "Copyright 2007-2008 Rasmus Andersson and contributors"

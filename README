@@ -26,7 +26,7 @@ Examples
 
 This is a minimal Smisk service::
 
-  from smisk import Application
+  from smisk.core import Application
   class MyApp(Application):
     def service(self):
       self.response.headers = ['Content-Type: text/plain']
