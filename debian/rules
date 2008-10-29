@@ -41,7 +41,6 @@ install-ext-%:
 	$* setup.py install --root=debian/python-smisk
 	rm -rf debian/python-smisk/usr/smisk-doc
 	rm -rf debian/python-smisk/usr/bin
-	#rm -rf debian/python-smisk/usr/lib/python*/site-packages/smisk/test
 	find debian/python-smisk -name '*.pyc' | xargs rm -f
 
 # Build architecture-independent files here.
@@ -51,10 +50,8 @@ binary-indep:
 binary-arch: build install
 	dh_testdir -a
 	dh_testroot -a
-	#dh_installdocs -A -a doc/usage-guide.* doc/*.css
-
+	dh_installdocs -A -a debian/copyright
 	dh_installexamples -A -a examples/*
-
 	dh_pycentral -a
 	dh_installchangelogs -a
 	dh_strip -a
