@@ -40,14 +40,14 @@ fi
 cd "$(dirname "$0")/.."
 . admin/dist-base.sh || exit 1
 UPSTREAM_VER=$VER
-PREV_UPSTREAM_VER=$(head -n 1 debian/changelog | cut -d ' ' -f 2 | cut -d - -f 1)
+PREV_UPSTREAM_VER=$(head -n 1 debian/changelog | cut -d ' ' -f 2 | cut -d - -f 1 | sed 's/(//')
 DEB_PACKAGE_NAME="python-$PACKAGE"
-DEB_REVISION=$(head -n 1 debian/changelog | cut -d ' ' -f 2 | cut -d - -f 2)
+DEB_REVISION=$(head -n 1 debian/changelog | cut -d ' ' -f 2 | cut -d - -f 2 | sed 's/)//')
 DEB_BRANCH=$(head -n 1 debian/changelog | cut -d ' ' -f 3 | sed 's/;//')
 
 ensure_clean_working_revision
 
-if [ "$PREV_UPSTREAM_VER" != "" ]; then
+if [ "$PREV_UPSTREAM_VER" != "$UPSTREAM_VER" ]; then
   echo "Error: Changelog out of date" >&2
   echo "Run dch -v $UPSTREAM_VER-"$(expr $DEB_REVISION + 1)" and write a new changelog entry."
   exit 1
