@@ -21,10 +21,10 @@ build-ext-%-stamp:
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build*stamp
 	rm -rf build
-	rm -rf dist/debian
+	rm -rf dist
 	rm -rf debian/python-smisk*
+	rm -rf lib/*.egg-info
 	find . -name '*.pyc' | xargs rm -f
 	find . -name '*.pyo' | xargs rm -f
 	dh_clean
