@@ -6,9 +6,9 @@
 '''
 import base64
 try:
-  import cStringIO as StringIO
+  from cStringIO import StringIO
 except ImportError:
-  import StringIO
+  from StringIO import StringIO
 
 __all__ = [
   'serializers', # codecs
@@ -301,14 +301,16 @@ class Serializer(object):
     except AttributeError:
       cls._directions = []
       # test decode
-      can_read = True
       try:
         cls.unserialize(StringIO(''), 0)
+        # This serializer can read requests
+        cls._directions.append('read')
       except NotImplementedError, e:
-        can_read = False
-      except:
+        # This serializer is not able to read requests
         pass
-      if can_read:
+      except:
+        # If another error than NotImplementedError is raised, we
+        # assume this serializer handles reading.
         cls._directions.append('read')
       # test encode
       try:
