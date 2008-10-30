@@ -77,7 +77,7 @@ mv -v ../${DEB_PACKAGE_NAME}_${UPSTREAM_VER}-${DEB_REVISION}* "${ORG_DIR}/dist/d
 # Upload
 if [ $RUN_DUPLOAD -eq 1 ]; then
   echo "Running dupload -t hunch.se-${DEB_BRANCH} dist/debian"
-  dupload -t hunch.se-${DEB_BRANCH} "${ORG_DIR}dist/debian"
+  dupload -t hunch.se-${DEB_BRANCH} "${ORG_DIR}/dist/debian"
 else
   echo "Upload disabled -- to manually upload the build package(s), run:"
   echo "dupload -t hunch.se-${DEB_BRANCH} '${ORG_DIR}/dist/debian'"
