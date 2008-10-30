@@ -37,8 +37,7 @@ import sys, os, logging, codecs as char_codecs
 import smisk, smisk.core
 import http, control, model
 
-from smisk import app, request, response
-from smisk.core import URL
+from smisk.core import app, request, response, URL
 from smisk.serialization import serializers
 from smisk.util.cache import *
 from smisk.util.collections import *
