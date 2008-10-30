@@ -32,6 +32,8 @@ THE SOFTWARE.
 #include <limits.h> // for PATH_MAX
 #include <libgen.h>
 
+#include <sys/wait.h>
+
 
 #pragma mark Public C
 
