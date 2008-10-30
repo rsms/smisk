@@ -56,7 +56,7 @@ fi
 CLEAN_COPY_DIR=
 if [ -d .hg ]; then
   echo 'Creating a temporary, clean clone of this repository'
-  CLEAN_COPY_DIR=$(mktemp -d -t ${DEB_PACKAGE_NAME}.1.XXXXXXXXXX)
+  CLEAN_COPY_DIR=$(mktemp -d -t dist-debian.XXXXXXXXXX)/${DEB_PACKAGE_NAME}-${UPSTREAM_VER}
   trap "rm -rvf $CLEAN_COPY_DIR; exit $?" INT TERM EXIT
   hg clone . ${CLEAN_COPY_DIR}
   cd ${CLEAN_COPY_DIR}
