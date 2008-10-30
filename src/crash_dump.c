@@ -57,6 +57,13 @@ static void smisk_crash_write_backtrace(siginfo_t *info, void *ptr, FILE *out) {
   
   for (i = 0; i < NGREG; i++)
     fprintf(out, "reg[%02lu]     = 0x" REGFORMAT "\n", i, (unsigned long)ucontext->uc_mcontext.gregs[i]);
+    /*
+    Debian i686:
+    src/crash_dump.c:59: warning: format ‘%02lu’ expects type ‘long unsigned int’, 
+                                  but argument 3 has type ‘size_t’
+    src/crash_dump.c:59: warning: format ‘%08x’ expects type ‘unsigned int’, but 
+                                  argument 4 has type ‘long unsigned int’
+    */
 # if defined(SIGSEGV_STACK_IA64)
   ip = (void*)ucontext->uc_mcontext.gregs[REG_RIP];
   bp = (void**)ucontext->uc_mcontext.gregs[REG_RBP];
