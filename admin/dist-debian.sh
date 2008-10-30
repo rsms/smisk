@@ -2,6 +2,17 @@
 #
 # Build and distribute Debian packages
 #
+# Examples:
+#
+#   Build and upload both binary and source packages
+#   admin/dist-debian.sh -u
+#
+#   Build and upload binary package
+#   admin/dist-debian.sh -u -b
+#
+#   Build source package
+#   admin/dist-debian.sh -s
+#
 RUN_DUPLOAD=0
 DEB_BRANCH='unstable'
 DEB_REMOTE_HOST='rasmus@hunch.se'
