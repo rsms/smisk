@@ -56,6 +56,7 @@ fi
 CLEAN_COPY_DIR=
 ORG_DIR=$(pwd)
 if [ -d .hg ]; then
+  SMISK_BUILD_ID='rcsid:'${REV}
   echo 'Creating a temporary, clean clone of this repository'
   CLEAN_COPY_DIR=$(mktemp -d -t dist-debian.XXXXXXXXXX)
   trap "rm -rf $CLEAN_COPY_DIR; exit $?" INT TERM EXIT
@@ -63,7 +64,10 @@ if [ -d .hg ]; then
   hg clone "${ORG_DIR}" ${CLEAN_COPY_DIR}
   cd ${CLEAN_COPY_DIR}
   rm -rf .hg*
+else
+  SMISK_BUILD_ID='utcts:'$(date '+%Y%m%d%H%M%S')
 fi
+export SMISK_BUILD_ID='urn:'${SMISK_BUILD_ID}':debian:'${DEB_REVISION}
 
 # Build
 echo 'Running dpkg-buildpackage -rfakeroot'

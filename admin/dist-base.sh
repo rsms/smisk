@@ -10,7 +10,10 @@ GREP=$(which grep)
 DEFAULT_PYTHON=$(which python)
 PACKAGE=$($DEFAULT_PYTHON setup.py --name)
 VER=$($DEFAULT_PYTHON setup.py --version)
-REV=$(hg id -i)
+REV=
+if [ -d .hg ]; then
+  REV=$(hg id -i)
+fi
 
 # Security measure to make sure we don't end up with version-version
 if (echo "$VER" | grep '-' >/dev/null); then

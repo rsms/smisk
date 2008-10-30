@@ -120,7 +120,13 @@ def core_build_id():
   If building from a repository checkout, the resulting string
   will have the format "urn:rcsid:IDENTIFIER[+DIRTY]". If building
   from source which is not under revision control, the build id 
-  will have the format "urn:utc:YYYYMMDDHHMMSS". (UTC timestamp)
+  will have the format "urn:utcts:YYYYMMDDHHMMSS". (UTC timestamp)
+  
+  In the special case of a Debian package, there is a suffix of
+  the following format: ":debian:" package-revision
+  Examples of Debianized build ids:
+    urn:rcsid:1bb4cbff6045:debian:3
+    urn:utcts:20081030020621:debian:3
   
   Dirty repositories generate a urn:rcsid with a trailing "+"
   followed by a base 16 encoded timestamp.
@@ -129,25 +135,31 @@ def core_build_id():
   combined. A single modification anywhere causes a new unique
   instance to be "born".
   
+  This value can be overridden by exporting the SMISK_BUILD_ID
+  environment variable, but keep in mind to use a URN av value.
+  
   :return: URN
   :rtype: string
   '''
   global _core_build_id
   if _core_build_id is None:
-    try:
-      # Maybe under revision control
-      _core_build_id = Popen(['hg id --id'], shell=True, cwd=BASE_DIR, 
-        stdout=PIPE, stderr=PIPE).communicate()[0].strip()
-      if _core_build_id:
-        dirty_extra = ''
-        if _core_build_id[-1] == '+':
-          dirty_extra = '%x' % int(time.time())
-        _core_build_id = 'urn:rcsid:%s%s' % (_core_build_id, dirty_extra)
-    except OSError:
-      pass
-    if not _core_build_id:
-      # Not under revision control
-      _core_build_id = time.strftime('urn:utc:%Y%m%d%H%M%S', time.gmtime())
+    if 'SMISK_BUILD_ID' in os.environ:
+      _core_build_id = os.environ['SMISK_BUILD_ID']
+    else:
+      try:
+        # Maybe under revision control
+        _core_build_id = Popen(['hg id --id'], shell=True, cwd=BASE_DIR, 
+          stdout=PIPE, stderr=PIPE).communicate()[0].strip()
+        if _core_build_id:
+          dirty_extra = ''
+          if _core_build_id[-1] == '+':
+            dirty_extra = '%x' % int(time.time())
+          _core_build_id = 'urn:rcsid:%s%s' % (_core_build_id, dirty_extra)
+      except OSError:
+        pass
+      if not _core_build_id:
+        # Not under revision control
+        _core_build_id = time.strftime('urn:utcts:%Y%m%d%H%M%S', time.gmtime())
   return _core_build_id
 
 # -----------------------------------------
