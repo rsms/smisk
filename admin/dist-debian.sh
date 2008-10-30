@@ -56,8 +56,9 @@ fi
 CLEAN_COPY_DIR=
 if [ -d .hg ]; then
   echo 'Creating a temporary, clean clone of this repository'
-  CLEAN_COPY_DIR=$(mktemp -d -t dist-debian.XXXXXXXXXX)/${DEB_PACKAGE_NAME}-${UPSTREAM_VER}
-  trap "rm -rvf $CLEAN_COPY_DIR; exit $?" INT TERM EXIT
+  CLEAN_COPY_DIR=$(mktemp -d -t dist-debian.XXXXXXXXXX)
+  trap "rm -rf $CLEAN_COPY_DIR; exit $?" INT TERM EXIT
+  CLEAN_COPY_DIR=${CLEAN_COPY_DIR}/${DEB_PACKAGE_NAME}-${UPSTREAM_VER}
   hg clone . ${CLEAN_COPY_DIR}
   cd ${CLEAN_COPY_DIR}
   rm -rf .hg*
@@ -78,5 +79,5 @@ if [ $RUN_DUPLOAD -eq 1 ]; then
   dupload -t hunch.se-${DEB_BRANCH} dist/debian
 else
   echo "Upload disabled -- to manually upload the build package(s), run:"
-  echo "  dupload -t hunch.se-${DEB_BRANCH} $(pwd)/dist/debian"
+  echo "dupload -t hunch.se-${DEB_BRANCH} $(pwd)/dist/debian"
 fi
