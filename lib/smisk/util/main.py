@@ -4,6 +4,7 @@
 import sys, os, logging
 
 __all__ = ['setup_appdir', 'main_cli_filter', 'handle_errors_wrapper']
+log = logging.getLogger(__name__)
 
 def setup_appdir(appdir=None):
   if 'SMISK_APP_DIR' not in os.environ:

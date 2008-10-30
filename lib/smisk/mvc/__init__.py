@@ -1133,7 +1133,7 @@ def run(bind=None, application=None, forks=None, handle_errors=False):
   if bind is not None:
     os.environ['SMISK_BIND'] = bind
   if 'SMISK_BIND' in os.environ:
-    smisk.bind(os.environ['SMISK_BIND'])
+    smisk.core.bind(os.environ['SMISK_BIND'])
     log.info('Listening on %s', smisk.listening())
   
   # Enable auto-reloading
