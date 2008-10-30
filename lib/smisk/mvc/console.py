@@ -83,16 +83,17 @@ def main(app=None,
   if control.root_controller() is None:
     orig_syspath = sys.path
     try:
-      sys.path = [os.path.dirname(appdir)]
-      m = __import__(appname, globals(), {}, ['*'])
-      for k in dir(m):
-        try:
-          setattr(__builtin__, k, getattr(m, k))
-        except:
-          pass
-    except ImportError, e:
-      raise EnvironmentError('Unable to automatically load application. Try to load it '\
-        'yourself or provide an absolute appdir with your call to console.main(): %s' % e)
+      try:
+        sys.path = [os.path.dirname(appdir)]
+        m = __import__(appname, globals(), {}, ['*'])
+        for k in dir(m):
+          try:
+            setattr(__builtin__, k, getattr(m, k))
+          except:
+            pass
+      except ImportError, e:
+        raise EnvironmentError('Unable to automatically load application. Try to load it '\
+          'yourself or provide an absolute appdir with your call to console.main(): %s' % e)
     finally:
       sys.path = orig_syspath
   
