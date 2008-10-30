@@ -8,8 +8,8 @@ Standards-Version: 3.8.0
 
 Package: python-smisk
 Architecture: any
-Depends: ${shlibs:Depends}, ${python:Depends}, python-mako (>= 0.2), python-elixir (>=0.5), python-cjson (>=1.0)
-Suggests: lighttpd
+Depends: ${shlibs:Depends}, libfcgi0ldbl | libfcgi0 | libfcgi, python (<< 2.6), python (>= 2.4), python-central (>= 0.6.7)
+Suggests: lighttpd, python-mako (>= 0.2), python-elixir (>=0.5), python-cjson (>=1.0)
 XB-Python-Version: ${python:Versions}
 Homepage: http://trac.hunch.se/smisk
 Description: High-performance and scalable web service framework
