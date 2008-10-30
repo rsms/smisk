@@ -188,8 +188,8 @@ def main(wsgi_app, appdir=None, bind=None, forks=None, handle_errors=True, cli=T
   if bind is not None:
     os.environ['SMISK_BIND'] = bind
   if 'SMISK_BIND' in os.environ:
-    smisk.bind(os.environ['SMISK_BIND'])
-    log.info('Listening on %s', smisk.listening())
+    smisk.core.bind(os.environ['SMISK_BIND'])
+    log.info('Listening on %s', smisk.core.listening())
   
   # Configure appdir
   setup_appdir(appdir)
@@ -221,7 +221,7 @@ if __name__ == '__main__':
     print "This runs a sample fastcgi server under the hostname and"
     print "port given in argv[1]"
 
-  smisk.bind(sys.argv[1])
+  smisk.core.bind(sys.argv[1])
 
   app = validator(hello_app)
   Gateway(app).run()

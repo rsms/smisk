@@ -5,7 +5,7 @@ where smisk segfaults
 :See: Fixed in 77188bce80d5 <http://hg.hunch.se/smisk/diff/77188bce80d5/src/Stream.c>
 '''
 from smisk import wsgi
-import smisk
+import smisk.core
 from StringIO import StringIO
 
 def safe_copyfileobj(fsrc, fdst, length=16*1024, size=0):
@@ -54,5 +54,5 @@ def WSGIPostTest(environ, start_request):
         start_request("200 OK", [])
         return [raw_post_data]
 
-smisk.bind("127.0.0.1:3030")
+smisk.core.bind("127.0.0.1:3030")
 wsgi.Application(WSGIPostTest).run()
