@@ -2,7 +2,6 @@
 #
 # Build and distribute Debian packages
 #
-
 RUN_DUPLOAD=0
 DEB_BRANCH='unstable'
 DEB_REMOTE_HOST='rasmus@hunch.se'
@@ -53,6 +52,17 @@ if [ "$PREV_UPSTREAM_VER" != "$UPSTREAM_VER" ]; then
   exit 1
 fi
 
+# Make a clean copy of the repository if we're building from a checkout
+CLEAN_COPY_DIR=
+if [ -d .hg ]; then
+  echo 'Creating a temporary, clean clone of this repository'
+  CLEAN_COPY_DIR=$(mktemp -d -t ${DEB_PACKAGE_NAME}.1.XXXXXXXXXX)
+  trap "rm -rvf $CLEAN_COPY_DIR; exit $?" INT TERM EXIT
+  hg clone . ${CLEAN_COPY_DIR}
+  cd ${CLEAN_COPY_DIR}
+  rm -rf .hg*
+fi
+
 # Build
 echo 'Running dpkg-buildpackage -rfakeroot'
 dpkg-buildpackage -rfakeroot ${args} || exit 1
@@ -66,4 +76,7 @@ mv -v ../${DEB_PACKAGE_NAME}_${UPSTREAM_VER}-${DEB_REVISION}* dist/debian/ || ex
 if [ $RUN_DUPLOAD -eq 1 ]; then
   echo "Running dupload -t hunch.se-${DEB_BRANCH} dist/debian"
   dupload -t hunch.se-${DEB_BRANCH} dist/debian
+else
+  echo "Upload disabled -- to manually upload the build package(s), run:"
+  echo "  dupload -t hunch.se-${DEB_BRANCH} $(pwd)/dist/debian"
 fi
