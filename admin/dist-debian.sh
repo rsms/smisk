@@ -54,12 +54,13 @@ fi
 
 # Make a clean copy of the repository if we're building from a checkout
 CLEAN_COPY_DIR=
+ORG_DIR=$(pwd)
 if [ -d .hg ]; then
   echo 'Creating a temporary, clean clone of this repository'
   CLEAN_COPY_DIR=$(mktemp -d -t dist-debian.XXXXXXXXXX)
   trap "rm -rf $CLEAN_COPY_DIR; exit $?" INT TERM EXIT
   CLEAN_COPY_DIR=${CLEAN_COPY_DIR}/${DEB_PACKAGE_NAME}-${UPSTREAM_VER}
-  hg clone . ${CLEAN_COPY_DIR}
+  hg clone "${ORG_DIR}" ${CLEAN_COPY_DIR}
   cd ${CLEAN_COPY_DIR}
   rm -rf .hg*
 fi
@@ -69,15 +70,15 @@ echo 'Running dpkg-buildpackage -rfakeroot'
 dpkg-buildpackage -rfakeroot ${args} || exit 1
 
 # Move files to a better location
-rm -rf dist/debian || exit 1
-mkdir -vp dist/debian || exit 1
-mv -v ../${DEB_PACKAGE_NAME}_${UPSTREAM_VER}-${DEB_REVISION}* dist/debian/ || exit 1
+rm -rf "${ORG_DIR}/dist/debian" || exit 1
+mkdir -vp "${ORG_DIR}/dist/debian" || exit 1
+mv -v ../${DEB_PACKAGE_NAME}_${UPSTREAM_VER}-${DEB_REVISION}* "${ORG_DIR}/dist/debian/" || exit 1
 
 # Upload
 if [ $RUN_DUPLOAD -eq 1 ]; then
   echo "Running dupload -t hunch.se-${DEB_BRANCH} dist/debian"
-  dupload -t hunch.se-${DEB_BRANCH} dist/debian
+  dupload -t hunch.se-${DEB_BRANCH} "${ORG_DIR}dist/debian"
 else
   echo "Upload disabled -- to manually upload the build package(s), run:"
-  echo "dupload -t hunch.se-${DEB_BRANCH} $(pwd)/dist/debian"
+  echo "dupload -t hunch.se-${DEB_BRANCH} '${ORG_DIR}/dist/debian'"
 fi
