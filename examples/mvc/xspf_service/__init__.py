@@ -3,13 +3,13 @@
 from smisk.mvc import *
 
 class root(Controller):
-  def __call__(self, *args, **params):
+  def __call__(self):
     raise http.Found('/example')
   
-  def echo(self, *args, **params):
+  def echo(self, **params):
     return params
   
-  def example(self, *args, **params):
+  def example(self):
     return {
       'title': 'Spellistan frum hell',
       'creator': 'rasmus',
