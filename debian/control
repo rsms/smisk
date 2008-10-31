@@ -2,14 +2,15 @@ Source: python-smisk
 Section: python
 Priority: optional
 Maintainer: Rasmus Andersson <rasmus@flajm.com>
-Build-Depends: debhelper (>= 5.0), libfcgi-dev (>= 2.4.0), python-all-dev (>= 2.4), python-central (>= 0.5)
+Build-Depends: debhelper (>= 5.0), libfcgi-dev (>= 2.4), python-all-dev (>= 2.4), python-central (>= 0.5)
 XS-Python-Version: all
 Standards-Version: 3.8.0
 
 Package: python-smisk
 Architecture: any
-Depends: libc6 (>= 2.3.6), libfcgi0ldbl | libfcgi0 | libfcgi, python (<< 2.6), python (>= 2.4), python-central (>= 0.5)
-Suggests: lighttpd, python-mako (>= 0.2), python-elixir (>=0.5), python-cjson (>=1.0)
+Depends: ${shlibs:Depends}, libfcgi0ldbl (>= 2.4) | libfcgi0c2 (>= 2.4), python (<< 2.6), python (>= 2.4), python-central (>= 0.5)
+Recommends: python-elixir, python-cjson, python-mako
+Suggests: lighttpd, nginx
 XB-Python-Version: ${python:Versions}
 Homepage: http://trac.hunch.se/smisk
 Description: High-performance and scalable web service framework
