@@ -261,7 +261,7 @@ class Application(smisk.core.Application):
     else:
       self.routes = router
     
-    if templates is None:
+    if templates is None and Templates.is_useable:
       self.templates = Templates()
     else:
       self.templates = templates

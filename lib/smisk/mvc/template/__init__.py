@@ -14,25 +14,29 @@
 :requires: mako
 '''
 import os, sys, stat, posixpath, re, logging
-import mako.filters, smisk.core.xml
-from mako import exceptions
-from mako.util import LRUCache
-from mako.template import Template
+import smisk.core.xml
 from smisk.core import URL
 from smisk import util
 from smisk.mvc import http
 import smisk.mvc
-import filters
+try:
+  from mako import exceptions
+  exceptions.TopLevelLookupException.status = http.NotFound
+  from mako.util import LRUCache
+  from mako.template import Template
+  import mako.filters
+  # Replace Mako filter with the faster Smisk C implementations
+  mako.filters.html_escape = smisk.core.xml.escape
+  mako.filters.xml_escape = smisk.core.xml.escape
+  mako.filters.url_escape = URL.encode
+  mako.filters.url_unescape = URL.decode
+except ImportError:
+  # mako is not installed
+  Template = None
 
 __all__ = ['Templates', 'Template']
 log = logging.getLogger(__name__)
-exceptions.TopLevelLookupException.status = http.NotFound
 
-# Replace Mako filter with the faster Smisk C implementations
-mako.filters.html_escape = smisk.core.xml.escape
-mako.filters.xml_escape = smisk.core.xml.escape
-mako.filters.url_escape = URL.encode
-mako.filters.url_unescape = URL.decode
 
 class Templates(object):
   cache_limit = -1
@@ -53,7 +57,7 @@ class Templates(object):
   
   imports = [
     'import os, sys, time, logging',
-    'from smisk.mvc import app, request, response',
+    'from smisk.core import app, request, response',
     'from smisk.mvc.template.filters import j',
     'log = logging.getLogger(\'template:\' + _template_uri)'
   ]
@@ -89,6 +93,9 @@ class Templates(object):
   
   :type: dict
   '''
+  
+  is_useable = Template is not None
+  '''True if mako is installed and templating can be used'''
   
   def __init__(self):
     self.directories = []
