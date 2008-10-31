@@ -148,7 +148,7 @@ def core_build_id():
     else:
       try:
         # Maybe under revision control
-        _core_build_id = Popen(['hg id --id'], shell=True, cwd=BASE_DIR, 
+        _core_build_id = Popen(['hg id | cut -d ' ' -f 1'], shell=True, cwd=BASE_DIR, 
           stdout=PIPE, stderr=PIPE).communicate()[0].strip()
         if _core_build_id:
           dirty_extra = ''

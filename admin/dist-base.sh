@@ -12,7 +12,7 @@ PACKAGE=$($DEFAULT_PYTHON setup.py --name)
 VER=$($DEFAULT_PYTHON setup.py --version)
 REV=
 if [ -d .hg ]; then
-  REV=$(hg id -i)
+  REV=$(hg id | cut -d ' ' -f 1)
 fi
 
 # Security measure to make sure we don't end up with version-version
