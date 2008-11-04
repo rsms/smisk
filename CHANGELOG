@@ -1,10 +1,11 @@
 Changes
 =======
 
-1.1.0 (**dev**)
+1.1.0
 
-* MVC module
-* Better unicode support in core
+* MVC module – smisk.mvc
+* Better unicode support
+* Compatible with Debian Etch
 
 1.0.1
 
