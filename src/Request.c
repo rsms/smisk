@@ -512,45 +512,19 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
       return PyErr_NoMemory();
     Py_CLEAR(old);
     
-    // Path & querystring
-    // Not in RFC, but considered standard
-    if ((s = FCGX_GetParam("REQUEST_URI", self->envp))) {
-      if ((p = strchr(s, '?'))) {
-        *p = '\0';
-        
-        old = self->url->path;
-        self->url->path = PyString_FromString(s);
-        Py_DECREF(old);
-        
-        old = self->url->query;
-        self->url->query = PyString_FromString(p+1);
-        Py_DECREF(old);
-      }
-      else {
-        old = self->url->path;
-        self->url->path = PyString_FromString(s);
-        Py_DECREF(old);
-      }
-    }
-    // Non-REQUEST_URI compliant fallback
-    else {
-      if ((s = FCGX_GetParam("SCRIPT_NAME", self->envp))) {
-        old = self->url->path;
-        self->url->path = PyString_FromString(s);
-        Py_DECREF(old);
-        // May not always give the same results as the above implementation
-        // because the CGI specification does claim "This information should be
-        // decoded by the server if it comes from a URL" which is a bit vauge.
-        if ((s = FCGX_GetParam("PATH_INFO", self->envp)))
-          PyString_ConcatAndDel(&self->url->path, PyString_FromString(s));
-      }
-      if ((s = FCGX_GetParam("QUERY_STRING", self->envp))) {
-        old = self->url->query;
-        self->url->query = PyString_FromString(s);
-        Py_DECREF(old);
-      }
+    // Path
+    if ((s = FCGX_GetParam("SCRIPT_NAME", self->envp))) {
+      old = self->url->path;
+      self->url->path = PyString_FromString(s);
+      Py_DECREF(old);
     }
     
+    // Query string
+    if ((s = FCGX_GetParam("QUERY_STRING", self->envp))) {
+      old = self->url->query;
+      self->url->query = PyString_FromString(s);
+      Py_DECREF(old);
+    }
   }
   
   Py_INCREF(self->url);
