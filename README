@@ -11,13 +11,13 @@ written in C, but controlled by Python.
 
 It is designed to widen the common bottle necks in heavy-duty web services.
 
-More information at the `Smisk website <http://trac.hunch.se/smisk>`_
+More information at the `Smisk website <http://smisk.hunch.se/>`_
 
 
 Getting Started
 ===============
 
-* Install with ``easy_install smisk`` or download from `Smisk at PyPI <http://pypi.python.org/pypi/smisk>`_
+* Install with ``easy_install smisk`` or download from `PyPI <http://pypi.python.org/pypi/smisk>`_
 * Have a look at a few `examples <http://trac.hunch.se/smisk/browser/examples>`_
 
 
@@ -36,13 +36,12 @@ This is a minimal Smisk service::
 
 And here we have a WSGI compatible application::
 
-  import smisk, sys
-  from smisk.wsgi import Gateway
+  from smisk.wsgi import *
   def hello_app(env, start_response):
     start_response("200 OK", [('Content-Type', 'text/plain')])
     return ["Hello, World!"]
 
-  Gateway(hello_app).run()
+  main(hello_app)
 
 More examples `available here... <http://trac.hunch.se/smisk/browser/examples>`_
 
