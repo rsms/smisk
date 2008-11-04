@@ -490,7 +490,7 @@ class Application(smisk.core.Application):
     # Set params to the query string
     params = self.request.get
     for k,v in params.iteritems():
-      if type(v) is not list:
+      if isinstance(v, str):
         v = v.decode('utf-8', self.unicode_errors)
       params[k.decode('utf-8', self.unicode_errors)] = v
     
