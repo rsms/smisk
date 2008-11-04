@@ -199,7 +199,7 @@ class Templates(object):
           output_encoding   = smisk.mvc.Response.charset,
           encoding_errors   = encoding_errors,
           cache_type        = self.cache_type,
-          default_filters   = ['str'],
+          default_filters   = ['unicode'],
           imports           = self.imports)
       if log.level <= logging.DEBUG and self.cache_type != 'file':
         code = self.instances[uri].code
