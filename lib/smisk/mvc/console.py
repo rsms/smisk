@@ -36,7 +36,7 @@ class Console(code.InteractiveConsole):
       if hasattr(readline, "read_history_file"):
         try:
           readline.read_history_file(histfile)
-        except IOError:
+        except:
           pass
         atexit.register(self.save_history, histfile)
     except ImportError:
@@ -77,6 +77,7 @@ def main(app=None,
         appdir = os.getcwd()
       else:
         appdir = os.path.dirname(sys.modules['__main__'].__file__)
+      appdir = os.path.abspath(appdir)
   appname = os.path.basename(appdir)
   
   # Load application
