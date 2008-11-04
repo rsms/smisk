@@ -80,7 +80,7 @@ def main(app=None,
   appname = os.path.basename(appdir)
   
   # Load application
-  if control.root_controller() is None:
+  if root_controller() is None:
     orig_syspath = sys.path
     try:
       try:
