@@ -16,6 +16,7 @@ request = smisk.core.request
 'See documentation for `smisk.core.request`'
 response = smisk.core.response
 'See documentation for `smisk.core.response`'
+__build__ = smisk.core.__build__
 
-__all__ = ['__version__', '__author__', '__license__', '__copyright__',
+__all__ = ['__version__', '__author__', '__license__', '__copyright__','__build__',
            'app', 'request', 'response']
