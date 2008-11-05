@@ -113,6 +113,9 @@ def rm_dir(path):
     remove_tree(path)
     log.info('removed directory %s', path)
 
+import shutil
+copy_file = shutil.copy
+
 _core_build_id = None
 def core_build_id():
   '''Unique id in URN form, distinguishing each unique build.
@@ -421,25 +424,78 @@ class config(_config):
       raise
   
 
-class apidocs(Command):
-  description = 'Builds the documentation'
-  user_options = []
-  def initialize_options(self): pass
-  def finalize_options(self): pass
+class sphinx_build(Command):
+  # sphinx-build docs/source docs/html
+  description = 'build documentation using Sphinx if available'
+  user_options = [
+    ('builder=', 'b', 'builder to use; default is html'),
+    ('all', 'a', 'write all files; default is to only write new and changed files'),
+    ('reload-env', 'E', "don't use a saved environment, always read all files"),
+    ('source-dir=', 's', 'path where sources are read from (default: docs/source)'),
+    ('out-dir=', 'o', 'path where output is stored (default: docs/<builder>)'),
+    ('cache-dir=', 'd', 'path for the cached environment and doctree files (default: outdir/.doctrees)'),
+    ('conf-dir=', 'c', 'path where configuration file (conf.py) is located (default: same as source-dir)'),
+    ('set=', 'D', '<setting=value> override a setting in configuration'),
+    ('no-color', 'N', 'do not do colored output'),
+    ('pdb', 'P', 'run Pdb on exception'),
+  ]
+  boolean_options = ['all', 'reload-env', 'no-color', 'pdb']
+  
+  def initialize_options(self):
+    self.sphinx_args = []
+    self.builder = None
+    self.all = False
+    self.reload_env = False
+    self.source_dir = None
+    self.out_dir = None
+    self.cache_dir = None
+    self.conf_dir = None
+    self.set = None
+    self.no_color = False
+    self.pdb = False
+  
+  def finalize_options(self):
+    self.sphinx_args.append('sphinx-build')
+    
+    if self.builder is None:
+      self.builder = 'html'
+    self.sphinx_args.extend(['-b', self.builder])
+    
+    if self.all:
+      self.sphinx_args.append('-a')
+    if self.reload_env:
+      self.sphinx_args.append('-E')
+    if self.no_color or ('PS1' not in os.environ and 'PROMPT_COMMAND' not in os.environ):
+      self.sphinx_args.append('-N')
+    if not self.distribution.verbose:
+      self.sphinx_args.append('-q')
+    if self.pdb:
+      self.sphinx_args.append('-P')
+    
+    if self.cache_dir is not None:
+      self.sphinx_args.extend(['-d', self.cache_dir])
+    if self.conf_dir is not None:
+      self.sphinx_args.extend(['-c', self.conf_dir])
+    if self.set is not None:
+      self.sphinx_args.extend(['-D', self.set])
+    
+    if self.source_dir is None:
+      self.source_dir = os.path.join('docs', 'source')
+    if self.out_dir is None:
+      self.out_dir = os.path.join('docs', self.builder)
+    
+    self.sphinx_args.extend([self.source_dir, self.out_dir])
+  
   def run(self):
     try:
-      import epydoc.markup.restructuredtext
-      from epydoc import cli
-      old_argv = sys.argv[1:]
-      sys.argv[1:] = [
-        '--config=setup.cfg',
-        '--no-private', # epydoc bug, not read from config
-        '--simple-term'
-      ]
-      cli.cli()
-      sys.argv[1:] = old_argv
+      import sphinx
+      if self.dry_run:
+        self.announce('skipping %s (dry run)' % ' '.join(self.sphinx_args))
+      else:
+        self.announce('running %s' % ' '.join(self.sphinx_args))
+        sphinx.main(self.sphinx_args)
     except ImportError, e:
-      log.info('epydoc not installed, skipping API documentation (%s)', e)
+      log.info('Sphinx not installed -- skipping documentation. (%s)', e)
   
 
 from distutils.command.clean import clean as _clean
@@ -450,24 +506,22 @@ class clean(_clean):
     for path in ['MANIFEST', 'src/system_config.h']:
       rm_file(path)
     log.info('Removing generated documentation')
-    rm_dir('doc/api')
+    rm_dir('docs/html')
+    rm_dir('docs/latex')
+    rm_dir('docs/pdf')
   
 
 from setuptools.command.sdist import sdist as _sdist
 class sdist(_sdist):
   def run(self):
-    i = open('MANIFEST.in.sdist', 'r')
-    o = open('MANIFEST.in', 'w')
+    # MANIFEST.in.sdist used as MANIFEST.in (only for sdist)
+    copy_file('MANIFEST.in.sdist', 'MANIFEST.in')
     try:
-      o.write(i.read())
+      _sdist.run(self)
     finally:
-      i.close()
-      o.close()
-    
-    _sdist.run(self)
-    
-    for path in ['MANIFEST', 'MANIFEST.in']:
-      rm_file(path)
+      for path in ['MANIFEST.in', 'MANIFEST']:
+        rm_file(path)
+  
 
 
 # -----------------------------------------
@@ -480,7 +534,7 @@ class SmiskDistribution(Distribution):
       'build_ext': build_ext,
       'sdist': sdist,
       'config': config,
-      'apidocs': apidocs,
+      'docs': sphinx_build,
       'clean': clean,
     }
   
@@ -521,6 +575,8 @@ setup(
     'smisk.serialization',
     'smisk.util',
     'smisk.test',
+    'smisk.test.mvc',
+    'smisk.test.util',
   ],
   include_package_data=True,
   exclude_package_data={"debian" : ["*"]},
@@ -530,7 +586,6 @@ setup(
     undef_macros = undef_macros
   )],
   test_suite = 'smisk.test',
-  install_requires=["Elixir>=0.6", "Mako>=0.1.10"],
   extras_require={
     'serialization': ['python-cjson'], # or minjson
   },
