@@ -16,6 +16,8 @@ class A(object):
     return locals()
   def ping(self, filter=None, *argz, **kwargz):
     pass
+  def none(self):
+    pass
 
 class B(object):
   def foo(self):
@@ -137,6 +139,12 @@ class IntrospectTests(TestCase):
       'bar':'rab',
       'baz':'f'
     }
+    # This should not raise an exception
+    a.none = introspect.ensure_va_kwa(a.none)
+    a.none()
+    a.none(1,2)
+    a.none(1,2,3,4)
+    a.none(1,2,3,4,foo=12)
   
 
 def suite():

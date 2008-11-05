@@ -10,6 +10,10 @@ class root(Controller):
   @expose(delegates=True)
   def delegating_func_on_root(self): return '/delegating_func_on_root'
   def __call__(self, *va, **kw): return '/'
+  def one_named_arg1(self, foo=None): return '/one_named_arg1?foo=%s' % foo
+  def one_named_arg2(self, foo=None, *args): return '/one_named_arg2?foo=%s' % foo
+  def one_named_arg3(self, foo=None, **kwargs): return '/one_named_arg3?foo=%s' % foo
+  def one_named_arg4(self, foo=None, *args, **kwargs): return '/one_named_arg4?foo=%s' % foo
 
 class level2(root):
   def __call__(self): return '/level2'

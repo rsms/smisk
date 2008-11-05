@@ -50,19 +50,7 @@ class introspect(object):
     except KeyError:
       pass
     
-    if not isinstance(f, (MethodType, FunctionType)):
-      try:
-        f = f.__call__
-      except AttributeError:
-        return None
-    
-    args, varargs, varkw, defaults = inspect.getargspec(f)
-    method = False
-    
-    if isinstance(f, MethodType):
-      # Remove self
-      args = args[1:]
-      method = True
+    is_method, args, varargs, varkw, defaults = cls.getargspec(f)
     
     _args = []
     args_len = len(args)
@@ -83,12 +71,31 @@ class introspect(object):
       'args':tuple(_args),
       'varargs':bool(varargs),
       'varkw':bool(varkw),
-      'method':method
+      'method':is_method
     })
     
     cls._info_cache[cache_key] = info
     return info
   
+  @classmethod
+  def getargspec(cls, f):
+    '''Returns a tuple of 5 objects: bool is_method, list args, string varargs, 
+    string varkw, list defaults
+    
+    :rtype: tuple
+    '''
+    if not isinstance(f, (MethodType, FunctionType)):
+      f = f.__call__
+    
+    is_method = False
+    args, varargs, varkw, defaults = inspect.getargspec(f)
+    
+    if isinstance(f, MethodType):
+      # Remove self
+      args = args[1:]
+      is_method = True
+    
+    return is_method, args, varargs, varkw, defaults
   
   @classmethod
   def format_members(cls, o, colorize=False):
@@ -144,25 +151,29 @@ class introspect(object):
     :returns: A callable which is guaranteed to accept both ``*args`` and ``**kwargs``.
     :rtype: callable
     '''
-    info = cls.callable_info(f)
-    
-    if info is None:
-      return None
-    
+    is_method, args, varargs, varkw, defaults = cls.getargspec(f)
     va_kwa_wrapper = None
     
-    if not info['varargs'] and not info['varkw']:
-      def va_kwa_wrapper(*args, **kwargs):
-        return f(*args[:len(info['args'])])
-    elif not info['varargs']:
-      def va_kwa_wrapper(*args, **kwargs):
-        return f(*args[:len(info['args'])], **kwargs)
-    elif not info['varkw']:
-      def va_kwa_wrapper(*args, **kwargs):
-        return f(*args)
+    if varargs is None and varkw is None:
+      if args:
+        def va_kwa_wrapper(*va, **kw):
+          return f(*va[:len(args)])
+      else:
+        def va_kwa_wrapper(*va, **kw):
+          return f()
+    elif varargs is None:
+      if args:
+        def va_kwa_wrapper(*va, **kw):
+          return f(*va[:len(args)], **kw)
+      else:
+        def va_kwa_wrapper(*va, **kw):
+          return f(**kw)
+    elif varkw is None:
+      def va_kwa_wrapper(*va, **kw):
+        return f(*va)
     
     if va_kwa_wrapper:
-      va_kwa_wrapper.info = frozendict(info.update({
+      va_kwa_wrapper.info = frozendict(cls.callable_info(f).update({
         'varargs': True,
         'varkw': True
       }))
