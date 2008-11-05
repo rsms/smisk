@@ -34,7 +34,7 @@ from `control.Controller`.
 .. packagetree (xxx todo fix for Sphinx)
 '''
 import sys, os, logging, codecs as char_codecs
-import smisk, smisk.core
+import smisk.core
 
 from smisk.core import app, request, response, URL
 from smisk.mvc import http, control, model
