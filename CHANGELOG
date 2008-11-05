@@ -6,6 +6,7 @@ Changes
 * MVC module – smisk.mvc
 * Better unicode support
 * Compatible with Debian Etch
+* Host server URL rewrites now propagating correctly
 
 1.0.1
 
