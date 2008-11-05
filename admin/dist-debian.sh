@@ -13,12 +13,6 @@
 #   Build source package
 #   admin/dist-debian.sh -s
 #
-RUN_DUPLOAD=0
-DEB_BRANCH='unstable'
-DEB_REMOTE_HOST='rasmus@hunch.se'
-DEB_REMOTE_PATH='/var/www/hunch.se/www/public/debian/'
-
-# ----------------------------------
 
 usage() { (cat <<USAGE
 Usage: $0 [-u] [options to dpkg-buildpackage]
@@ -30,6 +24,7 @@ USAGE
 }
 
 # Take care of arguments
+RUN_DUPLOAD=0
 args=( $* )
 if [ $# -gt 0 ]; then
   if [ "$1" = "-u" ]; then
