@@ -7,7 +7,7 @@ except ImportError:
   use_setuptools()
   from setuptools import setup
 
-import sys, os, time, platform, re
+import sys, os, time, platform, re, subprocess
 
 from setuptools import Extension as _Extension, Distribution, Command
 from pkg_resources import parse_version
@@ -116,6 +116,16 @@ def rm_dir(path):
 import shutil
 copy_file = shutil.copy
 
+def shell_cmd(args, cwd=BASE_DIR):
+  if not isinstance(args, (list, tuple)):
+    args = [args]
+  ps = Popen(args, shell=True, cwd=cwd, stdout=PIPE, stderr=PIPE, close_fds=True)
+  stdout, stderr = ps.communicate()
+  if ps.returncode != 0:
+    raise IOError(stderr.strip())
+  return stdout.strip()
+
+
 _core_build_id = None
 def core_build_id():
   '''Unique id in URN form, distinguishing each unique build.
@@ -151,8 +161,7 @@ def core_build_id():
     else:
       try:
         # Maybe under revision control
-        _core_build_id = Popen(['hg id | cut -d ' ' -f 1'], shell=True, cwd=BASE_DIR, 
-          stdout=PIPE, stderr=PIPE).communicate()[0].strip()
+        _core_build_id = shell_cmd(['hg id | cut -d ' ' -f 1'])
         if _core_build_id:
           dirty_extra = ''
           if _core_build_id[-1] == '+':
@@ -425,7 +434,6 @@ class config(_config):
   
 
 class sphinx_build(Command):
-  # sphinx-build docs/source docs/html
   description = 'build documentation using Sphinx if available'
   user_options = [
     ('builder=', 'b', 'builder to use; default is html'),
@@ -489,6 +497,13 @@ class sphinx_build(Command):
   def run(self):
     try:
       import sphinx
+      if not os.path.exists(self.out_dir):
+        if self.dry_run:
+          self.announce('skipping creation of directory %s (dry run)' % self.out_dir)
+        else:
+          self.announce('creating directory %s' % self.out_dir)
+          os.makedirs(self.out_dir)
+      
       if self.dry_run:
         self.announce('skipping %s (dry run)' % ' '.join(self.sphinx_args))
       else:
@@ -497,6 +512,50 @@ class sphinx_build(Command):
     except ImportError, e:
       log.info('Sphinx not installed -- skipping documentation. (%s)', e)
   
+
+
+class debian(Command):
+  description = 'build debian packages'
+  user_options = [
+    ('upload', 'u',       'upload resulting package using dupload'),
+    ('binary-only', 'b',  'indicates that no source files are to be built and/or distributed'),
+    ('source-only', 'S',  'specifies that only the source should be uploaded and no binary '\
+                          'packages need to be made'),
+    ('key-id', 'k',       'specify a key-ID to use when signing packages'),
+  ]
+  boolean_options = ['upload', 'binary', 'source']
+  
+  def initialize_options(self):
+    self.args = []
+    self.upload = False
+    self.binary_only = False
+    self.source_only = False
+    self.key_id = None
+  
+  def finalize_options(self):
+    self.args.append('admin/dist-debian.sh')
+    if self.upload:
+      self.args.append('-u')
+    if self.binary_only and self.source_only:
+      raise Exception('arguments --binary-only and --source-only can not be used together')
+    elif self.binary_only:
+      self.args.append('-b')
+    elif self.source_only:
+      self.args.append('-S')
+    if self.key_id:
+      self.args.append('-k'+self.key_id)
+  
+  def run(self):
+    cmd = ' '.join(self.args)
+    if self.dry_run:
+      self.announce('skipping %s (dry run)' % cmd)
+    else:
+      self.announce('running %s' % cmd)
+      status = subprocess.call(cmd, shell=True)
+      if status != 0:
+        sys.exit(status)
+  
+
 
 from distutils.command.clean import clean as _clean
 class clean(_clean):
@@ -537,6 +596,12 @@ class SmiskDistribution(Distribution):
       'docs': sphinx_build,
       'clean': clean,
     }
+    try:
+      shell_cmd('which dpkg-buildpackage')
+      self.cmdclass['debian'] = debian
+    except IOError:
+      # Not a debian system or dpkg-buildpackage not installed
+      pass
   
 
 # -----------------------------------------
