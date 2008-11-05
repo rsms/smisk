@@ -18,7 +18,7 @@ The console can also be run directly from the module::
 
 import sys, os, time, logging, __builtin__
 import code, readline, atexit
-from smisk import *
+from smisk.release import version
 from smisk.core import *
 from smisk.mvc.control import *
 from smisk.mvc.model import *
@@ -118,7 +118,7 @@ def main(app=None,
       if readline:
         readline_info = 'Readline is active, thus you can use TAB to '\
           'browse and complete Python statements.'
-      return '''Interactive Python console with Smisk.
+      return '''Interactive Python console.
 
 Your application has been loaded and set up. You can now interact with any
 component. %(readline)s
@@ -166,7 +166,8 @@ Type help() for interactive help, or help(object) for help about object.
   console = Console(locals=locals(), histfile=histfile)
   __builtin__.console = console
   import platform
-  console.interact('Smisk interactive console. Python v%s' % platform.python_version())
+  console.interact('Smisk v%s interactive console. Python v%s' %\
+    (version, platform.python_version()))
 
 
 if __name__ == '__main__':
