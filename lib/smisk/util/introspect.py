@@ -157,7 +157,11 @@ class introspect(object):
     if varargs is None and varkw is None:
       if args:
         def va_kwa_wrapper(*va, **kw):
-          return f(*va[:len(args)])
+          kws = kw.copy()
+          for k in kw:
+            if k not in args:
+              del kws[k]
+          return f(*va[:len(args)], **kws)
       else:
         def va_kwa_wrapper(*va, **kw):
           return f()
@@ -169,8 +173,16 @@ class introspect(object):
         def va_kwa_wrapper(*va, **kw):
           return f(**kw)
     elif varkw is None:
-      def va_kwa_wrapper(*va, **kw):
-        return f(*va)
+      if args:
+        def va_kwa_wrapper(*va, **kw):
+          kws = kw.copy()
+          for k in kw:
+            if k not in args:
+              del kws[k]
+          return f(*va, **kw)
+      else:
+        def va_kwa_wrapper(*va, **kw):
+          return f(*va)
     
     if va_kwa_wrapper:
       va_kwa_wrapper.info = frozendict(cls.callable_info(f).update({
