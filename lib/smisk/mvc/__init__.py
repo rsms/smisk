@@ -35,9 +35,9 @@ from `control.Controller`.
 '''
 import sys, os, logging, codecs as char_codecs
 import smisk, smisk.core
-import http, control, model
 
 from smisk.core import app, request, response, URL
+from smisk.mvc import http, control, model
 from smisk.serialization import serializers
 from smisk.util.cache import *
 from smisk.util.collections import *
@@ -50,12 +50,15 @@ from smisk.util.timing import *
 from smisk.util.type import *
 from smisk.util.main import *
 from types import DictType, StringType
-from control import Controller
-from model import Entity
-from template import Templates
-from routing import Router
-from exceptions import *
-from decorators import *
+from smisk.mvc.template import Templates
+from smisk.mvc.routing import Router
+from smisk.mvc.decorators import *
+
+Controller = control.Controller
+try:
+  Entity = model.Entity
+except ImportError:
+  pass
 
 log = logging.getLogger(__name__)
 
