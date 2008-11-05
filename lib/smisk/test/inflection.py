@@ -41,59 +41,59 @@ class English(TestCase):
     assert en.underscore(u'ModerController.Barn') == u'moder_controller/barn'
   
 
-from smisk.inflection.sv import inflection as sv
-class Swedish(TestCase):
-  def test_plural(self):
-    assert sv.pluralize(u'mus') == u'möss'
-    assert sv.pluralize(u'train') == u'trainer'
-    assert sv.pluralize(u'post') == u'poster'
-    assert sv.pluralize(u'person') == u'personer'
-  
-  def test_dual(self):
-    def t(singular, plural):
-      #print singular, u"->", sv.pluralize(singular) + u',', plural, u'->', sv.singularize(plural)
-      assert sv.pluralize(singular) == plural
-      assert sv.singularize(plural) == singular
-    t(u"bil", u"bilar")
-    t(u"båt", u"båtar")
-    t(u"katt", u"katter")
-    t(u"peng", u"pengar")
-    t(u"man", u"män")
-    t(u"person", u"personer")
-    t(u"huvud", u"huvuden")
-    t(u"folk", u"folk")
-    t(u"vittne", u"vittnen")
-    t(u"morsa", u"morsor")
-    t(u"liten", u"små")
-    t(u"stor", u"stora")
-    t(u"ny", u"nya")
-    t(u"rik", u"rika")
-    t(u"dum", u"dumma")
-    t(u"stum", u"stumma")
-    t(u"kvinna", u"kvinnor")
-    t(u"intressant", u"intressanta")
-    t(u"given", u"givna")
-    t(u"ven", u"vener")
-    t(u"hand", u"händer")
-    t(u"land", u"länder")
-    t(u"kviga", u"kvigor")
-    t(u"mun", u"munnar")
-    t(u"ros", u"rosor")
-    t(u"lus", u"löss")
-    t(u"mus", u"möss")
-    t(u"kust", u"kuster")
-    t(u"lust", u"lustar")
-    t(u"pojke", u"pojkar")
-    t(u"flicka", u"flickor")
-    t(u"snorkel", u"snorklar")
-  
-  def test_ordinal(self):
-    assert sv.ordinalize(1) == u"1:a"
-    assert sv.ordinalize(2) == u"2:a"
-    assert sv.ordinalize(3) == u"3:e"
-    assert sv.ordinalize(921.3) == u"921:a"
-    assert sv.ordinalize(500) == u"500:e"
-  
+#from smisk.inflection.sv import inflection as sv
+#class Swedish(TestCase):
+#  def test_plural(self):
+#    assert sv.pluralize(u'mus') == u'möss'
+#    assert sv.pluralize(u'train') == u'trainer'
+#    assert sv.pluralize(u'post') == u'poster'
+#    assert sv.pluralize(u'person') == u'personer'
+#  
+#  def test_dual(self):
+#    def t(singular, plural):
+#      #print singular, u"->", sv.pluralize(singular) + u',', plural, u'->', sv.singularize(plural)
+#      assert sv.pluralize(singular) == plural
+#      assert sv.singularize(plural) == singular
+#    t(u"bil", u"bilar")
+#    t(u"båt", u"båtar")
+#    t(u"katt", u"katter")
+#    t(u"peng", u"pengar")
+#    t(u"man", u"män")
+#    t(u"person", u"personer")
+#    t(u"huvud", u"huvuden")
+#    t(u"folk", u"folk")
+#    t(u"vittne", u"vittnen")
+#    t(u"morsa", u"morsor")
+#    t(u"liten", u"små")
+#    t(u"stor", u"stora")
+#    t(u"ny", u"nya")
+#    t(u"rik", u"rika")
+#    t(u"dum", u"dumma")
+#    t(u"stum", u"stumma")
+#    t(u"kvinna", u"kvinnor")
+#    t(u"intressant", u"intressanta")
+#    t(u"given", u"givna")
+#    t(u"ven", u"vener")
+#    t(u"hand", u"händer")
+#    t(u"land", u"länder")
+#    t(u"kviga", u"kvigor")
+#    t(u"mun", u"munnar")
+#    t(u"ros", u"rosor")
+#    t(u"lus", u"löss")
+#    t(u"mus", u"möss")
+#    t(u"kust", u"kuster")
+#    t(u"lust", u"lustar")
+#    t(u"pojke", u"pojkar")
+#    t(u"flicka", u"flickor")
+#    t(u"snorkel", u"snorklar")
+#  
+#  def test_ordinal(self):
+#    assert sv.ordinalize(1) == u"1:a"
+#    assert sv.ordinalize(2) == u"2:a"
+#    assert sv.ordinalize(3) == u"3:e"
+#    assert sv.ordinalize(921.3) == u"921:a"
+#    assert sv.ordinalize(500) == u"500:e"
+#  
 
 def suite():
   return unittest.TestSuite([
