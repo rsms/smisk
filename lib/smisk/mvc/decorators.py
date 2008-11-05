@@ -1,7 +1,7 @@
 # encoding: utf-8
 '''Controller tree function decorators.
 '''
-import sys, types
+import types
 
 __all__ = ['expose', 'hide']
 
