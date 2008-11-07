@@ -35,36 +35,55 @@ THE SOFTWARE.
 
 #pragma mark Internal
 
+#define FORM_DATA_MAX_SIZE 1024000000
 
-static char *smisk_read_fcgxstream(FCGX_Stream *stream, long length) {
-  char *s;
+
+static char *_read_form_data(FCGX_Stream *stream, long length) {
+  char *s = NULL;
+  long p = 0; /* current position in output buffer */
+  n = 256*1024; /* max size the block can grow to each round */
   int bytes_read;
   
-  if (length == 0) {
+  if (length == 0)
     return strdup("");
-  }
-  else if (length > 0) {
-    s = (char *)malloc(length+1);
-    EXTERN_OP(bytes_read = FCGX_GetStr(s, length, stream));
-    s[(bytes_read < length) ? bytes_read : length] = '\0';
-    return s;
-  }
-  else { // unknown length
-    size_t size = SMISK_STREAM_READ_CHUNKSIZE;
-    s = (char *)malloc(size+1);
-    
-    while (1) {
-      EXTERN_OP(bytes_read = FCGX_GetStr(s, SMISK_STREAM_READ_CHUNKSIZE, stream));
-      if (bytes_read < SMISK_STREAM_READ_CHUNKSIZE) {
-        s[(size - SMISK_STREAM_READ_CHUNKSIZE) + bytes_read] = '\0';
-        break; // EOF
+  
+  for(;;) {
+    if (length >= 0) {
+      /* All bytes read? */
+      if (p >= length)
+        break;
+      
+      /* Hit max total size? */
+      if (p >= FORM_DATA_MAX_SIZE) {
+        log_error("WARNING! form data exceeding FORM_DATA_MAX_SIZE -- truncating");
+        break;
       }
-      size += SMISK_STREAM_READ_CHUNKSIZE;
-      s = (char *)realloc(s, size+1);
+
+      /* Make sure we don't grow the block larger than the actual size of the data */
+      if (n > length)
+        n = length;
+    }
+
+    s = realloc(s, n + 1);
+    
+    EXTERN_OP(bytes_read = FCGX_GetStr(s + p, n - p, stream));
+    p += bytes_read;
+
+    if (p < n) {
+      /* Wasn't able to read all the bytes? That means we're done.
+       * We'll reach here only if length was unknown, so then we'd better
+       * reduce the size of the memory block, since we allocated
+       * optimistically, so we don't waste precious kittens.
+       */
+      s = realloc(s, p + 1);
+      break;
     }
     
-    return s;
+    n *= 2; /* Double the block size gradually, 256k, 512k, 1024k etc */
   }
+  
+  s[p] = 0;
+  return s;  
 }
 
 
@@ -82,7 +101,7 @@ static int _parse_request_body(smisk_Request* self) {
   if ((content_type = FCGX_GetParam("CONTENT_TYPE", self->envp))) {
     // Parse content-length if available
     char *t = FCGX_GetParam("CONTENT_LENGTH", self->envp);
-    content_length = (t != NULL) ? atol(t) : -1;
+    content_length = t ? atol(t) : -1;
     
     if (strstr(content_type, "multipart/")) {
       rc = smisk_multipart_parse_stream(self->input->stream, content_length, 
@@ -92,7 +111,7 @@ static int _parse_request_body(smisk_Request* self) {
     }
     else if (strstr(content_type, "/x-www-form-urlencoded")) {
       // Todo: Optimize: keep s buffer and reuse it between calls.
-      char *s = smisk_read_fcgxstream(self->input->stream, content_length);
+      char *s = _read_form_data(self->input->stream, content_length);
       int parse_status = smisk_parse_input_data(s, "&", 0, self->post);
       free(s);
       
