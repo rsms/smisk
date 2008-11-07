@@ -29,6 +29,18 @@ Using curl, we can trying it out::
     </params>
   </methodCall>' localhost:8080
 
+Or using a simple Python client::
+  
+  # simple test program (from the XML-RPC specification)
+  from xmlrpclib import ServerProxy, Error
+  service = ServerProxy("http://localhost:8080")
+  try:
+    print service.examples.getValue()
+    print service.examples.setValue("internets rulez")
+    print service.examples.getValue()
+  except Error, v:
+    print "ERROR", v
+
 '''
 from smisk.mvc import *
 
