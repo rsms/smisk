@@ -158,7 +158,11 @@ size_t smisk_url_decode(char *str, size_t len) {
     if (*data == '+') {
       *dest = ' ';
     }
-    else if (*data == '%' && len >= 2 && isxdigit((int) *(data + 1)) && isxdigit((int) *(data + 2))) {
+    else if (*data == '%'
+      && len >= 2
+      && isxdigit((unsigned char) *(data + 1)) 
+      && isxdigit((unsigned char) *(data + 2)))
+    {
       *dest = (char) X2DIGITS_TO_NUM(*(data + 1), *(data + 2));
       data += 2;
       len -= 2;
