@@ -2,15 +2,23 @@
 '''
 XML-RPC serialization
 '''
+from smisk.core import Application
+from smisk.mvc import http
 from smisk.serialization import serializers, Serializer
 from xmlrpclib import dumps, loads, Fault
 
-class serializer(Serializer):
-  '''XML-RPC serializer'''
+class XMLRPCSerializer(Serializer):
+  '''XML-RPC serializer
+  '''
+  
   name = 'XML-RPC'
   extensions = ('xmlrpc',)
   media_types = ('application/rpc+xml', 'application/xml-rpc+xml')
   charset = 'utf-8'
+  
+  respect_method_name = True
+  '''Enable translating <methodName> tag into request path
+  '''
   
   @classmethod
   def serialize(cls, params, charset):
@@ -18,16 +26,23 @@ class serializer(Serializer):
   
   @classmethod
   def serialize_error(cls, status, params, charset=None):
-    msg = u' '.join([params['name'], params['description']])
+    msg = u'%s: %s' % (params['name'], params['description'])
     return (charset, dumps(Fault(params['code'], msg), encoding=charset))
   
   @classmethod
   def unserialize(cls, file, length=-1, encoding=None):
     # return (list args, dict params)
-    (params, method_name) = loads(file.read(length))
+    params, method_name = loads(file.read(length))
+    
+    # Override request path with mathodName. i.e. method.name -> /method/name
+    if cls.respect_method_name:
+      if method_name is None:
+        raise http.InternalServerError(
+          'respect_method_name is enabled but request did not include methodName')
+      Application.current.request.url.path = '/'+'/'.join(method_name.split('.'))
+    
     args = []
     kwargs = {}
-    
     if len(params) > 0:
       for o in params:
         if isinstance(o, dict):
@@ -38,4 +53,4 @@ class serializer(Serializer):
     return (args, kwargs)
   
 
-serializers.register(serializer)
+serializers.register(XMLRPCSerializer)

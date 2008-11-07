@@ -114,43 +114,96 @@ class Registry(object):
     self.serializers.append(serializer)
     # Register Media types
     for t in serializer.media_types:
-      t = intern(t)
-      if serializer.media_type is None:
-        serializer.media_type = t
+      t = intern(t.lower())
       self.media_types[t] = serializer
     # Register extensions/formats
     for ext in serializer.extensions:
-      ext = intern(ext)
-      if serializer.extension is None:
-        serializer.extension = ext
+      ext = intern(ext.lower())
       self.extensions[ext] = serializer
     # Set first_in
     if self.first_in is None:
       self.first_in = serializer
     serializer.did_register(self)
   
-  def unregister(self, serializer):
-    '''Unregister a previously registered serializer.
+  def unregister(self, serializer=None):
+    '''Unregister a previously registered serializer or all registered
+    serializers, if `serializer` is `None`.
     '''
-    for i in range(len(self.serializers)):
-      if self.serializers[i] == serializer:
-        del self.serializers[i]
-        break
-    for k,v in self.media_types.items():
-      if v == serializer:
-        del self.media_types[k]
-    for k,v in self.extensions.items():
-      if v == serializer:
-        del self.extensions[k]
-    if self.first_in == serializer:
-      if self.serializers:
-        self.first_in = self.serializers[0]
-      else:
-        self.first_in = None
-    serializer.did_unregister(self)
+    if serializer is None:
+      # Unreg all
+      for s in self.serializers:
+        s.did_unregister(self)
+      self.media_types = {}
+      self.extensions = {}
+      self.serializers = []
+    else:
+      # Unreg specific
+      for i in range(len(self.serializers)):
+        if self.serializers[i] == serializer:
+          del self.serializers[i]
+          break
+      for k,v in self.media_types.items():
+        if v == serializer:
+          del self.media_types[k]
+      for k,v in self.extensions.items():
+        if v == serializer:
+          del self.extensions[k]
+      if self.first_in == serializer:
+        if self.serializers:
+          self.first_in = self.serializers[0]
+        else:
+          self.first_in = None
+      serializer.did_unregister(self)
+  
+  def find(self, media_type_or_extension):
+    '''Find a serializer associated with a media type or an extension.
+    Returns None if not found.
+    '''
+    key = intern(media_type_or_extension.lower())
+    try:
+      return self.media_types[key]
+    except KeyError:
+      try:
+        return self.extensions[key]
+      except KeyError:
+        pass
+  
+  def associate(self, serializer, media_type=None, extension=None, override_existing=True):
+    '''Associate a serializer with formats and extensions
+    '''
+    if serializer not in self.serializers:
+      raise LookupError('serializer %r is not yet registered' % serializer)
+    
+    if media_type is None:
+      media_type = []
+    elif not isinstance(media_type, (list, tuple)):
+      media_type = [media_type]
+    
+    if extension is None:
+      extension = []
+    elif not isinstance(extension, (list, tuple)):
+      extension = [extension]
+    
+    for t in media_type:
+      t = intern(t.lower())
+      if not override_existing and self.media_types.get(t, None) is not serializer:
+        raise Exception('media type %r is already associated with another serializer' % t)
+      self.media_types[t] = serializer
+    
+    for ext in extension:
+      ext = intern(ext.lower())
+      if not override_existing and self.extensions.get(ext, None) is not serializer:
+        raise Exception('extension %r is already associated with another serializer' % ext)
+      self.extensions[ext] = serializer
   
   def __iter__(self):
     return self.serializers.__iter__()
+  
+  def __contains__(self, item):
+    return self.serializers.__contains__(item)
+  
+  def __getitem__(self, key):
+    return self.serializers.__getitem__(key)
   
 
 serializers = Registry()
@@ -178,29 +231,11 @@ class Serializer(object):
   :type: string
   '''
   
-  extension = None
-  '''Primary filename extension.
-  
-  This is set by ``serializers.register``. You should define your extensions in `extensions`.
-  
-  :type: string'''
-  
-  media_type = None
-  '''Primary media type.
-  
-  This is set by ``serializer.register``. You should define your types in `media_types`.
-  
-  serializers register themselves in the module-level dictionary `serializers`
-  for any MIME types they can handle. This directive, mime_type, is only used
-  for output.
-  
-  :type: string
-  '''
-  
   extensions = tuple()
   '''Filename extensions this serializer can handle.
   
-  The first item will be assigned to `extension` and used as primary extension.
+  Must contain at least one item.
+  The first item will be used as the primary extension.
   
   :type: collection
   '''
@@ -208,7 +243,8 @@ class Serializer(object):
   media_types = tuple()
   '''Media types this serializer can handle.
   
-  The first item will be assigned to `media_type` and used as primary media type.
+  Must contain at least one item.
+  The first item will be used as the primary media type.
   
   :type: collection
   '''
@@ -285,9 +321,9 @@ class Serializer(object):
     '''Adds "Content-Type" header if missing'''
     if response.find_header('Content-Type:') == -1:
       if charset is not None:
-        response.headers.append('Content-Type: %s; charset=%s' % (cls.media_type, charset))
+        response.headers.append('Content-Type: %s; charset=%s' % (cls.media_types[0], charset))
       else:
-        response.headers.append('Content-Type: %s' % cls.media_type)
+        response.headers.append('Content-Type: %s' % cls.media_types[0])
   
   @classmethod
   def directions(cls):
