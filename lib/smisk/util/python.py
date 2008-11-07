@@ -4,6 +4,7 @@
 import sys, os, imp
 from smisk.util.collections import unique_wild
 from smisk.util.string import strip_filename_extension
+from smisk.util.type import None2
 
 __all__ = ['format_exc', 'wrap_exc_in_callable', 'classmethods', 'unique_sorted_modules_of_items', 'list_python_filenames_in_dir', 'find_modules_for_classtree', 'load_modules']
 
@@ -88,6 +89,19 @@ def find_modules_for_classtree(cls, exclude_root=True, unique=True):
   return modules
 
 
+def find_closest_syspath(path, namebuf):
+  '''TODO
+  '''
+  namebuf.append(os.path.basename(path))
+  if path in sys.path:
+    del namebuf[-1]
+    return '.'.join(reversed(namebuf)), path
+  path = os.path.dirname(path)
+  if not path or len(path) == 1:
+    return None2
+  return find_closest_syspath(path, namebuf)
+
+
 def load_modules(path, deep=False, skip_first_init=True):
   '''Import all modules in a directory.
   
@@ -103,45 +117,35 @@ def load_modules(path, deep=False, skip_first_init=True):
   :returns: A dictionary of modules imported, keyed by name.
   :rtype:   dict'''
   loaded = {}
-  _load_modules(path, deep, skip_first_init, '', loaded)
+  path = os.path.abspath(path)
+  parent_name, top_path = find_closest_syspath(path, [])
+  _load_modules(path, deep, skip_first_init, parent_name, loaded)
   return loaded
 
 def _load_modules(path, deep, skip_init, parent_name, loaded):
-  seen = []
-  
   for f in os.listdir(path):
     fpath = os.path.join(path, f)
     
     if os.path.isdir(fpath):
       if deep:
+        # skip_init is False because this method is a slave and the
+        # master argument is skip_first_init.
         _load_modules(fpath, deep, False, f, loaded)
-      else:
-        continue
-    
-    name = strip_filename_extension(f)
-    
-    if skip_init and name == '__init__':
       continue
     
-    if f[0] != '.' and f[-3:] in ('.py', 'pyc') and name not in seen:
-      fp, pathname, desc = imp.find_module(name, [path])
-      m = None
-      try:
-        sys.path.append(path)
-        m = imp.load_module(name, fp, pathname, desc)
-        abs_name = name
-        if parent_name:
-          if name == '__init__':
-            abs_name = parent_name
-          else:
-            abs_name = '%s.%s' % (parent_name, name)
-        elif name == '__init__':
-          # in the case where skip_first_init is False
-          abs_name = os.path.basename(path)
-        loaded[abs_name] = m
-      finally:
-        if fp:
-          fp.close()
-      
-      seen.append(name)
+    name = strip_filename_extension(f)
+    if skip_init and name == '__init__':
+      continue
+    abs_name = name
+    if parent_name:
+      if name == '__init__':
+        abs_name = parent_name
+      else:
+        abs_name = '%s.%s' % (parent_name, name)
+    elif name == '__init__':
+      # in the case where skip_first_init is False
+      abs_name = os.path.basename(path)
+    
+    if abs_name not in loaded:
+      loaded[abs_name] = __import__(abs_name, globals(), [])
   return loaded
