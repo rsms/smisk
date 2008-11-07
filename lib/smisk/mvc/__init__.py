@@ -595,6 +595,13 @@ class Application(smisk.core.Application):
         ):
       self.response.headers.append('Content-Location: %s.%s' % \
         (self.destination.uri, self.response.serializer.extensions[0]))
+      # Always add the vary header, because we do (T)CN
+      self.response.headers.append('Vary: Accept-Charset, Accept')
+    else:
+      # Always add the vary header, because we do (T)CN. Here we know this
+      # request does not negotiate accept type, as response type was explicitly
+      # set by the client, so we do not include "accept".
+      self.response.headers.append('Vary: Accept-Charset')
     
     # Call action
     if log.level <= logging.DEBUG:
@@ -792,9 +799,6 @@ class Application(smisk.core.Application):
     # Adjust formats if required by destination
     self.apply_action_format_restrictions()
     
-    # Always add the vary header, because we do (T)CN
-    self.response.headers.append('Vary: negotiate, accept, accept-charset')
-    
     # Call the action which might generate a response object: rsp
     rsp = self.call_action(req_args, req_params)
     
@@ -907,7 +911,7 @@ class Application(smisk.core.Application):
       # Set headers
       self.response.headers = [
         'Status: %s' % status,
-        'Vary: negotiate, accept, accept-charset'
+        'Vary: Accept, Accept-Charset'
       ]
       
       # Set params
