@@ -507,16 +507,30 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
     else {
       self->url->host = PyString_FromString(s);
     }
-    PyString_InternInPlace(&self->url->host);
     if (self->url->host == NULL)
-      return PyErr_NoMemory();
+      return NULL;
+    PyString_InternInPlace(&self->url->host);
     Py_CLEAR(old);
     
     // Path
     if ((s = FCGX_GetParam("SCRIPT_NAME", self->envp))) {
       old = self->url->path;
       self->url->path = PyString_FromString(s);
+      if (self->url->path == NULL)
+        return NULL;
       Py_DECREF(old);
+      /*
+      About PATH_INFO:
+      When making a request for "/foo/bar/xyz"
+      SCRIPT_NAME = "/foo"
+      PATH_INFO = "/bar/xyz"
+      So we concat these strings into one
+      */
+      if ((s = FCGX_GetParam("PATH_INFO", self->envp))) {
+        PyString_ConcatAndDel(&self->url->path, PyString_FromString(s));
+        if (self->url->path == NULL)
+          return NULL;
+      }
     }
     
     // Query string
