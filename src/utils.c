@@ -144,7 +144,7 @@ int smisk_parse_input_data(char *s, const char *separator, int is_cookie_data, P
     
     PyObject *py_key, *py_val;
     
-    smisk_url_decode(key, strlen(key));
+    smisk_url_decode(key, val ? val - key : strlen(key));
     
     if (val) { // have a value
       *val++ = '\0'; // '=' -> '\0'
