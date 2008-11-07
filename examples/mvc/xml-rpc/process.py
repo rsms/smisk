@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
-'''This is a simple but realistic example of a pure XML-RPC service, allowing
-only XML-RPC communication. It manages a value, an arbitrary object, which can
-be set and aquired.
+'''This is a simple, yet realistic, example of a pure XML-RPC service,
+allowing only XML-RPC communication. It manages a value, an arbitrary object,
+which can be set and aquired.
 
 In order to fit more into this example, we have also overridden the media type
 of the XML-RPC serializer, simulating a client that sends requests and accepts
