@@ -135,13 +135,14 @@ def method_origin(method):
   
   :param    method:
   :type     method: callable
-  :returns: Class on which `method` was originally defined
+  :returns: Class on which `method` was originally defined or None if no
+            parent could be deduced.
   :rtype:   object
   '''
   try:
     return _method_origin_r(method.im_func, method.im_class)
   except AttributeError:
-    raise ValueError('first argument "method" is missing attributes "im_class" and "im_func"')
+    return None
 
 
 def _method_origin_r(func, baseclass):
@@ -493,8 +494,6 @@ class Controller(object):
   def __repr__(self):
     uri = self.controller_uri()
     if uri is None:
-      uri = '<None>'
-    else:
-      uri = '"%s"' % uri
-    return '<Controller %s %s>' % (self.__class__.__name__, uri)
+      uri = ''
+    return '<Controller %s uri=%r>' % (self.__class__.__name__, uri)
   
