@@ -49,7 +49,6 @@ from smisk.util.threads import *
 from smisk.util.timing import *
 from smisk.util.type import *
 from smisk.util.main import *
-from types import DictType, StringType
 from smisk.mvc.template import Templates
 from smisk.mvc.routing import Router
 from smisk.mvc.decorators import *
@@ -87,15 +86,6 @@ class Request(smisk.core.Request):
   Available during a HTTP transaction.
   
   :type: smisk.serialization.Serializer
-  '''
-  
-  path = None
-  '''Requested URL path without any filename extension.
-  
-  Any initial value has no effect.
-  Available during a HTTP transaction.
-  
-  :type: string
   '''
 
 
@@ -338,11 +328,19 @@ class Application(smisk.core.Application):
         self.templates.autoreload = self.autoreload
     
     # Set fallback serializer
+    if isinstance(Response.fallback_serializer, basestring):
+      Response.fallback_serializer = serializers.find(Response.fallback_serializer)
+    if Response.fallback_serializer not in serializers:
+      # Might have been unregistered and need to be reconfigured
+      Response.fallback_serializer = None
     if Response.fallback_serializer is None:
       try:
         Response.fallback_serializer = serializers.extensions['html']
       except KeyError:
-        Response.fallback_serializer = serializers.first_in
+        try:
+          Response.fallback_serializer = serializers[0]
+        except IndexError:
+          Response.fallback_serializer = None
     
     # Setup any models
     model.setup_all()
@@ -407,7 +405,7 @@ class Application(smisk.core.Application):
       filename = os.path.basename(self.request.url.path)
       p = filename.rfind('.')
       if p != -1:
-        self.request.path = strip_filename_extension(self.request.url.path)
+        self.request.url.path = strip_filename_extension(self.request.url.path)
         self.response.format = filename[p+1:].lower()
         if log.level <= logging.DEBUG:
           log.debug('Client asked for format %r', self.response.format)
@@ -496,10 +494,6 @@ class Application(smisk.core.Application):
       if isinstance(v, str):
         v = v.decode('utf-8', self.unicode_errors)
       params[k.decode('utf-8', self.unicode_errors)] = v
-    
-    # If request.path has not yet been deduced, simply set it to request.url.path
-    if self.request.path is None:
-      self.request.path = self.request.url.path
     
     # Look at Accept-Charset header and set self.response.charset accordingly
     accept_charset = self.request.env.get('HTTP_ACCEPT_CHARSET', False)
@@ -597,10 +591,10 @@ class Application(smisk.core.Application):
     if self.response.serializer and (\
           not self.response.format \
         or \
-          (self.destination.uri and self.destination.uri != self.request.path)\
+          (self.destination.uri and self.destination.uri != self.request.url.path)\
         ):
       self.response.headers.append('Content-Location: %s.%s' % \
-        (self.destination.uri, self.response.serializer.extension))
+        (self.destination.uri, self.response.serializer.extensions[0]))
     
     # Call action
     if log.level <= logging.DEBUG:
@@ -773,7 +767,6 @@ class Application(smisk.core.Application):
     
     # Reset pre-transaction properties
     self.request.serializer = None
-    self.request.path = None
     self.response.format = None
     self.response.serializer = None
     self.response.charset = Response.charset
@@ -825,7 +818,7 @@ class Application(smisk.core.Application):
       timer.finish()
       uri = None
       if self.destination is not None:
-        uri = '%s.%s' % (self.destination.uri, self.response.serializer.extension)
+        uri = '%s.%s' % (self.destination.uri, self.response.serializer.extensions[0])
       else:
         uri = self.request.url.to_s(scheme=0, user=0, password=0, host=0, port=0)
       log.info('Processed %s in %.3fms', uri, timer.time()*1000.0)
@@ -850,7 +843,7 @@ class Application(smisk.core.Application):
         A relative path
     :rtype: string
     '''
-    return path + '.' + self.response.serializer.extension
+    return path + '.' + self.response.serializer.extensions[0]
   
   
   def template_for_uri(self, uri):
@@ -951,7 +944,7 @@ class Application(smisk.core.Application):
             log.info('Responding using fallback serializer %s' % self.response.serializer)
           
           # Set format if a serializer was found
-          format = self.response.serializer.extension
+          format = self.response.serializer.extensions[0]
           
           # Try to use a template...
           if status.uses_template and self.templates:
@@ -1124,7 +1117,7 @@ def run(bind=None, application=None, forks=None, handle_errors=False):
   # Aquire app
   if not application:
     if app:
-      application = app
+      application = app.current
     else:
       raise ValueError('No application has been set up. Run setup() before calling run()')
   elif not isinstance(application, smisk.core.Application):
