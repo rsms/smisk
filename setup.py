@@ -117,12 +117,18 @@ import shutil
 copy_file = shutil.copy
 
 def shell_cmd(args, cwd=BASE_DIR):
+  '''Returns stdout as string or None on failure
+  '''
   if not isinstance(args, (list, tuple)):
     args = [args]
   ps = Popen(args, shell=True, cwd=cwd, stdout=PIPE, stderr=PIPE, close_fds=True)
   stdout, stderr = ps.communicate()
   if ps.returncode != 0:
-    raise IOError(stderr.strip())
+    if stderr:
+      stderr = stderr.strip()
+    log.warn('Shell command %s failed (exit status %r): %s' %\
+      (args, ps.returncode, stderr))
+    return None
   return stdout.strip()
 
 
@@ -159,16 +165,13 @@ def core_build_id():
     if 'SMISK_BUILD_ID' in os.environ:
       _core_build_id = os.environ['SMISK_BUILD_ID']
     else:
-      try:
-        # Maybe under revision control
-        _core_build_id = shell_cmd(['hg id | cut -d ' ' -f 1'])
-        if _core_build_id:
-          dirty_extra = ''
-          if _core_build_id[-1] == '+':
-            dirty_extra = '%x' % int(time.time())
-          _core_build_id = 'urn:rcsid:%s%s' % (_core_build_id, dirty_extra)
-      except OSError:
-        pass
+      # Maybe under revision control
+      _core_build_id = shell_cmd(['hg id | cut -d \' \' -f 1'])
+      if _core_build_id:
+        dirty_extra = ''
+        if _core_build_id[-1] == '+':
+          dirty_extra = '%x' % int(time.time())
+        _core_build_id = 'urn:rcsid:%s%s' % (_core_build_id, dirty_extra)
       if not _core_build_id:
         # Not under revision control
         _core_build_id = time.strftime('urn:utcts:%Y%m%d%H%M%S', time.gmtime())
