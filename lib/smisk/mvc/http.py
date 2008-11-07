@@ -134,11 +134,11 @@ class Status300(Status):
     header = []
     html = []
     for serializer in serializers:
-      alt_path = '%s.%s' % (path, serializer.extension)
-      header_s = '"%s" 1.0 {type %s}' % (alt_path, serializer.media_type)
+      alt_path = '%s.%s' % (path, serializer.extensions[0])
+      header_s = '"%s" 1.0 {type %s}' % (alt_path, serializer.media_types[0])
       header.append('{%s}' % header_s)
       html.append('<li><a href="%s">%s (%s)</a></li>' % \
-        (xmlesc(alt_path), xmlesc(serializer.name), xmlesc(serializer.media_type)))
+        (xmlesc(alt_path), xmlesc(serializer.name), xmlesc(serializer.media_types[0])))
     
     app.response.headers.append('TCN: list')
     app.response.headers.append('Alternates: '+','.join(header))
@@ -157,7 +157,6 @@ class Status404(Status):
       rsp['description'] = 'No resource exists at %s' % app.request.url.path
     return rsp
   
-
 
 Continue                     = Status(100, "Continue")
 SwitchingProtocols           = Status(101, "Switching Protocols")
@@ -208,3 +207,11 @@ BadGateway                   = Status(502, "Bad Gateway")
 ServiceUnavailable           = Status(503, "Service Unavailable")
 GatewayTimeout               = Status(504, "Gateway Time-out")
 HTTPVersionNotSupported      = Status(505, "HTTP Version not supported")
+
+
+# Helpers
+
+def redirect_to(url, type=Found):
+  '''Redirect the request to someplace else
+  '''
+  raise http.type(url)
