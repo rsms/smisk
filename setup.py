@@ -126,9 +126,8 @@ def shell_cmd(args, cwd=BASE_DIR):
   if ps.returncode != 0:
     if stderr:
       stderr = stderr.strip()
-    log.warn('Shell command %s failed (exit status %r): %s' %\
+    raise IOError('Shell command %s failed (exit status %r): %s' %\
       (args, ps.returncode, stderr))
-    return None
   return stdout.strip()
 
 
@@ -166,7 +165,10 @@ def core_build_id():
       _core_build_id = os.environ['SMISK_BUILD_ID']
     else:
       # Maybe under revision control
-      _core_build_id = shell_cmd(['hg id | cut -d \' \' -f 1'])
+      try:
+        _core_build_id = shell_cmd(['hg id | cut -d \' \' -f 1'])
+      except IOError:
+        pass
       if _core_build_id:
         dirty_extra = ''
         if _core_build_id[-1] == '+':
