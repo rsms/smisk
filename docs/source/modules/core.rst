@@ -31,7 +31,7 @@ Attributes
 .. attribute:: app
   
   Current `Application` (``None`` if no application has been created) 
-  See also: `Application.current`.
+  See also: :attr:`Application.current`.
 
   .. versionadded:: 1.1
 
