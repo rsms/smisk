@@ -135,7 +135,7 @@ int smisk_parse_input_data(char *s, const char *separator, int is_cookie_data, P
     if (is_cookie_data) {
       // Remove leading spaces from cookie names, needed for multi-cookie 
       // header where ; can be followed by a space
-      while (isspace(*key))
+      while (isspace((unsigned char)*key))
         key++;
       
       if (key == val || *key == '\0')
@@ -211,7 +211,7 @@ void smisk_frepr_bytes(FILE *f, const char *s, size_t len) {
   fprintf(f, "bytes(%lu) '", (unsigned long int)len);
   while (len--) {
     c = *s++;
-    if ( isgraph(c) || (c == ' ') ) {
+    if ( isgraph((unsigned char)c) || (c == ' ') ) {
       fputc(c, f);
     }
     else {

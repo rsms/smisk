@@ -35,13 +35,10 @@ THE SOFTWARE.
 
 #pragma mark Internal
 
-#define FORM_DATA_MAX_SIZE 1024000000
-
-
 static char *_read_form_data(FCGX_Stream *stream, long length) {
   char *s = NULL;
   long p = 0; /* current position in output buffer */
-  n = 256*1024; /* max size the block can grow to each round */
+  long n = 256*1024; /* max size the block can grow to each round */
   int bytes_read;
   
   if (length == 0)
@@ -54,8 +51,8 @@ static char *_read_form_data(FCGX_Stream *stream, long length) {
         break;
       
       /* Hit max total size? */
-      if (p >= FORM_DATA_MAX_SIZE) {
-        log_error("WARNING! form data exceeding FORM_DATA_MAX_SIZE -- truncating");
+      if (p >= SMISK_FORM_DATA_MAX_SIZE) {
+        log_error("WARNING! form data exceeding SMISK_FORM_DATA_MAX_SIZE -- truncating");
         break;
       }
 
@@ -415,7 +412,7 @@ PyObject *smisk_Request_get_env(smisk_Request* self) {
         // or at least, we don't really care, so lets cache it.
         if (smisk_str8cmp(*envp, 'S','E','R','V','E','R','_','S') &&
           (*envp)[8]=='O'  && (*envp)[9]=='F'  && (*envp)[10]=='T' && (*envp)[11]=='W' && 
-          (*envp)[12]=='A' && (*envp)[13]=='R' && (*envp)[14]=='E')
+          (*envp)[12]=='A' && (*envp)[13]=='R' && (*envp)[14]=='E' && (*envp)[15]=='=')
         {
           
           if (_cached_SERVER_SOFTWARE_k == NULL) {
@@ -482,21 +479,26 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
     // Scheme
     if ((s = FCGX_GetParam("SERVER_PROTOCOL", self->envp))) {
       old = self->url->scheme;
+      Py_ssize_t len = strlen(s);
       
       // As this is called MANY times, this op is really worth it...
-      if ( ((s[0]=='H')&&(s[1]=='T')&&(s[2]=='T')&&(s[3]=='P')) 
-        ||((s[0]=='h')&&(s[1]=='t')&&(s[2]=='t')&&(s[3]=='p')) ) {
-        if ( (s[4]=='S'||s[4]=='s') ) { // what about if the interface spec is less than 5 chars?
+      if (
+          (len > 3)
+            &&
+          (smisk_str4cmp(s, 'H','T','T','P') || smisk_str4cmp(s, 'h','t','t','p'))
+         )
+      {
+        if ( (len == 5) && (s[4]=='S'||s[4]=='s') ) {
           self->url->scheme = kString_https;
           Py_INCREF(kString_https);
         }
-        else {
+        else if (len == 4) {
           self->url->scheme = kString_http;
           Py_INCREF(kString_http);
         }
       }
-      else {
-        Py_ssize_t len = strlen(s); 
+      
+      if (self->url->scheme == old) {
         if ((p = strchr(s, '/')))
           len = (Py_ssize_t)(p-s);
         self->url->scheme = PyString_FromStringAndSize(_strtolower(s), len);

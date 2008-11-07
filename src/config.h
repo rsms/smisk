@@ -48,5 +48,8 @@ THE SOFTWARE.
 //          change unless during a major version step.
 #define SMISK_SESSION_NBITS 5
 
+// Max size for form post data (x-www-form-urlencoded)
+#define SMISK_FORM_DATA_MAX_SIZE 1024000000
+
 
 #endif
