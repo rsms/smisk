@@ -205,6 +205,9 @@ class Registry(object):
   def __getitem__(self, key):
     return self.serializers.__getitem__(key)
   
+  def __len__(self):
+    return self.serializers.__len__()
+  
 
 serializers = Registry()
 '''The serializer registry.
@@ -261,6 +264,16 @@ class Serializer(object):
   Possible values: ``strict, ignore, replace, xmlcharrefreplace, backslashreplace``
   
   :type: string
+  '''
+  
+  handles_empty_response = False
+  '''If enabled, serialize() will be called even when actions/controller leafs
+  does not generate a response body. (i.e. params=None passed to serialize())
+  
+  Some serialization formats does not allow empty responses (RPC-variants for
+  instance) in which case this feature come in handy.
+  
+  :type: bool
   '''
   
   @classmethod

@@ -470,7 +470,7 @@ class Application(smisk.core.Application):
     
     # Strict TCN
     if Response.serializer is None:
-      if no_http_exc:
+      if no_http_exc or len(serializers) < 2:
         return Response.fallback_serializer
       else:
         raise http.MultipleChoices(self.request.url)
@@ -620,11 +620,14 @@ class Application(smisk.core.Application):
     :rtype: buffer
     :see: `send_response()`
     '''
-    # No data to encode
+    # No response body
     if rsp is None:
       if self.template:
         return self.template.render_unicode().encode(
           self.response.charset, self.unicode_errors)
+      elif self.response.serializer and self.response.serializer.handles_empty_response:
+        self.response.charset, rsp = self.response.serializer.serialize(rsp, self.response.charset)
+        return rsp
       return None
     
     # If rsp is already a string, we do not process it further
