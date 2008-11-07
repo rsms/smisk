@@ -1,12 +1,12 @@
 :mod:`smisk.core` – Core functionality
 ===========================================================
 
-This module is implemented in machine native code.
+This module is the foundation of Smisk and is implemented in machine native code.
 
 See :ref:`c-api` for documentation of the C interface.
 
 .. module:: smisk.core
-  :platform: Unix, Mac
+  :platform: Linux, Mac, Unix
   :synopsis: Smisk core library handling I/O, request and response parsing as 
              well as session handling.
 
@@ -159,4 +159,8 @@ Exceptions
 Classes
 -------------------------------------------------
 
-
+.. toctree::
+  :glob:
+  :maxdepth: 1
+  
+  **
