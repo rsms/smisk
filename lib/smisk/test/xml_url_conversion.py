@@ -82,7 +82,7 @@ class URLTests(TestCase):
     assert u.fragment == ''
   
   def test12(self):
-    assert URL.decode("foo%2Bbar@strigeus.com") == "foo+bar@strigeus.com"
+    assert URL.decode("foo%2Bbar@internets.com") == "foo+bar@internets.com"
   
 
 def suite():
