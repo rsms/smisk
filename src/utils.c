@@ -251,7 +251,7 @@ char smisk_size_unit (double *bytes) {
 }
 
 
-static char binconvtab[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,-";
+static char binconvtab[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-";
 // Highest character                       f               v                               -
 // Tokens                               16 chrs         32 chrs                         64 chrs
 // Bits                                 4 bits          5 bits                          6 bits
