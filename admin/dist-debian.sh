@@ -90,5 +90,5 @@ if [ $RUN_DUPLOAD -eq 1 ]; then
   dupload -t hunch.se "${ORG_DIR}/dist/debian"
 else
   echo "Upload disabled -- to manually upload the build package(s), run:"
-  echo "dupload -t hunch.se '${ORG_DIR}/dist/debian'"
+  echo "dupload -t hunch '${ORG_DIR}/dist/debian'"
 fi
