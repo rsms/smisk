@@ -1,7 +1,7 @@
 python-smisk (1.1.0-4) stable testing unstable; urgency=low
 
-  * Fixed a bug in query string parsing where values where decoded twice, leaving
-    "foo%2Bbar" as "foo bar" instead of "foo+bar".
+  * Fixed a bug in query string parsing where values where decoded twice,
+    leaving "foo%2Bbar" as "foo bar" instead of "foo+bar".
   * Fixed DoS vulnerability in form post reader.
 
  -- Rasmus Andersson <rasmus@flajm.com>  Sun,  9 Nov 2008 23:10:51 +0100
