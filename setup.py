@@ -526,7 +526,7 @@ class debian(Command):
     ('binary-only', 'b',  'indicates that no source files are to be built and/or distributed'),
     ('source-only', 'S',  'specifies that only the source should be uploaded and no binary '\
                           'packages need to be made'),
-    ('key-id', 'k',       'specify a key-ID to use when signing packages'),
+    ('key-id=', 'k',      'specify a key-ID to use when signing packages'),
   ]
   boolean_options = ['upload', 'binary', 'source']
   
