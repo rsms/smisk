@@ -1,10 +1,12 @@
-python-smisk (1.1.0-3) etch; urgency=low
+python-smisk (1.1.0-4) stable testing unstable; urgency=low
 
-  * Debian etch build
+  * Fixed a bug in query string parsing where values where decoded twice, leaving
+    "foo%2Bbar" as "foo bar" instead of "foo+bar".
+  * Fixed DoS vulnerability in form post reader.
 
- -- Rasmus Andersson <rasmus@flajm.com>  Fri, 31 Sep 2008 03:10:00 +0200
+ -- Rasmus Andersson <rasmus@flajm.com>  Sun,  9 Nov 2008 23:10:51 +0100
 
-python-smisk (1.1.0-3) unstable; urgency=low
+python-smisk (1.1.0-3) testing stable; urgency=low
 
   * Reworked serialization and TCN logic
   * Upstream release 1.1a
