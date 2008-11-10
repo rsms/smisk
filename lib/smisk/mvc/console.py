@@ -82,10 +82,9 @@ def main(app=None,
   
   # Load application
   if root_controller() is None:
-    orig_syspath = sys.path
     try:
       try:
-        sys.path = [os.path.dirname(appdir)]
+        sys.path[0:0] = [os.path.dirname(appdir)]
         m = __import__(appname, globals(), {}, ['*'])
         for k in dir(m):
           try:
@@ -93,10 +92,12 @@ def main(app=None,
           except:
             pass
       except ImportError, e:
+        from smisk.util.python import format_exc
         raise EnvironmentError('Unable to automatically load application. Try to load it '\
-          'yourself or provide an absolute appdir with your call to console.main(): %s' % e)
+          'yourself or provide an absolute appdir with your call to console.main(): %s' %\
+          format_exc(as_string=1))
     finally:
-      sys.path = orig_syspath
+      del sys.path[0]
   
   try:
     app = setup(app=app, appdir=appdir, log_format=log_format, *args, **kwargs)
