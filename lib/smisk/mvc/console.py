@@ -22,6 +22,7 @@ from smisk.release import version
 from smisk.core import *
 from smisk.mvc.control import *
 from smisk.mvc.model import *
+from smisk.util.python import format_exc
 
 class Console(code.InteractiveConsole):
   def __init__(self, locals=None, filename="<console>",
@@ -92,7 +93,6 @@ def main(app=None,
           except:
             pass
       except ImportError, e:
-        from smisk.util.python import format_exc
         raise EnvironmentError('Unable to automatically load application. Try to load it '\
           'yourself or provide an absolute appdir with your call to console.main(): %s' %\
           format_exc(as_string=1))
