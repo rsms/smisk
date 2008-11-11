@@ -20,6 +20,7 @@ import sys, os, time, logging, __builtin__
 import code, readline, atexit
 from smisk.release import version
 from smisk.core import *
+from smisk.mvc import setup
 from smisk.mvc.control import *
 from smisk.mvc.model import *
 from smisk.util.python import format_exc
