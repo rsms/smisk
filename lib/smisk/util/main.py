@@ -32,7 +32,7 @@ def main_cli_filter(appdir=None, bind=None, forks=None):
   
   if forks:
     forks_defaults_to = ' Defaults to "%s".' % forks
-    
+  
   from optparse import OptionParser
   parser = OptionParser(usage="usage: %prog [options]")
   
@@ -46,8 +46,11 @@ def main_cli_filter(appdir=None, bind=None, forks=None):
   
   parser.add_option("-b", "--bind",
                     dest="bind",
-                    help='Start a stand-alone process, listening for FastCGI connection on TO, which can be a TCP/IP address with out without host or a UNIX socket (named pipe on Windows). For example "localhost:5000", "/tmp/my_process.sock" or ":5000".%s' % bind_defaults_to,
-                    metavar="TO",
+                    help='Start a stand-alone process, listening for FastCGI connection on '\
+                         'ADD, which can be a TCP/IP address with out without host or a UNIX '\
+                         'socket (named pipe on Windows). For example "localhost:5000", '\
+                         '"/tmp/my_process.sock" or ":5000".%s' % bind_defaults_to,
+                    metavar="ADDR",
                     action="store",
                     type="string",
                     default=bind)
@@ -55,7 +58,7 @@ def main_cli_filter(appdir=None, bind=None, forks=None):
   parser.add_option("-c", "--forks",
                     dest="forks",
                     help='Set number of childs to fork.%s' % forks_defaults_to,
-                    metavar="FORKS",
+                    metavar="N",
                     type="int",
                     default=forks)
   
