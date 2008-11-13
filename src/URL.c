@@ -667,18 +667,16 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   PyObject *scheme, *user, *password, *host, *port, *path, *query, *fragment;
   PyObject *one;
-  static char *kwlist[] = {"scheme", "user", "password", "host", "port",
-                           "path", "query", "fragment", NULL};
-  scheme = user = password = host = port = path = query = fragment = NULL;
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OOOOOOOO", kwlist,
+  static char *kwlist[] = {
+  "scheme","user","password","host","port","path","query","fragment", NULL};
+   scheme = user = password = host = port = path = query = fragment = NULL;
+  if (args && kwargs && ! PyArg_ParseTupleAndKeywords(args, kwargs, "|OOOOOOOO", kwlist,
       &scheme, &user, &password, &host, &port, &path, &query, &fragment))
     return NULL;
   
-  // Here we exploit the fact that python caches everything between -5 and 256, so
-  // "1" anywhere in the world will be the same object in memory. Yay.
   one = PyInt_FromLong(1);
   
-  // DRY or you'll suffer
+  // DRY -- otherwise kittens will be wasted.
   #define ENABLED(x) ( self->x != Py_None && (x == NULL || x == Py_True || x == one) )
   
   PyObject *s = PyString_FromStringAndSize("", 0);
@@ -688,16 +686,12 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("://", 3));
   }
   
-  if ( ENABLED(user) || ENABLED(password) ) {
-    
-    if (ENABLED(user))
-      PyString_Concat(&s, self->user);
-    
+  if (ENABLED(user)) {
+    PyString_Concat(&s, self->user);
     if (ENABLED(password)) {
       PyString_ConcatAndDel(&s, PyString_FromStringAndSize(":", 1));
       PyString_Concat(&s, self->password);
     }
-    
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("@", 1));
   }
   
@@ -711,7 +705,7 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   if (ENABLED(path))
     PyString_Concat(&s, self->path);
   
-  if (ENABLED(query)) {
+  if (ENABLED(query) && self->query != Py_None && PyString_Size(self->query) > 0) {
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("?", 1));
     PyString_Concat(&s, self->query);
   }
@@ -731,13 +725,7 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
 // XXX: missing documentation
 PyObject *smisk_URL___str__(smisk_URL* self) {
   log_trace("ENTER");
-  PyObject *args, *kwargs, *s;
-  args = PyTuple_New(0);
-  kwargs = PyDict_New();
-  s = smisk_URL_to_s(self, args, kwargs);
-  Py_DECREF(args);
-  Py_DECREF(kwargs);
-  return s;
+  return smisk_URL_to_s(self, NULL, NULL);
 }
 
 
