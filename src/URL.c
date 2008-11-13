@@ -651,6 +651,7 @@ PyDoc_STRVAR(smisk_URL_to_s_DOC,
   ":param  password:\n"
   ":param  host:\n"
   ":param  port:\n"
+  ":param  port80:\n"
   ":param  path:\n"
   ":param  query:\n"
   ":param  fragment:\n"
@@ -659,19 +660,20 @@ PyDoc_STRVAR(smisk_URL_to_s_DOC,
   ":type   password:  bool\n"
   ":type   host:      bool\n"
   ":type   port:      bool\n"
+  ":type   port80:    bool\n"
   ":type   path:      bool\n"
   ":type   query:     bool\n"
   ":type   fragment:  bool\n"
   ":rtype: string");
 PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
-  PyObject *scheme, *user, *password, *host, *port, *path, *query, *fragment;
+  PyObject *scheme, *user, *password, *host, *port, *port80, *path, *query, *fragment;
   PyObject *one;
   static char *kwlist[] = {
-  "scheme","user","password","host","port","path","query","fragment", NULL};
-   scheme = user = password = host = port = path = query = fragment = NULL;
-  if (args && kwargs && ! PyArg_ParseTupleAndKeywords(args, kwargs, "|OOOOOOOO", kwlist,
-      &scheme, &user, &password, &host, &port, &path, &query, &fragment))
+  "scheme","user","password","host","port","port80","path","query","fragment", NULL};
+   scheme = user = password = host = port = port80 = path = query = fragment = NULL;
+  if (args && kwargs && ! PyArg_ParseTupleAndKeywords(args, kwargs, "|OOOOOOOOO", kwlist,
+      &scheme, &user, &password, &host, &port, &port80, &path, &query, &fragment))
     return NULL;
   
   one = PyInt_FromLong(1);
@@ -699,8 +701,10 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
     PyString_Concat(&s, self->host);
   
   // port is an int, so we can't use our pretty ENABLED macro here
-  if ( (port == NULL || port == Py_True || port == one) && (self->port > 0) )
-    PyString_ConcatAndDel(&s, PyString_FromFormat(":%d", self->port));
+  if ( (port == NULL || port == Py_True || port == one) && (self->port > 0) ) {
+    if (self->port != 80 || (port80 == Py_True || port80 == one) )
+      PyString_ConcatAndDel(&s, PyString_FromFormat(":%d", self->port));
+  }
   
   if (ENABLED(path))
     PyString_Concat(&s, self->path);

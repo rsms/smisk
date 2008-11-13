@@ -81,15 +81,24 @@ class URLTests(TestCase):
     self.assertContains(q.keys(), ['email', 'stale_key', 'mos'])
   
   def test_to_s_1(self):
-    raw = 'http://john:secret@fisk.tld/some/path.ext?arg1=245&arg2=hej%20du#chapter5'
+    raw = 'http://john:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5'
     u = URL(raw)
     self.assertEquals(u.to_s(), raw)
     self.assertEquals(str(u), raw)
     self.assertEquals(unicode(u), unicode(raw))
   
-  def test_to_s_2(self):
-    raw = 'http://john:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5'
-    u = URL(raw)
+  def test_to_s_2_port(self):
+    u = URL('http://fisk.tld:1983/some/path')
+    self.assertEquals(u.to_s(port=0), 'http://fisk.tld/some/path')
+    self.assertEquals(u.to_s(port80=0), 'http://fisk.tld:1983/some/path')
+    self.assertEquals(u.to_s(port=0, port80=1), 'http://fisk.tld/some/path')
+    u = URL('http://fisk.tld:80/some/path')
+    self.assertEquals(u.to_s(port=0), 'http://fisk.tld/some/path')
+    self.assertEquals(u.to_s(port80=0), 'http://fisk.tld/some/path')
+    self.assertEquals(u.to_s(port=0, port80=1), 'http://fisk.tld/some/path')
+  
+  def test_to_s_3(self):
+    u = URL('http://john:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
     
     # meet and greet
     self.assertEquals(u.to_s(scheme=0, user=1, password=1, host=1, port=1, path=1, query=1, fragment=1), 'john:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
