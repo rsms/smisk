@@ -119,33 +119,53 @@ def load_modules(path, deep=False, skip_first_init=True):
   loaded = {}
   path = os.path.abspath(path)
   parent_name, top_path = find_closest_syspath(path, [])
-  _load_modules(path, deep, skip_first_init, parent_name, loaded)
+  sys.path[0:0] = [top_path]
+  try:
+    _load_modules(path, deep, skip_first_init, parent_name, loaded)
+  finally:
+    if sys.path[0] == top_path:
+      sys.path = sys.path[1:]
   return loaded
 
 def _load_modules(path, deep, skip_init, parent_name, loaded):
   for f in os.listdir(path):
     fpath = os.path.join(path, f)
-    
+  
     if os.path.isdir(fpath):
       if deep:
         # skip_init is False because this method is a slave and the
         # master argument is skip_first_init.
         _load_modules(fpath, deep, False, f, loaded)
       continue
-    
+  
     name = strip_filename_extension(f)
     if skip_init and name == '__init__':
       continue
-    abs_name = name
     if parent_name:
       if name == '__init__':
-        abs_name = parent_name
+        name = parent_name
       else:
-        abs_name = '%s.%s' % (parent_name, name)
+        name = '%s.%s' % (parent_name, name)
     elif name == '__init__':
-      # in the case where skip_first_init is False
-      abs_name = os.path.basename(path)
+      # in the case where skip_init is False
+      name = os.path.basename(path)
     
-    if abs_name not in loaded:
-      loaded[abs_name] = __import__(abs_name, globals(), [])
+    if name not in loaded:
+      mfindpath = list(sys.path)
+      mod = None
+      components = name.split('.')
+      org_sys_path = list(sys.path)
+      try:
+        for comp in components:
+          mfile, mpath, mdesc = imp.find_module(comp, sys.path)
+          if mdesc[0] == '':
+            mfindpath = mpath
+          else:
+            mfindpath = os.path.dirname(mpath)
+          sys.path[0:0] = [mfindpath]
+          mod = imp.load_module(comp, mfile, mpath, mdesc)
+        if mod is not None:
+          loaded[name] = mod
+      finally:
+        sys.path = org_sys_path
   return loaded
