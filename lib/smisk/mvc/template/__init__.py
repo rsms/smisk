@@ -117,8 +117,11 @@ class Templates(object):
     '''
     try:
       template = self.instances[uri]
-      if self.autoreload and template is not None:
-        template = self._check(uri, template)
+      if self.autoreload:
+        if template is not None:
+          template = self._check(uri, template)
+        else:
+          raise KeyError('check again')
       if exc_if_not_found and template is None:
         raise exceptions.TopLevelLookupException("Failed to locate template for uri '%s'" % uri)
       return template
