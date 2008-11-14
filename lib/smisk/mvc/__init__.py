@@ -641,6 +641,11 @@ class Application(smisk.core.Application):
     
     # Use template as serializer, if available
     if self.template:
+      for k,v in rsp.items():
+        if isinstance(k, unicode):
+          k2 = k.encode(self.template.input_encoding, self.unicode_errors)
+          del rsp[k]
+          rsp[k2] = v
       return self.template.render_unicode(**rsp).encode(
         self.response.charset, self.unicode_errors)
     
