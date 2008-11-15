@@ -442,8 +442,8 @@ PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObje
   
   // Mandatory fields
   
-  name = smisk_url_encode(name, 1);
-  value = smisk_url_encode(value, 1);
+  name = smisk_url_encode(name, strlen(name), 1);
+  value = smisk_url_encode(value, strlen(value), 1);
   s = PyString_FromFormat("Set-Cookie: %s=%s;Version=%d", name, value, version);
   free(name); // smisk_url_encode
   free(value); // smisk_url_encode
@@ -452,19 +452,19 @@ PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObje
   // Optional fields
   
   if (comment) {
-    comment = smisk_url_encode(comment, 1);
+    comment = smisk_url_encode(comment, strlen(comment), 1);
     PyString_ConcatAndDel(&s, PyString_FromFormat(";Comment=%s", comment));
     free(comment);
   }
   
   if (domain) {
-    domain = smisk_url_encode(domain, 1);
+    domain = smisk_url_encode(domain, strlen(domain), 1);
     PyString_ConcatAndDel(&s, PyString_FromFormat(";Domain=%s", domain));
     free(domain);
   }
   
   if (path) {
-    path = smisk_url_encode(path, 1);
+    path = smisk_url_encode(path, strlen(path), 1);
     PyString_ConcatAndDel(&s, PyString_FromFormat(";Path=%s", path));
     free(path);
   }

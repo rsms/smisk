@@ -39,8 +39,8 @@ typedef struct {
 } smisk_URL;
 
 // C API only
-size_t smisk_url_decode (char *str, size_t len); // returns (new) length of str
-char *smisk_url_encode (const char *s, int full); // returns a newly allocated string
+size_t smisk_url_decode (char *str, size_t length); // returns (new) length of str
+char *smisk_url_encode (const char *s, size_t length, int full); // returns a newly allocated string
 
 // class URL (the URL type object)
 PyTypeObject smisk_URLType;

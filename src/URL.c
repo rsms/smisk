@@ -57,9 +57,9 @@ enum {
   urlchr_unsafe   = 2
 };
 
-#define urlchr_test(c, mask) (urlchr_table[(unsigned char)(c)] & (mask))
-#define URL_RESERVED_CHAR(c) urlchr_test(c, urlchr_reserved)
-#define URL_UNSAFE_CHAR(c) urlchr_test(c, urlchr_unsafe)
+#define URLCHR_TEST(c, mask) (urlchr_table[(unsigned char)(c)] & (mask))
+#define URL_RESERVED_CHAR(c) URLCHR_TEST(c, urlchr_reserved)
+#define URL_UNSAFE_CHAR(c) URLCHR_TEST(c, urlchr_unsafe)
 
 /* Shorthands for the table: */
 #define R  urlchr_reserved
@@ -103,16 +103,16 @@ static const unsigned char urlchr_table[256] =
 /* The core of url_escape_* functions.  Escapes the characters that
    match the provided mask in urlchr_table.*/
 
-static void _url_encode (const char *s, char *newstr, int mask) {
+static void _url_encode (const char *s, size_t length, char *newstr, int mask) {
   const char *p1;
   char *p2;
   
   p1 = s;
   p2 = newstr;
   
-  while (*p1) {
+  while (length--) {
     /* Quote the characters that match the test mask. */
-    if (urlchr_test (*p1, mask)) {
+    if (URLCHR_TEST(*p1, mask)) {
       unsigned char c = *p1++;
       *p2++ = '%';
       *p2++ = XNUM_TO_DIGIT (c >> 4);
@@ -127,45 +127,44 @@ static void _url_encode (const char *s, char *newstr, int mask) {
 }
 
 
-char *smisk_url_encode(const char *s, int full) {
+char *smisk_url_encode(const char *s, size_t length, int full) {
   const char *p1;
   char *new_s;
   int mask = full ? urlchr_reserved|urlchr_unsafe : urlchr_unsafe;
-  size_t len = strlen(s);
-  size_t new_len = len;
+  size_t new_len = length;
   
   for (p1 = s; *p1; p1++) {
-    if (urlchr_test(*p1, mask))
+    if (URLCHR_TEST(*p1, mask))
       new_len += 2;
   }
   
-  if (new_len == len)
+  if (new_len == length)
     return strdup(s);
   else
     new_s = (char *)malloc(new_len);
   
-  _url_encode(s, new_s, mask);
+  _url_encode(s, length, new_s, mask);
   return new_s;
 }
 
 
 // returns (new) length of str
-size_t smisk_url_decode(char *str, size_t len) {
+size_t smisk_url_decode(char *str, size_t length) {
   char *dest = str;
   char *data = str;
 
-  while (len--) {
+  while (length--) {
     if (*data == '+') {
       *dest = ' ';
     }
     else if (*data == '%'
-      && len >= 2
+      && length >= 2
       && isxdigit((unsigned char) *(data + 1)) 
       && isxdigit((unsigned char) *(data + 2)))
     {
       *dest = (char) X2DIGITS_TO_NUM(*(data + 1), *(data + 2));
       data += 2;
-      len -= 2;
+      length -= 2;
     }
     else {
       *dest = *data;
@@ -181,39 +180,46 @@ size_t smisk_url_decode(char *str, size_t len) {
 static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   log_trace("ENTER");
   char *orgstr, *newstr;
-  Py_ssize_t orglen;
-  Py_ssize_t newlen;
-  PyObject *newstr_py;
+  Py_ssize_t orglen, newlen;
+  PyObject *newstr_py, *unicode_str = NULL;
   
   if (!SMISK_PyString_Check(str)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }
   
-  if ((orgstr = PyString_AsString(str)) == NULL) {
-    return NULL; // TypeError was raised
-  }
-  
   orglen = PyString_Size(str);
   
   if (orglen < 1) {
-    // Empty string
     Py_INCREF(str);
     return str;
   }
+  
+  if (PyUnicode_Check(str)) {
+    unicode_str = str;
+    str = PyUnicode_AsUTF8String(str);
+    if (str == NULL)
+      return NULL;
+  }
+  
+  if ((orgstr = PyString_AS_STRING(str)) == NULL)
+    return NULL;
   
   newlen = orglen;
   
   // Check new length
   const char *p1;
   for (p1 = orgstr; *p1; p1++) {
-    if (urlchr_test (*p1, mask))
+    if (URLCHR_TEST(*p1, mask))
       newlen += 2;  /* Two more characters (hex digits) */
-    
   }
   
   if (orglen == newlen) {
     // No need to encode - return original string
+    if (unicode_str) {
+      Py_DECREF(str);
+      str = unicode_str;
+    }
     Py_INCREF(str);
     return str;
   }
@@ -224,7 +230,14 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   
   // Do the actual encoding
   newstr = PyString_AS_STRING(newstr_py);
-  _url_encode(orgstr, newstr, mask);
+  _url_encode(orgstr, orglen, newstr, mask);
+  
+  if (unicode_str) {
+    Py_DECREF(str); // release utf8 intermediate copy
+    str = newstr_py;
+    newstr_py = PyUnicode_DecodeUTF8(newstr, newlen, "strict");
+    Py_DECREF(str); // release intermediate newstr_py created in PyString_FromStringAndSize
+  }
   
   // Return new string
   return newstr_py;
@@ -557,16 +570,33 @@ PyDoc_STRVAR(smisk_URL_decode_DOC,
   ":raises TypeError: if str is not a string");
 PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
   log_trace("ENTER");
-  char *orgstr;
+  char *orgstr, *newstr;
   Py_ssize_t orglen, newlen;
   register PyStringObject *newstr_py;
+  PyObject *unicode_str = NULL;
   
-  if ((orgstr = PyString_AsString(str)) == NULL)
-    return NULL; // TypeError raised
+  if (!SMISK_PyString_Check(str)) {
+    PyErr_SetString(PyExc_TypeError, "first argument must be a string");
+    return NULL;
+  }
   
-  orglen = PyString_Size(str);
+  if (PyUnicode_Check(str)) {
+    unicode_str = str;
+    str = PyUnicode_AsUTF8String(str);
+    if (str == NULL)
+      return NULL;
+  }
+  
+  if ((orgstr = PyString_AS_STRING(str)) == NULL)
+    return NULL;
+  
+  orglen = PyString_GET_SIZE(str);
   if (orglen < 1) {
     // Empty string
+    if (unicode_str) {
+      Py_DECREF(str);
+      str = unicode_str;
+    }
     Py_INCREF(str);
     return str;
   }
@@ -575,20 +605,41 @@ PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
   if ((newstr_py = (PyStringObject *)PyString_FromStringAndSize(orgstr, orglen)) == NULL)
     return NULL;
   
-  newlen = smisk_url_decode(PyString_AS_STRING(newstr_py), (size_t)orglen);
+  newstr = PyString_AS_STRING(newstr_py);
+  
+  newlen = smisk_url_decode(newstr, (size_t)orglen);
   
   if (orglen == newlen) {
     // Did not need decoding
     Py_DECREF(newstr_py);
+    if (unicode_str) {
+      Py_DECREF(str);
+      str = unicode_str;
+    }
     Py_INCREF(str);
     return str;
   }
   
-  // XXX This may be a problem in future Python versions as it's internal
-  newstr_py->ob_size = newlen;
-  
-  // Return decoded string
-  return (PyObject *)newstr_py;
+  if (unicode_str) {
+    // release utf8 intermediate copy
+    Py_DECREF(str);
+    
+    // Return decoded unicode string
+    unicode_str = PyUnicode_DecodeUTF8(newstr, newlen, "strict");
+    
+    // Release intermediate newstr_py created in PyString_FromStringAndSize.
+    Py_DECREF(newstr_py);
+    
+    // Return decoded unicode string
+    return unicode_str;
+  }
+  else {
+    // Warning: This may be a problem in future Python versions as it's internal
+    newstr_py->ob_size = newlen;
+    
+    // Return decoded string
+    return (PyObject *)newstr_py;
+  }
 }
 
 

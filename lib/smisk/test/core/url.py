@@ -17,6 +17,14 @@ class URLTests(TestCase):
     assert URL.unescape(escaped) == URL.decode(escaped)
     self.assertEquals(URL.decode("foo%2Bbar@internets.com"), "foo+bar@internets.com")
   
+  def test_encode_decode_string_type(self):
+    self.assertEquals(type(URL.encode(u"foo+bar@internets.com")), type(u"foo%2Bbar@internets.com"))
+    self.assertEquals(type(URL.encode("foo+bar@internets.com")), type("foo%2Bbar@internets.com"))
+    self.assertEquals(type(URL.escape(u"foo+bar@internets.com")), type(u"foo%2Bbar@internets.com"))
+    self.assertEquals(type(URL.escape("foo+bar@internets.com")), type("foo%2Bbar@internets.com"))
+    self.assertEquals(type(URL.decode(u"foo%2Bbar@internets.com")), type(u"foo+bar@internets.com"))
+    self.assertEquals(type(URL.decode("foo%2Bbar@internets.com")), type("foo+bar@internets.com"))
+  
   def test_clean_strings(self):
     # Should be unmodified and retain pointers
     raw = 'hello/john'

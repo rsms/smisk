@@ -131,36 +131,60 @@ PyDoc_STRVAR(smisk_xml_escape_DOC,
   ":param s: String to be encoded.\n"
   ":type  s: string\n"
   ":returns: The escaped string.\n"
-  ":rtype: str");
-PyObject *smisk_xml_escape_py(PyObject *self, PyObject *_pys) {
-  size_t len, nlen;
-  PyObject *npys, *pys;
-  char *s;
-  pys = _pys;
+  ":rtype: string");
+PyObject *smisk_xml_escape_py(PyObject *self, PyObject *str) {
+  char *orgstr, *newstr;
+  Py_ssize_t orglen, newlen;
+  PyObject *newstr_py, *unicode_str = NULL;
   
-  if (!SMISK_PyString_Check(pys)) {
+  if (!SMISK_PyString_Check(str)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }
   
-  len = (size_t)PyString_Size(pys);
-  s = PyString_AsString(pys);
-  if (s == NULL)
-    return NULL;
+  orglen = PyString_Size(str);
   
-  nlen = smisk_xml_encode_newlen(s, len);
-  
-  if (nlen == len) {
-    Py_INCREF(_pys);
-    return _pys;
+  if (orglen < 1) {
+    Py_INCREF(str);
+    return str;
   }
   
-  if ( (npys = PyString_FromStringAndSize(NULL, (Py_ssize_t)nlen)) == NULL)
+  if (PyUnicode_Check(str)) {
+    unicode_str = str;
+    str = PyUnicode_AsUTF8String(str);
+    if (str == NULL)
+      return NULL;
+  }
+  
+  if ((orgstr = PyString_AS_STRING(str)) == NULL)
     return NULL;
   
-  smisk_xml_encode_p(s, len, PyString_AS_STRING(npys));
+  newlen = smisk_xml_encode_newlen(orgstr, (size_t)orglen);
   
-  return npys;
+  if (newlen == orglen) {
+    if (unicode_str) {
+      Py_DECREF(str);
+      str = unicode_str;
+    }
+    Py_INCREF(str);
+    return str;
+  }
+  
+  if ( (newstr_py = PyString_FromStringAndSize(NULL, newlen)) == NULL)
+    return NULL;
+  
+  newstr = PyString_AS_STRING(newstr_py);
+  
+  smisk_xml_encode_p(orgstr, (size_t)orglen, newstr);
+  
+  if (unicode_str) {
+    Py_DECREF(str); // release utf8 intermediate copy
+    str = newstr_py;
+    newstr_py = PyUnicode_DecodeUTF8(newstr, newlen, "strict");
+    Py_DECREF(str); // release intermediate newstr_py created in PyString_FromStringAndSize
+  }
+  
+  return newstr_py;
 }
 
 
