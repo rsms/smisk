@@ -1,7 +1,7 @@
 # encoding: utf-8
 '''Program main routine helpers.
 '''
-import sys, os, logging
+import sys, os, logging, time, select
 
 __all__ = ['main']
 log = logging.getLogger(__name__)
@@ -65,6 +65,17 @@ def main():
                     metavar="ADDR",
                     type="string",
                     default='127.0.0.1')
+  parser.add_option("-P", "--pidfile",
+                    dest="pidfile",
+                    help='name of PID-file',
+                    metavar="PATH",
+                    type="string",
+                    default=None)
+  parser.add_option("-D", "--dont-detach",
+                    dest="detach",
+                    help="don't go to background (default: go to background)",
+                    action="store_false",
+                    default=True)
   
   opts, args = parser.parse_args()
   print 'opts:', opts
@@ -113,9 +124,23 @@ def main():
     except:
       pass
     print 'pid = os.fork()'
-    #pid = os.fork()
-    print 'os.execve(%r, %r, os.environ)' % (program, args)
-    #os.execve(path, args, os.environ)
+    pid = os.fork()
+    if pid == -1:
+      # error
+      log.error('fork() failed')
+      break
+    if pid == 0:
+      # child process
+      print 'os.execve(%r, %r, os.environ)' % (program, args)
+      #os.execve(path, args, os.environ)
+      sys.exit(0)
+    else:
+      # parent
+      #select.select([], [], [], 1.0)
+      log.info('child spawned successfully. PID: %d' % pid)
+      childs.append(pid)
+  
   
 
-main()
+if __name__ == '__main__':
+  main()
