@@ -145,6 +145,9 @@ PyObject *smisk_xml_escape_py(PyObject *self, PyObject *_pys) {
   
   len = (size_t)PyString_Size(pys);
   s = PyString_AsString(pys);
+  if (s == NULL)
+    return NULL;
+  
   nlen = smisk_xml_encode_newlen(s, len);
   
   if (nlen == len) {
