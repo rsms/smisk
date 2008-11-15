@@ -605,7 +605,7 @@ class Application(smisk.core.Application):
     
     # Call action
     if log.level <= logging.DEBUG:
-      log.debug('Calling destination %r', self.destination)
+      log.debug('Calling destination %r with args %r and params %r', self.destination, args, params)
     return self.destination(*args, **params)
   
   
