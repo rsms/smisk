@@ -44,26 +44,24 @@ class Destination(object):
     '''
     try:
       return self.action(*args, **params)
-    except TypeError:
-      typ, val, tb = sys.exc_info()
-      # Get the last frame
-      while 1:
-        nxt = tb.tb_next
-        if nxt:
-          tb = nxt
-        else:
-          break
-      # If the exception occured in this very method, we know
-      # it's because required parameters are missing.
-      if tb.tb_frame.f_code == self.__call__.im_func.func_code:
+    except TypeError, e:
+      GOT_MUL = ' got multiple values for keyword argument '
+      desc = e.args[0]
+      if desc.find(' takes at least ') > 0 and desc.find(' arguments ') > 0:
         info = introspect.callable_info(self.action)
-        args = []
+        req_args = []
         for k,v in info['args']:
           if v is Undefined:
-            args.append(k)
-        args = ', '.join(args)
-        raise http.BadRequest('%s requires parameters: %s' % (self.uri, args))
-      # TypeError from another source are delegated
+            req_args.append(k)
+        req_args = ', '.join(req_args)
+        raise http.BadRequest('%s requires parameters: %s -- received args %r and params %r' % \
+          (self.uri, req_args, args, params))
+      else:
+        p = desc.find(GOT_MUL)
+        if p > 0:
+          raise http.BadRequest('%s got multiple values for keyword argument %s'\
+            ' -- received args %r and params %r' % \
+            (self.uri, desc[p+len(GOT_MUL):], args, params))
       raise
       
   
@@ -103,8 +101,18 @@ class Destination(object):
   
 
 class Filter(object):
+  def match(self, url):
+    '''Test this filter against `url`.
+    
+    :returns: (list args, dict params) or None if no match
+    :rtype: tuple
+    '''
+    return None2
+  
+
+class RegExpFilter(Filter):
   def __init__(self, pattern, destination_path, regexp_flags=re.I, match_on_full_url=False, params={}):
-    '''Create a new filter.
+    '''Create a new regular expressions-based filter.
     
     :param pattern:           Pattern
     :type  pattern:           string or re.Regex
@@ -160,7 +168,7 @@ class Filter(object):
         params.update(m.groupdict())
       else:
         params = m.groupdict()
-      return list(m.groups()), params
+      return [], params
     return None2
   
   def __repr__(self):
@@ -231,9 +239,9 @@ class Router(object):
                               actions taking this route.
     :type  params:            dict
     
-    :rtype: Filter
+    :rtype: RegExpFilter
     '''
-    filter = Filter(pattern, destination_path, regexp_flags, match_on_full_url, **params)
+    filter = RegExpFilter(pattern, destination_path, regexp_flags, match_on_full_url, **params)
     self.filters.append(filter)
     return filter
   
@@ -269,12 +277,12 @@ class Router(object):
       return dest
   
   def _resolve(self, raw_path):
-    log.debug('Resolving %s', raw_path)
-    
     # Tokenize path
     path = tokenize_path(raw_path)
     node = control.root_controller()
     cls = node
+    
+    log.debug('Resolving %s (%r) on tree %r', raw_path, path, node)
     
     # Check root
     if node is None:
@@ -291,9 +299,16 @@ class Router(object):
     
     # Traverse tree
     for part in path:
+      log.debug('Looking at part %r', part)
       found = None
       
       # 1. Search subclasses first
+      log.debug('Matching %r to subclasses of %r', part, node)
+      try:
+        subclasses = node.__subclasses__()
+      except AttributeError:
+        log.debug('Node %r does not have subclasses -- returning MethodNotFound')
+        return wrap_exc_in_callable(http.MethodNotFound(raw_path))
       for subclass in node.__subclasses__():
         if _node_name(subclass, subclass.controller_name()) == part:
           if getattr(subclass, 'hidden', False):
@@ -306,6 +321,7 @@ class Router(object):
         continue
       
       # 2. Search methods
+      log.debug('Matching %r to methods of %r', part, node)
       # Aquire instance
       if type(node) is type:
         node = node()
@@ -326,9 +342,9 @@ class Router(object):
       if found is not None:
         node = found
         node_type = type(node)
-        if node_type is MethodType or node_type is FunctionType:
-          break
-        # else we continue...
+        # The following two lines enables accepting prefix routes:
+        #if node_type is MethodType or node_type is FunctionType:
+        #  break
       else:
         # Not found
         return wrap_exc_in_callable(http.MethodNotFound(raw_path))
