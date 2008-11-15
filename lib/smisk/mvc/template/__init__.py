@@ -28,7 +28,7 @@ try:
   # Replace Mako filter with the faster Smisk C implementations
   mako.filters.html_escape = smisk.core.xml.escape
   mako.filters.xml_escape = smisk.core.xml.escape
-  mako.filters.url_escape = URL.encode
+  mako.filters.url_escape = URL.escape
   mako.filters.url_unescape = URL.decode
 except ImportError:
   # mako is not installed
