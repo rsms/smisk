@@ -19,6 +19,7 @@ class level2(root):
   def __call__(self): return '/level2'
   #func_on_level2 = root
   def func_on_level2(self, *va, **kw): return '/level2/func_on_level2'
+  def show_user(self, user, *va, **kw): return '/level2/show_user'
   def level3(self):
     '''never reached from outside, because it's shadowed by subclass level3.
     However, it can still be reaced internally, through for example

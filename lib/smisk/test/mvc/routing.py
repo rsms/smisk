@@ -18,7 +18,7 @@ class RoutingTests(TestCase):
   '''
   def setUp(self):
     self.router = Router()
-    self.router.filter(r'^/user/(?P<user>[^/]+)', '/level2/func_on_level2')
+    self.router.filter(r'^/user/(?P<user>[^/]+)', '/level2/show_user')
     self.router.filter(r'^/archive/(\d{4})/(\d{2})/(\d{2})', '/level2/level3', regexp_flags=0)
   
   def test1_basic(self):
@@ -26,6 +26,7 @@ class RoutingTests(TestCase):
     self.assertRoute('/func_on_root', '/func_on_root')
     self.assertRoute('/level2', '/level2')
     self.assertRoute('/level2/func_on_level2', '/level2/func_on_level2')
+    self.assertRoute('/level2/func_on_level2/nothing/here', http.NotFound)
     self.assertRoute('/level2/nothing/here', http.NotFound)
     self.assertRoute('/level2/level3', '/level2/level3')
     self.assertRoute('/level2/LEVEL3', '/level2/level3')
@@ -34,9 +35,9 @@ class RoutingTests(TestCase):
     self.assertRoute('/level2/level3/func_on_level3', '/level2/level3/func_on_level3')
   
   def test2_filtered(self):
-    self.assertRoute('/user/rasmus/photos', '/level2/func_on_level2')
-    self.assertRoute('/user/rasmus', '/level2/func_on_level2')
-    self.assertRoute('/USER/rasmus', '/level2/func_on_level2')
+    self.assertRoute('/user/rasmus/photos', '/level2/show_user')
+    self.assertRoute('/user/rasmus', '/level2/show_user')
+    self.assertRoute('/USER/rasmus', '/level2/show_user')
     self.assertRoute('/user', http.NotFound)
     self.assertRoute('/archive/2008/01/15', '/level2/level3')
     self.assertRoute('/ARCHIVE/2009/10/21/foo', http.NotFound)
@@ -87,6 +88,10 @@ class RoutingTests(TestCase):
       self.assertTrue(dest())
     # These should fail
     self.assertRoutes(*not_found_tests)
+  
+  def test10_params(self):
+    self.assertRoute('/level2/show_user', http.BadRequest)
+    self.assertRoute('/level2/show_user', '/level2/show_user', {'user':'john'})
   
   def assertRoutes(self, router=None, *urls):
     for t in urls:
