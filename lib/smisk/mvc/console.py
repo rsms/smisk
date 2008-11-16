@@ -73,7 +73,7 @@ def export(obj):
 def main(app=None,
          appdir=None,
          log_format='\033[1;33m%(levelname)-8s \033[1;31m%(name)-20s\033[0m %(message)s',
-         intro_message=None,
+         intro_eval=None,
          *args, **kwargs):
   '''Console entry point.
   
@@ -92,6 +92,40 @@ def main(app=None,
       Custom logging format.
   :rtype: None
   '''
+  appdir_defaults_to = ''
+  
+  if appdir:
+    appdir_defaults_to = ' Defaults to "%s".' % appdir
+  
+  from optparse import OptionParser
+  parser = OptionParser(usage="usage: %prog [options]")
+  
+  parser.add_option("-d", "--appdir",
+                    dest="appdir",
+                    help='Set the application directory.%s' % appdir_defaults_to,
+                    action="store",
+                    type="string",
+                    metavar="PATH",
+                    default=appdir)
+  
+  parser.add_option("-e", "--environment",
+                    dest="environment",
+                    help='Set the SMISK_ENVIRONMENT environment variable.',
+                    action="store",
+                    type="string",
+                    metavar="VALUE",
+                    default=None)
+  
+  opts, args = parser.parse_args()
+  
+  if opts.environment:
+    print 'opts.environment=%s' % opts.environment
+    os.environ['SMISK_ENVIRONMENT'] = opts.environment
+    print os.environ['SMISK_ENVIRONMENT']
+    print environment()
+  
+  appdir = opts.appdir
+  
   if appdir is None:
     if 'SMISK_APP_DIR' in os.environ and os.environ['SMISK_APP_DIR']:
       appdir = os.environ['SMISK_APP_DIR']
@@ -191,12 +225,11 @@ Type help() for interactive help, or help(object) for help about object.
   console = Console(locals={}, histfile=histfile)
   __builtin__.console = console
   import platform
-  if intro_message:
-    intro_message = '\n' + intro_message
-  else:
-    intro_message = ''
-  console.interact('Smisk v%s interactive console. Python v%s%s' %\
-    (version, platform.python_version(), intro_message))
+  console.push("print 'Smisk v%s interactive console. Python v%s'" %\
+    (version, platform.python_version()))
+  if intro_eval:
+    console.push(intro_eval)
+  console.interact()
 
 
 if __name__ == '__main__':
