@@ -40,6 +40,8 @@ def controllers():
   :rtype: list
   '''
   root = root_controller()
+  if root is None:
+    return []
   _controllers = [root()]
   def _r(baseclass, v):
     for subclass in baseclass.__subclasses__():
