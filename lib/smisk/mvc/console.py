@@ -20,10 +20,11 @@ import sys, os, time, logging, __builtin__
 import code, readline, atexit
 from smisk.release import version
 from smisk.core import *
-from smisk.mvc import setup
 from smisk.mvc.control import *
 from smisk.mvc.model import *
 from smisk.util.python import format_exc
+from smisk.util.introspect import introspect
+from smisk.util.type import *
 
 class Console(code.InteractiveConsole):
   def __init__(self, locals=None, filename="<console>",
@@ -48,6 +49,25 @@ class Console(code.InteractiveConsole):
     readline.set_history_length(1000)
     readline.write_history_file(histfile)
   
+
+
+def export(obj):
+  '''Export members of obj to __builtin__ global namespace
+  '''
+  if not obj:
+    return
+  if isinstance(obj, DictType):
+    for k,v in obj.iteritems():
+      try:
+        setattr(__builtin__, k, v)
+      except:
+        pass
+  else:
+    for k in dir(obj):
+      try:
+        setattr(__builtin__, k, getattr(obj, k))
+      except:
+        pass
 
 
 def main(app=None,
@@ -101,7 +121,9 @@ def main(app=None,
       del sys.path[0]
   
   try:
+    from smisk.mvc import setup
     app = setup(app=app, appdir=appdir, log_format=log_format, *args, **kwargs)
+    del setup
     del log_format
   except:
     sys.stderr.write(format_exc(as_string=True))
@@ -165,7 +187,7 @@ Type help() for interactive help, or help(object) for help about object.
   __builtin__.ls = _ls()
   
   histfile = os.path.expanduser(os.path.join('~', '.%s_console_history' % appname))
-  console = Console(locals=locals(), histfile=histfile)
+  console = Console(locals={}, histfile=histfile)
   __builtin__.console = console
   import platform
   console.interact('Smisk v%s interactive console. Python v%s' %\
