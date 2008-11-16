@@ -119,10 +119,7 @@ def main(app=None,
   opts, args = parser.parse_args()
   
   if opts.environment:
-    print 'opts.environment=%s' % opts.environment
     os.environ['SMISK_ENVIRONMENT'] = opts.environment
-    print os.environ['SMISK_ENVIRONMENT']
-    print environment()
   
   appdir = opts.appdir
   
