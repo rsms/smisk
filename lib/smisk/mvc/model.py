@@ -13,6 +13,7 @@ try:
   # Import Elixir & SQLAlchemy
   from elixir import *
   from sqlalchemy import func
+  import sqlalchemy as sql
 
   # Disable autosetup by recommendation from Jason R. Coombs:
   # http://groups.google.com/group/sqlelixir/msg/ed698d986bfeefdb
