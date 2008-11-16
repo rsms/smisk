@@ -73,6 +73,7 @@ def export(obj):
 def main(app=None,
          appdir=None,
          log_format='\033[1;33m%(levelname)-8s \033[1;31m%(name)-20s\033[0m %(message)s',
+         intro_message=None,
          *args, **kwargs):
   '''Console entry point.
   
@@ -190,8 +191,12 @@ Type help() for interactive help, or help(object) for help about object.
   console = Console(locals={}, histfile=histfile)
   __builtin__.console = console
   import platform
-  console.interact('Smisk v%s interactive console. Python v%s' %\
-    (version, platform.python_version()))
+  if intro_message:
+    intro_message = '\n' + intro_message
+  else:
+    intro_message = ''
+  console.interact('Smisk v%s interactive console. Python v%s%s' %\
+    (version, platform.python_version(), intro_message))
 
 
 if __name__ == '__main__':
