@@ -1069,11 +1069,7 @@ def setup(application=None, appdir=None, *args, **kwargs):
   setup_appdir(appdir)
   
   # Simpler environment() function
-  global environment
   os.environ['SMISK_ENVIRONMENT'] = environment()
-  def _environment():
-    return os.environ['SMISK_ENVIRONMENT']
-  environment = _environment
   
   # Aquire app
   if not application:
