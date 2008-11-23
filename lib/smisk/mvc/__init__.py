@@ -33,7 +33,7 @@ from `control.Controller`.
 
 .. packagetree (xxx todo fix for Sphinx)
 '''
-import sys, os, logging, codecs as char_codecs
+import sys, os, logging, mimetypes, codecs as char_codecs
 import smisk.core
 
 from smisk.core import app, request, response, URL
@@ -135,6 +135,22 @@ class Response(smisk.core.Response):
   :type: string
   '''
   
+  def send_file(self, path):
+    i = self.find_header('Content-Location')
+    if i != -1:
+      del self.headers[i]
+    i = self.find_header('Vary')
+    if i != -1:
+      del self.headers[i]
+    if self.find_header('Content-Type') == -1:
+      mt, menc = mimetypes.guess_type(path)
+      if mt:
+        if menc:
+          mt = '%s;charset=%s' % (mt,menc)
+        self.headers.append('Content-Type: %s' % mt)
+    smisk.core.Response.send_file(self, path)
+    self.begin()
+  
 
 
 class Application(smisk.core.Application):
@@ -161,7 +177,7 @@ class Application(smisk.core.Application):
   '''
   
   strict_tcn = True
-  '''Controls where there or not this application is strict about
+  '''Controls whether or not this application is strict about
   transparent content negotiation.
   
   For example, if this is ``True`` and a client accepts a character
@@ -349,6 +365,9 @@ class Application(smisk.core.Application):
   def application_will_start(self):
     # Call setup()
     self.setup()
+    
+    # Initialize mime types module
+    mimetypes.init()
     
     # Info about serializers
     if log.level <= logging.DEBUG:
