@@ -266,6 +266,7 @@ int smisk_Request_reset (smisk_Request* self) {
   Py_CLEAR(self->cookies);
   Py_CLEAR(self->session);
   Py_CLEAR(self->session_id);
+  Py_CLEAR(self->referring_url);
   
   self->initial_session_hash = 0;
   
@@ -807,6 +808,38 @@ static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
 }
 
 
+static PyObject *smisk_Request_get_referring_url(smisk_Request* self) {
+  log_trace("ENTER");
+  char *referer_pch;
+  PyObject *args;
+  
+  if (self->referring_url == NULL) {
+    if ((referer_pch = FCGX_GetParam("HTTP_REFERER", self->envp))) {
+      if ( (self->referring_url = smisk_URL_new(&smisk_URLType, NULL, NULL)) == NULL )
+        return NULL;
+      
+      args = Py_BuildValue("(s)", referer_pch);
+      
+      if (smisk_URL_init((smisk_URL *)self->referring_url, args, NULL) == -1) {
+        Py_DECREF(self->referring_url);
+        self->referring_url = NULL;
+        Py_DECREF(args);
+        return NULL;
+      }
+      
+      Py_DECREF(args);
+    }
+    else {
+      self->referring_url = Py_None;
+      Py_INCREF(self->referring_url);
+    }
+  }
+  
+  Py_INCREF(self->referring_url); // callers reference
+  return self->referring_url;
+}
+
+
 #pragma mark -
 #pragma mark Iteration
 
@@ -867,9 +900,13 @@ static PyGetSetDef smisk_Request_getset[] = {
     ":type: string\n\n"
     "Current session id.", NULL},
   
-  {"is_active", (getter)smisk_Request_is_active,  (setter)0, ":type: bool\n\n"
+  {"is_active", (getter)smisk_Request_is_active,  (setter)0,
+    ":type: bool\n\n"
     "Indicates if the request is active, if we are in the middle of a "
     "*HTTP transaction*", NULL},
+  
+  {"referring_url", (getter)smisk_Request_get_referring_url,  (setter)0,
+    ":type: smisk.core.URL", NULL},
   
   {NULL, NULL, NULL, NULL, NULL}
 };
