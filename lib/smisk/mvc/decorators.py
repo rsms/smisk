@@ -2,10 +2,11 @@
 '''Controller tree function decorators.
 '''
 import types
+import smisk.mvc.filters
 
 __all__ = ['expose', 'hide']
 
-def expose(slug=None, template=None, formats=None, delegates=False):
+def expose(slug=None, template=None, formats=None, delegates=False, filters=None):
   '''Explicitly expose a function, optionally configure how it is exposed.
   '''
   def entangle(func):
@@ -26,7 +27,18 @@ def expose(slug=None, template=None, formats=None, delegates=False):
       if isinstance(formats, list):
         func.formats = formats
       else:
-        func.formats = list(formats)
+        func.formats = [formats]
+    
+    if filters is not None:
+      if isinstance(filters, list):
+        func.filters = filters
+      else:
+        func.filters = [filters]
+      for f in func.filters:
+        if not hasattr(f, 'before') or not callable(f.before) or not hasattr(f, 'after') or not callable(f.after):
+          raise TypeError('filter %r must have two callable attributes: before and after' % f)
+    else:
+      func.filters = []
     
     return func
   

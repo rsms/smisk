@@ -37,7 +37,7 @@ import sys, os, logging, mimetypes, codecs as char_codecs
 import smisk.core
 
 from smisk.core import app, request, response, URL
-from smisk.mvc import http, control, model
+from smisk.mvc import http, control, model, filters
 from smisk.serialization import serializers
 from smisk.util.cache import *
 from smisk.util.collections import *
@@ -625,7 +625,15 @@ class Application(smisk.core.Application):
     # Call action
     if log.level <= logging.DEBUG:
       log.debug('Calling destination %r with args %r and params %r', self.destination, args, params)
-    return self.destination(*args, **params)
+    try:
+      for filter in self.destination.action.filters:
+        args, params = filter.before(*args, **params)
+      rsp = self.destination(*args, **params)
+      for filter in self.destination.action.filters:
+        rsp = filter.after(rsp, *args, **params)
+      return rsp
+    except AttributeError:
+      return self.destination(*args, **params)
   
   
   def encode_response(self, rsp):
