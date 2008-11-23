@@ -1,7 +1,7 @@
 # encoding: utf-8
 '''Control in MVC – Base Controller and helpers like function-to-URL conversion.
 '''
-import re, logging
+import re, logging, smisk.core
 from types import *
 from smisk.inflection import inflection
 from smisk.util.string import tokenize_path
@@ -10,6 +10,7 @@ from smisk.util.introspect import introspect
 from smisk.util.type import Undefined
 from smisk.util.cache import callable_cache_key
 from smisk.mvc.decorators import expose
+from smisk.mvc import http
 
 __all__ = ['root_controller', 'controllers', 'node_name', 'uri_for', 'path_to', 'template_for', 'method_origin', 'leaf_is_visible', 'Controller']
 
@@ -492,6 +493,8 @@ class Controller(object):
       }
     return _filter_dict(serializers, filter)
   
+  def redirect_to_referrer(self, fallback='/'):
+    raise http.Found(smisk.core.Application.current.request.env.get('HTTP_REFERER', fallback))
   
   def __repr__(self):
     uri = self.controller_uri()
