@@ -178,10 +178,10 @@ static int _cleanup_session(smisk_Request* self) {
   if (self->session_id) {
     long h = 0;
     
-    log_debug("self->session_id = %s", self->session_id ? PyString_AsString(self->session_id) : "NULL");
-    log_debug("self->session = %p", self->session);
-    log_debug("self->initial_session_hash = %lu", self->initial_session_hash);
-    log_debug("PyObject_Hash(self->session) = %lu", self->session ? PyObject_Hash(self->session) : 0);
+    log_debug("_cleanup_session: self->session_id = %s", self->session_id ? PyString_AsString(self->session_id) : "NULL");
+    log_debug("_cleanup_session: self->session = %p", self->session);
+    log_debug("_cleanup_session: self->initial_session_hash = 0x%lx", self->initial_session_hash);
+    log_debug("_cleanup_session: smisk_object_hash(self->session) = 0x%lx", self->session ? smisk_object_hash(self->session) : 0);
     assert(self->session);
     
     if (smisk_require_app() != 0)
@@ -192,12 +192,14 @@ static int _cleanup_session(smisk_Request* self) {
     );
     
     if ( ((self->initial_session_hash == 0) && (self->session != Py_None)) 
-      || (self->initial_session_hash != (h = PyObject_Hash(self->session))) )
+      || (self->initial_session_hash != (h = smisk_object_hash(self->session))) )
     {
       // Session data was changed. Write it.
       DUMP_REFCOUNT(self->session);
       DUMP_REFCOUNT(self->session_id);
-      if (PyObject_CallMethod(smisk_Application_current->sessions, "write", "OO", self->session_id, self->session) == NULL) {
+      if (PyObject_CallMethod(smisk_Application_current->sessions, "write", "OO", 
+        self->session_id, self->session) == NULL)
+      {
         log_debug("sessions.write() returned NULL");
         return -1;
       }
@@ -728,8 +730,8 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
     else {
       assert(self->session != NULL);
       // Compute and save hash of loaded data
-      self->initial_session_hash = PyObject_Hash(self->session);
-      log_debug("self->initial_session_hash = %lu", self->initial_session_hash);
+      self->initial_session_hash = smisk_object_hash(self->session);
+      log_debug("smisk_Request_get_session_id: self->initial_session_hash = 0x%lx", self->initial_session_hash);
     }
     
     assert(self->session != NULL);

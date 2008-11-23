@@ -28,10 +28,14 @@ THE SOFTWARE.
 
 #include <fcgiapp.h>
 #include <Python.h>
+#include <marshal.h> /* for smisk_object_hash */
 
 #include "utils.h"
 #include "__init__.h"
 #include "URL.h"
+
+#undef MOD_IDENT
+#define MOD_IDENT "smisk.core(utils)"
 
 
 // Returns PyStringObject (borrowed reference)
@@ -369,3 +373,17 @@ int probably_call(float probability, probably_call_cb *cb, void *cb_arg) {
   return rc;
 }
 
+
+long smisk_object_hash(PyObject *obj) {
+  PyObject *x;
+  long h = PyObject_Hash(obj);
+  if (h == -1) {
+    // A little trick
+    log_debug("smisk_object_hash: calculating hash by marshalling");
+    PyErr_Clear();
+    x = PyMarshal_WriteObjectToString(obj, Py_MARSHAL_VERSION);
+    h = PyObject_Hash(x);
+    Py_DECREF(x);
+  }
+  return h;
+}

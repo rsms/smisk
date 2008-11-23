@@ -96,4 +96,13 @@ typedef int probably_call_cb(void *arg1);
  */
 int probably_call (float probability, probably_call_cb *cb, void *cb_arg);
 
+/**
+ * Calculate a hash from any python object.
+ *
+ * If obj support hash out-of-the-box, the equivalent of hash(obj) will be
+ * used. Otherwise obj will be marshalled and the resulting bytes are used for
+ * calculating the hash.
+ */
+long smisk_object_hash (PyObject *obj);
+
 #endif

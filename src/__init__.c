@@ -234,14 +234,25 @@ PyObject *smisk_pack(PyObject *self, PyObject *args) {
 }
 
 
+static PyObject *_object_hash(PyObject *self, PyObject *obj) {
+  log_trace("ENTER");
+  long h = smisk_object_hash(obj);
+  if (h == -1)
+    return NULL;
+  // 'confirm_token']='v8u6uog961lvq646aeda55i20isn2pl7'
+  return PyLong_FromLong(h);
+}
+
+
 /* ------------------------------------------------------------------------- */
 
 static PyMethodDef module_methods[] = {
-  {"bind",      (PyCFunction)smisk_bind,      METH_VARARGS, NULL},
-  {"unbind",    (PyCFunction)smisk_unbind,    METH_NOARGS,  NULL},
-  {"listening", (PyCFunction)smisk_listening, METH_NOARGS,  NULL},
-  {"uid",       (PyCFunction)smisk_uid,       METH_VARARGS, NULL},
-  {"pack",      (PyCFunction)smisk_pack,      METH_VARARGS, NULL},
+  {"bind",        (PyCFunction)smisk_bind,      METH_VARARGS, NULL},
+  {"unbind",      (PyCFunction)smisk_unbind,    METH_NOARGS,  NULL},
+  {"listening",   (PyCFunction)smisk_listening, METH_NOARGS,  NULL},
+  {"uid",         (PyCFunction)smisk_uid,       METH_VARARGS, NULL},
+  {"pack",        (PyCFunction)smisk_pack,      METH_VARARGS, NULL},
+  {"object_hash", (PyCFunction)_object_hash,    METH_O,       NULL},
   {NULL, NULL, 0, NULL}
 };
 
