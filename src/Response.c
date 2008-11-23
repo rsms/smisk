@@ -149,19 +149,25 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   
   char *server = NULL;
   if (smisk_Application_current)
-    server = FCGX_GetParam( "SERVER_SOFTWARE", smisk_Application_current->request->envp );
+    server = FCGX_GetParam("SERVER_SOFTWARE", smisk_Application_current->request->envp);
   
   if (server == NULL)
     server = "unknown server software";
   
   if (strstr(server, "lighttpd/1.4")) {
     FCGX_PutStr("X-LIGHTTPD-send-file: ", 22, self->out->stream);
+    log_debug("Added \"X-LIGHTTPD-send-file: %s\" header for Lighttpd <=1.4",
+      PyString_AsString(filename));
   }
   else if (strstr(server, "lighttpd/") || strstr(server, "Apache/2")) {
     FCGX_PutStr("X-Sendfile: ", 12, self->out->stream);
+    log_debug("Added \"X-Sendfile: %s\" header for Lighttpd >=1.5 | Apache >=2",
+      PyString_AsString(filename));
   }
   else if (strstr(server, "nginx/")) {
     FCGX_PutStr("X-Accel-Redirect: ", 18, self->out->stream);
+    log_debug("Added \"X-Accel-Redirect: %s\" header for Nginx",
+      PyString_AsString(filename));
   }
   else {
     return PyErr_Format(PyExc_EnvironmentError, "sendfile not supported by host server ('%s')", server);
