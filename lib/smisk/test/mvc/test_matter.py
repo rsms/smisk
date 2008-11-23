@@ -14,6 +14,8 @@ class root(Controller):
   def one_named_arg2(self, foo=None, **kwargs): return '/one_named_arg2?foo=%s' % foo
   def one_named_arg3(self, foo=None, *args): return '/one_named_arg3?foo=%s' % foo
   def one_named_arg4(self, foo=None): return '/one_named_arg4?foo=%s' % foo
+  def three_named_args(self, one=1, two=2, three=3):
+    return '/three_named_args?one=%s&two=%s&three=%s' % (one, two, three)
 
 class level2(root):
   def __call__(self): return '/level2'

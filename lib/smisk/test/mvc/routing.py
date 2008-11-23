@@ -10,7 +10,7 @@ from test_matter import *
 
 echo = False
 if __name__ == '__main__':
-  echo = True
+  #echo = True
   print 'Printing out loud because __name__ == __main__ --> self.echo = True'
 
 class RoutingTests(TestCase):
@@ -20,6 +20,7 @@ class RoutingTests(TestCase):
     self.router = Router()
     self.router.filter(r'^/user/(?P<user>[^/]+)', '/level2/show_user')
     self.router.filter(r'^/archive/(\d{4})/(\d{2})/(\d{2})', '/level2/level3', regexp_flags=0)
+    self.router.filter(r'^/three-named-args/(?P<one>.+)', '/three_named_args')
   
   def test1_basic(self):
     self.assertRoute('/', '/')
@@ -92,6 +93,11 @@ class RoutingTests(TestCase):
   def test10_params(self):
     self.assertRoute('/level2/show_user', http.BadRequest)
     self.assertRoute('/level2/show_user', '/level2/show_user', {'user':'john'})
+    self.assertRoute('/three-named-args/john', '/three_named_args?one=john&two=doe&three=3', {'two':'doe'})
+    self.assertRoute('/three-named-args/john', '/three_named_args?one=john&two=2&three=doe', {'three':'doe'})
+    self.assertRoute('/three-named-args/john', '/three_named_args?one=john&two=homer&three=doe', {'two':'homer','three':'doe'})
+    self.assertRoute('/three-named-args/john', '/three_named_args?one=john&two=2&three=3')
+    self.assertRoute('/three-named-args', http.NotFound)
   
   def assertRoutes(self, router=None, *urls):
     for t in urls:
@@ -112,8 +118,8 @@ class RoutingTests(TestCase):
         assert r == 0, 'should raise %r but did not raise any exception '\
           'at all. dest() returned %r' % (expected_return, dest_returned)
       except http.HTTPExc, e:
-        assert isinstance(e.status, expected_return.__class__), '%r (%x) != %r (%x)' %\
-          (expected_return, id(expected_return), e.status, id(e.status))
+        self.assertEquals(e.status.__class__, expected_return.__class__, '%r (%x) != %r (%x)' %\
+          (expected_return, id(expected_return), e.status, id(e.status)))
       except AssertionError:
         raise
       except Exception, e:
