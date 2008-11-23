@@ -126,9 +126,7 @@ void smisk_Response_dealloc(smisk_Response* self) {
 
 
 PyDoc_STRVAR(smisk_Response_send_file_DOC,
-  "Send a file to the client in a performance optimal way.\n"
-  "\n"
-  "Please not you can *not* combine any output when responding using this method.\n"
+  "Send a file to the client by using the host server sendfile-header technique.\n"
   "\n"
   ":param  filename: If this is a relative path, the host server defines the behaviour.\n"
   ":type   filename: string\n"
@@ -139,7 +137,8 @@ PyDoc_STRVAR(smisk_Response_send_file_DOC,
   ":rtype: None");
 PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   log_trace("ENTER");
-  int rc;
+  PyObject *s = NULL;
+  char *server = NULL;
   
   if (!filename || !SMISK_PyString_Check(filename))
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
@@ -147,7 +146,6 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   if (self->has_begun == Py_True)
     return PyErr_Format(PyExc_EnvironmentError, "output has already begun");
   
-  char *server = NULL;
   if (smisk_Application_current)
     server = FCGX_GetParam("SERVER_SOFTWARE", smisk_Application_current->request->envp);
   
@@ -155,31 +153,39 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
     server = "unknown server software";
   
   if (strstr(server, "lighttpd/1.4")) {
-    FCGX_PutStr("X-LIGHTTPD-send-file: ", 22, self->out->stream);
-    log_debug("Added \"X-LIGHTTPD-send-file: %s\" header for Lighttpd <=1.4",
+    s = PyString_FromString("X-LIGHTTPD-send-file: ");
+    log_debug("Adding \"X-LIGHTTPD-send-file: %s\" header for Lighttpd <=1.4",
       PyString_AsString(filename));
   }
   else if (strstr(server, "lighttpd/") || strstr(server, "Apache/2")) {
-    FCGX_PutStr("X-Sendfile: ", 12, self->out->stream);
-    log_debug("Added \"X-Sendfile: %s\" header for Lighttpd >=1.5 | Apache >=2",
+    s = PyString_FromString("X-Sendfile: ");
+    log_debug("Adding \"X-Sendfile: %s\" header for Lighttpd >=1.5 | Apache >=2",
       PyString_AsString(filename));
   }
   else if (strstr(server, "nginx/")) {
-    FCGX_PutStr("X-Accel-Redirect: ", 18, self->out->stream);
-    log_debug("Added \"X-Accel-Redirect: %s\" header for Nginx",
+    s = PyString_FromString("X-Accel-Redirect: ");
+    log_debug("Adding \"X-Accel-Redirect: %s\" header for Nginx",
       PyString_AsString(filename));
   }
   else {
     return PyErr_Format(PyExc_EnvironmentError, "sendfile not supported by host server ('%s')", server);
   }
   
-  FCGX_PutStr(PyString_AsString(filename), PyString_Size(filename), self->out->stream);
-  rc = FCGX_PutStr("\r\n\r\n", 4, self->out->stream);
-  REPLACE_OBJ(self->has_begun, Py_True, PyObject);
+  // Make sure self->headers is initialized
+  ENSURE_BY_GETTER(self->headers, smisk_Response_get_headers(self), return NULL; );
   
-  // Check for errors
-  if (rc == -1)
-    return PyErr_SET_FROM_ERRNO;
+  // Add filename
+  PyString_Concat(&s, filename);
+  if (s == NULL)
+    return NULL;
+  
+  // Append the header
+  if (PyList_Append(self->headers, s) != 0) {
+    Py_DECREF(s);
+    return NULL;
+  }
+  
+  Py_DECREF(s); // the list is the new owner
   
   Py_RETURN_NONE;
 }
