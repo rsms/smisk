@@ -226,7 +226,7 @@ Type help() for interactive help, or help(object) for help about object.
     (version, platform.python_version()))
   if intro_eval:
     console.push(intro_eval)
-  console.interact()
+  console.interact('')
 
 
 if __name__ == '__main__':
