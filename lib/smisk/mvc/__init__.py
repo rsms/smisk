@@ -380,8 +380,8 @@ class Application(smisk.core.Application):
   
   
   def application_did_stop(self):
-    model.cleanup_all()
     smisk.core.unbind()
+    model.cleanup_all()
   
   
   def response_serializer(self, no_http_exc=False):
