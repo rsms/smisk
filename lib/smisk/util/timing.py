@@ -17,6 +17,11 @@ class Timer(object):
   def start(self):
     self.t0 = time.time()
   
+  def stop(self):
+    '''alias of :func:`finish`
+    '''
+    return self.finish()
+  
   def finish(self):
     self.t1 = time.time()
     return "%.0fs %.0fms %.0fus" % (self.seconds(), self.milli(), self.micro())
