@@ -384,21 +384,9 @@ static PyMethodDef smisk_FileSessionStore_methods[] = {
 
 // Class members
 static struct PyMemberDef smisk_FileSessionStore_members[] = {
-  {"file_prefix", T_OBJECT_EX, offsetof(smisk_FileSessionStore, file_prefix), 0,
-    ":type: string\n\n"
-    "A string to prepend to each file stored in `dir`.\n"
-    "\n"
-    "Defaults to ``tempfile.tempdir + \"smisk-sess.\"`` - for example: ``/tmp/smisk-sess.``"},
+  {"file_prefix", T_OBJECT_EX, offsetof(smisk_FileSessionStore, file_prefix), 0, NULL},
   
-  {"gc_probability", T_FLOAT, offsetof(smisk_FileSessionStore, gc_probability), 0,
-    ":type: float\n\n"
-    "A value between 0 and 1 which defines the probability that sessions "
-      "are garbage collected.\n"
-    "\n"
-    "Garbage collection is only triggered when trying to read a session object, "
-      "so this only effects requests which involves reading sessions.\n"
-    "\n"
-    "Defaults to ``0.1`` (10% probability)"},
+  {"gc_probability", T_FLOAT, offsetof(smisk_FileSessionStore, gc_probability), 0, NULL},
   
   {NULL, 0, 0, 0, NULL}
 };

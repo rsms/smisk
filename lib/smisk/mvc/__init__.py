@@ -31,7 +31,6 @@ from `control.Controller`.
   
   main()
 
-.. packagetree (xxx todo fix for Sphinx)
 '''
 import sys, os, logging, mimetypes, codecs as char_codecs
 import smisk.core
@@ -766,6 +765,12 @@ class Application(smisk.core.Application):
     
     #. Call the *controller leaf* which will return a *response object*.
     
+       #. Applies any "before" filters.
+    
+       #. Calls the *controller leaf*
+    
+       #. Applies any "after" filters.
+    
     #. Flush the model/database session, if started or modified, committing any
        modifications.
     
@@ -791,7 +796,7 @@ class Application(smisk.core.Application):
           the previously deduced response serializer.
     
     #. Complete (or commit) the current HTTP transaction by sending the response
-       through calling `send_response()`.
+       by calling `send_response()`.
     
        #. Set ``Content-Length`` and other response headers, unless the response has
           already begun.

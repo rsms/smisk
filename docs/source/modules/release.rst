@@ -4,4 +4,3 @@
 .. automodule:: smisk.release
   :members:
   :undoc-members:
-  :attributes:

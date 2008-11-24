@@ -9,8 +9,6 @@
 #
 '''View in MVC – Templating.
 
-.. packagetree (xxx todo fix for Sphinx)
-
 :requires: mako
 '''
 import os, sys, stat, posixpath, re, logging

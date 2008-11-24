@@ -13,6 +13,13 @@ Types
   8 bits of data.
 
 
+.. ctype:: probably_call_cb
+  
+  Callback signature for probably_call() callbacks::
+  
+    int probably_call_cb ( void *userdata )
+
+
 Members
 -------------------------------------------------
 
@@ -113,6 +120,93 @@ Functions
   Workaround for a nasty bug in ``PyString_Check()``.
   
   :Returns: 1 if `object` is a kind of string, otherwise 0.
+
+
+Utilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. cfunction:: PyObject *smisk_format_exc (PyObject *type, PyObject *value, PyObject *tb)
+
+  :Returns: PyStringObject (borrowed reference). Does NOT clear exception.
+
+
+.. cfunction:: int PyDict_assoc_val_with_key (PyObject *dict, PyObject *val, PyObject *key)
+  
+  Associate value with key - if the key exists, the keys value is a list of
+  values.
+
+
+.. cfunction:: int smisk_parse_input_data (char *s, const char *separator, int is_cookie_data, PyObject *dict)
+  
+  Parse input data (query string, post url-encoded, cookie, etc).
+  
+  :Returns: 0 on success.
+
+
+.. cfunction:: size_t smisk_stream_readline (char *str, int n, FCGX_Stream *stream)
+
+  Read a line from a FCGI stream
+
+
+.. cfunction:: void smisk_frepr_bytes (FILE *f, const char *s, size_t len)
+  
+  Print bytes - unsafe or outside ASCII characters are printed as \xXX
+  Will print something like: bytes(4) 'm\x0dos'
+
+
+.. cfunction:: double smisk_microtime (void)
+
+  :Returns: Current time in microseconds
+
+
+.. cfunction:: char smisk_size_unit (double *bytes)
+
+  KB, GB, etc
+
+
+.. cfunction:: char *smisk_encode_bin (const byte *in, size_t inlen, char *out, char bits_per_byte)
+  
+  Encode bytes into printable ASCII characters.
+  
+  Returns a pointer to the byte after the last valid character in out::
+  
+    nbits=4: out need to fit 40+1 bytes (base 16) (0-9, a-f)
+    nbits=5: out need to fit 32+1 bytes (base 32) (0-9, a-v)
+    nbits=6: out need to fit 27+1 bytes (base 64) (0-9, a-z, A-Z, "-", ",")
+
+
+.. cfunction:: PyObject *smisk_util_pack (const byte *data, size_t size, int nbits)
+  
+  Pack bytes into printable ASCII characters.
+  
+  :Returns: a PyString.
+  :See: :cfunc:`smisk_encode_bin` for more information.
+
+
+.. cfunction:: PyObject *smisk_find_string_by_prefix_in_dict (PyObject *list, PyObject *prefix)
+  
+  :param list: list
+  :param prefix: string
+  :Returns: int
+
+
+.. cfunction:: int probably_call (float probability, probably_call_cb *cb, void *cb_arg)
+  
+  Calls cb depending on probability.
+  
+  :param probability: float Likeliness of cb being called. A value between 0 and 1.
+  :param cb: Function to call.
+  :param cb_arg: Arbirtrary argument to be passed on to cb when called.
+  :Returns:   -1 on error (if so, a Python Error have been set) or 0 on success.
+
+
+.. cfunction:: long smisk_object_hash (PyObject *obj)
+  
+  Calculate a hash from any python object.
+  
+  If obj support hash out-of-the-box, the equivalent of hash(obj) will be
+  used. Otherwise obj will be marshalled and the resulting bytes are used for
+  calculating the hash.
 
 
 Logging

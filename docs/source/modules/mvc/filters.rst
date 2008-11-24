@@ -1,8 +1,8 @@
-:mod:`smisk.serialization.json`
+:mod:`smisk.mvc.filters`
 =================================================
 
 .. versionadded:: 1.1
 
-.. automodule:: smisk.serialization.json
+.. automodule:: smisk.mvc.filters
   :members:
   :undoc-members:

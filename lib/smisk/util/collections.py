@@ -82,3 +82,34 @@ def unique(seq):
     if x not in u:
       u.append(x)
   return u
+
+def merge(a, b):
+  '''Updates collection `a` with contents of collection `b`, recursively
+  merging any lists and dictionaries.
+  
+  Lists are merged through a.extend(b), dictionaries are merged by replacing
+  and non-list or dict key with the value from collection b. In other words,
+  collection b takes precedence.
+  '''
+  if isinstance(a, list):
+    a.extend(b)
+  elif isinstance(a, dict):
+    merge_dict(a, b)
+  else:
+    raise TypeError('first argument must be a list or a dict')
+
+def merge_dict(a, b, merge_lists=True):
+  '''Updates dictionary `a` with contents of dictionary `b`, recursively
+  merging any lists and dictionaries.
+  
+  Lists are merged through a.extend(b), dictionaries are merged by replacing
+  and non-list or dict key with the value from collection b. In other words,
+  collection b takes precedence.
+  '''
+  for bk,bv in b.iteritems():
+    if a.has_key(bk) and hasattr(bv, 'has_key') and hasattr(a[bk], 'has_key'):
+      merge_dict(a[bk], bv, merge_lists)
+    elif merge_lists and hasattr(bv, 'extend') and hasattr(a[bk], 'extend'):
+      a[bk].extend(bv)
+    else:
+      a[bk] = bv

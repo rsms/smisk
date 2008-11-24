@@ -1,51 +1,53 @@
-:class:`smisk.core.Application`
-=================================================
+:class:`smisk.core.Application` --- An application
+===========================================================
 
-An application.
+.. class:: smisk.core.Application
 
-Simple example::
+  An application.
 
- from smisk.core import Application
- class MyApp(Application):
-   def service(self):
-     self.response.write('<h1>Hello World!</h1>')
- 
- MyApp().run()
+  Simple example::
 
-Example of standalone/listening/slave process::
-
- from smisk.core import Application, bind
- class MyApp(Application):
-   def service(self):
-     self.response.write('<h1>Hello World!</h1>')
-  
- bind('hostname:1234')
- MyApp().run()
-
-It is also possible to use your own types to represent ``Requests`` and ``Responses``. You set `request_class` and/or `response_class` to a type, before `application_will_start()` has been called. For example::
-
- from smisk.core import Application, Request
- class MyRequest(Request):
-   def from_internet_explorer(self):
-     return self.env.get('HTTP_USER_AGENT','').find('MSIE') != -1
- 
- class MyApp(Application):
-   def __init__(self):
-     super(MyApp, self).__init__()
-     self.request_class = MyRequest
- 
-   def service(self):
-     if self.request.from_internet_explorer():
-       self.response.write('<h1>Good bye, cruel World!</h1>')
-     else:
+   from smisk.core import Application
+   class MyApp(Application):
+     def service(self):
        self.response.write('<h1>Hello World!</h1>')
  
- MyApp().run()
+   MyApp().run()
+
+  Example of standalone/listening/slave process::
+
+   from smisk.core import Application, bind
+   class MyApp(Application):
+     def service(self):
+       self.response.write('<h1>Hello World!</h1>')
+  
+   bind('hostname:1234')
+   MyApp().run()
+
+  It is also possible to use your own types to represent ``Requests`` and ``Responses``. You set `request_class` and/or `response_class` to a type, before `application_will_start()` has been called. For example::
+
+   from smisk.core import Application, Request
+   class MyRequest(Request):
+     def from_internet_explorer(self):
+       return self.env.get('HTTP_USER_AGENT','').find('MSIE') != -1
+ 
+   class MyApp(Application):
+     def __init__(self):
+       super(MyApp, self).__init__()
+       self.request_class = MyRequest
+ 
+     def service(self):
+       if self.request.from_internet_explorer():
+         self.response.write('<h1>Good bye, cruel World!</h1>')
+       else:
+         self.response.write('<h1>Hello World!</h1>')
+ 
+   MyApp().run()
 
 
 Class attributes
 -------------------------------------------------
-.. attribute:: current
+.. attribute:: smisk.core.Application.current
   
   Current application instance, if any. Class attribute. See also: :attr:`smisk.core.app`.
 
@@ -53,7 +55,7 @@ Class attributes
 Instance attributes
 -------------------------------------------------
 
-.. attribute:: forks
+.. attribute:: smisk.core.Application.forks
 
   Number of child processes to fork off into.
 
@@ -65,32 +67,32 @@ Instance attributes
 
   .. versionadded:: 1.1
 
-.. attribute:: request_class
+.. attribute:: smisk.core.Application.request_class
 
   Must be set before calling :meth:`run()`
 
-.. attribute:: response_class
+.. attribute:: smisk.core.Application.response_class
 
   Must be set before calling :meth:`run()`
 
-.. attribute:: sessions_class
+.. attribute:: smisk.core.Application.sessions_class
 
   Must be set before calling :meth:`run()` and should be an object
   implementing the :class:`smisk.session.Store` interface.
 
-.. attribute:: request
+.. attribute:: smisk.core.Application.request
   
   The :class:`Request` object.
 
-.. attribute:: response
+.. attribute:: smisk.core.Application.response
   
   The :class:`Response` object.
 
-.. attribute:: sessions
+.. attribute:: smisk.core.Application.sessions
 
   An object with the :class:`smisk.session.Store` interface.
 
-.. attribute:: show_traceback
+.. attribute:: smisk.core.Application.show_traceback
   
   If True, traceback information is included with error responses. Note that
   traceback information is always included in logs. Defaults to True.
@@ -99,14 +101,14 @@ Instance attributes
 Instance methods
 -------------------------------------------------
 
-.. method:: application_did_stop() -> None
+.. method:: smisk.core.Application.application_did_stop()
 
   Called when the application stops accepting incoming requests.
 
   The default implementation in :class:`smisk.core.Application` does
   nothing.
 
-.. method:: application_will_start() -> None
+.. method:: smisk.core.Application.application_will_start()
 
   Called just before the application starts accepting incoming
   requests.
@@ -114,7 +116,7 @@ Instance methods
   The default implementation in :class:`smisk.core.Application`
   nothing.
 
-.. method:: error(typ, val, tb) -> None
+.. method:: smisk.core.Application.error(typ, val, tb)
 
   Handle an error and produce an appropriate response.
 
@@ -152,14 +154,14 @@ Instance methods
   :param val: Exception value
   :param tb:  Traceback
 
-.. method:: exit() -> None
+.. method:: smisk.core.Application.exit()
 
   Exit application.
 
-.. method:: run() -> None
+.. method:: smisk.core.Application.run()
 
   Run application.
 
-.. method:: service() -> None
+.. method:: smisk.core.Application.service()
 
   Service a request.

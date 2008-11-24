@@ -7,13 +7,12 @@ Modules
   autoreload
   charsets
   core/index
-  inflection
+  inflection/index
   mvc/index
-  mvc/**
   release
-  serialization/**
+  serialization/index
   session
-  util/**
+  util/index
   wsgi
   
 

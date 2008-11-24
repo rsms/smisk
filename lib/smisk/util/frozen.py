@@ -8,7 +8,7 @@ class frozendict(dict):
   '''Immutable dictionary.
   '''
   def __setitem__(self, *args, **kwargs):
-    raise TypeError("'frozendict' object does not support item assignment")
+    raise TypeError("frozendict object does not support item assignment")
   
   setdefault = __delitem__ = clear = pop = popitem = __setitem__
   

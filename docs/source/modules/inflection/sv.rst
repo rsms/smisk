@@ -1,8 +1,6 @@
-:mod:`smisk.util.main`
+:mod:`smisk.inflection.sv`
 =================================================
 
-.. versionadded:: 1.1
-
-.. automodule:: smisk.util.main
+.. automodule:: smisk.inflection.sv
   :members:
   :undoc-members:

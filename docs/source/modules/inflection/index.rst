@@ -1,9 +1,9 @@
-:mod:`smisk.mvc.template`
+:mod:`smisk.inflection`
 =================================================
 
 .. versionadded:: 1.1
 
-.. automodule:: smisk.mvc.template
+.. automodule:: smisk.inflection
   :members:
   :undoc-members:
 
@@ -12,7 +12,7 @@ Modules
 -------------------------------------------------
 
 .. toctree::
-  :glob:
   :maxdepth: 1
   
-  **
+  en
+  sv

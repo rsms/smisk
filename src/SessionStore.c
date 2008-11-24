@@ -122,14 +122,8 @@ static PyMethodDef smisk_SessionStore_methods[] = {
 
 // Class members
 static struct PyMemberDef smisk_SessionStore_members[] = {
-  {"ttl", T_INT, offsetof(smisk_SessionStore, ttl), 0,
-    ":type: int\n\n"
-    "For how long a session should be valid, expressed in seconds. Defaults to 900."},
-  
-  {"name", T_OBJECT_EX, offsetof(smisk_SessionStore, name), 0,
-    ":type: string\n\n"
-    "Name used to identify the session id cookie. Defaults to \"SID\""},
-  
+  {"ttl", T_INT, offsetof(smisk_SessionStore, ttl), 0, NULL},
+  {"name", T_OBJECT_EX, offsetof(smisk_SessionStore, name), 0, NULL},
   {NULL, 0, 0, 0, NULL}
 };
 

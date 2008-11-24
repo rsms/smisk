@@ -1,8 +1,5 @@
 # encoding: utf-8
 '''Data serialization
-
-.. packagetree (xxx todo fix for Sphinx)
-.. importgraph::
 '''
 import base64
 try:

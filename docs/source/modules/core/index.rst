@@ -30,22 +30,48 @@ Attributes
 
 .. attribute:: app
   
-  Current `Application` (``None`` if no application has been created) 
-  See also: :attr:`Application.current`.
+  Current :class:`Application` (``None`` if no application has been created).
+  
+  This is actually a :class:`smisk.util.objectproxy.ObjectProxy`, inducing a
+  slight performance hit, since accessing the actual application causes
+  intermediate calls. :attr:`Application.current` is the most
+  performance-effective way to access the current application. However, in most
+  cases the performance hit induced by the ObjectProxy is so small, the
+  increased readability and usage of app is preferred.
+  
+  :See: :attr:`Application.current`
 
   .. versionadded:: 1.1
 
 
 .. attribute:: request
   
-  Current `Request` (``None`` if no application is running).
+  Current :class:`Request` (``None`` if no application is running).
+  
+  This is actually a :class:`smisk.util.objectproxy.ObjectProxy`, inducing a
+  slight performance hit, since accessing the actual application causes
+  intermediate calls. :attr:`Application.current.request` is the
+  most performance-effective way to access the current request. However, in
+  most cases the performance hit induced by the ObjectProxy is so small, the
+  increased readability of request is preferred.
+  
+  :See: :attr:`Application.request`
 
   .. versionadded:: 1.1
 
 
 .. attribute:: response
   
-  Current `Response` (``None`` if no application is running).
+  Current :class:`Response` (``None`` if no application is running).
+  
+  This is actually a :class:`smisk.util.objectproxy.ObjectProxy`, inducing a
+  slight performance hit, since accessing the actual application causes
+  intermediate calls. :attr:`Application.current.response` is the 
+  most performance-effective way to access the current response. However, in
+  most cases the performance hit induced by the ObjectProxy is so small, the
+  increased readability of response is preferred.
+  
+  :See: :attr:`Application.response`
 
   .. versionadded:: 1.1
 
@@ -76,10 +102,10 @@ Functions
   
   If not bound, calling this function has no effect. You can test wherethere or
   not the current process is bound by calling :func:`listening()`.
-
-  .. versionadded:: 1.1
   
   :raises: IOError on failure.
+
+  .. versionadded:: 1.1
 
 
 .. function:: listening() -> string
@@ -104,13 +130,9 @@ Functions
     
     sha1 ( time.secs, time.usecs, pid, random[, node] )
   
-  ..note::
-    
-    This is *not* a UUID (ISO/IEC 11578:1996) implementation. However it uses 
-    an algorithm very similar to UUID v5 (:rfc:`4122`). Most notably, the format 
-    of the output is more compact than that of UUID v5.
-
-  .. versionadded:: 1.1
+  :Note:  This is *not* a UUID (ISO/IEC 11578:1996) implementation. However it uses 
+          an algorithm very similar to UUID v5 (:rfc:`4122`). Most notably, the format 
+          of the output is more compact than that of UUID v5.
   
   :param nbits: Number of bits to pack into each byte when creating the string 
                 representation. A value in the range 4-6 or 0 in which case 20
@@ -118,6 +140,8 @@ Functions
   :type  nbits: int
   :param node:  Optional data to be used when creating the uid.
   :type  node:  string
+
+  .. versionadded:: 1.1
 
 
 .. function:: pack(data[, nbits=5]) -> string
@@ -134,8 +158,6 @@ Functions
     32 bytes ``"0-9a-v"``
   6 bits, Base 64:
     27 bytes ``"0-9a-zA-Z,-"``
-
-  .. versionadded:: 1.1
   
   :param data:
   :type  data:  string
@@ -143,6 +165,15 @@ Functions
                 representation. A value in the range 4-6.
   :type  nbits: int
   :see: :func:`uid()`
+
+  .. versionadded:: 1.1
+
+
+.. function:: object_hash(object) -> long
+
+  Calculate a hash from any python object.
+
+  .. versionadded:: 1.1
 
 
 
@@ -160,7 +191,21 @@ Classes
 -------------------------------------------------
 
 .. toctree::
-  :glob:
   :maxdepth: 1
   
-  **
+  Application
+  Request
+  Response
+  Stream
+  SessionStore
+  FileSessionStore
+  URL
+
+
+Modules
+-------------------------------------------------
+
+.. toctree::
+  :maxdepth: 1
+  
+  xml
