@@ -39,6 +39,17 @@ Attributes
   cases the performance hit induced by the ObjectProxy is so small, the
   increased readability and usage of app is preferred.
   
+  Example::
+  
+    >>> import smisk
+    >>> smisk.app
+    None
+    >>> import smisk.core
+    >>> smisk.core.Application()
+    <smisk.core.Application object at 0x6a5c0>
+    >>> smisk.app
+    <smisk.core.Application object at 0x6a5c0>
+  
   :See: :attr:`Application.current`
 
   .. versionadded:: 1.1
@@ -176,6 +187,20 @@ Functions
   .. versionadded:: 1.1
 
 
+Classes
+-------------------------------------------------
+
+.. toctree::
+  :maxdepth: 1
+  
+  smisk.core.Application
+  smisk.core.Request
+  smisk.core.Response
+  smisk.core.Stream
+  smisk.core.SessionStore
+  smisk.core.FileSessionStore
+  smisk.core.URL
+
 
 Exceptions
 -------------------------------------------------
@@ -187,25 +212,10 @@ Exceptions
 .. exception:: InvalidSessionError
 
 
-Classes
--------------------------------------------------
-
-.. toctree::
-  :maxdepth: 1
-  
-  Application
-  Request
-  Response
-  Stream
-  SessionStore
-  FileSessionStore
-  URL
-
-
 Modules
 -------------------------------------------------
 
 .. toctree::
   :maxdepth: 1
   
-  xml
+  smisk.core.xml

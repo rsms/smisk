@@ -47,7 +47,7 @@ THE SOFTWARE.
 int smisk_listensock_fileno = FCGI_LISTENSOCK_FILENO;
 
 // Objects at module-level
-PyObject *smisk_Error, *smisk_IOError, *smisk_InvalidSessionError;
+PyObject *smisk_InvalidSessionError;
 PyObject *os_module;
 
 // Other static strings (only used in C API)
@@ -80,7 +80,7 @@ PyObject *smisk_bind(PyObject *self, PyObject *args) {
   }
   
   if (smisk_listensock_fileno != FCGI_LISTENSOCK_FILENO) {
-    return PyErr_Format(smisk_IOError, "already bound");
+    return PyErr_Format(PyExc_IOError, "already bound");
   }
   
   // Did we get excplicit backlog size?
@@ -301,14 +301,6 @@ PyMODINIT_FUNC initcore(void) {
   }
   
   // Exceptions
-  if (!(smisk_Error = PyErr_NewException("smisk.core.Error", NULL, NULL))
-    ||
-    (PyModule_AddObject(smisk_core_module, "Error", smisk_Error) == -1) )
-    return;
-  if (!(smisk_IOError = PyErr_NewException("smisk.core.IOError", PyExc_IOError, NULL))
-    ||
-    (PyModule_AddObject(smisk_core_module, "IOError", smisk_IOError) == -1) )
-    return;
   if (!(smisk_InvalidSessionError = PyErr_NewException("smisk.core.InvalidSessionError", PyExc_ValueError, NULL))
     ||
     (PyModule_AddObject(smisk_core_module, "InvalidSessionError", smisk_InvalidSessionError) == -1)

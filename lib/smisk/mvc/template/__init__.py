@@ -14,6 +14,7 @@
 import os, sys, stat, posixpath, re, logging
 import smisk.core.xml
 from smisk.core import URL
+from smisk.config import config
 from smisk import util
 from smisk.mvc import http
 import smisk.mvc
@@ -37,20 +38,7 @@ log = logging.getLogger(__name__)
 
 
 class Templates(object):
-  cache_limit = -1
-  '''Limit cache size.
-  
-  0 means no cache.
-  -1 means no limit.
-  any positive value results in a LRU-approach.
-  
-  :type: int
-  '''
-  
-  cache_type = 'memory'
-  '''Type of cache.
-  
-  :type: string
+  '''Templates.
   '''
   
   imports = [
@@ -61,35 +49,10 @@ class Templates(object):
   ]
   ''':type: list'''
   
-  autoreload = None
-  '''Automatically reload templates which has been modified.
-  
-  If this is set to None when the application start accepting requests,
-  the application will set the value according to its own autoreload value.
-  
-  :type: bool
-  '''
-  
-  format_template_exceptions = True
-  '''Let the templating engine render information about template formatting exceptions.
-  
-  Things like missing or misspelled variables etc.
-  
-  :type: bool
-  '''
-  
   directories = None
   '''Directories in which to find templates.
   
   :type: list
-  '''
-  
-  errors = {}
-  '''Map http error to a template path.
-  
-  i.e. 500: 'errors/server_error'
-  
-  :type: dict
   '''
   
   is_useable = Template is not None
@@ -101,12 +64,13 @@ class Templates(object):
     self.reset_cache()
   
   def reset_cache(self):
-    if self.cache_limit == -1:
+    limit = config.get('smisk.mvc.template.cache_limit', -1)
+    if limit == -1:
       self.instances = {}
       self._uri_cache = {}
     else:
-      self.instances = LRUCache(self.cache_limit)
-      self._uri_cache = LRUCache(self.cache_limit)
+      self.instances = LRUCache(limit)
+      self._uri_cache = LRUCache(limit)
   
   def template_for_uri(self, uri, exc_if_not_found=True):
     '''
@@ -115,7 +79,7 @@ class Templates(object):
     '''
     try:
       template = self.instances[uri]
-      if self.autoreload:
+      if config.get('smisk.mvc.template.autoreload'):
         if template is not None:
           template = self._check(uri, template)
         else:
@@ -155,12 +119,13 @@ class Templates(object):
   
   def render_error(self, status, params={}, format='html'):
     # Compile body from template
-    if status.code in self.errors:
-      template = self.template_for_uri('%s.%s' % (self.errors[status.code], format), False)
-    elif status in self.errors:
-      template = self.template_for_uri('%s.%s' % (self.errors[status], format), False)
-    elif 0 in self.errors:
-      template = self.template_for_uri('%s.%s' % (self.errors[0], format), False)
+    errors = config.get('smisk.mvc.template.errors', {})
+    if status.code in errors:
+      template = self.template_for_uri('%s.%s' % (errors[status.code], format), False)
+    elif status in errors:
+      template = self.template_for_uri('%s.%s' % (errors[status], format), False)
+    elif 0 in errors:
+      template = self.template_for_uri('%s.%s' % (errors[0], format), False)
     else:
       template = None
     
@@ -189,20 +154,22 @@ class Templates(object):
       if len(uri) > 4 and (uri[-5:].lower() == '.html' or uri[-4:].lower() == '.xml'):
         encoding_errors='htmlentityreplace'
       
+      cache_type = config.get('smisk.mvc.template.cache_type', 'memory')
+      
       self.instances[uri] = Template(
           uri               = uri,
           filename          = filename,
           text              = text,
           lookup            = self,
           module_filename   = None,
-          format_exceptions = self.format_template_exceptions,
-          input_encoding    = 'utf-8',
+          format_exceptions = config.get('smisk.mvc.template.format_exceptions', True),
+          input_encoding    = config.get('smisk.mvc.template.input_encoding', 'utf-8'),
           output_encoding   = smisk.mvc.Response.charset,
           encoding_errors   = encoding_errors,
-          cache_type        = self.cache_type,
-          default_filters   = ['unicode'],
+          cache_type        = cache_type,
+          default_filters   = config.get('smisk.mvc.template.default_filters', ['unicode']),
           imports           = self.imports)
-      if log.level <= logging.DEBUG and self.cache_type != 'file':
+      if log.level <= logging.DEBUG and cache_type != 'file':
         code = self.instances[uri].code
         log.debug("Compiled %s into %d bytes of python code:\n%s", uri, len(code), code)
       return self.instances[uri]

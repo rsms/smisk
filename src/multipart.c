@@ -94,7 +94,7 @@ char *smisk_multipart_mktmpfile(multipart_ctx_t *ctx) {
   fn = tempnam(fn, SMISK_FILE_UPLOAD_PREFIX);
   log_debug("Creating temporary file '%s'", fn);
   if (fn == NULL) {
-    PyErr_Format(smisk_IOError, "Failed to create temporary file at dir '%s' with prefix '%s'",
+    PyErr_Format(PyExc_IOError, "Failed to create temporary file at dir '%s' with prefix '%s'",
       SMISK_FILE_UPLOAD_DIR, SMISK_FILE_UPLOAD_PREFIX);
     return NULL;
   }

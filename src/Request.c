@@ -351,7 +351,7 @@ PyObject *smisk_Request_log_error(smisk_Request* self, PyObject *msg) {
   static const char format[] = "%s[%d] %s";
   
   if (!self->errors->stream || ((PyObject *)self->errors->stream == Py_None)) {
-    PyErr_SetString(smisk_IOError, "request.errors stream not initialized. Only makes sense during an active request.");
+    PyErr_SetString(PyExc_IOError, "request.errors stream not initialized. Only makes sense during an active request.");
     return NULL;
   }
   
@@ -723,7 +723,8 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
       Py_INCREF(Py_None);
       self->initial_session_hash = 0;
       if (smisk_Application_current->response->has_begun == Py_True) {
-        PyErr_SetString(smisk_Error, "Output already started - too late to send session id with response");
+        PyErr_SetString(PyExc_EnvironmentError, 
+          "Output already started - too late to send session id with response");
         return NULL;
       }
     }
@@ -746,7 +747,8 @@ static int smisk_Request_set_session_id(smisk_Request* self, PyObject *session_i
   log_trace("ENTER");
   
   if (smisk_Application_current->response->has_begun == Py_True) {
-    PyErr_SetString(smisk_Error, "Output already started - too late to set session id");
+    PyErr_SetString(PyExc_EnvironmentError,
+      "Output already started - too late to set session id");
     return -1;
   }
   

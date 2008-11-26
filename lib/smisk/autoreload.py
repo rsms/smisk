@@ -3,6 +3,7 @@
 '''
 import sys, os, logging, re
 from smisk.util.threads import Monitor
+from smisk.config import config
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class Autoreloader(Monitor):
                       Matches anything if None.
     :type  match:     re.RegExp
     '''
-    self.files = set()
+    self.config_files = set()
     self.mtimes = {}
     self.log = None # in runner thread -- should not be set manually
     self.match = match
@@ -31,29 +32,52 @@ class Autoreloader(Monitor):
     '''Start our own perpetual timer thread for self.run.'''
     if self.thread is None:
       self.mtimes = {}
+    self._update_config_files_list()
     Monitor.start(self)
   start.priority = 70 
+  
+  def _update_config_files_list(self):
+    config_files = set()
+    if config.get('smisk.autoreload.config', config.get('smisk.autoreload')):
+      for path,conf in config.sources:
+        if path[0] != '<':
+          config_files.add(path)
+    self.config_files = config_files
   
   def setup(self):
     self.log = logging.getLogger('%s.%s' % (__name__, self.__class__.__name__))
   
+  def on_module_modified(self, path):
+    # The file has been deleted or modified.
+    self.log.info("%s was modified", path)
+    self.thread.cancel()
+    self.log.debug("Stopped autoreload monitor (thread %r)", self.thread.getName())
+    import smisk.core
+    smisk.core.app.exit()
+  
+  def on_config_modified(self, path):
+    config.reload()
+    self._update_config_files_list()
+      
   def run(self):
     '''Reload the process if registered files have been modified.'''
     sysfiles = set()
-    for k, m in sys.modules.items():
-      if self.match is None or self.match.match(k):
-        if hasattr(m, '__loader__'):
-          if hasattr(m.__loader__, 'archive'):
-            k = m.__loader__.archive
-        k = getattr(m, '__file__', None)
-        sysfiles.add(k)
     
-    for filename in sysfiles | self.files:
-      if filename:
-        if filename.endswith('.pyc') or filename.endswith('.pyo'):
-          filename = filename[:-1]
+    if config.get('smisk.autoreload.modules', config.get('smisk.autoreload')):
+      for k, m in sys.modules.items():
+        if self.match is None or self.match.match(k):
+          if hasattr(m, '__loader__'):
+            if hasattr(m.__loader__, 'archive'):
+              k = m.__loader__.archive
+          k = getattr(m, '__file__', None)
+          sysfiles.add(k)
+    
+    for path in sysfiles | self.config_files:
+      if path:
+        if path.endswith('.pyc') or path.endswith('.pyo'):
+          path = path[:-1]
         
-        oldtime = self.mtimes.get(filename, 0)
+        oldtime = self.mtimes.get(path, 0)
         if oldtime is None:
           # Module with no .py file. Skip it.
           continue
@@ -61,23 +85,22 @@ class Autoreloader(Monitor):
         #self.log.info('Checking %r' % sysfiles)
         
         try:
-          mtime = os.stat(filename).st_mtime
+          mtime = os.stat(path).st_mtime
         except OSError:
           # Either a module with no .py file, or it's been deleted.
           mtime = None
         
-        if filename not in self.mtimes:
+        if path not in self.mtimes:
           # If a module has no .py file, this will be None.
-          self.mtimes[filename] = mtime
+          self.mtimes[path] = mtime
         else:
-          #self.log.info("checking %s", filename)
+          #self.log.info("checking %s", path)
           if mtime is None or mtime > oldtime:
-            # The file has been deleted or modified.
-            self.log.info("%s was modified", filename)
-            self.thread.cancel()
-            self.log.debug("Stopped autoreload monitor (thread %r)", self.thread.getName())
-            import smisk.core
-            smisk.core.app.exit()
+            if path.endswith(config.filename_ext) and path in [k for k,d in config.sources]:
+              self.on_config_modified(path)
+              self.mtimes[path] = mtime
+            else:
+              self.on_module_modified(path)
             return
   
 

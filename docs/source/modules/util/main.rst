@@ -1,8 +1,0 @@
-:mod:`smisk.util.main`
-=================================================
-
-.. versionadded:: 1.1
-
-.. automodule:: smisk.util.main
-  :members:
-  :undoc-members:

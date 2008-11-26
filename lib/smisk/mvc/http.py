@@ -183,9 +183,9 @@ PaymentRequired              = Status(402, "Payment Required", False)
 Forbidden                    = Status(403, "Forbidden")
 NotFound                     = Status404(404, "Not Found")
 
-ControllerNotFound           = Status404(404, "Controller Not Found")
-MethodNotFound               = Status404(404, "Method Not Found")
-TemplateNotFound             = Status404(404, "Template Not Found")
+ControllerNotFound           = Status404(404, "Not Found")
+MethodNotFound               = Status404(404, "Not Found")
+TemplateNotFound             = Status404(404, "Not Found")
 
 MethodNotAllowed             = Status(405, "Method Not Allowed", False)
 NotAcceptable                = Status(406, "Not Acceptable", False)

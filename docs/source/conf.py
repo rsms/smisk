@@ -43,7 +43,7 @@ copyright = '2008, Rasmus Andersson and contributors'
 #
 # The short X.Y version.
 import smisk.release
-version = '.'.join(smisk.release.version_info[0:2])
+version = '%d.%d' % smisk.release.version_info[0:2]
 # The full version, including alpha/beta/rc tags.
 release = smisk.release.version
 

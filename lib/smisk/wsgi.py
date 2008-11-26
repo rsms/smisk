@@ -45,6 +45,7 @@ Example::
 '''
 import os, sys, smisk.core, logging
 from smisk.util.main import *
+from smisk.config import LOGGING_FORMAT, LOGGING_DATEFMT
 
 __all__ = ['__version__', 'Request', 'Gateway', 'main']
 __version__ = (0,1,0)
@@ -147,6 +148,7 @@ class Gateway(smisk.core.Application):
       self.response.write(data)
   
 
+# XXX TODO replace this main function with the stuff from smisk.util.main
 def main(wsgi_app, appdir=None, bind=None, forks=None, handle_errors=True, cli=True):
   '''Helper for setting up and running an application.
   
@@ -182,7 +184,8 @@ def main(wsgi_app, appdir=None, bind=None, forks=None, handle_errors=True, cli=T
   
   # Setup logging
   # Calling basicConfig has no effect if logging is already configured.
-  logging.basicConfig(format='%(levelname)-8s %(name)-20s %(message)s')
+  
+  logging.basicConfig(format=LOGGING_FORMAT, datefmt=LOGGING_DATEFMT)
   
   # Bind
   if bind is not None:

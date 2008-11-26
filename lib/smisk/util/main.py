@@ -1,10 +1,27 @@
 # encoding: utf-8
 '''Program main routine helpers.
 '''
-import sys, os, logging
+import sys, os, logging, smisk.core
+from smisk.config import config
 
 __all__ = ['setup_appdir', 'main_cli_filter', 'handle_errors_wrapper']
 log = logging.getLogger(__name__)
+
+def absapp(application, default_app_type=smisk.core.Application, *args, **kwargs):
+  '''Returns an application instance or raises an exception if not possible.
+  '''
+  if not application:
+    application = smisk.core.Application.current
+    if not application:
+      application = default_app_type(*args, **kwargs)
+  elif type(application) is type:
+    if not issubclass(application, smisk.core.Application):
+      raise ValueError('application is not a subclass of smisk.core.Application')
+    return application(*args, **kwargs)
+  elif not isinstance(application, smisk.core.Application):
+    raise ValueError('%r is not an instance of smisk.core.Application' % application)
+  return application
+
 
 def setup_appdir(appdir=None):
   if 'SMISK_APP_DIR' not in os.environ:
@@ -15,6 +32,7 @@ def setup_appdir(appdir=None):
         raise EnvironmentError('unable to calculate SMISK_APP_DIR because: %s' % sys.exc_info())
   if appdir is not None:
     os.environ['SMISK_APP_DIR'] = os.path.abspath(appdir)
+  return os.environ['SMISK_APP_DIR']
 
 
 def main_cli_filter(appdir=None, bind=None, forks=None):
@@ -135,3 +153,69 @@ def handle_errors_wrapper(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs
     # Call error callback
     if error_cb:
       return error_cb(1)
+
+
+class Main(object):
+  default_app_type = smisk.core.Application
+  _is_set_up = False
+  
+  def __call__(self, application=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=True, *args, **kwargs):
+    '''Helper for setting up and running an application.
+    '''
+    if cli:
+      appdir, bind, forks = main_cli_filter(appdir=appdir, bind=bind, forks=forks)
+    # Setup
+    if handle_errors:
+      application = handle_errors_wrapper(self.setup, application=application, appdir=appdir, *args, **kwargs)
+    else:
+      application = self.setup(application=application, appdir=appdir, *args, **kwargs)
+    
+    # Run
+    return self.run(bind=bind, application=application, forks=forks, handle_errors=handle_errors)
+  
+  
+  def setup(self, application=None, appdir=None, *args, **kwargs):
+    '''Helper for setting up an application.
+    Returns the application instance.
+    
+    Only the first call is effective.
+    '''
+    if self._is_set_up:
+      return smisk.core.Application.current
+    self._is_set_up = True
+    
+    setup_appdir(appdir)
+    return absapp(application, self.default_app_type, *args, **kwargs)
+  
+  
+  def run(self, bind=None, application=None, forks=None, handle_errors=False):
+    '''Helper for running an application.
+    '''
+    # Make sure we have an application
+    application = absapp(application)
+    
+    # Bind
+    if bind is not None:
+      os.environ['SMISK_BIND'] = bind
+    if 'SMISK_BIND' in os.environ:
+      smisk.core.bind(os.environ['SMISK_BIND'])
+      log.info('Listening on %s', smisk.core.listening())
+    
+    # Enable auto-reloading if any of these are True:
+    if config.get('smisk.autoreload.modules', config.get('smisk.autoreload.config')):
+      from smisk.autoreload import Autoreloader
+      ar = Autoreloader()
+      ar.start()
+    
+    # Forks
+    if isinstance(forks, int):
+      application.forks = forks
+    
+    # Call app.run()
+    if handle_errors:
+      return handle_errors_wrapper(application.run)
+    else:
+      return application.run()
+  
+
+main = Main()

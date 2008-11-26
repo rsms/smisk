@@ -294,7 +294,7 @@ PyObject *smisk_Application_run(smisk_Application *self) {
   
   // CGI test
   if (FCGX_IsCGI() && (smisk_listensock_fileno == FCGI_LISTENSOCK_FILENO))
-    return PyErr_Format(smisk_Error, "Application must be run in a FastCGI environment");
+    return PyErr_Format(PyExc_EnvironmentError, "Application must be run in a FastCGI environment");
   
   // Create transaction context
   if (_setup_transaction_context(self) != 0)

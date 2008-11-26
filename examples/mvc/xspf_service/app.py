@@ -45,4 +45,5 @@ class root(Controller):
     }
 
 if __name__ == '__main__':
+  config.load('app.conf')
   main()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 from smisk.test import *
-from smisk.util.config import *
+from smisk.config import *
 import logging
 
 class ConfigTests(TestCase):

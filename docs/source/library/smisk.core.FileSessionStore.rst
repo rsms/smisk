@@ -5,7 +5,7 @@
 
   Basic session store which uses files
   
-  :see: :class:`smisk.core.SessionStore`
+  :see: :class:`~smisk.core.SessionStore`
 
 
 Instance attributes
@@ -39,34 +39,34 @@ Instance attributes
 Instance methods
 -------------------------------------------------
 
-.. method:: smisk.core.FileSessionStore.read(self, session_id) -> data
+.. method:: smisk.core.FileSessionStore.read(session_id) -> data
 
   :param  session_id: Session ID
   :type   session_id: string
-  :raises:  :class:`smisk.core.InvalidSessionError` if there is no actual
-            session associated with ``session_id``.
+  :raises:  :class:`~smisk.core.InvalidSessionError` if there is no actual
+            session associated with *session_id*.
   :rtype: object
 
 
-.. method:: smisk.core.FileSessionStore.write(self, session_id, data)
+.. method:: smisk.core.FileSessionStore.write(session_id, data)
 
   :param  session_id: Session ID
   :type   session_id: string
-  :param  data:       Data to be associated with ``session_id``
+  :param  data:       Data to be associated with *session_id*
   :type   data:       object
 
 
-.. method:: smisk.core.FileSessionStore.refresh(self, session_id)
+.. method:: smisk.core.FileSessionStore.refresh(session_id)
 
   TODO
 
 
-.. method:: smisk.core.FileSessionStore.destroy(self, session_id)
+.. method:: smisk.core.FileSessionStore.destroy(session_id)
 
   TODO
 
 
-.. method:: smisk.core.FileSessionStore.path(self, session_id) -> string
+.. method:: smisk.core.FileSessionStore.path(session_id) -> string
   
-  Path to file for `session_id`.
+  Path to file for *session_id*.
 

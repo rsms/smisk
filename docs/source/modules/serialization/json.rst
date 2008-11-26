@@ -1,8 +1,0 @@
-:mod:`smisk.serialization.json`
-=================================================
-
-.. versionadded:: 1.1
-
-.. automodule:: smisk.serialization.json
-  :members:
-  :undoc-members:

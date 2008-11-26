@@ -1,4 +1,4 @@
-:class:`smisk.core.Request` --- A HTTP request
+:class:`~smisk.core.Request` --- A HTTP request
 ===========================================================
 
 .. class:: smisk.core.Request
@@ -17,14 +17,14 @@ Instance attributes
 
   You could read ``x-www-form-urlencoded`` or ``multipart`` POST requests in raw format, but you have to read from this stream before calling any of `post` or `files`, since they will otherwise trigger the built-in parser and read all data from the stream.
 
-  **Example of how to parse a JSON request:**::
+  Example, parsing a JSON request::
 
-   import cjson as json
    from smisk.core import *
+   from smisk.serialization.json import json_decode
    class App(Application):
      def service(self):
        if request.env['REQUEST_METHOD'] == 'POST':
-         response('Input: ', repr(json.decode(self.request.input.read())), "\n")
+         response('Input: ', repr(json_decode(self.request.input.read())), "\n")
  
    App().run()
 
@@ -32,12 +32,12 @@ Instance attributes
 
     curl --data-binary '{"Url": "http://www.example.com/image/481989943", "Position": [125, "100"]}' http://localhost:8080/
   
-  :type: :class:`smisk.core.Stream`
+  :type: :class:`~smisk.core.Stream`
 
 
 .. attribute:: smisk.core.Request.error
   
-  :type: :class:`smisk.core.Stream`
+  :type: :class:`~smisk.core.Stream`
 
 
 .. attribute:: smisk.core.Request.env
@@ -51,7 +51,7 @@ Instance attributes
   
   Reconstructed URL
   
-  :type: :class:`smisk.core.URL`
+  :type: :class:`~smisk.core.URL`
 
 
 .. attribute:: smisk.core.Request.get
@@ -111,15 +111,15 @@ Instance attributes
 
   .. versionadded:: 1.1
   
-  :type: :class:`smisk.core.URL`
+  :type: :class:`~smisk.core.URL`
 
 
 Instance methods
 -------------------------------------------------
 
-.. method:: smisk.core.Request.log_error(self, message)
+.. method:: smisk.core.Request.log_error(message)
 
-  Log something through ``errors`` including process name and id.
+  Log something through :attr:`~smisk.core.Request.error` including process name and id.
   
-  Normally, ``errors`` ends up in the host server error log.
+  Normally, :attr:`~smisk.core.Request.error` ends up in the host server error log.
 
