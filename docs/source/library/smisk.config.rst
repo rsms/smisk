@@ -11,8 +11,8 @@ Arbitrary configuration file utility.
 Configuration file syntax
 -------------------------------------------------
 
-The configuration syntax is basically a Python script which is ``eval`` ed
-into a dict:
+The configuration syntax is `JSON <http://www.ietf.org/rfc/rfc4627.txt>`__-compliant
+and should represent a dictionary:
 
 .. code-block:: javascript
 
@@ -33,8 +33,9 @@ into a dict:
     }
   }
 
-The configuration file must contain a literal Python dictionary and might 
-leave out the wrapping "{" and "}", as demonstrated in the example above.
+The configuration file must contain a literal JSON dictionary and might 
+leave out the outer curly brackets (``{`` and ``}``), as demonstrated in
+the example above.
 
 JavaScript/JSON-style comments are supported:
 
@@ -132,27 +133,27 @@ configurations
 Predefined symbols:
 
 =========  ================
-NAME       VALUE           
+NAME       VALUE
 =========  ================
-true       True            
-false      False           
-null       None            
+true       True
+false      False
+null       None
 CRITICAL   logging.CRITICAL
-DEBUG      logging.DEBUG   
-ERROR      logging.ERROR   
-FATAL      logging.FATAL   
-INFO       logging.INFO    
-NOTSET     logging.NOTSET  
-WARN       logging.WARN    
-WARNING    logging.WARNING 
+FATAL      logging.FATAL
+ERROR      logging.ERROR
+WARN       logging.WARN
+WARNING    logging.WARNING
+INFO       logging.INFO
+DEBUG      logging.DEBUG
+NOTSET     logging.NOTSET
 critical   logging.CRITICAL
-debug      logging.DEBUG   
-error      logging.ERROR   
-fatal      logging.FATAL   
-info       logging.INFO    
-notset     logging.NOTSET  
-warn       logging.WARN    
+fatal      logging.FATAL
+error      logging.ERROR
+warn       logging.WARN
 warning    logging.WARNING
+info       logging.INFO
+debug      logging.DEBUG
+notset     logging.NOTSET
 =========  ================
 
 
@@ -337,9 +338,12 @@ Module contents
   
     If you modify this dict after any configuration has been loaded, you need to
     call :meth:`Configuration.reload()` afterwards, in order to actually apply
-    the defaults. If you simply assign a new dictionary to 
-    :attr:`Configuration.defaults`, reloading is done automatically through the
-    property set method.
+    the defaults.
+    
+    To set or update specific default value, considering using
+    :meth:`set_default` instead, or simply assign a new dictionary to
+    :attr:`Configuration.defaults`. That way reloading is done automatically
+    for you.
   
   
   .. attribute:: sources
@@ -390,9 +394,11 @@ Module contents
     setting :attr:`Configuration.defaults`.
 
 
-  .. method:: __call__(name, locations=[], symbols={}, logging_key=None)
+  .. method:: __call__(name, defaults=None, locations=[], symbols={}, logging_key=None)
   
     Load configuration files from a series of pre-defined locations.
+    
+    *defaults* is added to (and might override) :attr:`defaults`
   
     By default, will look for these files in the following order::
 
@@ -402,6 +408,11 @@ Module contents
       ./<name>.conf
       ./<name>-user.conf
       ~/<name>.conf
+  
+  
+  .. method:: set_default(self, key, value)
+    
+    Assign a default value to *key*.
 
 
   .. method:: load(path, symbols={}, post_process=True)
