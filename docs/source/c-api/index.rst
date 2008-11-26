@@ -150,8 +150,8 @@ Utilities
 
 .. cfunction:: void smisk_frepr_bytes (FILE *f, const char *s, size_t len)
   
-  Print bytes - unsafe or outside ASCII characters are printed as \xXX
-  Will print something like: bytes(4) 'm\x0dos'
+  Print bytes - unsafe or outside ASCII characters are printed as \\xXX
+  The output looks like: :samp:`bytes(4) 'm\\x0dos'`
 
 
 .. cfunction:: double smisk_microtime (void)
