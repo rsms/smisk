@@ -38,7 +38,7 @@ THE SOFTWARE.
 #define MOD_IDENT "smisk.core(utils)"
 
 
-// Returns PyStringObject (borrowed reference)
+// Returns PyStringObject (new reference)
 PyObject *smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
   PyObject *msg = NULL;
   PyObject *lines = NULL;

@@ -127,7 +127,7 @@ Utilities
 
 .. cfunction:: PyObject *smisk_format_exc (PyObject *type, PyObject *value, PyObject *tb)
 
-  :Returns: PyStringObject (borrowed reference). Does NOT clear exception.
+  :Returns: PyStringObject (new reference). Does NOT clear exception.
 
 
 .. cfunction:: int PyDict_assoc_val_with_key (PyObject *dict, PyObject *val, PyObject *key)
