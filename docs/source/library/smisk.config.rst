@@ -116,7 +116,7 @@ It's fully predictable what happens:
 
 #. *321-users.conf* is loaded and applied
 
-In other words, files included (using ``@include``) overrides the parent configuration.
+In other words, files included (using ``@include``) overrides the parent configuration. --- Or: --- Files inheriting another file is based on the other file.
 
 .. note::
   
@@ -150,6 +150,8 @@ This is the order in which files are loaded and applied:
 In other words, files inherited (using ``@inherit``) is overridden by the parent configuration.
 
 Note that ``@inherit`` is *not* the inverse or reverse of ``@include``, but rather a hybrid of a reverse ``@include`` and a normal ``@include``.
+
+``@inherit`` is comparable to class inheritance in Python.
 
 
 Logging
