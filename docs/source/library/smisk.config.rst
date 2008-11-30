@@ -56,6 +56,97 @@ Filters
 
 TODO
 
+:see: :meth:`Configuration.add_filter()`
+
+
+Includes
+-------------------------------------------------
+
+Files can be included using the special key ``@include``
+
+.. code-block:: javascript
+  
+  "interval": 12.7, /* A value in the range [0,123) */
+  "@include": "another/file.conf",
+
+Multiple files can be included at once by specifying a list of paths:
+
+.. code-block:: javascript
+  
+  "interval": 12.7, /* A value in the range [0,123) */
+  "@include": ["another/file.conf", "/yet/another/file.conf"],
+
+Paths are expanded using `glob <http://docs.python.org/library/glob.html>`__, so another way of including multiple file is using a `glob pattern <http://docs.python.org/library/fnmatch.html>`__:
+
+.. code-block:: javascript
+  
+  "interval": 12.7, /* A value in the range [0,123) */
+  "@include": "conf.d/*.conf",
+
+Glob patterns can be included in lists too:
+
+.. code-block:: javascript
+  
+  "interval": 12.7, /* A value in the range [0,123) */
+  "@include": ["conf.d/*.conf", "other/*/*.conf"],
+
+Paths deduced from a glob pattern are loaded in ascending alphabetical order. This enables variable configuration directories, like those of Apache HTTPd and LigHTTPd. Consider the following file layout::
+
+  some-path/
+    my-app.conf
+    conf.d/
+      001-users.conf
+      002-database.conf
+      321-extras.conf
+
+Now consider *my-app.conf* to contain the following configuration:
+
+.. code-block:: javascript
+  
+  "interval": 12.7, /* A value in the range [0,123) */
+  "@include": "conf.d/*.conf",
+
+It's fully predictable what happens:
+
+#. *my-app.conf* is loaded and applied
+
+#. *001-users.conf* is loaded and applied
+
+#. *002-users.conf* is loaded and applied
+
+#. *321-users.conf* is loaded and applied
+
+In other words, files included (using ``@include``) overrides the parent configuration.
+
+
+@inherit
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Another including directive, or special key, is ``@inherit``, which work much like ``@include``, with the difference in what gets applied first (what configuration might override the other).
+
+Let's consider the previous example, but instead using the ``@inherit`` directive:
+
+.. code-block:: javascript
+  
+  "@inherit": "conf.d/*.conf",
+  "interval": 12.7, /* A value in the range [0,123)  */
+
+This is the order in which files are loaded and applied:
+
+#. *my-app.conf* is loaded
+
+#. *001-users.conf* is loaded and applied
+
+#. *002-users.conf* is loaded and applied
+
+#. *321-users.conf* is loaded and applied
+   
+#. *my-app.conf* is applied
+
+In other words, files inherited (using ``@inherit``) is overridden by the parent configuration.
+
+Note that ``@inherit`` is *not* the inverse or reverse of ``@include``, but rather a hybrid of a reverse ``@include`` and a normal ``@include``.
+
 
 Logging
 -------------------------------------------------
@@ -337,13 +428,14 @@ Module contents
     Default values.
   
     If you modify this dict after any configuration has been loaded, you need to
-    call :meth:`Configuration.reload()` afterwards, in order to actually apply
+    call :meth:`reload()` afterwards, in order to actually apply
     the defaults.
     
-    To set or update specific default value, considering using
-    :meth:`set_default` instead, or simply assign a new dictionary to
-    :attr:`Configuration.defaults`. That way reloading is done automatically
-    for you.
+    To set or update single, specific default values, considering using
+    :meth:`set_default()` instead, or simply assign a new dictionary to
+    :attr:`defaults`. That way reloading is done automatically for you.
+    
+    :default: :samp:`{}`
   
   
   .. attribute:: sources
@@ -354,8 +446,10 @@ Module contents
 
       ( string <path or string hash>, dict configuration )
 
-    <path or string hash> is used to know where from and configuration is the 
+    *<path or string hash>* is used to know where from and configuration is the 
     unmodified, non-merged configuration this source generated.
+    
+    :default: :samp:`[]`
   
   
   .. attribute:: filters
@@ -372,13 +466,16 @@ Module contents
   
     Filters are automatically applied both when initially loading and also when
     reloading configuration.
-  
-    :see: :meth:`Configuration.add_filter`
+    
+    :default: :samp:`[]`
+    :see: :meth:`add_filter`
 
 
   .. attribute:: filename_ext
 
     Filename extension of configuration files
+    
+    :default: :samp:`".conf"`
   
   
   .. attribute:: logging_key
@@ -387,11 +484,27 @@ Module contents
     
     :default: :samp:`"logging"`
   
+  
+  .. attribute:: input_encoding
+  
+    Character encoding used for reading configuration files.
+  
+    :default: :samp:`"utf-8"`
+  
+  
+  .. attribute:: max_include_depth
+  
+    How deep to search for (and load) files denoted by a "@include".
+  
+    A value of ``0`` or lower disables includes.
+    
+    :default: :samp:`7`
+  
 
   .. method:: __init__(*args, **defaults)
   
     Create a new :class:`Configuration`, optionally 
-    setting :attr:`Configuration.defaults`.
+    setting :attr:`defaults`.
 
 
   .. method:: __call__(name, defaults=None, locations=[], symbols={}, logging_key=None)
@@ -412,17 +525,21 @@ Module contents
   
   .. method:: set_default(self, key, value)
     
-    Assign a default value to *key*.
+    Assign a default *value* to *key*.
 
 
-  .. method:: load(path, symbols={}, post_process=True)
+  .. method:: load(path, symbols={}, post_process=True) -> dict
   
     Load configuration from file denoted by *path*.
+    
+    Returns the configuration loaded from *path*.
 
 
-  .. method:: loads(string, symbols={}, post_process=True)
+  .. method:: loads(string, symbols={}, post_process=True) -> dict
   
     Load configuration from string.
+    
+    Returns the configuration loaded from *string*.
 
 
   .. method:: reload()
@@ -430,8 +547,10 @@ Module contents
     Reload all sources, effectively reloading configuration.
   
     You can for example register a signal handler which reloads the
-    configuration::
+    configuration:
 
+    ::
+    
       from smisk.config import config
       import signal
       signal.signal(signal.SIGHUP, lambda signum, frame: config.reload())
@@ -440,10 +559,18 @@ Module contents
       os.kill(os.getpid(), signal.SIGHUP)
       # config.reload() called
   
+  
+  .. method:: reset(reset_defaults=True)
+    
+    Reset this configuration dictionary.
+    
+    Causes :attr:`sources`, :attr:`filters` and possibly :attr:`defaults` to
+    be cleared as well as the configuration dictionary itself.
+    
 
   .. method:: add_filter(self, filter)
 
-    Add a filter.
+    Add a *filter*.
   
-    :See: :attr:`Configuration.filters`
+    :See: :attr:`filters`
 

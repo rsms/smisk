@@ -1,7 +1,7 @@
 # encoding: utf-8
 '''User configuration.
 '''
-import sys, os, logging
+import sys, os, logging, glob, codecs, re
 from smisk.util.collections import merge_dict
 log = logging.getLogger(__name__)
 
@@ -19,6 +19,14 @@ config_locations = [os.path.join(sysconfdir, 'default'), sysconfdir]
 '''Default directories in which to look for configurations files, effective
 when using Configuration.load().
 '''
+
+GLOB_RE = re.compile(r'.*(?:[\*\?]|\[[^\]]+\]).*')
+'''For checking if a string might be a glob pattern.
+'''
+# *	matches everything
+# ?	matches any single character
+# [seq]	matches any character in seq
+# [!seq]
 
 def _strip_comments(s):
   while 1:
@@ -53,16 +61,21 @@ class Configuration(dict):
     'null': None
   }
   
-  defaults = {}
-  '''Default values
-  '''
-  
   filename_ext = '.conf'
   '''Filename extension of configuration files
   '''
   
   logging_key = 'logging'
   '''Name of logging key
+  '''
+  
+  input_encoding = 'utf-8'
+  '''Character encoding used for reading configuration files.
+  '''
+  
+  max_include_depth = 7
+  '''How deep to search for (and load) files from @include or @inherit.
+  Set to 0 to disable includes.
   '''
   
   for k in 'CRITICAL FATAL ERROR WARN WARNING INFO NOTSET DEBUG'.split():
@@ -75,6 +88,7 @@ class Configuration(dict):
     self.sources = []
     self.filters = []
     self._defaults = defaults
+    self._include_depth = 0
   
   def _get_defaults(self):
     return self._defaults
@@ -85,7 +99,7 @@ class Configuration(dict):
     self._defaults = d
     self.reload()
   
-  defaults = property(_get_defaults, _set_defaults)
+  defaults = property(_get_defaults, _set_defaults, 'Default values')
   
   def set_default(self, k, v):
     self._defaults[k] = v
@@ -136,13 +150,19 @@ class Configuration(dict):
     '''Load configuration from file denoted by *path*.
     Returns the dict loaded.
     '''
-    f = open(path, 'r')
+    load_key = path
+    f = codecs.open(path, 'r', encoding=self.input_encoding, errors='strict')
     try:
-      conf = self._loads(path, f.read(), symbols)
+      conf, includes, inherit = self._loads(load_key, f.read(), symbols)
     finally:
       f.close()
-    if post_process:
-      self._post_process()
+    if conf:
+      if self.max_include_depth > 0 and includes:
+        self._handle_includes(path, includes, symbols)
+        if inherit:
+          self._apply_loads(conf, load_key)
+      if post_process:
+        self._post_process()
     return conf
   
   def loads(self, string, symbols={}, post_process=True):
@@ -150,7 +170,7 @@ class Configuration(dict):
     Returns the dict loaded.
     '''
     load_key = '<string#0x%x>' % hash(string)
-    conf = self._loads(load_key, string, symbols)
+    conf, includes, inherit = self._loads(load_key, string, symbols)
     if post_process:
       self._post_process()
     return conf
@@ -161,8 +181,9 @@ class Configuration(dict):
     log.info('reloading configuration')
     reload_paths = []
     self.clear()
-    self.update(self.defaults)
+    self.update(self._defaults)
     for k,conf in self.sources:
+      log.debug('reloading: applying %r', k)
       if k[0] == '<':
         # initially loaded from a string
         self.update(conf)
@@ -171,7 +192,15 @@ class Configuration(dict):
     self._post_process()
   
   def update(self, b):
+    log.debug('update: merging %r --into--> %r', b, self)
     merge_dict(self, b, merge_lists=True)
+  
+  def reset(self, reset_defaults=True):
+    self.clear()
+    self.sources = []
+    self.filters = []
+    if reset_defaults:
+      self._defaults = {}
   
   def add_filter(self, filter):
     '''Add a filter
@@ -187,9 +216,49 @@ class Configuration(dict):
       for filter in self.filters:
         filter(self)
   
+  def _handle_includes(self, source_path, includes, symbols):
+    '''Loads any files (possibly glob'ed) denoted by the key @include.
+    Returns a list of paths included.
+    '''
+    try:
+      self._include_depth += 1
+      if self._include_depth > self.max_include_depth:
+        raise RuntimeError('maximum include depth exceeded')
+      if isinstance(includes, tuple):
+        includes = list(includes)
+      elif not isinstance(includes, list):
+        includes = [includes]
+      dirname = os.path.dirname(source_path)
+      # preprocess paths
+      v = includes
+      includes = []
+      for path in v:
+        if not path:
+          continue
+        # note: not windows-safe
+        if path[0] != '/':
+          path = os.path.join(dirname, path)
+        if GLOB_RE.match(path):
+          v = glob.glob(path)
+          log.debug('include/inherit: expanding glob pattern %r --> %r', path, v)
+          if v:
+            v.sort()
+            includes.extend(v)
+        else:
+          includes.append(path)
+      # load paths
+      for path in includes:
+        log.debug('include/inherit: loading %r', path)
+        self.load(path, symbols, post_process=False)
+      return includes
+    finally:
+      self._include_depth -= 1
+  
   def _post_process(self):
+    log.debug('post processing: applying filters')
     self.apply_filters()
     if self.logging_key:
+      log.debug('post processing: looking for logging key %r', self.logging_key)
       self._configure_logging()
     log.info('active configuration: %r', self)
   
@@ -206,6 +275,9 @@ class Configuration(dict):
     configure_logging(conf)
   
   def _loads(self, load_key, string, symbols):
+    conf = None
+    includes = None
+    inherit = False
     load_key = intern(load_key)
     syms = self.default_symbols.copy()
     syms.update(symbols)
@@ -215,17 +287,38 @@ class Configuration(dict):
       conf = eval(string, syms)
       if not isinstance(conf, dict):
         raise TypeError('configuration %r does not represent a dictionary' % path)
-      self.update(conf)
-      try:
-        for i,v in enumerate(self.sources):
-          if v[0] == load_key:
-            self.sources[i] = (load_key, conf)
-            raise NotImplementedError()
-        self.sources.append((load_key, conf))
-      except NotImplementedError:
-        pass
-    else:
+      if conf:
+        includes = conf.get('@include')
+        if includes is None:
+          includes = conf.get('@inherit')
+          if includes is not None:
+            inherit = True
+            del conf['@inherit'] # or else reload() will mess things up
+        else:
+          del conf['@include'] # or else reload() will mess things up
+        if includes is not None:
+          if load_key[0] == '<':
+            # when loading a string, simply remove include key
+            includes = None
+        if includes is None or not inherit:
+          # only _apply_loads if no includes, since includes need to be
+          # applied prior to _apply_loads (in order to have the includes
+          # act as a base config rather than a dominant config)
+          self._apply_loads(conf, load_key)
+    if conf is None:
       log.debug('skipping empty configuration %s', load_key)
+    return conf, includes, inherit
+  
+  def _apply_loads(self, conf, load_key):
+    self.update(conf)
+    try:
+      for i,v in enumerate(self.sources):
+        if v[0] == load_key:
+          self.sources[i] = (load_key, conf)
+          raise NotImplementedError() # trick
+      self.sources.append((load_key, conf))
+    except NotImplementedError:
+      pass
   
 
 config = Configuration()
