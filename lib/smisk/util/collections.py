@@ -109,7 +109,7 @@ def merge_dict(a, b, merge_lists=True):
   for bk,bv in b.iteritems():
     if a.has_key(bk) and hasattr(bv, 'has_key') and hasattr(a[bk], 'has_key'):
       merge_dict(a[bk], bv, merge_lists)
-    elif merge_lists and hasattr(bv, 'extend') and hasattr(a[bk], 'extend'):
+    elif merge_lists and hasattr(bv, 'extend') and hasattr(a.get(bk), 'extend'):
       a[bk].extend(bv)
     else:
       a[bk] = bv
