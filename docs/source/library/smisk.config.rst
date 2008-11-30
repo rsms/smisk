@@ -467,7 +467,7 @@ Module contents
       ~/<name>.conf
   
   
-  .. method:: set_default(self, key, value)
+  .. method:: set_default(key, value)
     
     Assign a default *value* to *key*.
 
@@ -512,7 +512,7 @@ Module contents
     be cleared as well as the configuration dictionary itself.
     
 
-  .. method:: add_filter(self, filter)
+  .. method:: add_filter(filter)
 
     Add a *filter*.
   
