@@ -51,14 +51,6 @@ JavaScript/JSON-style comments are supported:
   },
 
 
-Filters
--------------------------------------------------
-
-TODO
-
-:see: :meth:`Configuration.add_filter()`
-
-
 Includes
 -------------------------------------------------
 
@@ -157,62 +149,82 @@ Note that ``@inherit`` is *not* the inverse or reverse of ``@include``, but rath
 Logging
 -------------------------------------------------
 
-TODO
+Logging (the standard library `logging <http://docs.python.org/library/logging.html>`__ module)
+can be configured based on a dictionary passed to :func:`configure_logging()`:
+
+.. code-block:: javascript
+
+  {
+    'stream': 'stdout',
+    'filename': '/var/log/myapp.log',
+    'filemode', 'a',
+    'format': '%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',
+    'datefmt': '%H:%M:%S',
+    'levels': {
+      '': WARN,
+      'some.module': DEBUG
+    }
+  }
+
+.. describe:: stream
+  
+  If present, the root logger will be configured with a
+  `StreamHandler <http://docs.python.org/library/logging.html#logging.StreamHandler>`__,
+  writing to stream :samp:`sys.{stream}`.
+  
+  Two streams are available:
+  
+  * stdout --- Standard output
+  * stderr --- Standard error
+  
+  This parameters is shadowed by the *filename* parameter. Only one of *filename*
+  and *stream* should be present in the configuration.
+
+.. describe:: filename, filemode
+  
+  If present, the root logger will be configured with a
+  `FileHandler <http://docs.python.org/library/logging.html#logging.FileHandler>`__,
+  writing to the file denoted by *filename*, using mode *filemode* (or "a" if 
+  *filemode* is not set).
+  
+  This parameters takes precedence over the *stream* parameter.
+
+.. describe:: format, datefmt
+
+  If present, the handler of the root logger will be configured to use a
+  `Formatter <http://docs.python.org/library/logging.html#logging.Formatter>`__
+  based on this format.
+
+.. describe:: levels
+
+  A dictionary with logging levels keyed by logger name.
+  
+  Note that the root logger level is set by associating a level with the empty string. I.e.:
+  
+  .. code-block:: javascript
+    
+    'levels': {
+      '': WARN,
+    }
+
+.. note::
+
+  Logging is automatically configured by :class:`Configuration` after some
+  configuration has been loaded (if :attr:`Configuration.logging_key` is
+  exists in the loaded configuration).
 
 :see: :func:`configure_logging()`
-
-
-Practical use
--------------------------------------------------
-
-Normally, you use the shared instance :attr:`config`
-::
-
-  from smisk.config import config
-  config('my-app')
-  print config['some_key']
-
-If your system have different default configuration directories, these might 
-be added module-wide by modifying :attr:`config_locations`
-::
-
-  from smisk.config import config_locations, config
-  config_locations[0:0] = ['/etc/spotify/default', '/etc/spotify']
-  config('my-app')
-  # loading /etc/spotify/my-app.conf
-  print config['some_key']
-
-In the case you need separate sets of configuration available in parallel, 
-:class:`Configuration` can be used to create new configuration
-dictionaries::
-
-  from smisk.config import Configuration
-  config1 = Configuration()
-  config2 = Configuration()
-  config1('my-app1')
-  config2('my-app2')
-  print config1['some_key']
-  print config2['something_else']
-
-
-Sources
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Every :class:`Configuration` instance contains a list of all sources (string and files) used to create the configuration dictionary. This information is used by :meth:`Configuration.reload()` in order to correctly update and merge options. You can access this list of sources through :attr:`Configuration.sources`
-::
-
-  from smisk.config import config
-  config('my-app')
-  print 'Sources:', config.sources
+:see: :attr:`Configuration.logging_key`
 
 
 Symbols
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------------------------
 
-A set of basic symbols, constructed to simplify syntax, are available through 
+A set of basic symbols, meant to simplify syntax (and to make configuration
+files compatible with Python repr), are available through 
 :attr:`Configuration.default_symbols`. During call-time, you can also pass an
-extra set of symbols, being combined with default_symbols when ``eval`` ing
-configurations
+extra set of symbols, being combined with and overriding default_symbols when
+``eval`` ing configurations.
 ::
 
   from smisk.config import config
@@ -227,10 +239,12 @@ configurations
   print config['some_key']
   # Foo!
 
-Predefined symbols:
+
+Predefined symbols
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 =========  ================
-NAME       VALUE
+Symbol     Python value
 =========  ================
 true       True
 false      False
@@ -254,76 +268,37 @@ notset     logging.NOTSET
 =========  ================
 
 
-Smisk MVC applications
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Practical use
+-------------------------------------------------
 
-In a typical Smisk MVC application, you have a config module directly inside
-your application module::
-
-  my_app/
-    __init__.py
-    config.py
-
-Inside config.py (or config/__init__.py, depending on your setup) you load a
-configuration of choice::
-
-  # config.py
-  from smisk.config import config
-  config(os.path.basename(os.environ['SMISK_APP_DIR']))
-
-Considering the previous example directory layout, this will try to load
-configuration files named 'my_app'.
-
-As Smisk supports the notion of an "environment" and also loads multiple 
-application config modules if available, it's possible to load, or override, 
-configurations with little effort. Let's use another example directory layout,
-with multiple application config modules::
-
-  my_app/
-    __init__.py
-    config/
-      __init__.py
-      devel.py
-
-Contents of my_app/config/__init__.py::
+Normally, you use the shared instance :attr:`config`
+::
 
   from smisk.config import config
-  config(os.path.basename(os.environ['SMISK_APP_DIR']))
+  config('my-app')
+  print config['some_key']
 
-Contents of my_app/config/devel.py::
+If your system have different default configuration directories than the
+default ones, these might be added module-wide by modifying :attr:`config_locations`
+::
 
-  from smisk.config import config
-  config(os.path.basename(os.environ['SMISK_APP_DIR']) + '-devel')
+  from smisk.config import config_locations, config
+  config_locations[0:0] = ['/etc/spotify/default', '/etc/spotify']
+  config('my-app')
+  # loading /etc/spotify/my-app.conf
+  print config['some_key']
 
-Now when the application starts with SMISK_ENVIRONMENT set to "devel":
+In the case you need several sets of configurations in parallel, 
+:class:`Configuration` can be used to create new configuration
+dictionaries::
 
-  * my_app/config/__init__.py is first executed, loading the basic set of 
-    configuration from one or many files.
-  
-  * my_app/config/devel.py is then executed, overloading parts of or all
-    previous configuration.
-
-
-Smisk core applications
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-There is no such thing as a typical Smisk core application, but let's assume
-a very simple hello world implementation, returning the value of a
-configuration key called "message"::
-
-  from smisk.core import Application
-  from smisk.config import config
-  
-  class MyApp(Application):
-    def __init__(self):
-      Application.__init__(self)
-      config('my_app')
-    
-    def service(self):
-      self.response('message: ', config.get('message', 'No message configured'))
-  
-  if __name__ == '__main__':
-    MyApp().run()
+  from smisk.config import Configuration
+  config1 = Configuration(some_key='default value')
+  config2 = Configuration()
+  config1('my-app1')
+  config2('my-app2')
+  print config1['some_key']
+  print config2['something_else']
 
 
 Module contents
@@ -359,62 +334,7 @@ Module contents
   configuration has been loaded and if :attr:`Configuration.logging_key` is set
   (which it is by default).
   
-  The *conf* dictionary is sarched for several parameters:
-  
-  .. code-block:: javascript
-  
-    {
-      'stream': 'stdout',
-      'filename': '/var/log/myapp.log',
-      'filemode', 'a',
-      'format': '%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',
-      'datefmt': '%H:%M:%S',
-      'levels': {
-        '': WARN,
-        'some.module': DEBUG
-      }
-    }
-  
-  .. describe:: stream
-    
-    If present, the root logger will be configured with a
-    `StreamHandler <http://docs.python.org/library/logging.html#logging.StreamHandler>`__,
-    writing to stream :samp:`sys.{stream}`.
-    
-    Two streams are available:
-    
-    * stdout --- Standard output
-    * stderr --- Standard error
-    
-    This parameters is shadowed by the *filename* parameter. Only one of *filename*
-    and *stream* should be present in the configuration.
-  
-  .. describe:: filename, filemode
-    
-    If present, the root logger will be configured with a
-    `FileHandler <http://docs.python.org/library/logging.html#logging.FileHandler>`__,
-    writing to the file denoted by *filename*, using mode *filemode* (or "a" if 
-    *filemode* is not set).
-    
-    This parameters takes precedence over the *stream* parameter.
-  
-  .. describe:: format, datefmt
-  
-    If present, the handler of the root logger will be configured to use a
-    `Formatter <http://docs.python.org/library/logging.html#logging.Formatter>`__
-    based on this format.
-  
-  .. describe:: levels
-  
-    A dictionary with logging levels keyed by logger name.
-    
-    Note that the root logger level is set by associating a level with the empty string. I.e.:
-    
-    .. code-block:: javascript
-      
-      'levels': {
-        '': WARN,
-      }
+  :see: `Logging`_
 
 
 .. class:: Configuration(dict)
@@ -443,6 +363,13 @@ Module contents
     
     :default: :samp:`{}`
   
+
+  .. attribute:: default_symbols
+
+    Default symbols.
+    
+    :see: `Symbols`_
+  
   
   .. attribute:: sources
 
@@ -455,22 +382,32 @@ Module contents
     *<path or string hash>* is used to know where from and configuration is the 
     unmodified, non-merged configuration this source generated.
     
+    Every :class:`Configuration` instance contains a list of all sources
+    (string and files) used to create the configuration dictionary. This 
+    information is used by :meth:`Configuration.reload()` in order to correctly
+    update and merge options.
+    ::
+
+      from smisk.config import config
+      config('my-app')
+      print 'Sources:', config.sources
+    
     :default: :samp:`[]`
   
   
   .. attribute:: filters
 
-    A list of filters which are applied after configuration has been loaded.
+    List of filters which are applied after configuration has been loaded.
 
-    A filter receives the configuration dictionary, possibly as a result of
-    several sources merged, and should not return anything::
+    A filter receives the :class:`Configuration` instance calling it and
+    should not return anything::
   
       def my_filter(conf):
         if 'my_special_key' in conf:
           something_happens(conf['my_special_key'])
       config.add_filter(my_filter)
   
-    Filters are automatically applied both when initially loading and also when
+    Filters are automatically applied both when initially loading and
     reloading configuration.
     
     :default: :samp:`[]`
@@ -489,6 +426,7 @@ Module contents
     Name of logging key
     
     :default: :samp:`"logging"`
+    :see: `Logging`_
   
   
   .. attribute:: input_encoding
