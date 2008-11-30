@@ -515,6 +515,11 @@ Module contents
   .. method:: add_filter(filter)
 
     Add a *filter*.
+    
+    Simply does this::
+    
+      if filter not in self.filters:
+        self.filters.append(filter)
   
     :See: :attr:`filters`
 
