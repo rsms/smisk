@@ -94,6 +94,13 @@ class Configuration(dict):
   def __call__(self, name, defaults=None, locations=[], symbols={}, logging_key=None):
     '''Load configuration files from a series of pre-defined locations.
     Returns a list of files that was loaded.
+    
+      /etc/default/<name>.conf
+      /etc/<name>.conf
+      /etc/<name>/<name>.conf
+      ./<name>.conf
+      ./<name>-user.conf
+      ~/<name>.conf
     '''
     log.info('loading named configuration %r', name)
     if isinstance(defaults, dict):
