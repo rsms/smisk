@@ -118,6 +118,10 @@ It's fully predictable what happens:
 
 In other words, files included (using ``@include``) overrides the parent configuration.
 
+.. note::
+  
+  Relative paths are always relative to the file which is defining them. If file */foo/bar.conf* defines ``"@include": "more/abc.conf"``, */foo/more/abc.conf* is loaded. If */foo/more/abc.conf* defines ``"@include": "more/xyz.conf"``, */foo/more/more/xyz.conf* is loaded.
+
 
 @inherit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
