@@ -502,15 +502,15 @@ Module contents
       import os
       os.kill(os.getpid(), signal.SIGHUP)
       # config.reload() called
-  
-  
+
+
   .. method:: reset(reset_defaults=True)
     
     Reset this configuration dictionary.
     
     Causes :attr:`sources`, :attr:`filters` and possibly :attr:`defaults` to
     be cleared as well as the configuration dictionary itself.
-    
+
 
   .. method:: add_filter(filter)
 
