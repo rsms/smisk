@@ -76,7 +76,7 @@ Multiple files can be included at once by specifying a list of paths:
   "interval": 12.7, /* A value in the range [0,123) */
   "@include": ["another/file.conf", "/yet/another/file.conf"],
 
-Paths are expanded using `glob <http://docs.python.org/library/glob.html>`__, so another way of including multiple file is using a `glob pattern <http://docs.python.org/library/fnmatch.html>`__:
+Paths can be expanded using `glob <http://docs.python.org/library/glob.html>`__, so another way of including multiple file is using a `glob pattern <http://docs.python.org/library/fnmatch.html>`__:
 
 .. code-block:: javascript
   
