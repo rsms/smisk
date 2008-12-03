@@ -6,6 +6,7 @@ import sys, re, logging
 from smisk.mvc import http
 from smisk.mvc import control
 from smisk.core import URL
+from smisk.config import config
 from smisk.util.type import *
 from smisk.util.python import wrap_exc_in_callable
 from smisk.util.string import tokenize_path
@@ -144,8 +145,8 @@ class RegExpFilter(Filter):
     else:
       self.pattern = re.compile(pattern, regexp_flags)
     
-    if not isinstance(destination_path, basestring):
-      raise ValueError('second argument "destination_path" must be a string, not %s'\
+    if not isinstance(destination_path, (basestring, URL)):
+      raise ValueError('second argument "destination_path" must be a string or URL, not %s'\
         % type(destination_path).__name__)
     
     self.destination_path = _prep_path(destination_path)
@@ -217,6 +218,11 @@ class Router(object):
     self.cache = {}
     self.filters = []
   
+  def configure(self, config_key='smisk.mvc.routes'):
+    for filter in config.get(config_key, []):
+      dest = URL(filter['destination'])
+      self.filter(filter['pattern'], dest, match_on_full_url=dest.scheme)
+  
   def filter(self, pattern, destination_path, regexp_flags=re.I, match_on_full_url=False, params={}):
     '''Explicitly map an action to paths or urls matching regular expression `pattern`.
     
@@ -242,7 +248,16 @@ class Router(object):
     :rtype: RegExpFilter
     '''
     filter = RegExpFilter(pattern, destination_path, regexp_flags, match_on_full_url, **params)
+    # already exists?
+    for i in range(len(self.filters)):
+      f = self.filters[i]
+      if isinstance(f, RegExpFilter) and f.pattern.pattern == pattern:
+        # replace
+        self.filters[i] = filter
+        log.debug('updated filter %r', filter)
+        return filter
     self.filters.append(filter)
+    log.debug('added filter %r', filter)
     return filter
   
   

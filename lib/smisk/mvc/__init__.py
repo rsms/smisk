@@ -215,6 +215,10 @@ class Application(smisk.core.Application):
     # Call setup()
     self.setup()
     
+    # Configure routers
+    if isinstance(self.routes, Router):
+      self.routes.configure()
+    
     # Initialize mime types module
     mimetypes.init()
     
@@ -791,10 +795,16 @@ def smisk_mvc(conf):
         log.error('configuration of smisk.mvc.Response.serializer failed: '\
           'No serializer named %r', Response.serializer)
         Response.serializer = None
+  
   # Application.show_traceback
   if 'smisk.mvc.show_traceback' in conf:
     Application.show_traceback = conf['smisk.mvc.show_traceback']
   
+  # Initialize routes
+  a = Application.current
+  if a and isinstance(a.routes, Router):
+    a.routes.configure()
+
 config.add_filter(smisk_mvc)
 del smisk_mvc
 
