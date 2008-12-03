@@ -605,14 +605,14 @@ class Application(smisk.core.Application):
       rsp = self.call_action(req_args, req_params)
     except http.HTTPExc, e:
       if e.status.is_error:
-        log.info('rolling back db transaction')
+        log.debug('rolling back db transaction')
         model.session.rollback()
       else:
-        log.info('committing db transaction before handling non-error http status')
+        log.debug('committing db transaction before handling non-error http status')
         model.session.flush()
       raise
     except:
-      log.info('rolling back db transaction')
+      log.debug('rolling back db transaction')
       model.session.rollback()
       raise
     
