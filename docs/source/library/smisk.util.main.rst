@@ -83,7 +83,7 @@ Module contents
   :rtype: object
 
 
-.. function:: main(application=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=True, *args, **kwargs) -> object
+.. function:: main(application=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=True, config=None, *args, **kwargs) -> object
 
   Helper for setting up and running an application.
 

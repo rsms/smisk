@@ -2,7 +2,7 @@
 '''Program main routine helpers.
 '''
 import sys, os, logging, smisk.core
-from smisk.config import config
+from smisk.config import config as _config
 
 __all__ = ['setup_appdir', 'main_cli_filter', 'handle_errors_wrapper']
 log = logging.getLogger(__name__)
@@ -159,11 +159,16 @@ class Main(object):
   default_app_type = smisk.core.Application
   _is_set_up = False
   
-  def __call__(self, application=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=True, *args, **kwargs):
+  def __call__(self, application=None, appdir=None, bind=None, forks=None, handle_errors=True, cli=True, config=None, *args, **kwargs):
     '''Helper for setting up and running an application.
     '''
     if cli:
       appdir, bind, forks = main_cli_filter(appdir=appdir, bind=bind, forks=forks)
+    
+    # Load config
+    if config:
+      _config(config)
+    
     # Setup
     if handle_errors:
       application = handle_errors_wrapper(self.setup, application=application, appdir=appdir, *args, **kwargs)
@@ -202,7 +207,7 @@ class Main(object):
       log.info('Listening on %s', smisk.core.listening())
     
     # Enable auto-reloading if any of these are True:
-    if config.get('smisk.autoreload.modules', config.get('smisk.autoreload.config')):
+    if _config.get('smisk.autoreload.modules', _config.get('smisk.autoreload.config')):
       from smisk.autoreload import Autoreloader
       ar = Autoreloader()
       ar.start()
