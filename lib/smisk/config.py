@@ -256,10 +256,10 @@ class Configuration(dict):
   
   def _post_process(self):
     log.debug('post processing: applying filters')
-    self.apply_filters()
     if self.logging_key:
       log.debug('post processing: looking for logging key %r', self.logging_key)
       self._configure_logging()
+    self.apply_filters()
     log.info('active configuration: %r', self)
   
   def _configure_logging(self):
