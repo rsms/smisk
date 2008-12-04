@@ -165,10 +165,6 @@ class Main(object):
     if cli:
       appdir, bind, forks = main_cli_filter(appdir=appdir, bind=bind, forks=forks)
     
-    # Load config
-    if config:
-      _config(config)
-    
     # Setup
     if handle_errors:
       application = handle_errors_wrapper(self.setup, application=application, appdir=appdir, *args, **kwargs)
@@ -190,6 +186,16 @@ class Main(object):
     self._is_set_up = True
     
     setup_appdir(appdir)
+    
+    # Load config
+    if config:
+      prev_cwd = os.getcwd()
+      os.chdir(os.environ['SMISK_APP_DIR'])
+      try:
+        _config(config)
+      finally:
+        os.chdir(prev_cwd)
+    
     return absapp(application, self.default_app_type, *args, **kwargs)
   
   
