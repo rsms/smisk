@@ -229,7 +229,7 @@ main = Main()
 #-------------------------------------------------------------------------
 # Forking utilities
 
-def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+def daemonize(chdir='/', umask=None, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
   '''This forks the current process into a daemon.
   The stdin, stdout, and stderr arguments are file names that
   will be opened and be used to replace the standard file descriptors
@@ -249,8 +249,14 @@ def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     sys.exit(1)
   
   # Decouple from parent environment.
-  os.chdir('/')
-  os.umask(0)
+  if chdir:
+    if not isinstance(chdir, basestring):
+      chdir = '/'
+    os.chdir(chdir)
+    log.debug('changed directory to %r', chdir)
+  if isinstance(umask, int):
+    os.umask(umask)
+    log.debug('changed umask to %d', umask)
   os.setsid()
   
   # Do second fork.
@@ -265,12 +271,24 @@ def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
   # Now I am a daemon
   
   # Redirect standard file descriptors.
-  si = file(stdin, 'r')
-  so = file(stdout, 'a+')
-  se = file(stderr, 'a+', 0)
-  os.dup2(si.fileno(), sys.stdin.fileno())
-  os.dup2(so.fileno(), sys.stdout.fileno())
-  os.dup2(se.fileno(), sys.stderr.fileno())
+  if stdin is None:
+    stdin = '/dev/null'
+  if not isinstance(stdin, file):
+    stdin = file(stdin, 'r')
+  
+  if stdout is None:
+    stdout = '/dev/null'
+  if not isinstance(stdout, file):
+    stdout = file(stdout, 'a+')
+  
+  if stderr is None:
+    stderr = '/dev/null'
+  if not isinstance(stderr, file):
+    stderr = file(stderr, 'a+', 0)
+  
+  os.dup2(stdin.fileno(),  sys.stdin.fileno())
+  os.dup2(stdout.fileno(), sys.stdout.fileno())
+  os.dup2(stderr.fileno(), sys.stderr.fileno())
 
 
 def wait_for_child_processes(options=0):
@@ -286,7 +304,7 @@ def wait_for_child_processes(options=0):
       raise
 
 
-def control_process_runloop(pids, signals=(signal.SIGHUP, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM)):
+def control_process_runloop(pids, signals=(signal.SIGHUP, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM), cleanup=None):
   parent_sighandlers = {}
   
   def ctrl_proc_finalize(signalnum, frame):
@@ -296,7 +314,19 @@ def control_process_runloop(pids, signals=(signal.SIGHUP, signal.SIGINT, signal.
     except KeyboardInterrupt:
       log.info('force-killing workers (SIGKILL)')
       for pid in pids:
-        os.kill(pid, signal.SIGKILL)
+        try:
+          os.kill(pid, signal.SIGKILL)
+        except OSError, e:
+          # 3: No such process
+          if e.errno != 3:
+            raise
+    # Run cleanup function
+    if callable(cleanup):
+      try:
+        cleanup()
+      except:
+        log.error('cleanup function failed:', exc_info=1)
+    # Call parent
     if signalnum in parent_sighandlers:
       parent_handler = parent_sighandlers[signalnum]
       if callable(parent_handler):
