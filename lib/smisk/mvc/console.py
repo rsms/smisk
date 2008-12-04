@@ -71,6 +71,7 @@ def export(obj):
 
 
 def main(app=None,
+         chdir=None,
          appdir=None,
          log_format='\033[1;33m%(levelname)-8s \033[1;31m%(name)-20s\033[0m %(message)s',
          intro_eval=None,
@@ -151,6 +152,9 @@ def main(app=None,
           format_exc(as_string=1))
     finally:
       del sys.path[0]
+  
+  if chdir:
+    os.chdir(chdir)
   
   try:
     from smisk.mvc import setup
