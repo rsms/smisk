@@ -167,15 +167,15 @@ class Main(object):
     
     # Setup
     if handle_errors:
-      application = handle_errors_wrapper(self.setup, application=application, appdir=appdir, *args, **kwargs)
+      application = handle_errors_wrapper(self.setup, application=application, appdir=appdir, config=config, *args, **kwargs)
     else:
-      application = self.setup(application=application, appdir=appdir, *args, **kwargs)
+      application = self.setup(application=application, appdir=appdir, config=config, *args, **kwargs)
     
     # Run
     return self.run(bind=bind, application=application, forks=forks, handle_errors=handle_errors)
   
   
-  def setup(self, application=None, appdir=None, *args, **kwargs):
+  def setup(self, application=None, appdir=None, config=None, *args, **kwargs):
     '''Helper for setting up an application.
     Returns the application instance.
     
