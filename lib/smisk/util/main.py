@@ -130,12 +130,6 @@ def handle_errors_wrapper(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs
   except SystemExit:
     raise
   except:
-    logging.basicConfig(level=logging.WARN)
-    # Log error
-    try:
-      log.critical('exception:', exc_info=True)
-    except:
-      pass
     # Write to error.log
     try:
       log_dir = os.environ.get('SMISK_LOG_DIR', os.environ.get(os.environ['SMISK_APP_DIR'], '.'))

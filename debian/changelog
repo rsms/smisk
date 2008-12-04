@@ -1,3 +1,9 @@
+python-smisk (1.1.0-7) stable testing unstable; urgency=low
+
+  * Removed logging in handle_errors_wrapper which could cause IOError.
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Thu,  4 Dec 2008 04:47:51 +0100
+
 python-smisk (1.1.0-6) stable testing unstable; urgency=low
 
   * Fixed a bug in smisk.util.main where config arg was not delegated.
