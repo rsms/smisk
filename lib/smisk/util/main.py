@@ -1,7 +1,7 @@
 # encoding: utf-8
 '''Program main routine helpers.
 '''
-import sys, os, logging, smisk.core
+import sys, os, logging, signal, smisk.core
 from smisk.config import config as _config
 
 __all__ = ['setup_appdir', 'main_cli_filter', 'handle_errors_wrapper']
@@ -224,3 +224,89 @@ class Main(object):
   
 
 main = Main()
+
+
+#-------------------------------------------------------------------------
+# Forking utilities
+
+def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+  '''This forks the current process into a daemon.
+  The stdin, stdout, and stderr arguments are file names that
+  will be opened and be used to replace the standard file descriptors
+  in sys.stdin, sys.stdout, and sys.stderr.
+  These arguments are optional and default to /dev/null.
+  Note that stderr is opened unbuffered, so
+  if it shares a file with stdout then interleaved output
+  may not appear in the order that you expect.
+  '''
+  # Do first fork.
+  try:
+    pid = os.fork()
+    if pid > 0:
+      sys.exit(0) # Exit first parent.
+  except OSError, e:
+    log.critical('daemonize(): fork #1 failed: (%d) %s', e.errno, e.strerror)
+    sys.exit(1)
+  
+  # Decouple from parent environment.
+  os.chdir('/')
+  os.umask(0)
+  os.setsid()
+  
+  # Do second fork.
+  try:
+    pid = os.fork()
+    if pid > 0:
+      sys.exit(0) # Exit second parent.
+  except OSError, e:
+    log.critical('daemonize(): fork #2 failed: (%d) %s', e.errno, e.strerror)
+    sys.exit(1)
+  
+  # Now I am a daemon
+  
+  # Redirect standard file descriptors.
+  si = file(stdin, 'r')
+  so = file(stdout, 'a+')
+  se = file(stderr, 'a+', 0)
+  os.dup2(si.fileno(), sys.stdin.fileno())
+  os.dup2(so.fileno(), sys.stdout.fileno())
+  os.dup2(se.fileno(), sys.stderr.fileno())
+
+
+def wait_for_child_processes(options=0):
+  while 1:
+    try:
+      pid, status = os.waitpid(-1, options)
+      log.debug('process %d exited with status %d', pid, status)
+    except OSError, e:
+      if e.errno in (4, 10):
+        # Mute "Interrupted system call" and "No child processes"
+        break
+      # Otherwise: delegate
+      raise
+
+
+def control_process_runloop(pids, signals=(signal.SIGHUP, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM)):
+  parent_sighandlers = {}
+  
+  def ctrl_proc_finalize(signalnum, frame):
+    try:
+      log.info('waiting for workers to exit cleanly')
+      wait_for_child_processes()
+    except KeyboardInterrupt:
+      log.info('force-killing workers (SIGKILL)')
+      for pid in pids:
+        os.kill(pid, signal.SIGKILL)
+    if signalnum in parent_sighandlers:
+      parent_handler = parent_sighandlers[signalnum]
+      if callable(parent_handler):
+        log.debug('triggering parent signal handler %r', parent_handler)
+        parent_handler(signalnum, frame)
+  
+  for signalnum in signals:
+    parent_sighandlers[signalnum] = signal.signal(signalnum, ctrl_proc_finalize)
+  
+  try:
+    wait_for_child_processes()
+  except KeyboardInterrupt:
+    pass
