@@ -105,6 +105,16 @@ class Configuration(dict):
     self._defaults[k] = v
     self[k] = v
   
+  def g(self, *keys, **kw):
+    v = self
+    default = kw.get('default', None)
+    try:
+      for k in keys:
+        v = v[k]
+      return v
+    except KeyError:
+      return default
+  
   def __call__(self, name, defaults=None, locations=[], symbols={}, logging_key=None):
     '''Load configuration files from a series of pre-defined locations.
     Returns a list of files that was loaded.
@@ -144,6 +154,9 @@ class Configuration(dict):
       self.logging_key = logging_key
     if files_loaded:
       self._post_process()
+    else:
+      logging.basicConfig()
+      log.warn('no configuration named %r was found', name)
     return files_loaded
   
   def load(self, path, symbols={}, post_process=True):
