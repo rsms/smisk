@@ -603,21 +603,19 @@ class Application(smisk.core.Application):
     # Call the action which might generate a response object: rsp
     try:
       rsp = self.call_action(req_args, req_params)
+      model.session.commit()
     except http.HTTPExc, e:
       if e.status.is_error:
         log.debug('rolling back db transaction')
         model.session.rollback()
       else:
         log.debug('committing db transaction before handling non-error http status')
-        model.session.flush()
+        model.session.commit()
       raise
     except:
       log.debug('rolling back db transaction')
       model.session.rollback()
       raise
-    
-    # Flush model session
-    model.session.flush()
     
     # Aquire template, if any
     if self.template is None and self.templates is not None:
