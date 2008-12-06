@@ -1,3 +1,9 @@
+python-smisk (1.1.0-8) stable testing unstable; urgency=low
+
+  * Fixed broken SQLAlchemy session management
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Sat,  6 Dec 2008 22:09:51 +0100
+
 python-smisk (1.1.0-7) stable testing unstable; urgency=low
 
   * Removed logging in handle_errors_wrapper which could cause IOError.
