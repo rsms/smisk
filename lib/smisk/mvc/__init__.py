@@ -38,7 +38,6 @@ import smisk.core
 from smisk.core import app, request, response, URL
 from smisk.config import config, LOGGING_FORMAT, LOGGING_DATEFMT
 from smisk.mvc import http, control, model, filters
-from smisk.mvc.http import redirect_to
 from smisk.serialization import serializers, Serializer
 from smisk.util.cache import *
 from smisk.util.collections import *
@@ -52,6 +51,7 @@ from smisk.util.type import *
 from smisk.mvc.template import Templates
 from smisk.mvc.routing import Router
 from smisk.mvc.decorators import *
+from smisk.mvc.helpers import *
 
 Controller = control.Controller
 try:

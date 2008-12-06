@@ -2,7 +2,7 @@
 '''String parsing, formatting, etc.
 '''
 import sys, os
-from smisk.core import URL, request
+from smisk.core import URL, Application
 
 __all__ = ['parse_qvalue_header', 'tokenize_path', 'strip_filename_extension', 'normalize_url']
 
@@ -74,33 +74,37 @@ def strip_filename_extension(fn):
   except:
     return fn
 
-def normalize_url(url, default_absolute_url=None):
+def normalize_url(url, ref_base_url=None):
   '''
-  :Parameters:
-    url : string
-      An absolute URL, absolute path or relative path
-    default_absolute_url : URL
-      Default absolute URL used to expand a path to a full URL.
-      Uses ``smisk.core.request.url`` if not set.
-  :rtype: string
+  :param url:
+    An absolute URL, absolute path or relative path.
+  :type  url:
+    URL | string
+  :param ref_base_url:
+    Default absolute URL used to expand a path to a full URL.
+    Uses ``smisk.core.request.url`` if not set.
+  :type  ref_base_url:
+    URL
+  :rtype:
+    URL
   '''
-  if url.find('://') == -1:
-    # url is actually a path
-    path = url
-    if default_absolute_url:
-      url = default_absolute_url
-    elif request:
-      url = request.url
+  url = URL(url) # make a copy so we don't modify the original
+  
+  if not ref_base_url:
+    if Application.current and Application.current.request:
+      ref_base_url = Application.current.request.url
     else:
-      url = URL()
-    if len(path) == 0:
-      path = '/'
-    elif path[0] != '/':
-      if url.path:
-        path = os.path.normpath(url.path) + '/' + os.path.normpath(path)
-      else:
-        path = '/' + os.path.normpath(path)
-    else:
-      path = os.path.normpath(path)
-    url = url.to_s(port=url.port!=80, path=0, query=0, fragment=0) + path
+      ref_base_url = URL()
+  
+  if url.scheme is None:
+    url.scheme = ref_base_url.scheme
+  if url.user is None:
+    url.user = ref_base_url.user
+    if url.user is not None and url.password is None:
+      url.password = ref_base_url.password
+  if url.host is None:
+    url.host = ref_base_url.host
+  if url.port == 0:
+    url.port = ref_base_url.port
+  
   return url

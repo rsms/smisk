@@ -579,6 +579,7 @@ Modules
   smisk.mvc.control
   smisk.mvc.decorators
   smisk.mvc.filters
+  smisk.mvc.helpers
   smisk.mvc.http
   smisk.mvc.model
   smisk.mvc.routing

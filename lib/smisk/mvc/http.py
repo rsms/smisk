@@ -91,7 +91,9 @@ class Status3xx(Status):
     if url is None:
       raise Exception('http.Status3xx requires a 3:rd argument "url"')
     rsp = Status.service(self, app)
-    app.response.headers.append('Location: ' + normalize_url(url))
+    url = normalize_url(url)
+    url = url.to_s(port=url.port not in (80,443), fragment=0)
+    app.response.headers.append('Location: ' + url)
     rsp['description'] = 'The resource has moved to %s' % url
     return rsp
   
@@ -207,11 +209,3 @@ BadGateway                   = Status(502, "Bad Gateway")
 ServiceUnavailable           = Status(503, "Service Unavailable")
 GatewayTimeout               = Status(504, "Gateway Time-out")
 HTTPVersionNotSupported      = Status(505, "HTTP Version not supported")
-
-
-# Helpers
-
-def redirect_to(url, type=Found):
-  '''Redirect the request to someplace else
-  '''
-  raise type(url)

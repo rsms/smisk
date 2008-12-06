@@ -36,8 +36,7 @@ try:
   Entity.field_names = classmethod(field_names)
   
   def Entity__iter__(self):
-    for field_name in self.field_names():
-      yield (field_name, getattr(self, field_name))
+    return self.to_dict().iteritems()
   Entity.__iter__ = Entity__iter__
   
   # Metadata configuration bind filter

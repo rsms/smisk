@@ -43,21 +43,27 @@ Contents of *app.py*::
 
   class root(Controller):
     def __call__(self, *args, **params):
-      return {'kittens': [k.to_dict() for k in Kitten.query.all()]}
+      kittens = [dict(k) for k in Kitten.query.all()]
+      return {'kittens': kittens}
+
+    def create(self, **params):
+      kitten = Kitten(**params)
+      redirect_to(self.read, kitten)
   
-    def create(self, name, **params):
-      kitten = Kitten(name=name, **params)
-      redirect_to(u'/read?name=%s' % kitten.name)
-    
+    def read(self, **params):
+      kitten = Kitten.get_by(**params)
+      return kitten.to_dict()
+  
+    def update(self, name, **params):
+      kitten = Kitten.get_by(name=name)
+      kitten.from_dict(params)
+      redirect_to(self.read, kitten)
+  
     def delete(self, name):
       kitten = Kitten.get_by(name=name)
       kitten.delete()
-      redirect_to('/')
-    
-    def read(self, name):
-      kitten = Kitten.get_by(name=name)
-      return kitten.to_dict()
-  
+      redirect_to(self)
+
   if __name__ == '__main__':
     main(config='kittens')
 
@@ -69,9 +75,16 @@ Contents of *kittens.conf*:
   "smisk.mvc.model": { "url": "sqlite:///tmp/kittens.sqlite" }
 
 
+Try running the server and see a kitten getting born:
+`<http://localhost:8080/create?name=Busta+Rhymes&color=red>`__
 
+.. seealso::
 
-http://localhost:8080/create?name=Busta&color=red
+  Learn more about Elixir:
+    `<http://elixir.ematia.de/trac/wiki/TutorialDivingIn>`__
+  
+  Learn more about SQLAlchemys ORM layer:
+    `<http://www.sqlalchemy.org/docs/ormtutorial.html>`__
 
 
 Configuration parameters

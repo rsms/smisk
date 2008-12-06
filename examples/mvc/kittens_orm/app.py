@@ -13,26 +13,23 @@ class root(Controller):
     kittens = [dict(k) for k in Kitten.query.all()]
     return {'kittens': kittens}
 
-  def create(self, name, **params):
-    kitten = Kitten(name=name, **params)
-    redirect_to(u'/read?name=%s' % kitten.name)
+  def create(self, **params):
+    kitten = Kitten(**params)
+    redirect_to(self.read, kitten)
   
-  def read(self, name):
-    kitten = Kitten.get_by(name=name)
+  def read(self, **params):
+    kitten = Kitten.get_by(**params)
     return kitten.to_dict()
   
-  def update(self, name, color=Undefined, year_born=Undefined):
+  def update(self, name, **params):
     kitten = Kitten.get_by(name=name)
-    if color is not Undefined:
-      kitten.color = color
-    if year_born is not Undefined:
-      kitten.year_born = year_born
-    redirect_to(read, name=kitten.name)
+    kitten.from_dict(params)
+    redirect_to(self.read, kitten)
   
   def delete(self, name):
     kitten = Kitten.get_by(name=name)
     kitten.delete()
-    redirect_to('/')
+    redirect_to(self)
 
 if __name__ == '__main__':
   main(config='kittens')
