@@ -38,6 +38,7 @@ import smisk.core
 from smisk.core import app, request, response, URL
 from smisk.config import config, LOGGING_FORMAT, LOGGING_DATEFMT
 from smisk.mvc import http, control, model, filters
+from smisk.mvc.http import redirect_to
 from smisk.serialization import serializers, Serializer
 from smisk.util.cache import *
 from smisk.util.collections import *
@@ -202,8 +203,9 @@ class Application(smisk.core.Application):
         except IndexError:
           Response.fallback_serializer = None
     
-    # Setup any models
-    model.setup_all()
+    # Create tables if needed and setup any models
+    if model.metadata.bind:
+      model.setup_all(True)
   
   
   def application_will_start(self):
@@ -222,6 +224,11 @@ class Application(smisk.core.Application):
     # Initialize mime types module
     mimetypes.init()
     
+    # Register model.cleanup_all in atexit
+    if model.metadata.bind:
+      import atexit
+      atexit.register(model.cleanup_all)
+    
     # Info about serializers
     if log.level <= logging.DEBUG:
       log.debug('installed serializers: %s', ', '.join(unique_sorted_modules_of_items(serializers)) )
@@ -234,7 +241,6 @@ class Application(smisk.core.Application):
   
   def application_did_stop(self):
     smisk.core.unbind()
-    model.cleanup_all()
   
   
   def response_serializer(self, no_http_exc=False):
@@ -601,21 +607,20 @@ class Application(smisk.core.Application):
     self.apply_action_format_restrictions()
     
     # Call the action which might generate a response object: rsp
-    try:
+    if model.metadata.bind:
+      try:
+        try:
+          rsp = self.call_action(req_args, req_params)
+          model.session.commit()
+        except http.HTTPExc, e:
+          if not e.status.is_error:
+            log.debug('committing db transaction before handling non-error http status')
+            model.session.commit()
+          raise
+      finally:
+        model.session.remove()
+    else:
       rsp = self.call_action(req_args, req_params)
-      model.session.commit()
-    except http.HTTPExc, e:
-      if e.status.is_error:
-        log.debug('rolling back db transaction')
-        model.session.rollback()
-      else:
-        log.debug('committing db transaction before handling non-error http status')
-        model.session.commit()
-      raise
-    except:
-      log.debug('rolling back db transaction')
-      model.session.rollback()
-      raise
     
     # Aquire template, if any
     if self.template is None and self.templates is not None:
@@ -696,7 +701,7 @@ class Application(smisk.core.Application):
       if status.is_error:
         log.error('%d Request failed for %r', status.code, self.request.url.path, exc_info=(typ, val, tb))
       else:
-        log.warn('Request failed for %r -- %s: %s', self.request.url.path, typ.__name__, val)
+        log.info('Non-200 HTTP status %s: %s for path %r', typ.__name__, val, self.request.url.path)
       
       # Set headers
       self.response.headers = [

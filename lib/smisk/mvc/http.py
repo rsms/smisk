@@ -214,4 +214,4 @@ HTTPVersionNotSupported      = Status(505, "HTTP Version not supported")
 def redirect_to(url, type=Found):
   '''Redirect the request to someplace else
   '''
-  raise http.type(url)
+  raise type(url)

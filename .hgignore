@@ -1,7 +1,6 @@
 syntax:glob
 .DS_Store
 *.log
-fcgi.so
 *.sock*
 *.pyo
 *.pyc
@@ -10,6 +9,7 @@ MANIFEST
 setuptools-*.egg
 * copy.*
 ._*
+examples/**.db
 
 # Dirs
 build*
