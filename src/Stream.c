@@ -23,7 +23,6 @@ THE SOFTWARE.
 #include "Stream.h"
 #include <structmember.h>
 
-
 #pragma mark Private C
 
 
