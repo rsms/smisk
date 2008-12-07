@@ -51,6 +51,13 @@ Instance attributes
   
   Reconstructed URL
   
+  For example; if you need to know if running under SSL::
+  
+    if request.url.scheme == 'https':
+      response('Secure connection')
+    else:
+      response('Big brother is watching you')
+  
   :type: :class:`~smisk.core.URL`
 
 
