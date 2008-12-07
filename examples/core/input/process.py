@@ -59,14 +59,6 @@ class MyApp(Application):
     w(" headers     %s\n" % repr(self.response.headers))
   
 
-try:
-  # Any arguments means we run stand.alone and should bind to the first argument:
-  if len(sys.argv) > 1:
-    print 'Binding to %s' % repr(sys.argv[1])
-    bind(sys.argv[1])
-  MyApp().run()
-except KeyboardInterrupt:
-  pass
-except:
-  import traceback
-  traceback.print_exc(1000, open(os.path.abspath(os.path.dirname(__file__)) + "/process-error.log", "a"))
+if __name__ == '__main__':
+  from smisk.util.main import main
+  main(MyApp)
