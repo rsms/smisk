@@ -80,9 +80,17 @@ def main_cli_filter(appdir=None, bind=None, forks=None):
                     type="int",
                     default=forks)
   
+  parser.add_option("", "--debug",
+                    dest="debug",
+                    help="sets log level to DEBUG",
+                    action="store_true",
+                    default=False)
+  
   opts, args = parser.parse_args()
   
   # Make sure empty values are None
+  if opts.debug:
+    _config.set_default('logging', {'levels':{'':'DEBUG'}})
   if not opts.bind:
     opts.bind = None
   if not opts.appdir:
@@ -132,8 +140,10 @@ def handle_errors_wrapper(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs
   except:
     # Write to error.log
     try:
-      log_dir = os.environ.get('SMISK_LOG_DIR', os.environ.get(os.environ['SMISK_APP_DIR'], '.'))
-      f = open(os.path.join(log_dir, 'error.log'), 'a')
+      logfile = os.environ.get('SMISK_LOG_DIR', os.environ.get(os.environ['SMISK_APP_DIR'], '.'))
+      logfile = os.path.join(log_dir, 'error.log')
+      logfile = _config.get('emergency_logfile', logfile)
+      f = open(logfile, 'a')
       try:
         from traceback import print_exc
         from datetime import datetime
@@ -142,6 +152,7 @@ def handle_errors_wrapper(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs
         print_exc(1000, f)
       finally:
         f.close()
+        sys.stderr.write('Wrote emergency log to %s\n' % logfile)
     except:
       pass
     # Call error callback
