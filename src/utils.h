@@ -25,6 +25,8 @@ THE SOFTWARE.
 #include <Python.h>
 #include <fcgiapp.h>
 
+/** Like PyString_FromStringAndSize but filters src through lower() */
+PyObject *smisk_PyString_FromStringAndSize_lower (const char *src, Py_ssize_t length);
 
 /** @return PyStringObject (borrowed reference). Does NOT clear exception. */
 PyObject *smisk_format_exc (PyObject *type, PyObject *value, PyObject *tb);

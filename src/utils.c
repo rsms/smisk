@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 #include <stdlib.h>
 #include <time.h>
+#include <ctype.h> /* tolower() */
 #if HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
@@ -34,8 +35,24 @@ THE SOFTWARE.
 #include "__init__.h"
 #include "URL.h"
 
-#undef MOD_IDENT
-#define MOD_IDENT "smisk.core(utils)"
+
+PyObject *smisk_PyString_FromStringAndSize_lower(const char *src, Py_ssize_t length) {
+  PyObject *dst;
+  char *dst_p;
+  Py_ssize_t i;
+  
+  if ((dst = PyString_FromStringAndSize(NULL, length)) == NULL)
+    return NULL;
+  
+  dst_p = PyString_AS_STRING(dst);
+  
+  for (i = 0; i < length; i++) {
+    *dst_p = tolower((char)src[i]);
+    dst_p++;
+  }
+  
+  return dst;
+}
 
 
 // Returns PyStringObject (new reference)
