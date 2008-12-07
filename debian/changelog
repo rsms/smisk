@@ -1,3 +1,9 @@
+python-smisk (1.1.0-11) stable testing unstable; urgency=low
+
+  * No longer including auth part in redirected urls
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Sun,  7 Dec 2008 23:25:00 +0100
+
 python-smisk (1.1.0-10) stable testing unstable; urgency=low
 
   * Updates to smisk.mvc.main
