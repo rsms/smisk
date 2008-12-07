@@ -96,6 +96,8 @@ try:
       log.info('binding to %r', str(url_st))
     
     # Create, configure and bind engine
+    if metadata.bind and hasattr(metadata.bind, 'dispose'):
+      metadata.bind.dispose()
     metadata.bind = sql.create_engine(url, **engine_opts)
   
   config.add_filter(smisk_mvc_metadata)
