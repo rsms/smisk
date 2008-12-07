@@ -1,3 +1,9 @@
+python-smisk (1.1.0-10) stable testing unstable; urgency=low
+
+  * Updates to smisk.mvc.main
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Sun,  7 Dec 2008 22:17:00 +0100
+
 python-smisk (1.1.0-9) stable testing unstable; urgency=low
 
   * 1.1.0 RC 1
