@@ -38,8 +38,11 @@ THE SOFTWARE.
 // How much post data can be stored in memory instead of being written to disk
 #define SMISK_POST_SIZE_MEMORY_LIMIT 10240000
 
-// Where and how uploaded files are saved before taken care of
+// In case TEMPDIR is not present in env, this is used as a fallback.
+// Must end with a slash.
+// XXX todo windows incompatible
 #define SMISK_FILE_UPLOAD_DIR "/tmp/"
+// Prefix appended to temporary uploaded files:
 #define SMISK_FILE_UPLOAD_PREFIX "smisk-upload-"
 
 // Session ID compactness
