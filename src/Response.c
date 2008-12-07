@@ -28,7 +28,6 @@ THE SOFTWARE.
 #include <ctype.h>
 #include <fastcgi.h>
 
-
 #pragma mark Private C
 
 typedef struct FCGX_Stream_Data {
@@ -240,8 +239,13 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
   //           So maybe adding it to Application like Application.current? No, that
   //           will cause the same problem as described earlier, since we have no way
   //           of reading the value without the expensive lookup.
-  FCGX_FPrintF(self->out->stream, "Server: %s smisk/%s\r\n",
-    FCGX_GetParam("SERVER_SOFTWARE", smisk_Application_current->request->envp), SMISK_VERSION);
+  char *server_software = FCGX_GetParam("SERVER_SOFTWARE", smisk_Application_current->request->envp);
+  if (server_software) {
+    FCGX_FPrintF(self->out->stream, "Server: %s smisk/%s\r\n", server_software, SMISK_VERSION);
+  }
+  else {
+    FCGX_FPrintF(self->out->stream, "Server: smisk/%s\r\n", SMISK_VERSION);
+  }
   
   // Headers?
   if (self->headers && PyList_Check(self->headers) && (num_headers = PyList_GET_SIZE(self->headers))) {
