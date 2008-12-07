@@ -142,7 +142,7 @@ def handle_errors_wrapper(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs
     try:
       logfile = os.environ.get('SMISK_LOG_DIR', os.environ.get(os.environ['SMISK_APP_DIR'], '.'))
       logfile = os.path.join(log_dir, 'error.log')
-      logfile = _config.get('emergency_logfile', logfile)
+      logfile = _config.get('smisk.emergency_logfile', logfile)
       f = open(logfile, 'a')
       try:
         from traceback import print_exc

@@ -5,6 +5,23 @@
 .. versionadded:: 1.1
 
 
+Configuration parameters
+-------------------------------------------------
+
+.. describe:: smisk.emergency_logfile
+
+  In case an application running with help from :func:`handle_errors_wrapper` (if running using :func:`main` with *handle_errors=True*) raises an exception outside of serving a HTTP transaction, Smisk will write (append) backtrace and error info to this file.
+  
+  If not specified, the following path is used:
+  
+  #. env["SMISK_LOG_DIR"] + "/error.log" if *SMISK_LOG_DIR* is set in environ (not set by default)
+  #. env["SMISK_APP_DIR"] + "/error.log" if *SMISK_APP_DIR* is set in environ (by default, smisk tries to deduce and set this if not already set)
+  #. "./error.log" as a last resort, if neigher *smisk.emergency_logfile*, *SMISK_LOG_DIR* or *SMISK_APP_DIR* is present.
+  
+  :type: string
+  :default: :samp:`None`
+
+
 Module contents
 -------------------------------------------------
 
@@ -42,7 +59,7 @@ Module contents
   
   **Command line arguments:**
   
-  .. cmdoption:: --appdir PATH, --bind ADDR, --forks N, --help
+  .. cmdoption:: --appdir PATH, --bind ADDR, --debug, --forks N, --help
     
     When running as a program.
 
