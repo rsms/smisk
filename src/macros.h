@@ -223,7 +223,7 @@ typedef uint8_t byte;
         && ((uint32_t *) m)[1] == ((c7 << 24) | (c6 << 16) | (c5 << 8) | c4)  \
         && m[8] == c8)
 
-#else /* !(SMISK_SYS_LITTLE_ENDIAN && SMISK_SYS_NONALIGNED) */
+#else /* ! (SMISK_SYS_LITTLE_ENDIAN && SMISK_SYS_NONALIGNED) */
 
 #define smisk_str3cmp(m, c0, c1, c2, c3)                                       \
     (m[0] == c0 && m[1] == c1 && m[2] == c2)
