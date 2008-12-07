@@ -32,6 +32,7 @@ THE SOFTWARE.
 #include <unistd.h>
 #include <structmember.h>
 #include <fastcgi.h>
+#include <ctype.h> /* tolower() */
 
 #pragma mark Internal
 
@@ -480,35 +481,18 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
       return NULL;
     
     // Scheme
-    if ((s = FCGX_GetParam("SERVER_PROTOCOL", self->envp))) {
-      old = self->url->scheme;
-      Py_ssize_t len = strlen(s);
-      
-      // As this is called MANY times, this op is really worth it...
-      if (
-          (len > 3)
-            &&
-          (smisk_str4cmp(s, 'H','T','T','P') || smisk_str4cmp(s, 'h','t','t','p'))
-         )
-      {
-        if ( (len == 5) && (s[4]=='S'||s[4]=='s') ) {
-          self->url->scheme = kString_https;
-          Py_INCREF(kString_https);
-        }
-        else if (len == 4) {
-          self->url->scheme = kString_http;
-          Py_INCREF(kString_http);
-        }
-      }
-      
-      if (self->url->scheme == old) {
-        if ((p = strchr(s, '/')))
-          len = (Py_ssize_t)(p-s);
-        self->url->scheme = PyString_FromStringAndSize(_strtolower(s), len);
-      }
-      
-      Py_CLEAR(old);
+    old = self->url->scheme;
+    // env["HTTPS"] = "on" tells us SSL is active
+    if ( (s = FCGX_GetParam("HTTPS", self->envp)) 
+        && (strlen(s) > 1) && (tolower(s[0])=='o' && tolower(s[1])=='n') )
+    {
+      self->url->scheme = kString_https;
     }
+    else {
+      self->url->scheme = kString_http;
+    }
+    Py_INCREF(self->url->scheme);
+    Py_CLEAR(old);
     
     // User
     if ((s = FCGX_GetParam("REMOTE_USER", self->envp))) {
@@ -628,13 +612,13 @@ PyObject *smisk_Request_get_cookies(smisk_Request* self) {
       return NULL;
     
     if ((http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp))) {
-      log_debug("Parsing input data");
+      log_debug("Parsing cookies");
       if (smisk_parse_input_data(http_cookie, ";", 1, self->cookies) != 0) {
         Py_DECREF(self->cookies);
         self->cookies = NULL;
         return NULL;
       }
-      log_debug("Done parsing input data");
+      log_debug("Done parsing cookies");
     }
   }
   
