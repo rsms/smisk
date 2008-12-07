@@ -243,6 +243,7 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   return newstr_py;
 }
 
+
 static int _parse(smisk_URL* self, const char *s, ssize_t len) {
   struct vec { ssize_t len; const void *ptr; };
   struct url { struct vec proto; struct vec user; struct vec pass;
@@ -285,7 +286,7 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
         v->len++;
       }
       else {
-        return (-1);
+        return -1;
       }
       break;
     
@@ -303,7 +304,7 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
         v->len++;
       }
       else {
-        return (-1);
+        return -1;
       }
       break;
     
@@ -329,7 +330,7 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
         v->len++;
       }
       else {
-        return (-1);
+        return -1;
       }
       break;
     
@@ -368,17 +369,29 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
   self->query = Py_None;
   self->fragment = Py_None;
   
-  if ( u->proto.len )
-    self->scheme = PyString_FromStringAndSize((char*)u->proto.ptr, u->proto.len);
+  if ( u->proto.len ) {
+    self->scheme = smisk_PyString_FromStringAndSize_lower(u->proto.ptr, (Py_ssize_t)u->proto.len);
+    if (self->scheme == NULL)
+      return -1;
+  }
 
-  if ( u->user.len )
+  if ( u->user.len ) {
     self->user = PyString_FromStringAndSize((char*)u->user.ptr, u->user.len);
+    if (self->user == NULL)
+      return -1;
+  }
 
-  if ( u->pass.len )
+  if ( u->pass.len ) {
     self->password = PyString_FromStringAndSize((char*)u->pass.ptr, u->pass.len);
+    if (self->password == NULL)
+      return -1;
+  }
 
-  if ( u->host.len )
+  if ( u->host.len ) {
     self->host = PyString_FromStringAndSize((char*)u->host.ptr, u->host.len);
+    if (self->host == NULL)
+      return -1;
+  }
 
   if ( u->port.len ) {
     self->port = atoin((char*)u->port.ptr, (size_t)u->port.len);
