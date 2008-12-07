@@ -103,7 +103,7 @@ class Configuration(dict):
   
   def set_default(self, k, v):
     self._defaults[k] = v
-    self[k] = v
+    self.reload()
   
   def g(self, *keys, **kw):
     v = self
