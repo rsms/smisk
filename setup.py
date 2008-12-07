@@ -28,7 +28,7 @@ tag = ''
 v = None
 if cfg.has_option('egg_info', 'tag_build'):
   tag = cfg.get('egg_info', 'tag_build')
-  v = parse_version("%s%s" % (version, tag))
+  v = parse_version("%s%s" % (version, tag.strip()))
 else:
   v = parse_version(version)
 
@@ -90,9 +90,9 @@ classifiers = [
 
 
 # xxx: need to detect this in another way, since version never has a tag (we set tags at build time)
-if v[3] == '*final':
+if v[2] == '*final':
   classifiers.append('Development Status :: 5 - Production/Stable')
-if v[3] == '*c' or v[3] == '*b':
+else:
   classifiers.append('Development Status :: 4 - Beta')
 
 
