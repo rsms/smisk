@@ -34,7 +34,6 @@ THE SOFTWARE.
 #include <pythread.h>
 #include <stdlib.h>
 
-
 #pragma mark Internal
 
 // "returns" 0 on success or -1 on failure when an error has been set
