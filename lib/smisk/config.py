@@ -351,9 +351,8 @@ def configure_logging(conf):
   # critical section
   logging._acquireLock()
   try:
-    if setup_root or 'filename' in conf or 'stream' in conf:
+    if setup_root or 'filename' in conf or 'stream' in conf or 'format' in conf or 'datefmt' in conf:
       _configure_logging_root_handler(conf)
-    if setup_root or 'format' in conf or 'datefmt' in conf:
       _configure_logging_root_formatter(conf)
     if 'levels' in conf:
       _configure_logging_levels(conf['levels'])
