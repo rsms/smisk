@@ -92,7 +92,7 @@ class Status3xx(Status):
       raise Exception('http.Status3xx requires a 3:rd argument "url"')
     rsp = Status.service(self, app)
     url = normalize_url(url)
-    url = url.to_s(port=url.port not in (80,443), fragment=0)
+    url = url.to_s(port=url.port not in (80,443), fragment=0, user=0, password=0)
     app.response.headers.append('Location: ' + url)
     rsp['description'] = 'The resource has moved to %s' % url
     return rsp
