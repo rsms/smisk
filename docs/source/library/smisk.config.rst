@@ -157,7 +157,8 @@ can be configured based on a dictionary passed to :func:`configure_logging()`:
   {
     'stream': 'stdout',
     'filename': '/var/log/myapp.log',
-    'filemode', 'a',
+    'filemode': 'a',
+    'syslog': {'socket': '/var/run/syslog'},
     'format': '%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',
     'datefmt': '%H:%M:%S',
     'levels': {
@@ -165,6 +166,7 @@ can be configured based on a dictionary passed to :func:`configure_logging()`:
       'some.module': DEBUG
     }
   }
+
 
 .. describe:: stream
   
@@ -176,9 +178,7 @@ can be configured based on a dictionary passed to :func:`configure_logging()`:
   
   * stdout --- Standard output
   * stderr --- Standard error
-  
-  This parameters is shadowed by the *filename* parameter. Only one of *filename*
-  and *stream* should be present in the configuration.
+
 
 .. describe:: filename, filemode
   
@@ -186,14 +186,24 @@ can be configured based on a dictionary passed to :func:`configure_logging()`:
   `FileHandler <http://docs.python.org/library/logging.html#logging.FileHandler>`__,
   writing to the file denoted by *filename*, using mode *filemode* (or "a" if 
   *filemode* is not set).
+
+
+.. describe:: syslog
   
-  This parameters takes precedence over the *stream* parameter.
+  If present, the root logger will be configured with a
+  `SysLogHandler <http://docs.python.org/library/logging#logging.SysLogHandler>`__.
+  
+  If any true value except a dict is passed as value, simply adds a
+  ``SysLogHandler()`` (default options). Otherwise the value should be a dict 
+  which might contain any of: *host*, *port*, *facility*.
+
 
 .. describe:: format, datefmt
 
   If present, the handler of the root logger will be configured to use a
   `Formatter <http://docs.python.org/library/logging.html#logging.Formatter>`__
   based on this format.
+
 
 .. describe:: levels
 
@@ -206,6 +216,7 @@ can be configured based on a dictionary passed to :func:`configure_logging()`:
     'levels': {
       '': WARN,
     }
+
 
 .. note::
 

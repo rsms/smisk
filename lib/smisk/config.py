@@ -2,6 +2,7 @@
 '''User configuration.
 '''
 import sys, os, logging, glob, codecs, re
+import logging.handlers
 from smisk.util.collections import merge_dict
 log = logging.getLogger(__name__)
 
@@ -203,6 +204,7 @@ class Configuration(dict):
       else:
         self.load(k, post_process=False)
     self._post_process()
+    log.info('reloaded configuration')
   
   def update(self, b):
     log.debug('update: merging %r --into--> %r', b, self)
@@ -352,36 +354,54 @@ def configure_logging(conf):
   logging._acquireLock()
   try:
     if setup_root or 'filename' in conf or 'stream' in conf or 'format' in conf or 'datefmt' in conf:
-      _configure_logging_root_handler(conf)
+      _configure_logging_root_handlers(conf)
       _configure_logging_root_formatter(conf)
     if 'levels' in conf:
       _configure_logging_levels(conf['levels'])
   finally:
     logging._releaseLock()
 
-def _configure_logging_root_handler(conf):
-  filename = conf.get('filename')
-  if filename:
-    handler = logging.FileHandler(filename, conf.get('filemode', 'a'))
-  else:
-    stream = conf.get('stream', sys.stderr)
+def _configure_logging_root_handlers(conf):
+  logging.root.handlers = []
+  
+  if 'filename' in conf and conf['filename']:
+    # Add a file handler
+    handler = logging.FileHandler(conf['filename'], conf.get('filemode', 'a'))
+    logging.root.handlers.append(handler)
+  
+  if 'syslog' in conf and conf['syslog']:
+    # Add a syslog handler
+    syslog = conf['syslog']
+    params = {}
+    if isinstance(syslog, dict):
+      if 'host' in syslog or 'port' in syslog:
+        params['address'] = (syslog.get('host', 'localhost'), int(syslog.get('port', 514)))
+      elif 'socket' in syslog:
+        params['address'] = syslog['socket']
+      if 'facility' in syslog:
+        params['facility'] = syslog['facility']
+    handler = logging.handlers.SysLogHandler(**params)
+    logging.root.handlers.append(handler)
+  
+  if 'stream' in conf and conf['stream']:
+    # Add a stream handler (default)
+    stream = conf['stream']
     if not hasattr(stream, 'write'):
       # Will raise KeyError for anything else than the two allowed streams
       stream = {'stdout':sys.stdout, 'stderr':sys.stderr}[stream]
     handler = logging.StreamHandler(stream)
-  # Replace the handler for the root logger
-  logging.root.handlers = [handler]
+    logging.root.handlers.append(handler)
+  
+  if not logging.root.handlers:
+    # Add a default (stream) handler if no handlers was explicitly specified.
+    handler = logging.StreamHandler(sys.stderr)
+    logging.root.handlers.append(handler)
 
 def _configure_logging_root_formatter(conf):
-  try:
-    handler = logging.root.handlers[0]
-  except IndexError:
-    # Uhm, we can't log any warning here, since obviously there's
-    # no handlers in the root logger.
-    return
-  format = conf.get('format', LOGGING_FORMAT)
-  datefmt = conf.get('datefmt', LOGGING_DATEFMT)
-  handler.setFormatter(logging.Formatter(format, datefmt))
+  for handler in logging.root.handlers:
+    format = conf.get('format', LOGGING_FORMAT)
+    datefmt = conf.get('datefmt', LOGGING_DATEFMT)
+    handler.setFormatter(logging.Formatter(format, datefmt))
 
 def _configure_logging_levels(levels):
   # reset all loggers level to NOTSET
