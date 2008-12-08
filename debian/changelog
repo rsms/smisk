@@ -1,3 +1,9 @@
+python-smisk (1.1.0-13) stable testing unstable; urgency=low
+
+  * Added support for syslog
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Tue,  9 Dec 2008 00:06:00 +0100
+
 python-smisk (1.1.0-12) stable testing unstable; urgency=low
 
   * No longer actiong on SIGHUP in smisk.util.main.control_process_runloop()
