@@ -1,3 +1,9 @@
+python-smisk (1.1.0-12) stable testing unstable; urgency=low
+
+  * No longer actiong on SIGHUP in smisk.util.main.control_process_runloop()
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Mon,  8 Dec 2008 22:51:00 +0100
+
 python-smisk (1.1.0-11) stable testing unstable; urgency=low
 
   * No longer including auth part in redirected urls
