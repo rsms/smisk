@@ -322,7 +322,7 @@ def wait_for_child_processes(options=0):
       raise
 
 
-def control_process_runloop(pids, signals=(signal.SIGHUP, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM), cleanup=None):
+def control_process_runloop(pids, signals=(signal.SIGINT, signal.SIGQUIT, signal.SIGTERM), cleanup=None):
   parent_sighandlers = {}
   
   def ctrl_proc_finalize(signalnum, frame):
