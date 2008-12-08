@@ -46,7 +46,8 @@ And here we have a WSGI compatible application::
 More examples `available here... <http://trac.hunch.se/smisk/browser/examples>`_
 
 
-Authors
-=======
-* `Rasmus Andersson <http://hunch.se/>`_ rasmus•flajm.se
-* `Eric Moritz <http://themoritzfamily.com/>`_ eric•themoritzfamily.com
+Authors & Contributors
+======================
+* `Rasmus Andersson <http://hunch.se/>`_ rasmus-flajm.com
+* `Eric Moritz <http://themoritzfamily.com/>`_ eric-themoritzfamily.com
+* Ludvig Strigeus
