@@ -208,7 +208,7 @@ class Configuration(dict):
   
   def update(self, b):
     log.debug('update: merging %r --into--> %r', b, self)
-    merge_dict(self, b, merge_lists=True)
+    merge_dict(self, b, merge_lists=False)
   
   def reset(self, reset_defaults=True):
     self.clear()
