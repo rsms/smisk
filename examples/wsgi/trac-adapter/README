@@ -1,0 +1,5 @@
+Run Trac <http://trac.edgewall.org/> on Smisk.
+
+Runs Trac WSGI on Smisk through smisk.wsgi, speeding up Trac.
+
+See: http://trac.edgewall.org/wiki/TracFastCgi
