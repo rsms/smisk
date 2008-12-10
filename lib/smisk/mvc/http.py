@@ -32,12 +32,6 @@ class HTTPExc(Exception):
 class Status(object):
   '''Represents a HTTP status.
   '''
-  def __new__(typ, code, *args, **kwargs):
-    k = '_instance_%d' % code
-    if not k in typ.__dict__:
-      setattr(typ, k, object.__new__(typ, code, *args, **kwargs))
-    return getattr(typ, k)
-  
   def __init__(self, code, name, has_body=True, uses_template=True):
     self.code = code
     self.name = name
