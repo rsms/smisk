@@ -98,7 +98,8 @@ class Gateway(smisk.core.Application):
     self.wsgi_app = wsgi_app
   
   def start_response(self, status, headers, exc_info=None):
-    '''`start_response()` callable as specified by `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`__'''
+    '''`start_response()` callable as specified by 
+    `PEP 333 <http://www.python.org/dev/peps/pep-0333/>`__'''
     if exc_info:
       try:
         if self.response.has_begun:
