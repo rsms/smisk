@@ -170,7 +170,7 @@ class Configuration(dict):
       conf, includes, inherit = self._loads(load_key, f.read(), symbols)
     finally:
       f.close()
-    if conf:
+    if conf or includes:
       if self.max_include_depth > 0 and includes:
         self._handle_includes(path, includes, symbols)
         if inherit:
