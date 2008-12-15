@@ -614,8 +614,15 @@ class Application(smisk.core.Application):
           model.session.commit()
         except http.HTTPExc, e:
           if not e.status.is_error:
-            log.debug('committing db transaction before handling non-error http status')
+            log.debug('committing model transaction before handling non-error http status')
             model.session.commit()
+          else:
+            log.debug('rolling back model transaction')
+            model.session.rollback()
+          raise
+        except:
+          log.debug('rolling back model transaction')
+          model.session.rollback()
           raise
       finally:
         model.session.remove()
@@ -687,11 +694,11 @@ class Application(smisk.core.Application):
           rsp = rsp + (' ' * (ielen-blen))
     return rsp
   
-  def error(self, typ, val, tb):
+  def error(self, extyp, exval, tb):
     '''Handle an error and produce an appropriate response.
     '''
     try:
-      status = getattr(val, 'status', http.InternalServerError)
+      status = getattr(exval, 'status', http.InternalServerError)
       if not isinstance(status, http.Status):
         status = http.InternalServerError
       params = {}
@@ -699,9 +706,11 @@ class Application(smisk.core.Application):
       
       # Log
       if status.is_error:
-        log.error('%d Request failed for %r', status.code, self.request.url.path, exc_info=(typ, val, tb))
+        log.error('%d Request failed for %r', status.code, self.request.url.path, 
+          exc_info=(extyp, exval, tb))
       else:
-        log.info('Non-200 HTTP status %s: %s for path %r', typ.__name__, val, self.request.url.path)
+        log.info('Non-200 HTTP status %s: %s for path %r', extyp.__name__, exval, 
+          self.request.url.path)
       
       # Set headers
       self.response.headers = [
@@ -711,75 +720,82 @@ class Application(smisk.core.Application):
       
       # Set params
       params['name'] = unicode(status.name)
-      params['code'] = status.code
-      params['server'] = u'%s at %s' % (self.request.env['SERVER_SOFTWARE'],
-        self.request.env['SERVER_NAME'])
+      params['code'] = getattr(exval, 'code', 0)
+      try:
+        params['code'] = int(params['code'])
+      except ValueError:
+        params['code'] = 0
+      params['server'] = u'%s at %s' %\
+        (self.request.env['SERVER_SOFTWARE'], self.request.env['SERVER_NAME'])
       
       # Include traceback if enabled
       if self.show_traceback:
-        params['traceback'] = format_exc((typ, val, tb))
+        params['traceback'] = format_exc((extyp, exval, tb))
       else:
         params['traceback'] = None
       
       # HTTP exception has a bound action we want to call
-      if isinstance(val, http.HTTPExc):
-        status_service_rsp = val(self)
+      if isinstance(exval, http.HTTPExc):
+        status_service_rsp = exval(self)
         if isinstance(status_service_rsp, StringType):
           rsp = status_service_rsp
         elif status_service_rsp:
           assert isinstance(status_service_rsp, DictType)
           params.update(status_service_rsp)
       if not params.get('description', False):
-        params['description'] = unicode(val)
+        params['description'] = unicode(getattr(exval, 'message', exval))
       
-      # Ony perform the following block if status type has a body and if
-      # status_service_rsp did not contain a complete response body.
-      if status.has_body:
-        if rsp is None:
-          # Try to use a serializer
-          if self.response.serializer is None:
-            # In this case an error occured very early.
-            self.response.serializer = Response.fallback_serializer
-            log.info('Responding using fallback serializer %s' % self.response.serializer)
-          
-          # Set format if a serializer was found
-          format = self.response.serializer.extensions[0]
-          
-          # Try to use a template...
-          if status.uses_template and self.templates:
-            rsp = self.templates.render_error(status, params, format)
-          
-          # ...or a serializer
-          if rsp is None:
-            self.response.charset, rsp = self.response.serializer.serialize_error(status, params, \
-              self.response.charset)
-        
-        # MSIE body length fix
-        rsp = self._pad_rsp_for_msie(status.code, rsp)
-      else:
-        rsp = ''
+      # Service the error
+      self.error_service(status, rsp, (extyp, exval, tb), params)
       
-      # Set standard headers
-      if not self.response.has_begun:
-        if self.response.serializer:
-          self.response.serializer.add_content_type_header(self.response, self.response.charset)
-        if self.response.find_header('Content-Length:') == -1:
-          self.response.headers.append('Content-Length: %d' % len(rsp))
-        if self.response.find_header('Cache-Control:') == -1:
-          self.response.headers.append('Cache-Control: no-cache')
-      
-      # Send response
-      if log.level <= logging.DEBUG:
-        self._log_debug_sending_rsp(rsp)
-      self.response.write(rsp)
-      
-      return # We're done.
-    
+      return # We're done
     except:
       log.error('Failed to encode error', exc_info=1)
-    log.error('Request failed for %r', self.request.url.path, exc_info=(typ, val, tb))
-    super(Application, self).error(typ, val, tb)
+    log.error('Request failed for %r', self.request.url.path, exc_info=(extyp, exval, tb))
+    super(Application, self).error(extyp, exval, tb)
   
+  
+  def error_service(self, status, rsp, exc_info, params):
+    # Ony perform the following block if status type has a body and if
+    # status_service_rsp did not contain a complete response body.
+    if status.has_body:
+      if rsp is None:
+        # Try to use a serializer
+        if self.response.serializer is None:
+          # In this case an error occured very early.
+          self.response.serializer = Response.fallback_serializer
+          log.info('Responding using fallback serializer %s' % self.response.serializer)
+        
+        # Set format if a serializer was found
+        format = self.response.serializer.extensions[0]
+        
+        # Try to use a template...
+        if status.uses_template and self.templates:
+          rsp = self.templates.render_error(status, params, format)
+        
+        # ...or a serializer
+        if rsp is None:
+          self.response.charset, rsp = self.response.serializer.serialize_error(
+            status, params, self.response.charset)
+      
+      # MSIE body length fix
+      rsp = self._pad_rsp_for_msie(status.code, rsp)
+    else:
+      rsp = ''
+    
+    # Set standard headers
+    if not self.response.has_begun:
+      if self.response.serializer:
+        self.response.serializer.add_content_type_header(self.response, self.response.charset)
+      if self.response.find_header('Content-Length:') == -1:
+        self.response.headers.append('Content-Length: %d' % len(rsp))
+      if self.response.find_header('Cache-Control:') == -1:
+        self.response.headers.append('Cache-Control: no-cache')
+    
+    # Send response
+    if log.level <= logging.DEBUG:
+      self._log_debug_sending_rsp(rsp)
+    self.response.write(rsp)
 
 
 #---------------------------------------------------------------------------

@@ -17,9 +17,16 @@ try:
                  SADeprecationWarning)
   
   # Import Elixir & SQLAlchemy
-  from elixir import *
   from sqlalchemy import func
   import elixir, sqlalchemy as sql
+  import sqlalchemy.orm
+  
+  # Replace Elixir default session (evens out difference between 0.5 - 0.6)
+  elixir.session = sqlalchemy.orm.scoped_session(sqlalchemy.orm.sessionmaker(
+    autoflush=True, transactional=True))
+  
+  # Import Elixir
+  from elixir import *
   
   # Disable autosetup since we call setup_all() in mvc.Application.setup()
   options_defaults['autosetup'] = False
@@ -30,14 +37,38 @@ try:
   options_defaults['shortnames'] = True
   
   # Extended entity class
-  def field_names(cls):
+  def Entity_field_names(cls):
     for col in cls.c:
       yield col.key
-  Entity.field_names = classmethod(field_names)
+  Entity.field_names = classmethod(Entity_field_names)
   
   def Entity__iter__(self):
     return self.to_dict().iteritems()
   Entity.__iter__ = Entity__iter__
+  
+  
+  # Add Entity.to_dict for old Elixir versions
+  __ev = elixir.__version__.split('.')
+  if __ev[0] == '0' and int(__ev[1]) < 6:
+    def Entity_to_dict(self, deep={}, exclude=[]):
+      """Generate a JSON-style nested dict/list structure from an object."""
+      col_prop_names = [p.key for p in self.c]
+      data = dict([(name, getattr(self, name))
+                   for name in col_prop_names if name not in exclude])
+      for rname, rdeep in deep.iteritems():
+        # This code is borrowed from Elixir 0.7 and fairly untested with <=0.5
+        dbdata = getattr(self, rname)
+        #FIXME: use attribute names (ie coltoprop) instead of column names
+        fks = self.mapper.get_property(rname).remote_side
+        exclude = [c.name for c in fks]
+        if isinstance(dbdata, list):
+          data[rname] = [o.to_dict(rdeep, exclude) for o in dbdata]
+        else:
+          data[rname] = dbdata.to_dict(rdeep, exclude)
+      return data
+    Entity.to_dict = Entity_to_dict
+  del __ev
+  
   
   # Metadata configuration bind filter
   from smisk.config import config

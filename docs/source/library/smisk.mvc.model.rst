@@ -247,7 +247,7 @@ Module attributes
 
 .. attribute:: default_engine_opts
   
-  Default options for the `SQLAlchemy create_engine() <http://www.sqlalchemy.org/docs/05/sqlalchemy_engine.html#docstrings_sqlalchemy.engine_modfunc_create_engine>`__ call.
+  Default options for the `SQLAlchemy create_engine() <http://www.sqlalchemy.org/docs/05/reference/sqlalchemy/connections.html#sqlalchemy.create_engine>`__ call.
   
   :type: dict
 
