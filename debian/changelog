@@ -1,3 +1,9 @@
+python-smisk (1.1.0-16) stable testing unstable; urgency=low
+
+  * Upstream release 1.1.0
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Fri,  19 Dec 2008 16:26:00 +0100
+
 python-smisk (1.1.0-15) stable testing unstable; urgency=low
 
   * Fixed bug in smisk.config where config files with only include or
