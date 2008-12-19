@@ -219,9 +219,19 @@ class Router(object):
     self.filters = []
   
   def configure(self, config_key='smisk.mvc.routes'):
-    for filter in config.get(config_key, []):
-      dest = URL(filter['destination'])
-      self.filter(filter['pattern'], dest, match_on_full_url=dest.scheme)
+    filters = config.get(config_key, [])
+    if not isinstance(filters, (list, tuple)):
+      raise TypeError('configuration parameter %r must be a list' % config_key)
+    for filter in filters:
+      try:
+        dest = URL(filter['destination'])
+        self.filter(filter['pattern'], dest, match_on_full_url=dest.scheme)
+      except TypeError, e:
+        e.args = ('configuration parameter %r must contain dictionaries' % config_key,)
+        raise
+      except KeyError, e:
+        e.args = ('%r in configuration parameter %r' % (e.message, config_key),)
+        raise
   
   def filter(self, pattern, destination_path, regexp_flags=re.I, match_on_full_url=False, params={}):
     '''Explicitly map an action to paths or urls matching regular expression `pattern`.

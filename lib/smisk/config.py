@@ -299,7 +299,11 @@ class Configuration(dict):
     string = _preprocess_input(string)
     if string:
       log.info('loading %s', load_key)
-      conf = eval(string, syms)
+      try:
+        conf = eval(compile(string, load_key, 'eval'), syms)
+      except SyntaxError, e:
+        e.args = (str(e), e.args[1])
+        raise e
       if not isinstance(conf, dict):
         raise TypeError('configuration %r does not represent a dictionary' % path)
       if conf:
