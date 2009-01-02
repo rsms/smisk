@@ -126,11 +126,14 @@ class Status300(Status):
     elif not isinstance(url, URL):
       url = URL(url)
     path = strip_filename_extension(url.path)
+    query = ''
+    if url.query:
+      query = '?' + url.query
     
     header = []
     html = []
     for serializer in serializers:
-      alt_path = '%s.%s' % (path, serializer.extensions[0])
+      alt_path = '%s.%s' % (path, serializer.extensions[0] + query)
       header_s = '"%s" 1.0 {type %s}' % (alt_path, serializer.media_types[0])
       header.append('{%s}' % header_s)
       html.append('<li><a href="%s">%s (%s)</a></li>' % \
@@ -150,7 +153,8 @@ class Status404(Status):
     if description is not None:
       rsp['description'] = description
     else:
-      rsp['description'] = 'No resource exists at %s' % app.request.url.path
+      rsp['description'] = 'No resource exists at %s' % \
+        app.request.url.to_s(scheme=0, user=0, host=0, port=0)
     return rsp
   
 
