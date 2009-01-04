@@ -828,6 +828,22 @@ static PyObject *smisk_Request_get_referring_url(smisk_Request* self) {
 }
 
 
+static PyObject *smisk_Request_get_method(smisk_Request* self) {
+  log_trace("ENTER");
+  PyObject *pys;
+  
+  ENSURE_BY_GETTER(self->env, smisk_Request_get_env(self),
+    return NULL;
+  );
+  
+  if ( (pys = PyDict_GetItemString(self->env, "REQUEST_METHOD")) == NULL)
+    pys = Py_None;
+  
+  Py_INCREF(pys); // callers reference
+  return pys;
+}
+
+
 #pragma mark -
 #pragma mark Iteration
 
@@ -895,6 +911,9 @@ static PyGetSetDef smisk_Request_getset[] = {
   
   {"referring_url", (getter)smisk_Request_get_referring_url,  (setter)0,
     ":type: smisk.core.URL", NULL},
+  
+  {"method", (getter)smisk_Request_get_method,  (setter)0,
+    ":type: str", NULL},
   
   {NULL, NULL, NULL, NULL, NULL}
 };
