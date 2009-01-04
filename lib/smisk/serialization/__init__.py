@@ -193,6 +193,22 @@ class Registry(object):
         raise Exception('extension %r is already associated with another serializer' % ext)
       self.extensions[ext] = serializer
   
+  @property
+  def readers(self):
+    '''Iterate serializers able to read, or unserialize, data.
+    '''
+    for ser in self.serializers:
+      if 'read' in ser.directions():
+        yield ser
+  
+  @property
+  def writers(self):
+    '''Iterate serializers able to write, or serialize, data.
+    '''
+    for ser in self.serializers:
+      if 'write' in ser.directions():
+        yield ser
+  
   def __iter__(self):
     return self.serializers.__iter__()
   
