@@ -246,9 +246,9 @@ Classes
     TODO
 
 
-  .. method:: apply_action_format_restrictions()
+  .. method:: apply_action_restrictions()
 
-    Applies any format restrictions set by the current action.
+    Applies any restrictions set by the current action.
 
 
   .. method:: autoload_configuration(config_mod_name='config')
@@ -550,7 +550,37 @@ Classes
 
   .. method:: send_file(path)
     
-    TODO
+    Send a file to the client by using the host server sendfile-header
+    technique.
+    
+    Automatically sets :samp:`Content-Type` header, using
+    `mimetypes.guess_type <http://docs.python.org/library/mimetypes#mimetypes.guess_type>`_
+    
+    Calling this method implicitly commits the current HTTP transaction,
+    sending the response immedately.
+    
+    :param  path: If this is a relative path, the host server defines the
+                  behaviour.
+    :type   path: string
+    
+    :raises EnvironmentError: If smisk does not know how to perform *sendfile*
+                              through the current host server.
+    :raises EnvironmentError: If response has already started.
+    :raises IOError:
+  
+  
+  .. method:: adjust_status(self, has_content)
+
+    .. versionadded:: 1.1.1
+    
+    Make sure appropriate status is set for the response.
+  
+  
+  .. method:: remove_header(self, name)
+
+    .. versionadded:: 1.1.1
+    
+    Remove any instance of header named or prefixed *name*.
   
 
 

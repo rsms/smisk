@@ -125,15 +125,7 @@ void smisk_Response_dealloc(smisk_Response* self) {
 
 
 PyDoc_STRVAR(smisk_Response_send_file_DOC,
-  "Send a file to the client by using the host server sendfile-header technique.\n"
-  "\n"
-  ":param  filename: If this is a relative path, the host server defines the behaviour.\n"
-  ":type   filename: string\n"
-  ":raises EnvironmentError: If smisk does not know how to perform *sendfile* through "
-    "the current host server.\n"
-  ":raises EnvironmentError: If response has already started.\n"
-  ":raises `IOError`:\n"
-  ":rtype: None");
+  "Send a file to the client by using the host server sendfile-header technique.");
 PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   log_trace("ENTER");
   PyObject *s = NULL;
@@ -191,12 +183,7 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
 
 
 PyDoc_STRVAR(smisk_Response_begin_DOC,
-  "Begin response - send headers.\n"
-  "\n"
-  "Automatically called on by mechanisms like `write()` and `Application.run()`."
-  "\n"
-  ":raises EnvironmentError: if response has already started.\n"
-  ":rtype: None");
+  "Send headers");
 PyObject *smisk_Response_begin(smisk_Response* self) {
   log_trace("ENTER");
   int rc;
@@ -284,15 +271,7 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
 
 
 PyDoc_STRVAR(smisk_Response_write_DOC,
-  "Write data to the output buffer.\n"
-  "\n"
-  "If `begin()` has not yet been called, it will be before ``write()`` "
-    "actually performs the writing to `out`.\n"
-  "\n"
-  ":param    string: Data.\n"
-  ":type     string: string\n"
-  ":raises   `IOError`:\n"
-  ":rtype:   None");
+  "Write data to the output stream");
 PyObject *smisk_Response_write(smisk_Response* self, PyObject *str) {
   log_trace("ENTER");
   Py_ssize_t length;
@@ -318,30 +297,13 @@ PyObject *smisk_Response_write(smisk_Response* self, PyObject *str) {
 
 
 PyDoc_STRVAR(smisk_Response_writelines_DOC,
-  "Write a sequence of strings to the stream.\n"
-  "\n"
-  "The sequence can be any iterable object producing strings, typically a ''list'' of strings. There is no return value. (The name is intended to match readlines(); writelines() and alike does not add line separators.)\n"
-  "\n"
-  "This method esentially calls self.begin() if not has_begun, then calls self.out.writelines(sequence). Which means the difference between calling self.writelines (this method) and self.out.writelines is that the latter will not call begin() if needed. You should always use this method instead of self.out.writelines, unless you are certain begin() has been called. (begin() is automatically called upon after a service() call if it has not been called, so you can not count on it not being called at all.)\n"
-  "\n"
-  ":type   sequence: list\n"
-  ":param  sequence: A sequence of strings\n"
-  ":rtype: None\n"
-  ":raises IOError:");
+  "Write a sequence of strings to the stream");
 PyObject *smisk_Response_writelines(smisk_Response* self, PyObject *sequence) {
   log_trace("ENTER");
   return smisk_Stream_perform_writelines(self->out, sequence, &_begin_if_needed, (void *)self);
 }
 
-/* XXX: How do we add documentation for __call__?
-PyDoc_STRVAR(smisk_Response___call___DOC,
-  "Respond with a series of strings.\n"
-  "\n"
-  "This is equivalent of calling `writelines((arg1, arg2 ...))`, thus if `begin()` has not yet been called, it will be. Calling without any arguments has no effect. Note that the arguments must be strings, as this method actually uses writelines."
-  "\n"
-  ":type     string: string\n"
-  ":raises   `IOError`:\n"
-  ":rtype:   None");*/
+
 PyObject *smisk_Response___call__(smisk_Response* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   // As we can get the length here, we return directly if nothing is to be written.
@@ -352,10 +314,7 @@ PyObject *smisk_Response___call__(smisk_Response* self, PyObject *args, PyObject
 
 
 PyDoc_STRVAR(smisk_Response_find_header_DOC,
-  "Find a header in the list of 'headers' matching 'prefix' in a case-insensitive manner.\n"
-  "\n"
-  ":returns: Index in 'headers' or -1 if not found.\n"
-  ":rtype:   int");
+  "Find a headers index in self.headers");
 PyObject *smisk_Response_find_header(smisk_Response* self, PyObject *prefix) {
   log_trace("ENTER");
   if (self->headers == NULL)
@@ -365,71 +324,7 @@ PyObject *smisk_Response_find_header(smisk_Response* self, PyObject *prefix) {
 
 
 PyDoc_STRVAR(smisk_Response_set_cookie_DOC,
-  "Send a cookie.\n"
-  "\n"
-  "Note:\n"
-  "  Setting a cookie will cause the response not to be cached by proxies and peer "
-  "  browsers, as required by `RFC 2109 <http://www.faqs.org/rfcs/rfc2109.html>`__.\n"
-  "\n"
-  "See also:\n"
-  "  `RFC 2109 <http://www.faqs.org/rfcs/rfc2109.html>`__ - *HTTP State Management Mechanism*\n"
-  "\n"
-  ":type  name:    string\n"
-  ":param name:    Required. The name of the state information (*cookie*). names "
-    "that begin with $ are reserved for other uses and must not be used by applications.\n"
-  "\n"
-  ":type  value:   string\n"
-  ":param value:   Opaque to the user agent and may be anything the "
-    "origin server chooses to send, possibly in a server-selected printable ASCII encoding. "
-    "*Opaque* implies that the content is of interest and relevance only to the origin server. "
-    "The content may, in fact, be readable by anyone that examines the Set-Cookie header.\n"
-  "\n"
-  ":type  comment: string\n"
-  ":param comment: Optional. Because cookies can contain private information about a user, the "
-    "Cookie attribute allows an origin server to document its intended use of a cookie. The user "
-    "can inspect the information to decide whether to initiate or continue a session with this "
-    "cookie.\n"
-  "\n"
-  ":type  domain:  string\n"
-  ":param domain:  Optional. The Domain attribute specifies the domain for which the cookie is "
-    "valid. An explicitly specified domain must always start with a dot.\n"
-  "\n"
-  ":type  path:    string\n"
-  ":param path:    Optional. The Path attribute specifies the subset of URLs to which this cookie "
-    "applies.\n"
-  "\n"
-  ":type  secure:  bool\n"
-  ":param secure:  Optional. The Secure attribute directs the user agent to use only (unspecified) "
-    "secure means to contact the origin server whenever it sends back this cookie.\n"
-    "\n"
-    "The user agent (possibly under the user's control) may determine what level of security it "
-    "considers appropriate for *secure* cookies. The Secure attribute should be considered security "
-    "advice from the server to the user agent, indicating that it is in the session's interest to "
-    "protect the cookie contents.\n"
-  "\n"
-  ":type  version: int\n"
-  ":param version: Optional. The Version attribute, a decimal integer, identifies to which version "
-    "of the state management specification the cookie conforms. For the "
-    "`RFC 2109 <http://www.faqs.org/rfcs/rfc2109.html>`__ specification, Version=1 applies. If not "
-    "specified, this will be set to ``1``.\n"
-  "\n"
-  ":type  max_age: int\n"
-  ":param max_age: The value of the Max-Age attribute is delta-seconds, the lifetime of the cookie "
-    "in seconds, a decimal non-negative integer. To handle cached cookies correctly, a client "
-    "**should** calculate the age of the cookie according to the age calculation rules in the "
-    "`HTTP/1.1 specification <http://www.faqs.org/rfcs/rfc2616.html>`__. When the age is greater "
-    "than delta-seconds seconds, the client **should** discard the cookie. A value of zero means "
-    "the cookie **should** be discarded immediately (not when the browsers closes, but really "
-    "immediately)\n"
-  "\n"
-  ":type  http_only: bool\n"
-  ":param http_only: When True the cookie will be made accessible only through the HTTP protocol. "
-    "This means that the cookie won't be accessible by scripting languages, such as JavaScript. "
-    "This setting can effectly help to reduce identity theft through "
-    "`XSS attacks <http://en.wikipedia.org/wiki/Cross-site_scripting>`__ (although it is not "
-    "supported by all browsers).\n"
-  "\n"
-  ":rtype:         None");
+  "Send a cookie");
 PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   static char *kwlist[] = {"name", "value", /* required */
@@ -545,14 +440,7 @@ static int smisk_Response_set_headers(smisk_Response* self, PyObject *headers) {
 #pragma mark Type construction
 
 PyDoc_STRVAR(smisk_Response_DOC,
-  "A HTTP response\n"
-  "\n"
-  "Documentation for `__call__()`:\n"
-  "\n"
-  "Respond with a series of strings.\n"
-  "\n"
-  "This is equivalent of calling `writelines((arg1, arg2 ...))`, thus if `begin()` has not yet been called, it will be. Calling without any arguments has no effect. Note that the arguments must be strings, as this method actually uses writelines."
-  );
+  "A HTTP response");
 
 // Methods
 static PyMethodDef smisk_Response_methods[] = {
@@ -568,22 +456,14 @@ static PyMethodDef smisk_Response_methods[] = {
 
 // Properties
 static PyGetSetDef smisk_Response_getset[] = {
-  {"headers", (getter)smisk_Response_get_headers, (setter)smisk_Response_set_headers,
-    ":type: list", NULL},
+  {"headers", (getter)smisk_Response_get_headers, (setter)smisk_Response_set_headers, NULL, NULL},
   {NULL, NULL, NULL, NULL, NULL}
 };
 
 // Members
 static struct PyMemberDef smisk_Response_members[] = {
-  {"out",       T_OBJECT_EX, offsetof(smisk_Response, out), RO,
-    ":type: `Stream`"},
-  
-  {"has_begun", T_OBJECT_EX, offsetof(smisk_Response, has_begun), RO,
-    "Check if output (http headers & possible body content) has been sent to the client. Read-only.\n"
-    "\n"
-    "True if `begin()` has been called and output has started, otherwise False.\n"
-    "\n"
-    ":type:   bool"},
+  {"out",       T_OBJECT_EX, offsetof(smisk_Response, out), RO, NULL},
+  {"has_begun", T_OBJECT_EX, offsetof(smisk_Response, has_begun), RO, NULL},
   
   {NULL, 0, 0, 0, NULL}
 };

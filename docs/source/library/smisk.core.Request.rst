@@ -1,6 +1,8 @@
 :class:`~smisk.core.Request` --- A HTTP request
 ===========================================================
 
+.. module:: smisk.core
+
 .. class:: smisk.core.Request
 
   A HTTP request
@@ -103,7 +105,7 @@ Instance attributes
   
   Current session id
   
-  :type: string
+  :type: str
 
 
 .. attribute:: smisk.core.Request.is_active
@@ -119,6 +121,16 @@ Instance attributes
   .. versionadded:: 1.1
   
   :type: :class:`~smisk.core.URL`
+
+
+.. attribute:: smisk.core.Request.method
+
+  .. versionadded:: 1.1.1
+  
+  HTTP method ("GET", "POST", etc.).
+  
+  :see: `RFC 2616, HTTP 1.1, Method Definitions <http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html>`_
+  :type: str
 
 
 Instance methods

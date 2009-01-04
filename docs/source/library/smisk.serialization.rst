@@ -23,3 +23,4 @@
   smisk.serialization.xmlbase
   smisk.serialization.xmlrpc
   smisk.serialization.xspf
+  smisk.serialization.yaml_serial

@@ -337,14 +337,7 @@ void smisk_Request_dealloc(smisk_Request* self) {
 
 
 PyDoc_STRVAR(smisk_Request_log_error_DOC,
-  "Log something through `errors` including process name and id.\n"
-  "\n"
-  "Normally, `errors` ends up in the host server error log.\n"
-  "\n"
-  ":param  message: Message\n"
-  ":type   message: string\n"
-  ":raises `IOError`:\n"
-  ":rtype: None");
+  "Log something through `errors` including process name and id.");
 PyObject *smisk_Request_log_error(smisk_Request* self, PyObject *msg) {
   log_trace("ENTER");
   

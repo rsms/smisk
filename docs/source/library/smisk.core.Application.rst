@@ -1,6 +1,8 @@
 :class:`~smisk.core.Application` --- An application
 ===========================================================
 
+.. module:: smisk.core
+
 .. class:: smisk.core.Application
 
   An application.
