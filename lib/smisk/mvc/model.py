@@ -19,6 +19,7 @@ try:
   # Import Elixir & SQLAlchemy
   from sqlalchemy import func
   import elixir, sqlalchemy as sql
+  from sqlalchemy.pool import StaticPool
   import sqlalchemy.orm
   
   # Replace Elixir default session (evens out difference between 0.5 - 0.6)
@@ -70,6 +71,38 @@ try:
   del __ev
   
   
+  # A static pool, since Smisk is not multi-threaded
+  class SingleProcessPool(StaticPool):
+    def __init__(self, *va, **kw):
+      StaticPool.__init__(self, *va, **kw)
+      self._init_va = va
+      self._init_kw = kw
+      logger_name = '%s.%s' % (self.__class__.__module__, self.__class__.__name__)
+      self.logger = logging.getLogger(logger_name)
+      if self.echo == 'debug':
+        self.logger.setLevel(logging.DEBUG)
+      elif self.echo is True:
+        self.logger.setLevel(logging.INFO)
+      elif self.echo is False:
+        self.logger.setLevel(logging.NOTSET)
+    
+    def recreate(self):
+      self.log("recreating")
+      o = self.__class__(*self._init_va, **self._init_kw)
+      o.logger = self.logger
+      return o
+    
+  
+  # MySQL-specific pool, handling dropped connections.
+  # We derive from the StaticPool, only using one connection per process.
+  class MySQLConnectionPool(SingleProcessPool):
+    def do_get(self):
+      # This works with MySQL-python >=1.2.2 and sets reconnect in the MySQL client
+      # library for the current connection, and automatically reconnects if needed.
+      self._conn.ping(True)
+      return self.connection
+    
+  
   # Metadata configuration bind filter
   from smisk.config import config
   def smisk_mvc_metadata(conf):
@@ -92,15 +125,28 @@ try:
     from smisk.core import URL
     url_st = URL(url)
     
-    # MySQL MUST have pool_recycle <= 28800 (8h).
-    # Because we can not know if mysqld has a lower limit (8h is factory default),
-    # we are paranoid about this and recycle connections every hour.
-    if url_st.scheme.lower() == 'mysql' and 'pool_recycle' not in conf:
-      conf['pool_recycle'] = 3600
-      log.debug('MySQL: setting pool_recycle=%r', conf['pool_recycle'])
+    # Make a copy of the default options
+    engine_opts = default_engine_opts.copy()
+    
+    # MySQL
+    if url_st.scheme.lower() == 'mysql':
+      if 'poolclass' not in conf:
+        conf['poolclass'] = MySQLConnectionPool
+        log.debug('MySQL: setting poolclass=%r', conf['poolclass'])
+        if 'pool_size' in conf:
+          log.debug('MySQL: disabling pool_size')
+          del conf['pool_size']
+        if 'pool_size' in engine_opts:
+          del engine_opts['pool_size']
+      elif 'pool_recycle' not in conf and 'pool_recycle' not in engine_opts:
+        # In case of user-configured custom pool_class
+        conf['pool_recycle'] = 3600
+        log.debug('MySQL: setting pool_recycle=%r', conf['pool_recycle'])
+    elif 'poolclass' not in conf:
+      # Others than MySQL should also use a kind of static pool
+      conf['poolclass'] = SingleProcessPool
     
     # Demux configuration
-    engine_opts = default_engine_opts.copy()
     elixir_opts = {}
     for k,v in conf.iteritems():
       if k.startswith('elixir.'):
