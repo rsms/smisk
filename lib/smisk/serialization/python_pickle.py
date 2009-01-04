@@ -26,7 +26,7 @@ class PythonPickleSerializer(Serializer):
   media_types = ('application/x-python-pickle', 'application/x-pickle')
   
   @classmethod
-  def serialize(cls, params, charset):
+  def serialize(cls, params, charset=None):
     return (None, dumps(params, HIGHEST_PROTOCOL))
   
   @classmethod
