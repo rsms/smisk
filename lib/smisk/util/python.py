@@ -107,37 +107,58 @@ def load_modules(path, deep=False, skip_first_init=True):
   
   :param path: Path of a directory
   :type  path: string
+  
   :param deep: Search subdirectories
   :type  deep: bool
+  
   :param skip_first_init: Do not load any __init__ directly under `path`.
                           Note that if `deep` is ``True``, 
                           subdirectory/__init__ will still be loaded, 
                           even if `skip_first_init` is ``True``.
   :type  skip_first_init: bool
+  
   :returns: A dictionary of modules imported, keyed by name.
   :rtype:   dict'''
-  loaded = {}
+  loaded = sys.modules.copy()
   path = os.path.abspath(path)
   parent_name, top_path = find_closest_syspath(path, [])
   sys.path[0:0] = [top_path]
+  loaded_paths = {}
+  for name,mod in sys.modules.items():
+    if mod:
+      try:
+        loaded_paths[strip_filename_extension(mod.__file__)] = mod
+      except AttributeError:
+        pass
   try:
-    _load_modules(path, deep, skip_first_init, parent_name, loaded)
+    _load_modules(path, deep, skip_first_init, parent_name, loaded, loaded_paths)
   finally:
     if sys.path[0] == top_path:
       sys.path = sys.path[1:]
   return loaded
 
-def _load_modules(path, deep, skip_init, parent_name, loaded):
+def _load_modules(path, deep, skip_init, parent_name, loaded, loaded_paths):
   for f in os.listdir(path):
     fpath = os.path.join(path, f)
-  
+    
+    if strip_filename_extension(fpath) in loaded_paths:
+      #print >> sys.stderr, 'AVOIDED reloading '+fpath
+      continue
+    
     if os.path.isdir(fpath):
       if deep:
         # skip_init is False because this method is a slave and the
         # master argument is skip_first_init.
-        _load_modules(fpath, deep, False, f, loaded)
+        if parent_name:
+          parent_name = '%s.%s' % (parent_name, f)
+        else:
+          parent_name = f
+        _load_modules(fpath, deep, False, parent_name, loaded, loaded_paths)
       continue
-  
+    
+    if not os.path.splitext(f)[1].startswith('.py'):
+      continue
+    
     name = strip_filename_extension(f)
     if skip_init and name == '__init__':
       continue
@@ -151,21 +172,43 @@ def _load_modules(path, deep, skip_init, parent_name, loaded):
       name = os.path.basename(path)
     
     if name not in loaded:
-      mfindpath = list(sys.path)
+      findpath = path
       mod = None
-      components = name.split('.')
-      org_sys_path = list(sys.path)
-      try:
-        for comp in components:
-          mfile, mpath, mdesc = imp.find_module(comp, sys.path)
-          if mdesc[0] == '':
-            mfindpath = mpath
-          else:
-            mfindpath = os.path.dirname(mpath)
-          sys.path[0:0] = [mfindpath]
-          mod = imp.load_module(comp, mfile, mpath, mdesc)
-        if mod is not None:
-          loaded[name] = mod
-      finally:
-        sys.path = org_sys_path
+      load_namev = []
+      load_name = ''
+      namev = name.split('.')
+      findpathv = findpath.strip('/').split('/')
+      for i, name_part in enumerate(namev):
+        load_namev.append(name_part)
+        load_name = '.'.join(load_namev)
+        
+        findpathv_offset = len(namev)-i-1
+        if findpathv_offset > 0:
+          mfindpath = ['/'+os.path.join(*findpathv[:-findpathv_offset])]
+          #print >> sys.stderr, 'A findpathv=%r, findpathv_offset=%r, mfindpath=%r' % (findpathv, findpathv_offset, mfindpath)
+        else:
+          mfindpath = ['/'+os.path.join(*findpathv)]
+        
+        try:
+          mfile, mpath, mdesc = imp.find_module(name_part, mfindpath)
+        except ImportError, e:
+          #print >> sys.stderr, 'FAIL name_part=%r, mfindpath=%r' % (name_part, mfindpath)
+          raise e
+        
+        if mfile is None:
+          mpath += '/__init__.py'
+        
+        mpathn = strip_filename_extension(mpath)
+        modn = loaded_paths.get(mpathn, None)
+        
+        if modn:
+          mod = modn
+          continue
+        
+        mod = imp.load_module(load_name, mfile, mpath, mdesc)
+        loaded[load_name] = mod
+        loaded_paths[strip_filename_extension(mpath)] = mod
+      
+      assert load_name == name
+  
   return loaded
