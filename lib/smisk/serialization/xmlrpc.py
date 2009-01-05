@@ -8,7 +8,7 @@ from smisk.serialization import serializers, Serializer
 from xmlrpclib import dumps, loads, Fault
 
 class XMLRPCSerializer(Serializer):
-  '''XML-RPC serializer
+  '''XML-based Remote Procedure Call
   '''
   
   name = 'XML-RPC'

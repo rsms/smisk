@@ -25,9 +25,9 @@ class XSPFUnserializationError(XMLUnserializationError):
   pass
 
 class XSPFSerializer(XMLSerializer):
-  '''XML Property List serializer
+  '''XML Shareable Playlist Format
   '''
-  name = 'XSPF: XML Shareable Playlist Format'
+  name = 'XSPF'
   extensions = ('xspf',)
   media_types = ('application/xspf+xml',)
   charset = 'utf-8'  

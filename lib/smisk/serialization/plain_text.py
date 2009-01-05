@@ -50,7 +50,7 @@ def encode_sequence(l, buf, level):
   return buf
 
 class PlainTextSerializer(Serializer):
-  '''Plain Text serializer.'''
+  '''Human-readable plain text'''
   name = 'Plain text'
   extensions = ('txt',)
   media_types = ('text/plain',)

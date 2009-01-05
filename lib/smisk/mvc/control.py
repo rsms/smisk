@@ -12,7 +12,7 @@ from smisk.util.cache import callable_cache_key
 from smisk.mvc.decorators import expose
 from smisk.mvc import http
 
-__all__ = ['root_controller', 'controllers', 'node_name', 'uri_for', 'path_to', 'template_for', 'method_origin', 'leaf_is_visible', 'Controller']
+__all__ = ['root_controller', 'controllers', 'node_name', 'uri_for', 'path_to', 'template_for', 'method_origin', 'leaf_is_visible', 'Controller', 'enable_reflection']
 
 _root_controller = False
 _path_to_cache = {}
@@ -20,6 +20,11 @@ _template_for_cache = {}
 _uri_for_cache = {}
 
 log = logging.getLogger(__name__)
+
+enable_reflection = True
+'''Controls if smisk:-methods and OPTIONS requests are allowed
+in order to provide API reflection.
+'''
 
 def root_controller():
   '''Returns the root controller.
@@ -186,7 +191,7 @@ def leaf_is_visible(node, cls=None):
   elif not delegates:
     origin = method_origin(node)
     if origin is Controller \
-        and Controller.smisk_enable_specials \
+        and enable_reflection \
         and cls is root_controller() \
         and node.__name__.startswith('smisk_'):
       # the special methods on the root controller
@@ -325,7 +330,54 @@ def _doc_intro(entity):
     if not ln:
       break
     s.append(ln)
-  return u'\n'.join(s)
+  return u'\n'.join(s).rstrip(u'.')
+
+
+def leaf_reflection(leaf):
+  '''Structured info for leaf.
+  Returns a dict or None if leaf is not exposed or not on the controller tree.
+  '''
+  if not isinstance(leaf, (MethodType, FunctionType, ClassType, TypeType)):
+    return None
+  
+  if path_to(leaf) is None:
+    return None
+  
+  info = introspect.callable_info(leaf)
+  
+  params = {}
+  for k,v in info['args']:
+    param_info = {
+      'description': None,
+      'required': v is Undefined
+    }
+    params[k] = param_info
+  
+  try:
+    formats = leaf.formats
+  except AttributeError:
+    # Any serializer
+    formats = [serializer.extensions[0] for serializer in smisk.serialization.serializers]
+  
+  try:
+    http_methods = leaf.methods
+    if enable_reflection  and  'OPTIONS' not in http_methods:
+      # Need to make a copy here, or we'll change the actual setting on the leaf
+      http_methods = http_methods + ['OPTIONS']
+  except AttributeError:
+    http_methods = ['OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE']
+  
+  if leaf.__doc__:
+    descr = _doc_intro(leaf)
+  else:
+    descr = ''
+  
+  return {
+    'params': params,
+    'description': descr,
+    'formats': formats,
+    'methods': http_methods,
+  }
 
 
 class Controller(object):
@@ -342,16 +394,8 @@ class Controller(object):
   '''
   
   smisk_enable_specials = True
-  '''Enable exposure of the special ``smisk:``-methods.
-  
-  These special methods are defined in ``Controller`` prefixed ``smisk_``,
-  but actually exposed on the *root controller*.
-  
-  It is recommended to have this set to ``True``, as some clients might 
-  rely on the *reflection* provided by these special methods.
-  
+  ''':Deprecated: Use :attr:`enable_reflection` instead
   :type: bool
-  :see: `special_methods()`
   '''
   
   def __new__(typ):
@@ -394,7 +438,7 @@ class Controller(object):
   def special_methods(cls):
     '''Returns a dictionary of available special methods, keyed by exposed name.
     
-    :see: `smisk_enable_specials`
+    :see: :attr:`enable_reflection`
     :rtype: list
     '''
     specials = {}
@@ -412,7 +456,7 @@ class Controller(object):
           specials[node_name] = v
     return specials
   
-  @expose('smisk:methods')
+  @expose('smisk:methods', methods=('OPTIONS', 'GET', 'HEAD'))
   def smisk_methods(self, filter=None, *args, **params):
     '''List available methods.
     
@@ -428,41 +472,14 @@ class Controller(object):
         leafs = controller.__dict__.values()
         leafs.append(controller)
         for leaf in leafs:
-          if not isinstance(leaf, (MethodType, FunctionType, ClassType, TypeType)):
-            continue
-          if path_to(leaf) is None:
-            continue
-          info = introspect.callable_info(leaf)
-          
-          params = {}
-          for k,v in info['args']:
-            if v is not Undefined:
-              v = 'optional'
-            else:
-              v = 'required'
-            params[k] = v
-          
-          try:
-            formats = leaf.formats
-          except AttributeError:
-            formats = ['*']
-          
-          if leaf.__doc__:
-            descr = _doc_intro(leaf)
-          else:
-            descr = ''
-          
-          m = {
-            'params': params,
-            'description': descr,
-            'formats': ', '.join(formats)
-          }
-          methods[uri_for(leaf)] = m
+          m = leaf_reflection(leaf)
+          if m is not None:
+            methods[uri_for(leaf)] = m
       self._methods_cached = methods
     return _filter_dict(methods, filter)
   
   
-  @expose('smisk:charsets')
+  @expose('smisk:charsets', methods=('OPTIONS', 'GET', 'HEAD'))
   def smisk_charsets(self, filter=None, *args, **params):
     '''List available character sets.
     
@@ -474,7 +491,7 @@ class Controller(object):
     return _filter_dict(charsets, filter)
   
   
-  @expose('smisk:serializers')
+  @expose('smisk:serializers', methods=('OPTIONS', 'GET', 'HEAD'))
   def smisk_serializers(self, filter=None, *args, **params):
     '''List available content serializers.
     
@@ -486,10 +503,11 @@ class Controller(object):
     serializers = {}
     for serializer in smisk.serialization.serializers:
       serializers[serializer.name] = {
-        'extensions': ', '.join(serializer.extensions),
-        'media_types': ', '.join(serializer.media_types),
+        'extensions': serializer.extensions,
+        'media_types': serializer.media_types,
+        'preferred_charset': serializer.charset,
         'description': _doc_intro(serializer),
-        'directions': ', '.join(serializer.directions())
+        'directions': serializer.directions()
       }
     return _filter_dict(serializers, filter)
   

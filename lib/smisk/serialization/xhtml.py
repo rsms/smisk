@@ -42,8 +42,8 @@ def encode_sequence(l, buf, value_wraptag='tt'):
 
 
 class XHTMLSerializer(Serializer):
-  '''XHTML serializer'''
-  name = 'XHTML: Extensible Hypertext Markup Language'
+  '''eXtensible Hypertext Markup Language'''
+  name = 'XHTML'
   extensions = ('html',)
   media_types = ('text/html', 'application/xhtml+xml')
   charset = 'utf-8'

@@ -24,9 +24,9 @@ except ImportError:
   log.warn(warning_msg)
 
 class YAMLSerializer(Serializer):
-  '''YAML
+  '''Human-readable data serialization
   '''
-  name = 'YAML: Human-readable data serialization'
+  name = 'YAML'
   extensions = ('yaml',)
   media_types = ('application/x-yaml', 'text/yaml', 'text/x-yaml')
   charset = 'utf-8'

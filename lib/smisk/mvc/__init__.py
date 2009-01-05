@@ -49,7 +49,7 @@ from smisk.util.threads import *
 from smisk.util.timing import *
 from smisk.util.type import *
 from smisk.mvc.template import Templates
-from smisk.mvc.routing import Router
+from smisk.mvc.routing import Router, Destination
 from smisk.mvc.decorators import *
 from smisk.mvc.helpers import *
 
@@ -101,13 +101,45 @@ class Response(smisk.core.Response):
   '''Character encoding used to encode the response body.
   '''
   
+  def adjust_status(self, has_content):
+    '''Make sure 204 No Content is set for responses without content.
+    '''
+    p = self.find_header('Status:')
+    if p != -1:
+      if not has_content  and  self.headers[p][7:].strip().startswith('200'):
+        self.headers[p] = 'Status: 204 No Content'
+        self.remove_header('content-length:')
+    elif not has_content:
+      self.headers.append('Status: 204 No Content')
+      self.remove_header('content-length:')
+  
+  
+  def remove_header(self, name):
+    '''Remove any instance of header named or prefixed *name*.
+    '''
+    name = name.lower()
+    name_len = len(name)
+    self.headers = [h for h in self.headers if h[:name_len].lower() != name]
+  
+  
+  def remove_headers(self, *names):
+    '''Remove any instance of headers named or prefixed *\*names*.
+    '''
+    for name in names:
+      self.remove_header(name)
+  
+  
+  def replace_header(self, header):
+    '''Replace any instances of the same header type with *header*.
+    '''
+    name = header[:header.index(':')+1]
+    self.remove_header(name)
+    self.headers.append(header)
+  
+  
   def send_file(self, path):
-    i = self.find_header('Content-Location')
-    if i != -1:
-      del self.headers[i]
-    i = self.find_header('Vary')
-    if i != -1:
-      del self.headers[i]
+    self.remove_header('content-location:')
+    self.remove_header('vary:')
     if self.find_header('Content-Type') == -1:
       mt, menc = mimetypes.guess_type(path)
       if mt:
@@ -243,6 +275,35 @@ class Application(smisk.core.Application):
     smisk.core.unbind()
   
   
+  def _serializer_for_request_path_ext(self, fallback=None):
+    '''
+    Returns a serializer if the requests included a filename extension.
+    Returns None if the requests did NOT include a filename extension.
+    If fallback is set,
+      Returns fallback if the requests included a filename extension that
+      does not correspond to any available serializer.
+    If fallback is NOT set,
+      raises http.NotFound
+    '''
+    if self.response.format is None and self.request.url.path.rfind('.') != -1:
+      filename = os.path.basename(self.request.url.path)
+      p = filename.rfind('.')
+      if p != -1:
+        self.request.url.path = strip_filename_extension(self.request.url.path)
+        self.response.format = filename[p+1:].lower()
+        if log.level <= logging.DEBUG:
+          log.debug('response format %r deduced from request filename extension', 
+            self.response.format)
+    if self.response.format is not None:
+      try:
+        return serializers.extensions[self.response.format]
+      except KeyError:
+        if fallback is not None:
+          return fallback
+        else:
+          raise http.NotFound('Resource not available as %r' % self.response.format)
+  
+  
   def response_serializer(self, no_http_exc=False):
     '''
     Return the most appropriate serializer for handling response encoding.
@@ -279,21 +340,12 @@ class Application(smisk.core.Application):
             'which does not have any valid serializer associated with it.' % content_type)
     
     # Try filename extension
-    if self.request.url.path.rfind('.') != -1:
-      filename = os.path.basename(self.request.url.path)
-      p = filename.rfind('.')
-      if p != -1:
-        self.request.url.path = strip_filename_extension(self.request.url.path)
-        self.response.format = filename[p+1:].lower()
-        if log.level <= logging.DEBUG:
-          log.debug('Client asked for format %r', self.response.format)
-        try:
-          return serializers.extensions[self.response.format]
-        except KeyError:
-          if no_http_exc:
-            return Response.fallback_serializer
-          else:
-            raise http.NotFound('Resource not available as %r' % self.response.format)
+    fallback = None
+    if no_http_exc:
+      fallback = Response.fallback_serializer
+    serializer = self._serializer_for_request_path_ext(fallback=fallback)
+    if serializer is not None:
+      return serializer
     
     # Try media type
     accept_types = self.request.env.get('HTTP_ACCEPT', None)
@@ -365,6 +417,7 @@ class Application(smisk.core.Application):
     :rtype:   tuple
     '''
     args = []
+    log.debug('parsing request')
     
     # Set params to the query string
     params = self.request.get
@@ -406,17 +459,26 @@ class Application(smisk.core.Application):
             self.response.charset)
     
     # Parse body if POST request
-    if self.request.env['REQUEST_METHOD'] == 'POST':
-      content_type = self.request.env.get('CONTENT_TYPE', '').lower()
+    if self.request.method in ('POST', 'PUT'):
+      
+      path_ext_serializer = self._serializer_for_request_path_ext()
+      if path_ext_serializer is None:
+        content_type = self.request.env.get('CONTENT_TYPE', '').lower()
+      else:
+        content_type = path_ext_serializer.media_types[0]
+      
       if content_type == 'application/x-www-form-urlencoded' or len(content_type) == 0:
         # Standard urlencoded content
         params.update(self.request.post)
       elif not content_type.startswith('multipart/'):
-        # Multiparts are parsed by smisk.core, so let's only try to
-        # decode the body if it's of another type.
+        # Multiparts are parsed by smisk.core, so let's try to
+        # decode the body only if it's of another type.
         try:
-          self.request.serializer = serializers.media_types[content_type]
-          log.debug('decoding POST data using %s', self.request.serializer)
+          if path_ext_serializer is not None:
+            self.request.serializer = path_ext_serializer
+          else:
+            self.request.serializer = serializers.media_types[content_type]
+          log.debug('decoding request payload using %s', self.request.serializer)
           content_length = int(self.request.env.get('CONTENT_LENGTH', -1))
           (eargs, eparams) = self.request.serializer.unserialize(self.request.input, content_length)
           if eargs is not None:
@@ -430,49 +492,88 @@ class Application(smisk.core.Application):
     return (args, params)
   
   
-  def apply_action_format_restrictions(self):
-    '''Applies any format restrictions set by the current action.
+  def apply_leaf_restrictions(self):
+    '''Applies any restrictions set by the current leaf/destination.
     
     :rtype: None
     '''
+    # Method restrictions
     try:
-      action_formats = self.destination.action.formats
+      log.debug('applying method restrictions for leaf %r', self.destination.leaf)
+      leaf_methods = self.destination.leaf.methods
+      method = self.request.method
+      log.debug('leaf allows %r, request is %r', leaf_methods, method)
+      if method  and  leaf_methods is not None:
+        method_not_allowed = method not in leaf_methods
+        is_opts_and_refl = (method == 'OPTIONS'  and  control.enable_reflection)
+        
+        if method_not_allowed  or  method == 'OPTIONS':
+          # HTTP 1.1 requires us to specify allowed methods in a 405 response
+          # and we should also include Allow for OPTIONS requests.
+          if is_opts_and_refl:
+            leaf_methods = leaf_methods + ['OPTIONS']
+          self.response.headers.append('Allow: ' + ', '.join(leaf_methods))
+        
+        if method_not_allowed:
+          # If OPTIONS request and control.enable_reflection is True, respond
+          # with leaf relfection. Placing the check here, inside method_not_allowed,
+          # allows the application designer to explicitly @expose a leaf with
+          # OPTIONS included in the methods argument, in order for her to handle
+          # a OPTIONS request, rather than Smisk taking over.
+          if is_opts_and_refl:
+            class LeafReflectionDestination(Destination):
+              def _call_leaf(self, *args, **params):
+                return control.leaf_reflection(self.leaf)
+            self.destination = LeafReflectionDestination(self.destination.leaf)
+          else:
+            # Method not allowed
+            raise http.MethodNotAllowed("The requested method %s is not allowed for the URI %s." %\
+              (method, self.request.url.uri))
+    except AttributeError:
+      # self.destination.leaf does not have any method restrictions
+      pass
+    
+    # Format restrictions
+    try:
+      leaf_formats = self.destination.leaf.formats
       for ext in self.response.serializer.extensions:
-        if ext not in action_formats:
+        if ext not in leaf_formats:
           self.response.serializer = None
           break
       if self.response.serializer is None:
-        log.warn('client requested a response type which is not available for the current action')
+        log.warn('client requested a response type which is not available for the current leaf')
         if self.response.format is not None:
           raise http.NotFound('Resource not available as %r' % self.response.format)
-        elif config.get('smisk.mvc.strict_tcn', True) or len(action_formats) == 0:
+        elif config.get('smisk.mvc.strict_tcn', True) or len(leaf_formats) == 0:
           raise http.NotAcceptable()
         else:
           try:
-            self.response.serializer = serializers.extensions[action_formats[0]]
+            self.response.serializer = serializers.extensions[leaf_formats[0]]
           except KeyError:
             raise http.NotAcceptable()
     except AttributeError:
-      # self.destination.action.formats does not exist -- no restrictions apply
+      # self.destination.leaf.formats does not exist -- no restrictions apply
       pass
   
   
-  def call_action(self, args, params):
+  def call_leaf(self, args, params):
     '''
-    Resolves and calls the appropriate action, passing args and params to it.
+    Resolves and calls the appropriate leaf, passing args and params to it.
     
     :returns: Response structure or None
     :rtype:   dict
     '''
     # Add Content-Location response header if data encoding was deduced through
     # TCN or requested with a non-standard URI. (i.e. "/hello" instead of "/hello/")
+    canonical_uri = self.destination.uri
     if self.response.serializer and (\
           not self.response.format \
         or \
-          (self.destination.uri and self.destination.uri != self.request.url.path)\
+          (canonical_uri and canonical_uri != self.request.url.path)\
         ):
-      self.response.headers.append('Content-Location: %s.%s' % \
-        (self.destination.uri, self.response.serializer.extensions[0]))
+      if canonical_uri:
+        self.response.headers.append('Content-Location: %s.%s' % \
+          (canonical_uri, self.response.serializer.extensions[0]))
       # Always add the vary header, because we do (T)CN
       self.response.headers.append('Vary: Accept-Charset, Accept')
     else:
@@ -481,14 +582,14 @@ class Application(smisk.core.Application):
       # set by the client, so we do not include "accept".
       self.response.headers.append('Vary: Accept-Charset')
     
-    # Call action
+    # Call leaf
     if log.level <= logging.DEBUG:
       log.debug('Calling destination %r with args %r and params %r', self.destination, args, params)
     try:
-      for filter in self.destination.action.filters:
+      for filter in self.destination.leaf.filters:
         args, params = filter.before(*args, **params)
       rsp = self.destination(*args, **params)
-      for filter in self.destination.action.filters:
+      for filter in self.destination.leaf.filters:
         rsp = filter.after(rsp, *args, **params)
       return rsp
     except AttributeError:
@@ -541,11 +642,11 @@ class Application(smisk.core.Application):
     '''
     # Empty rsp
     if rsp is None:
-      # The action might have sent content using low-level functions,
+      # The leaf might have sent content using low-level functions,
       # so we need to confirm the response has not yet started and 
       # a custom content length header has not been set.
-      if not self.response.has_begun and self.response.find_header('Content-Length:') == -1:
-        self.response.headers.append('Content-Length: 0')
+      if not self.response.has_begun:
+        self.response.adjust_status(False)
       return
     
     # Add headers if the response has not yet begun
@@ -555,13 +656,19 @@ class Application(smisk.core.Application):
         self.response.headers.append('Content-Length: %d' % len(rsp))
       # Add Content-Type header
       self.response.serializer.add_content_type_header(self.response, self.response.charset)
-      # Add ETag
+      # Has content or not?
       if len(rsp) > 0:
+        # Make sure appropriate status is set, if needed
+        self.response.adjust_status(True)
+        # Add ETag if enabled
         etag = config.get('smisk.mvc.etag')
         if etag is not None and self.response.find_header('ETag:') == -1:
           h = etag(''.join(self.response.headers))
           h.update(rsp)
           self.response.headers.append('ETag: "%s"' % h.hexdigest())
+      else:
+        # Make sure appropriate status is set, if needed
+        self.response.adjust_status(False)
     
     # Debug print
     if log.level <= logging.DEBUG:
@@ -589,8 +696,8 @@ class Application(smisk.core.Application):
     
     # Aquire response serializer.
     # We do this here already, because if response_serializer() raises and
-    # exception, we do not want any action to be performed. If we would do this
-    # after calling an action, chances are an important answer gets replaced by
+    # exception, we do not want any leaf to be performed. If we would do this
+    # after calling an leaf, chances are an important answer gets replaced by
     # an error response, like 406 Not Acceptable.
     self.response.serializer = self.response_serializer()
     if self.response.serializer.charset is not None:
@@ -599,18 +706,22 @@ class Application(smisk.core.Application):
     # Parse request (and decode if needed)
     req_args, req_params = self.parse_request()
     
+    # Option request for server in general?
+    if self.request.method == 'OPTIONS' and self.request.url.path == '/*':
+      return self.service_server_OPTIONS(req_args, req_params)
+      
     # Resolve route to destination
     self.destination, req_args, req_params = \
-      self.routes(self.request.url, req_args, req_params)
+      self.routes(self.request.method, self.request.url, req_args, req_params)
     
     # Adjust formats if required by destination
-    self.apply_action_format_restrictions()
+    self.apply_leaf_restrictions()
     
-    # Call the action which might generate a response object: rsp
+    # Call the leaf which might generate a response object: rsp
     if model.metadata.bind:
       try:
         try:
-          rsp = self.call_action(req_args, req_params)
+          rsp = self.call_leaf(req_args, req_params)
           model.session.commit()
         except http.HTTPExc, e:
           if not e.status.is_error:
@@ -627,14 +738,14 @@ class Application(smisk.core.Application):
       finally:
         model.session.remove()
     else:
-      rsp = self.call_action(req_args, req_params)
-    
+      rsp = self.call_leaf(req_args, req_params)
+  
     # Aquire template, if any
     if self.template is None and self.templates is not None:
       template_path = self.destination.template_path
       if template_path:
         self.template = self.template_for_path(os.path.join(*template_path))
-    
+  
     # Encode response
     rsp = self.encode_response(rsp)
     
@@ -648,8 +759,31 @@ class Application(smisk.core.Application):
       if self.destination is not None:
         uri = '%s.%s' % (self.destination.uri, self.response.serializer.extensions[0])
       else:
-        uri = self.request.url.to_s(scheme=0, user=0, password=0, host=0, port=0)
+        uri = self.request.url.uri
       log.info('Processed %s in %.3fms', uri, timer.time()*1000.0)
+  
+  
+  def service_server_OPTIONS(self, args, params):
+    '''Handle a OPTIONS /* request
+    '''
+    log.info('servicing OPTIONS /*')
+    self.response.replace_header('Allow: OPTIONS, GET, HEAD, POST, PUT, DELETE')
+    rsp = None
+    
+    # Include information about this Smisk service, if enabled
+    if control.enable_reflection:
+      ctrl = control.Controller()
+      rsp = {
+        'methods': ctrl.smisk_methods(),
+        'charsets': ctrl.smisk_charsets(),
+        'serializers': ctrl.smisk_serializers()
+      }
+    
+      # Encode response
+      rsp = self.encode_response(rsp)
+    
+    # Return a response to the client and thus completing the transaction.
+    self.send_response(rsp)
   
   
   def template_for_path(self, path):
@@ -708,15 +842,19 @@ class Application(smisk.core.Application):
       if status.is_error:
         log.error('%d Request failed for %r', status.code, self.request.url.path, 
           exc_info=(extyp, exval, tb))
+        # Reset headers
+        self.response.headers = []
       else:
-        log.info('Non-200 HTTP status %s: %s for path %r', extyp.__name__, exval, 
-          self.request.url.path)
+        log.info('Non-200 HTTP status %s: %s for uri %r', extyp.__name__, exval, 
+          self.request.url.uri)
+        # Filter headers
+        self.response.remove_headers('status:', 'vary:')
       
       # Set headers
-      self.response.headers = [
+      self.response.headers.extend([
         'Status: %s' % status,
         'Vary: Accept, Accept-Charset'
-      ]
+      ])
       
       # Set params
       params['name'] = unicode(status.name)
@@ -734,7 +872,7 @@ class Application(smisk.core.Application):
       else:
         params['traceback'] = None
       
-      # HTTP exception has a bound action we want to call
+      # HTTP exception has a bound leaf we want to call
       if isinstance(exval, http.HTTPExc):
         status_service_rsp = exval(self)
         if isinstance(status_service_rsp, StringType):
@@ -787,10 +925,8 @@ class Application(smisk.core.Application):
     if not self.response.has_begun:
       if self.response.serializer:
         self.response.serializer.add_content_type_header(self.response, self.response.charset)
-      if self.response.find_header('Content-Length:') == -1:
-        self.response.headers.append('Content-Length: %d' % len(rsp))
-      if self.response.find_header('Cache-Control:') == -1:
-        self.response.headers.append('Cache-Control: no-cache')
+      self.response.replace_header('Content-Length: %d' % len(rsp))
+      self.response.replace_header('Cache-Control: no-cache')
     
     # Send response
     if log.level <= logging.DEBUG:

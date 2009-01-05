@@ -4,8 +4,9 @@
 from smisk.serialization import serializers, Serializer
 
 class PythonPySerializer(Serializer):
-  '''Python code serializer.'''
-  name = 'Python code'
+  '''Plain Python code
+  '''
+  name = 'Python repr'
   extensions = ('py',)
   media_types = ('text/x-python',)
   

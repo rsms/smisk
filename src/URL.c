@@ -778,7 +778,7 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
     PyString_Concat(&s, self->query);
   }
   
-  if (ENABLED(fragment)) {
+  if (ENABLED(fragment) && self->fragment != Py_None) {
     PyString_ConcatAndDel(&s, PyString_FromStringAndSize("#", 1));
     PyString_Concat(&s, self->fragment);
   }
@@ -786,6 +786,26 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   #undef ENABLED
   
   Py_DECREF(one);
+  return s;
+}
+
+
+PyObject *smisk_URL_get_uri(smisk_URL* self) {
+  log_trace("ENTER");
+  
+  PyObject *s = self->path;
+  Py_INCREF(s); // this is the callers reference eventually.
+  
+  if (self->query != Py_None && PyString_Size(self->query) > 0) {
+    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("?", 1));
+    PyString_Concat(&s, self->query);
+  }
+  
+  if (self->fragment != Py_None) {
+    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("#", 1));
+    PyString_Concat(&s, self->fragment);
+  }
+  
   return s;
 }
 
@@ -818,6 +838,12 @@ static PyMethodDef smisk_URL_methods[] = {
   {"to_str",  (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, smisk_URL_to_str_DOC}, // alias of to_s
   
   {NULL, NULL, 0, NULL}
+};
+
+// Properties
+static PyGetSetDef smisk_URL_getset[] = {
+  {"uri", (getter)smisk_URL_get_uri, (setter)0, NULL, NULL},
+  {NULL, NULL, NULL, NULL, NULL}
 };
 
 // Class Members
@@ -865,7 +891,7 @@ PyTypeObject smisk_URLType = {
   0,                         /* tp_iternext */
   smisk_URL_methods,           /* tp_methods */
   smisk_URL_members,           /* tp_members */
-  0,                           /* tp_getset */
+  smisk_URL_getset,            /* tp_getset */
   0,                           /* tp_base */
   0,                           /* tp_dict */
   0,                           /* tp_descr_get */

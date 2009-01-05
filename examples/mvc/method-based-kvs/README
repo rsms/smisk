@@ -1,0 +1,36 @@
+This example illustrates using the full power of HTTP and Smisk in the form of
+a key-value store.
+
+* Restricting HTTP methods on controller tree leafs.
+* Mapping different methods to different leafs on the controller tree.
+
+
+Different request methods do different things:
+
+* GET requests reads entries
+* PUT or POST requests writes entries
+* DELETE requests removes entries
+* OPTIONS requests gives API reflection
+
+
+Example of interfacing with this service using curl:
+
+$ curl -X GET localhost:8080/entry/my-key
+404 Not Found
+$ curl -X PUT -d value=hello localhost:8080/entry/my-key
+$ curl -X GET localhost:8080/entry/my-key.txt
+value: hello
+$ curl -X PUT \
+  -H 'Content-Type: application/json' \
+  -d '{"value":{"message": "hello internets", "time":123456}}' \
+  localhost:8080/entry/something-else
+$ curl -X GET localhost:8080/entry/something-else.txt
+value: 
+  message: hello internets
+  time: 123456
+$ curl -X PUT -d '{"value":5}' localhost:8080/entry/something-else.json
+$ curl -X GET localhost:8080/entry/something-else.txt
+value: 5
+$ curl -X POST -d 'value=internets' localhost:8080/entry/something-else
+$ curl -X GET localhost:8080/entry/something-else.txt
+value: internets

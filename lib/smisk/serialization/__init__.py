@@ -1,11 +1,13 @@
 # encoding: utf-8
 '''Data serialization
 '''
-import base64
+import base64, logging
 try:
   from cStringIO import StringIO
 except ImportError:
   from StringIO import StringIO
+
+log = logging.getLogger(__name__)
 
 __all__ = [
   'serializers', # codecs
@@ -106,7 +108,9 @@ class Registry(object):
     '''
     # Already registered?
     if serializer in self.serializers:
+      log.debug('skipped registering already registered serializer %r', serializer)
       return
+    log.debug('registered serializer %r', serializer)
     # Register Serializer
     self.serializers.append(serializer)
     # Register Media types
@@ -280,7 +284,7 @@ class Serializer(object):
   '''
   
   handles_empty_response = False
-  '''If enabled, serialize() will be called even when actions/controller leafs
+  '''If enabled, serialize() will be called even when leafs
   does not generate a response body. (i.e. params=None passed to serialize())
   
   Some serialization formats does not allow empty responses (RPC-variants for

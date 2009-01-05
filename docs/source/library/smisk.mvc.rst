@@ -246,7 +246,7 @@ Classes
     TODO
 
 
-  .. method:: apply_action_restrictions()
+  .. method:: apply_leaf_restrictions()
 
     Applies any restrictions set by the current action.
 

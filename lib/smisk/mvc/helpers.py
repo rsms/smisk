@@ -27,12 +27,12 @@ def redirect_to(url, entity=None, status=http.Found, **params):
       for pk in ent.table.primary_key.keys():
         params[pk] = getattr(ent, pk)
   
-  # The url might be a URL or action
+  # The url might be a URL or leaf
   if not isinstance(url, basestring):
     if isinstance(url, URL):
       url = str(url)
     else:
-      # url is probably an action
+      # url is probably an leaf
       url = control.uri_for(url)
   
   # Append any params to url

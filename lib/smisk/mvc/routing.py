@@ -28,35 +28,45 @@ class Destination(object):
   '''A callable destination.
   '''
   
-  action = None
+  leaf = None
   ''':type: callable
   '''
   
-  def __init__(self, action):
-    self.action = action
+  def __init__(self, leaf):
+    self.leaf = leaf
     self.formats = None
     try:
-      self.formats = self.action.formats
+      self.formats = self.leaf.formats
     except AttributeError:
       pass
   
+  def _call_leaf(self, *args, **params):
+    return self.leaf(*args, **params)
+  
   def __call__(self, *args, **params):
-    '''Call action
+    '''Call leaf
     '''
     try:
-      return self.action(*args, **params)
+      return self._call_leaf(*args, **params)
     except TypeError, e:
       GOT_MUL = ' got multiple values for keyword argument '
       desc = e.args[0]
-      if desc.find(' takes at least ') > 0 and desc.find(' arguments ') > 0:
-        info = introspect.callable_info(self.action)
-        req_args = []
+      
+      def req_args():
+        info = introspect.callable_info(self.leaf)
+        args = []
         for k,v in info['args']:
           if v is Undefined:
-            req_args.append(k)
-        req_args = ', '.join(req_args)
-        raise http.BadRequest('%s requires parameters: %s -- received args %r and params %r' % \
-          (self.uri, req_args, args, params))
+            args.append(k)
+        return ', '.join(args)
+      
+      if desc.find(' takes at least ') > 0 and desc.find(' arguments ') > 0:
+        raise http.BadRequest('%s requires parameters: %s. Received %r, %r' % \
+          (self.uri, req_args(), params, args))
+      elif desc.find(' takes exactly ') != -1:
+        raise http.BadRequest('%s requires parameters: %s. '\
+          'Received %r, %r' % (self.uri, req_args(), params, args))
+        # takes exactly 3 non-keyword arguments (2 given)
       else:
         p = desc.find(GOT_MUL)
         if p > 0:
@@ -67,12 +77,18 @@ class Destination(object):
       
   
   @property
+  # compatibility -- remove when we remove support for deprecated name "action"
+  def action(self):
+    return self.leaf
+  
+  
+  @property
   def path(self):
     '''Canonical exposed path.
     
     :rtype: list
     '''
-    return control.path_to(self.action)
+    return control.path_to(self.leaf)
   
   @property
   def uri(self):
@@ -80,7 +96,7 @@ class Destination(object):
     
     :rtype: string
     '''
-    return control.uri_for(self.action)
+    return control.uri_for(self.leaf)
   
   @property
   def template_path(self):
@@ -88,7 +104,7 @@ class Destination(object):
     
     :rtype: list
     '''
-    return control.template_for(self.action)
+    return control.template_for(self.leaf)
   
   def __str__(self):
     if self.path:
@@ -97,13 +113,13 @@ class Destination(object):
       return self.__repr__()
   
   def __repr__(self):
-    return '%s(action=%r, uri=%r)' \
-      % (self.__class__.__name__, self.action, self.uri)
+    return '%s(leaf=%r, uri=%r)' \
+      % (self.__class__.__name__, self.leaf, self.uri)
   
 
 class Filter(object):
-  def match(self, url):
-    '''Test this filter against `url`.
+  def match(self, method, url):
+    '''Test this filter against *method* and *url*.
     
     :returns: (list args, dict params) or None if no match
     :rtype: tuple
@@ -112,14 +128,15 @@ class Filter(object):
   
 
 class RegExpFilter(Filter):
-  def __init__(self, pattern, destination_path, regexp_flags=re.I, match_on_full_url=False, params={}):
+  def __init__(self, pattern, destination_path, regexp_flags=re.I, match_on_full_url=False, 
+               methods=None, params={}):
     '''Create a new regular expressions-based filter.
     
     :param pattern:           Pattern
     :type  pattern:           string or re.Regex
     
-    :param destination_path:  Path to action, expressed in internal canonical form.
-                              i.e. "/controller/action".
+    :param destination_path:  Path to leaf, expressed in internal canonical form.
+                              i.e. "/controller/leaf".
     :type  destination_path:  string
     
     :param regexp_flags:      Defaults to ``re.I`` (case-insensitive)
@@ -131,7 +148,7 @@ class RegExpFilter(Filter):
     :type  match_on_full_url: bool
     
     :param params:            Parameters are saved and later included in every call to
-                              actions taking this route.
+                              leafs taking this route.
     :type  params:            dict
     '''
     if not isinstance(regexp_flags, int):
@@ -152,17 +169,32 @@ class RegExpFilter(Filter):
     self.destination_path = _prep_path(destination_path)
     self.match_on_full_url = match_on_full_url
     self.params = params
+    
+    if isinstance(methods, (list, tuple)):
+      self.methods = methods
+    elif methods is not None:
+      if not isinstance(methods, basestring):
+        raise TypeError('methods must be a tuple or list of strings, '\
+          'alternatively a string, not a %s.' % type(methods))
+      self.methods = (methods,)
+    else:
+      self.methods = None
   
-  def match(self, url):
-    '''Test this filter against `url`.
+  def match(self, method, url):
+    '''Test this filter against *method* and *url*.
     
     :returns: (list args, dict params) or None if no match
     :rtype: tuple
     '''
+    if method  and  self.methods is not None  and  method not in self.methods\
+    and  (not control.enable_reflection  or  method != 'OPTIONS'):
+      return None2
+    
     if self.match_on_full_url:
       m = self.pattern.match(url)
     else:
       m = self.pattern.match(url.path)
+    
     if m is not None:
       if self.params:
         params = self.params.copy()
@@ -170,12 +202,13 @@ class RegExpFilter(Filter):
       else:
         params = m.groupdict()
       return [], params
+    
     return None2
   
   def __repr__(self):
-    return '<%s.%s(%r, %r) @0x%x>' %\
+    return '<%s.%s(%r, %r, %r) @0x%x>' %\
       (self.__module__, self.__class__.__name__, \
-      self.pattern.pattern, self.destination_path, id(self))
+      self.methods, self.pattern.pattern, self.destination_path, id(self))
   
 
 
@@ -225,7 +258,8 @@ class Router(object):
     for filter in filters:
       try:
         dest = URL(filter['destination'])
-        self.filter(filter['pattern'], dest, match_on_full_url=dest.scheme)
+        self.filter(filter['pattern'], dest, match_on_full_url=dest.scheme,
+                    methods=filter.get('methods', None))
       except TypeError, e:
         e.args = ('configuration parameter %r must contain dictionaries' % config_key,)
         raise
@@ -233,14 +267,15 @@ class Router(object):
         e.args = ('%r in configuration parameter %r' % (e.message, config_key),)
         raise
   
-  def filter(self, pattern, destination_path, regexp_flags=re.I, match_on_full_url=False, params={}):
-    '''Explicitly map an action to paths or urls matching regular expression `pattern`.
+  def filter(self, pattern, destination_path, regexp_flags=re.I, match_on_full_url=False, 
+             params={}, methods=None):
+    '''Explicitly map an leaf to paths or urls matching regular expression `pattern`.
     
     :param pattern:           Pattern
     :type  pattern:           string or re.Regex
     
-    :param destination_path:  Path to action, expressed in internal canonical form.
-                              i.e. "/controller/action".
+    :param destination_path:  Path to leaf, expressed in internal canonical form.
+                              i.e. "/controller/leaf".
     :type  destination_path:  string
     
     :param regexp_flags:      Defaults to ``re.I`` (case-insensitive)
@@ -252,16 +287,16 @@ class Router(object):
     :type  match_on_full_url: bool
     
     :param params:            Parameters are saved and later included in every call to
-                              actions taking this route.
+                              leafs taking this route.
     :type  params:            dict
     
     :rtype: RegExpFilter
     '''
-    filter = RegExpFilter(pattern, destination_path, regexp_flags, match_on_full_url, **params)
+    filter = RegExpFilter(pattern, destination_path, regexp_flags, match_on_full_url, methods)
     # already exists?
     for i in range(len(self.filters)):
       f = self.filters[i]
-      if isinstance(f, RegExpFilter) and f.pattern.pattern == pattern:
+      if isinstance(f, RegExpFilter) and f.pattern.pattern == pattern and f.methods == methods:
         # replace
         self.filters[i] = filter
         log.debug('updated filter %r', filter)
@@ -271,10 +306,12 @@ class Router(object):
     return filter
   
   
-  def __call__(self, url, args, params):
+  def __call__(self, method, url, args, params):
     '''
     Find destination for route `url`.
     
+    :param method: HTTP method
+    :type  method: str
     :param url: The URL to consider
     :type  url: smisk.core.URL
     :return: ('Destionation' ``dest``, list ``args``, dict ``params``).
@@ -283,7 +320,7 @@ class Router(object):
     '''
     # Explicit mapping? (never cached)
     for filter in self.filters:
-      dargs, dparams = filter.match(url)
+      dargs, dparams = filter.match(method, url)
       if dargs is not None:
         dargs.extend(args)
         dparams.update(params)

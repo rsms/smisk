@@ -1,5 +1,5 @@
 # encoding: utf-8
-'''Action filters
+'''Leaf filters
 '''
 import smisk.core
 
@@ -10,7 +10,7 @@ class BaseFilter(object):
   '''
   @staticmethod
   def before(cls, *args, **kw):
-    '''Called before mvc.Application.service calls the actual action.
+    '''Called before mvc.Application.service calls the actual leaf.
     
     Should return a tuple of (args, kw)
     '''
@@ -18,9 +18,9 @@ class BaseFilter(object):
   
   @staticmethod
   def after(cls, rsp, *args, **kw):
-    '''Called after mvc.Application.service has called the actual action.
+    '''Called after mvc.Application.service has called the actual leaf.
     
-    rsp is the object returned from the actual action.
+    rsp is the object returned from the actual leaf.
     
     Should return rsp
     '''
@@ -50,12 +50,12 @@ class confirm(BaseFilter):
   token will only be valid for one confirmation, thus providing a good
   protection against accidents.
   
-  The action being filtered by these filters receives a boolean kewyword
+  The leaf being filtered by these filters receives a boolean kewyword
   argument named "confirmed":
   
    * When the value of this argument is True, the client did confirm (client
      sent a request containing a valid token). In this case, you should perform
-     whatever action needed to be confirmed.
+     whatever leaf needed to be confirmed.
      
    * When the value of "confirmed" is False, the client has not confirmed or
      tried to confirm with an invalid token. In this case, you should respond

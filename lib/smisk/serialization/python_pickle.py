@@ -14,14 +14,14 @@ log = logging.getLogger(__name__)
 
 class PythonPickleSerializer(Serializer):
   '''
-  Python Pickle serializer
+  Python Pickle binary protocol.
   
   Example client for interacting with a smisk service::
   
     >>> import pickle, urllib
     >>> print pickle.load(urllib.urlopen("http://localhost:8080/.pickle?hello=123"))
   '''
-  name = 'Python Pickle'
+  name = 'Python pickle'
   extensions = ('pickle',)
   media_types = ('application/x-python-pickle', 'application/x-pickle')
   
