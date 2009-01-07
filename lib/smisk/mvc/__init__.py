@@ -707,7 +707,10 @@ class Application(smisk.core.Application):
     req_args, req_params = self.parse_request()
     
     # Option request for server in general?
-    if self.request.method == 'OPTIONS' and self.request.url.path == '/*':
+    # The "/*" is an extension from Smisk. Most host servers respond to "*" themselves,
+    # without asking Smisk.
+    if self.request.method == 'OPTIONS' and \
+    (self.request.env.get('SCRIPT_NAME') == '*' or self.request.url.path == '/*'):
       return self.service_server_OPTIONS(req_args, req_params)
       
     # Resolve route to destination
