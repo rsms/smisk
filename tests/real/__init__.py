@@ -358,7 +358,7 @@ if __name__ == '__main__':
     cli = Client(server)
     cli.connect()
     r = cli.request('GET', '/')
-    print r.status, r.reason
+    print {10:'HTTP/1.0',11:'HTTP/1.1'}[r.version], r.status, r.reason
     for kv in r.getheaders():
       print '%s: %s' % kv
     print ''
