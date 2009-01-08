@@ -8,9 +8,10 @@ class MyApp(Application):
     super(MyApp, self).__init__(*args, **kwargs)
     # Set a very low session TTL for easy demonstration
     self.sessions.ttl = 10
+    self.encoding = 'iso-8859-1'
   
   def service(self):
-    self.response.headers = ["Content-Type: text/plain"]
+    self.response.headers = ["Content-Type: text/plain;charset=" + self.encoding]
     
     # Dump raw input?
     if 'dump' in self.request.get:
@@ -34,6 +35,12 @@ class MyApp(Application):
     elif self.request.session is None:
       self.request.session = 'mos'
     
+    # Reconstruct headers
+    headers = []
+    for k,v in self.request.env.items():
+      if k.startswith('HTTP_'):
+        headers.append('%s%s: %s' % (k[5],k[6:].lower(),v))
+    
     # Print alot of information
     w = self.response.write
     w("self. %s\n" % repr(self))
@@ -54,9 +61,44 @@ class MyApp(Application):
     w(" url         %s\n" % self.request.url)
     w(" session_id: %s\n" % repr(self.request.session_id))
     w(" session:    %s\n" % repr(self.request.session))
+    w(" reconstructed headers:\n%s\n" % '\n'.join(headers))
     w("\n")
     w("self.response.\n")
-    w(" headers     %s\n" % repr(self.response.headers))
+    w(" custom headers:\n%s\n" % '\n'.join(self.response.headers))
+    w("\n")
+    w("Query parameters (GET):\n")
+    for k,v in self.request.get.items():
+      w(k.encode(self.encoding))
+      w(" = ")
+      try:
+        w(v.encode(self.encoding))
+      except:
+        w(repr(v))
+      w("\n")
+    w("\n")
+    w("Form data (POST):\n")
+    for k,v in self.request.post.items():
+      w(k.encode(self.encoding))
+      w(" = ")
+      try:
+        w(v.encode(self.encoding))
+      except:
+        w(repr(v))
+      w("\n")
+    w("\n")
+    w("Cookies:\n")
+    try:
+      for k,v in self.request.cookies.items():
+        w(k.encode(self.encoding))
+        w(" = ")
+        try:
+          w(v.encode(self.encoding))
+        except:
+          w(repr(v))
+        w("\n")
+    except:
+      w(repr(self.request.cookies))
+    w("\n")
   
 
 if __name__ == '__main__':
