@@ -271,26 +271,44 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
 
 
 PyDoc_STRVAR(smisk_Response_write_DOC,
-  "Write data to the output stream");
+  "Write to the output stream");
 PyObject *smisk_Response_write(smisk_Response* self, PyObject *str) {
   log_trace("ENTER");
-  Py_ssize_t length;
+  int is_unicode = 0;
   
-  if (!str || !SMISK_PyString_Check(str))
-    return PyErr_Format(PyExc_TypeError, "first argument must be a string");
+  if (!str || ( !PyString_Check(str) && !(is_unicode = PyUnicode_Check(str))) )
+    return PyErr_Format(PyExc_TypeError, "first argument must be a str or unicode");
   
-  // TODO: make this method accept a length argument and use that instead if available
-  length = PyString_Size(str);
-  if (!length) // No data/Empty string
+  // Return immediately if empty string 
+  if ( (is_unicode && PyUnicode_GetSize(str) == 0) || (!is_unicode && PyString_Size(str) == 0) )
     Py_RETURN_NONE;
   
+  // Encode unicode
+  if (is_unicode) {
+    str = PyUnicode_AsEncodedString(str, SMISK_APP_CHARSET, "strict");
+    if (!str)
+      return NULL;
+  }
+  
   // Send HTTP headers
-  if (_begin_if_needed((void *)self) != 0)
+  if (_begin_if_needed((void *)self) != 0) {
+    if (is_unicode) {
+      Py_DECREF(str);
+    }
     return NULL;
+  }
   
   // Write data
-  if ( smisk_Stream_perform_write(self->out, str, PyString_Size(str)) == -1 )
+  if ( smisk_Stream_perform_write(self->out, str, PyString_Size(str)) == -1 ) {
+    if (is_unicode) {
+      Py_DECREF(str);
+    }
     return NULL;
+  }
+  
+  if (is_unicode) {
+    Py_DECREF(str);
+  }
   
   Py_RETURN_NONE;
 }
@@ -300,7 +318,8 @@ PyDoc_STRVAR(smisk_Response_writelines_DOC,
   "Write a sequence of strings to the stream");
 PyObject *smisk_Response_writelines(smisk_Response* self, PyObject *sequence) {
   log_trace("ENTER");
-  return smisk_Stream_perform_writelines(self->out, sequence, &_begin_if_needed, (void *)self);
+  return smisk_Stream_perform_writelines(self->out, sequence, &_begin_if_needed, (void *)self,
+    SMISK_APP_CHARSET, "strict");
 }
 
 
@@ -309,7 +328,8 @@ PyObject *smisk_Response___call__(smisk_Response* self, PyObject *args, PyObject
   // As we can get the length here, we return directly if nothing is to be written.
   if (PyTuple_GET_SIZE(args) < 1)
     Py_RETURN_NONE;
-  return smisk_Stream_perform_writelines(self->out, args, &_begin_if_needed, (void *)self);
+  return smisk_Stream_perform_writelines(self->out, args, &_begin_if_needed, (void *)self,
+    SMISK_APP_CHARSET, "strict");
 }
 
 

@@ -40,7 +40,7 @@ typedef struct {
   PyObject       *show_traceback; // bool
   int            forks; // int
   
-  PyObject       *encoding; // str
+  PyObject       *charset; // str
   
   // Public C
   pid_t          *fork_pids;
@@ -49,7 +49,7 @@ typedef struct {
 // Current instance (NULL if none)
 smisk_Application *smisk_Application_current;
 
-#define SMISK_APP_ENCODING PyString_AS_STRING(smisk_Application_current->encoding)
+#define SMISK_APP_CHARSET PyString_AS_STRING(smisk_Application_current->charset)
 
 // class Application (the Application type object)
 PyTypeObject smisk_ApplicationType;

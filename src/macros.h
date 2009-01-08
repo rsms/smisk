@@ -71,6 +71,8 @@ typedef uint8_t byte;
     Py_XDECREF(__old_ ## type ## __LINE__); \
   } while (0)
 
+#define REPLACE_PyObject(dst, value) REPLACE_OBJ(dst, value, PyObject)
+
 // Ensure a lazy instance variable is available
 #define ENSURE_BY_GETTER(direct, getter, ...) \
   if (direct == NULL) {\
@@ -94,7 +96,7 @@ typedef uint8_t byte;
   (PyObject *)PyObject_ptr_value)
 
 // Workaround for a nasty bug where PyString_Check() segfaults when given a unicode object.
-#define SMISK_PyString_Check(obj) (PyString_CheckExact(obj) || PyUnicode_Check(obj))
+#define SMISK_PyString_Check(obj) (PyString_Check(obj) || PyUnicode_Check(obj))
 
 // Set IOError with errno and filename info. Return NULL
 #define PyErr_SET_FROM_ERRNO   PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__)

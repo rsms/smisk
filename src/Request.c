@@ -106,14 +106,14 @@ static int _parse_request_body(smisk_Request* self) {
     
     if (strstr(content_type, "multipart/")) {
       rc = smisk_multipart_parse_stream(self->input->stream, content_length, 
-                                        self->post, self->files, SMISK_APP_ENCODING);
+                                        self->post, self->files, SMISK_APP_CHARSET);
       if (rc != 0)
         return -1;
     }
     else if (strstr(content_type, "/x-www-form-urlencoded")) {
       // Todo: Optimize: keep s buffer and reuse it between calls.
       char *s = _read_form_data(self->input->stream, content_length);
-      int parse_status = smisk_parse_input_data(s, "&", 0, self->post, SMISK_APP_ENCODING);
+      int parse_status = smisk_parse_input_data(s, "&", 0, self->post, SMISK_APP_CHARSET);
       free(s);
       
       if (parse_status != 0)
@@ -565,7 +565,7 @@ PyObject *smisk_Request_get_get(smisk_Request* self) {
       assert_refcount(self->get, > 0);
       
       if (smisk_parse_input_data(PyString_AsString(self->url->query), "&", 0, 
-                                 self->get, SMISK_APP_ENCODING) != 0)
+                                 self->get, SMISK_APP_CHARSET) != 0)
       {
         Py_DECREF(self->get);
         self->get = NULL;
@@ -615,7 +615,7 @@ PyObject *smisk_Request_get_cookies(smisk_Request* self) {
     
     if ((http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp))) {
       log_debug("Parsing cookies");
-      if (smisk_parse_input_data(http_cookie, ";", 1, self->cookies, SMISK_APP_ENCODING) != 0) {
+      if (smisk_parse_input_data(http_cookie, ";", 1, self->cookies, SMISK_APP_CHARSET) != 0) {
         Py_DECREF(self->cookies);
         self->cookies = NULL;
         return NULL;
@@ -646,35 +646,37 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
     
     assert(self->session == NULL);
     
-    // Has SID in cookie? - if so, validate
+    // Get SID from cookie if available (Returns borrowed reference, if any)
     self->session_id = PyDict_GetItem(self->cookies,
       ((smisk_SessionStore *)smisk_Application_current->sessions)->name);
+    
+    // Make sure received SID is a str
     if ( self->session_id != NULL ) {
-      if (!SMISK_PyString_Check(self->session_id)) {
-        if (PyList_Check(self->session_id)) {
-          log_debug("Ambiguous: Multiple SID supplied in request. Will use first one.");
-          if ( (self->session_id = PyList_GetItem(self->session_id, 0)) == NULL ) {
-            return NULL;
-          }
-          else if (!SMISK_PyString_Check(self->session_id)) {
-            PyErr_SetString(PyExc_TypeError, "self.session_id is not a string");
-            self->session_id = NULL;
-            return NULL;
-          }
-        }
-        else {
-          log_debug("Inconsistency error: Provided SID is neither a single nor multiple string value");
-          PyErr_SetString(PyExc_TypeError, "type of self.session_id is neither string nor list");
-          self->session_id = NULL;
+      Py_INCREF(self->session_id); // aquire our reference
+      // Encode unicode as ASCII
+      if (PyUnicode_Check(self->session_id)) {
+        PyObject *s = PyUnicode_AsEncodedString(self->session_id, "ascii", "replace");
+        if (!s) {
+          Py_DECREF(self->session_id);
           return NULL;
         }
+        REPLACE_PyObject(self->session_id, s);
       }
+      // Not a valid string -- discard
+      if (!PyString_Check(self->session_id)) {
+        log_debug("Inconsistency error: Provided SID is not a string -- discarding SID");
+        Py_CLEAR(self->session_id);
+      }
+    }
+    
+    // Did receive SID
+    if ( self->session_id != NULL ) {
       log_debug("SID '%s' provided by request", PyString_AsString(self->session_id));
       // As this is the first time we aquire the SID and it was provided by the user,
       // we will also read up the session to validate wherethere this SID is valid.
       if (!_valid_sid(PyString_AsString(self->session_id), PyString_Size(self->session_id))) {
         log_debug("Invalid SID provided by request (illegal format)");
-        self->session_id = NULL;
+        Py_CLEAR(self->session_id);
       }
       else {
         self->session = PyObject_CallMethod(smisk_Application_current->sessions, "read", "O", self->session_id);
@@ -683,17 +685,19 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
           if (PyErr_ExceptionMatches(smisk_InvalidSessionError)) {
             PyErr_Clear();
             log_debug("Invalid SID provided by request (no data)");
-            self->session_id = NULL;
+            Py_CLEAR(self->session_id);
           }
           else {
-            self->session_id = NULL; // Error
+            // error
+            Py_CLEAR(self->session_id);
             return NULL;
           }
         }
         else {
           // Valid SID
           log_debug("Valid SID provided by request");
-          Py_INCREF(self->session_id);
+          // No need to Py_INCREF here since we already have a reference we
+          // can give to the caller.
         }
       }
     }

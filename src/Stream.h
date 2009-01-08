@@ -48,11 +48,18 @@ int smisk_Stream_perform_write (smisk_Stream *self, PyObject *str, Py_ssize_t le
 // Should return 0 on success and 1 on failure
 typedef int smisk_Stream_perform_writelines_cb(void *user_data);
 
-// If first_write_cb is specified, it's called before first line is written.
-// If first_write_cb returns other than 0, an error has occured and this function returns NULL.
+/**
+ * If first_write_cb is specified, it's called before first line is written.
+ * If first_write_cb returns other than 0, an error has occured and this function returns NULL.
+ *
+ * If charset is not NULL, non-strs in sequence will be encoded using 
+ * charset. Encoding errors are handled as specified by encoding_errors.
+ */
 PyObject *smisk_Stream_perform_writelines(smisk_Stream *self,
                                           PyObject *sequence, 
                                           smisk_Stream_perform_writelines_cb *first_write_cb,
-                                          void *cb_user_data);
+                                          void *cb_user_data,
+                                          const char *charset,
+                                          const char *encoding_errors);
 
 #endif

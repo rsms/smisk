@@ -42,7 +42,7 @@ int PyDict_assoc_val_with_key (PyObject *dict, PyObject *val, PyObject *key);
  * @return 0 on success.
  */
 int smisk_parse_input_data (char *s, const char *separator, int is_cookie_data, 
-                            PyObject *dict, const char *encoding);
+                            PyObject *dict, const char *charset);
 
 /** Read a line from a FCGI stream */
 size_t smisk_stream_readline (char *str, int n, FCGX_Stream *stream);
@@ -113,14 +113,15 @@ long smisk_object_hash (PyObject *obj);
  * Returns -1 on failure and 0 on success.
  * On error, exception is set, -1 returned and str is NOT touched.
  */
-int smisk_str_recode( PyObject **str, const char *srcenc, const char *dstenc,
-  const char *encerrors );
+int smisk_str_recode( PyObject **str, const char *src_charset, const char *dst_charset,
+  const char *errors );
 
 /**
  * Decode str into unicode.
  * Returns -1 on failure and 0 on success.
  * On error, exception is set, -1 returned and str is NOT touched.
+ * Decrements str and returns new reference to new unicode object.
  */
-int smisk_str_to_unicode( PyObject **str, const char *encoding, const char *encerrors );
+int smisk_str_to_unicode( PyObject **str, const char *charset, const char *errors );
 
 #endif

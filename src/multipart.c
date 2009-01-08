@@ -63,7 +63,7 @@ typedef struct {
   PyObject *post;
   PyObject *files;
   int eof;
-  const char *encoding; // If not NULL, used for decoding part names and form data.
+  const char *charset; // If not NULL, used for decoding part names and form data.
 } multipart_ctx_t;
 
 
@@ -89,7 +89,7 @@ int smisk_multipart_ctx_init(multipart_ctx_t *ctx) {
   if ((ctx->filename = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
   if ((ctx->content_type = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
   if ((ctx->part_name = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
-  ctx->encoding = NULL;
+  ctx->charset = NULL;
   smisk_multipart_ctx_reset(ctx);
   return 0;
 }
@@ -284,7 +284,7 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
   PyObject *py_key = PyString_FromString(ctx->part_name);
   
   // Recode key if needed
-  if (ctx->encoding && (smisk_str_recode(&py_key, ctx->encoding, SMISK_KEY_ENCODING, "replace") == -1)) {
+  if (ctx->charset && (smisk_str_recode(&py_key, ctx->charset, SMISK_KEY_CHARSET, "replace") == -1)) {
     Py_DECREF(py_key);
     return -1;
   }
@@ -296,7 +296,7 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
     PyObject *py_val = PyString_FromString(ctx->buf.ptr);
     
     // Decode value if needed
-    if (ctx->encoding && (smisk_str_to_unicode(&py_val, ctx->encoding, "strict") == -1)) {
+    if (ctx->charset && (smisk_str_to_unicode(&py_val, ctx->charset, "strict") == -1)) {
       Py_DECREF(py_key);
       Py_DECREF(py_val);
       return -1;
@@ -386,7 +386,7 @@ int smisk_multipart_parse_part(multipart_ctx_t *ctx) {
           
           // TODO look for ;charset= in Content-Type and use it for
           //      decoding in smisk_multipart_parse_file and 
-          //      smisk_multipart_parse_form_data, overriding ctx->encoding.
+          //      smisk_multipart_parse_form_data, overriding ctx->charset.
           
           #if DEBUG_SMISK_MULTIPART
             log_debug("ctx->content_type = \"%s\"", ctx->content_type);
@@ -429,7 +429,7 @@ int smisk_multipart_parse_stream (FCGX_Stream *stream,
                                   long content_length,
                                   PyObject *post, 
                                   PyObject *files,
-                                  const char *encoding)
+                                  const char *charset)
 {
   //multipart_ctx_t ctx;
   int status = 0;
@@ -454,7 +454,7 @@ int smisk_multipart_parse_stream (FCGX_Stream *stream,
   __ctx.content_length = content_length;
   __ctx.post = post;
   __ctx.files = files;
-  __ctx.encoding = encoding;
+  __ctx.charset = charset;
   
   // find boundary
   if ((bytes_read = smisk_stream_readline(__ctx.boundary, SMISK_STREAM_READLINE_LENGTH, __ctx.stream))) {

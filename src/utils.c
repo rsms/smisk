@@ -146,14 +146,14 @@ int smisk_parse_input_data( char *s,
                             const char *separator,
                             int is_cookie_data, 
                             PyObject *dict,
-                            const char *encoding )
+                            const char *charset )
 {
   char *scpy, *key, *val, *strtok_ctx = NULL;
   PyObject *py_key, *py_val;
   int status = 0;
   
-  log_debug("smisk_parse_input_data '%s' encoding=%s", 
-            s, (encoding ? encoding : "NULL") );
+  log_debug("smisk_parse_input_data '%s' charset=%s", 
+            s, (charset ? charset : "NULL") );
   
   scpy = strdup(s);
   key = strtok_r(scpy, separator, &strtok_ctx);
@@ -181,7 +181,7 @@ int smisk_parse_input_data( char *s,
         break;
       }
       
-      if (encoding && (smisk_str_to_unicode(&py_val, encoding, "strict") == -1)) {
+      if (charset && (smisk_str_to_unicode(&py_val, charset, "strict") == -1)) {
         Py_DECREF(py_val);
         status = -1;
         break;
@@ -199,10 +199,10 @@ int smisk_parse_input_data( char *s,
       break;
     }
     
-    if (encoding) {
+    if (charset) {
       // As we might use the dictionary for keyword args, which need to be str and not unicode,
       // we normalize encoding to utf-8.
-      if (smisk_str_recode(&py_key, encoding, SMISK_KEY_ENCODING, "replace") == -1) {
+      if (smisk_str_recode(&py_key, charset, SMISK_KEY_CHARSET, "replace") == -1) {
         Py_DECREF(py_key);
         Py_DECREF(py_val);
         status = -1;
@@ -210,8 +210,8 @@ int smisk_parse_input_data( char *s,
       }
     }
     
-    assert(PyString_CheckExact(py_key) == 1);
-    assert(PyUnicode_CheckExact(py_val) == 1);
+    assert(PyString_Check(py_key) == 1);
+    assert(PyUnicode_Check(py_val) == 1);
     
     if ((status = PyDict_assoc_val_with_key(dict, py_val, py_key)) != 0)
       break;
@@ -441,20 +441,20 @@ long smisk_object_hash(PyObject *obj) {
 
 
 int smisk_str_recode( PyObject **str,
-                             const char *src_encoding,
-                             const char *dst_encoding,
+                             const char *src_charset,
+                             const char *dst_charset,
                              const char *errors ) {
   // Does not modify recount on str
   PyObject *u, *s, *orig_str;
   
-  if (strcmp(src_encoding, dst_encoding) == 0)
+  if (strcmp(src_charset, dst_charset) == 0)
     return 0;
   
-  u = PyUnicode_FromEncodedObject(*str, src_encoding, errors);
+  u = PyUnicode_FromEncodedObject(*str, src_charset, errors);
   if (!u)
     return -1;
   
-  s = PyUnicode_AsEncodedString(u, dst_encoding, errors);
+  s = PyUnicode_AsEncodedString(u, dst_charset, errors);
   Py_DECREF(u);
   if (!s)
     return -1;
@@ -466,11 +466,11 @@ int smisk_str_recode( PyObject **str,
 }
 
 
-int smisk_str_to_unicode( PyObject **str, const char *encoding, const char *errors ) {
+int smisk_str_to_unicode( PyObject **str, const char *charset, const char *errors ) {
   // Decrements str and returns new reference to new unicode object.
   PyObject *u, *orig_str;
   
-  u = PyUnicode_FromEncodedObject(*str, encoding, errors);
+  u = PyUnicode_FromEncodedObject(*str, charset, errors);
   if (!u)
     return -1;
   orig_str = *str;

@@ -55,6 +55,6 @@ THE SOFTWARE.
 #define SMISK_FORM_DATA_MAX_SIZE 1024000000
 
 // How to encode strs used for dict keys
-#define SMISK_KEY_ENCODING "utf-8"
+#define SMISK_KEY_CHARSET "utf-8"
 
 #endif

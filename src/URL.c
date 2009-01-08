@@ -661,8 +661,8 @@ PyDoc_STRVAR(smisk_URL_decompose_query_DOC,
   "\n"
   ":param  string:\n"
   ":type   string: str\n"
-  ":param  encoding: 'utf-8' by default. None to disable.\n"
-  ":type   encoding: str\n"
+  ":param  charset: 'utf-8' by default. None to disable.\n"
+  ":type   charset: str\n"
   ":rtype: string (str or unicode)\n"
   ":raises TypeError: if str is not a string\n"
   ":see:   `Request.get`\n"
@@ -671,15 +671,15 @@ PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *args, PyObject 
   log_trace("ENTER");
   
   PyObject *string = NULL;
-  const char *encoding = NULL;
-  static char *kwlist[] = { "string", "encoding", NULL };
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", kwlist, &string, &encoding))
+  const char *charset = NULL;
+  static char *kwlist[] = { "string", "charset", NULL };
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", kwlist, &string, &charset))
     return NULL;
   
   char *s;
   PyObject *d;
   
-  if (!PyString_CheckExact(string)) {
+  if (!PyString_Check(string)) {
     string = PyObject_Str(string);
     if (string == NULL)
       return NULL;
@@ -698,7 +698,7 @@ PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *args, PyObject 
     return NULL;
   }
   
-  if (smisk_parse_input_data(s, "&", 0, d, encoding) != 0) {
+  if (smisk_parse_input_data(s, "&", 0, d, charset) != 0) {
     Py_DECREF(string);
     Py_DECREF(d);
     return NULL;

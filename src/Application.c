@@ -218,7 +218,7 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
     // Default values
     self->show_traceback = Py_True; Py_INCREF(Py_True);
     self->forks = 0;
-    self->encoding = kString_utf_8; Py_INCREF(kString_utf_8);
+    self->charset = kString_utf_8; Py_INCREF(kString_utf_8);
     self->fork_pids = NULL;
     
     // Application.current = self
@@ -252,7 +252,7 @@ void smisk_Application_dealloc(smisk_Application *self) {
   Py_DECREF(self->response);
   Py_XDECREF(self->sessions);
   Py_DECREF(self->show_traceback);
-  Py_DECREF(self->encoding);
+  Py_DECREF(self->charset);
   
   if (self->fork_pids)
     free(self->fork_pids);
@@ -354,7 +354,7 @@ PyObject *smisk_Application_run(smisk_Application *self) {
         PyObject *type, *value, *tb;
         PyErr_Fetch(&type, &value, &tb); // will also clear
         
-        // log exception to stderr if debug
+        // DEBUG: log exception to stderr
         #if SMISK_DEBUG
           PyObject *type_repr, *value_repr, *tb_repr;
           type_repr = PyObject_Repr((PyObject *)type);
@@ -693,19 +693,20 @@ static int smisk_Application_set_sessions(smisk_Application* self, PyObject *ses
 
 
 
-PyObject *smisk_Application_get_encoding(smisk_Application* self) {
+PyObject *smisk_Application_get_charset(smisk_Application* self) {
   log_trace("ENTER");
-  Py_INCREF(self->encoding); // callers reference
-  return self->encoding;
+  Py_INCREF(self->charset); // callers reference
+  return self->charset;
 }
 
 
-static int smisk_Application_set_encoding(smisk_Application* self, PyObject *encoding) {
+static int smisk_Application_set_charset(smisk_Application* self, PyObject *charset) {
   log_trace("ENTER");
+  PyObject* old = self->charset;
+  self->charset = PyObject_Str(charset);
+  Py_XDECREF(old);
   
-  REPLACE_OBJ(self->encoding, PyObject_Str(encoding), PyObject);
-  
-  if (!self->encoding)
+  if (!self->charset)
     return -1;
   
   if ( ((PyObject *)self->request) != Py_None )
@@ -747,10 +748,10 @@ static PyGetSetDef smisk_Application_getset[] = {
     (setter)smisk_Application_set_sessions,
     ":type: `smisk.session.Store`", NULL},
   
-  {"encoding",
-    (getter)smisk_Application_get_encoding,
-    (setter)smisk_Application_set_encoding,
-    "Sets the encoding used for GET/POST accesses. If the GET or POST "
+  {"charset",
+    (getter)smisk_Application_get_charset,
+    (setter)smisk_Application_set_charset,
+    "Sets the character encoding used for GET/POST accesses. If the GET or POST "
     "dictionary has already been created, it is removed and recreated on the "
     "next access (so that it is decoded correctly). "
     "Defaults to 'utf-8'", NULL},

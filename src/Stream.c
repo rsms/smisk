@@ -108,7 +108,7 @@ PyDoc_STRVAR(smisk_Stream_readline_DOC,
   "\n"
   ":type   length: int\n"
   ":param  length: read up to length bytes.\n"
-  ":rtype: string\n"
+  ":rtype: str\n"
   ":returns: the line read or None if EOF");
 PyObject *smisk_Stream_readline(smisk_Stream* self, PyObject *args) {
   log_trace("ENTER");
@@ -236,7 +236,7 @@ PyDoc_STRVAR(smisk_Stream_read_DOC,
   "\n"
   ":type   length: int\n"
   ":param  length: read up to length bytes. If not specified or negative, read until EOF.\n"
-  ":rtype: string");
+  ":rtype: str");
 PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
   log_trace("ENTER");
   PyObject *str;
@@ -355,8 +355,8 @@ PyDoc_STRVAR(smisk_Stream_write_DOC,
   "It is guaranteed to write all bytes. If any byte fails to be "
   "written, a smisk.IOError is raised.\n"
   "\n"
-  ":type   str:    string\n"
-  ":param  str:    a string\n"
+  ":type   s:      str\n"
+  ":param  s:      a byte string\n"
   ":type   length: int\n"
   ":param  length: write length bytes from str (optional)\n"
   ":rtype: None\n"
@@ -374,8 +374,8 @@ PyObject *smisk_Stream_write(smisk_Stream* self, PyObject *args) {
   
   // Save reference to first argument and type check it
   str = PyTuple_GET_ITEM(args, 0);
-  if (!SMISK_PyString_Check(str))
-    return PyErr_Format(PyExc_TypeError, "first argument must be a string");
+  if (!PyString_Check(str))
+    return PyErr_Format(PyExc_TypeError, "first argument must be a str");
   
   // Figure out length
   if (argc > 1) {
@@ -401,7 +401,9 @@ PyObject *smisk_Stream_write(smisk_Stream* self, PyObject *args) {
 PyObject *smisk_Stream_perform_writelines(smisk_Stream *self,
                                           PyObject *sequence, 
                                           smisk_Stream_perform_writelines_cb *first_write_cb,
-                                          void *cb_user_data)
+                                          void *cb_user_data,
+                                          const char *charset,
+                                          const char *encoding_errors)
 {
   // no trace here
   PyObject *iterator, *string;
@@ -411,20 +413,42 @@ PyObject *smisk_Stream_perform_writelines(smisk_Stream *self,
     return NULL;
   
   while ( (string = PyIter_Next(iterator)) ) {
-    if (!SMISK_PyString_Check(string)) {
-      PyErr_Format(PyExc_TypeError, "iteration on sequence returned non-string object");
-      Py_DECREF(string);
-      break;
+    
+    // Make sure we have a byte string
+    if (!PyString_Check(string)) {
+      PyObject *old = string;
+      // Encode if charset was specified
+      if (charset && PyUnicode_Check(string)) {
+        assert(encoding_errors != NULL);
+        string = PyUnicode_AsEncodedString(string, charset, encoding_errors);
+      }
+      // Use str(string) for any other object
+      else {
+        string = PyObject_Str(string);
+      }
+      // Handle errors
+      if (!string) {
+        Py_DECREF(string);
+        Py_DECREF(iterator);
+        return NULL;
+      }
+      // Release previous ref
+      Py_DECREF(old);
     }
     
     // We save length, so we can skip calling smisk_Stream_perform_write at all if
     // the string is empty.
     string_length = PyString_Size(string);
     if ( string_length ) {
-      if (first_write_cb && first_write_cb(cb_user_data) != 0)
+      if ( ( first_write_cb && first_write_cb(cb_user_data) != 0 )
+        || ( smisk_Stream_perform_write(self, string, string_length) != 0 ) )
+      {
+        Py_DECREF(string);
+        Py_DECREF(iterator);
         return NULL;
-      if (smisk_Stream_perform_write(self, string, string_length) != 0)
-        return NULL;
+      }
+      // Only call first_write_cb once
+      first_write_cb = NULL;
     }
     
     Py_DECREF(string);
@@ -450,7 +474,7 @@ PyDoc_STRVAR(smisk_Stream_writelines_DOC,
   ":raises IOError:");
 PyObject *smisk_Stream_writelines(smisk_Stream* self, PyObject *sequence) {
   log_trace("ENTER");
-  return smisk_Stream_perform_writelines(self, sequence, NULL, NULL);
+  return smisk_Stream_perform_writelines(self, sequence, NULL, NULL, NULL, NULL);
 }
 
 
