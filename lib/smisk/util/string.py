@@ -88,7 +88,14 @@ def normalize_url(url, ref_base_url=None):
   :rtype:
     URL
   '''
-  url = URL(url) # make a copy so we don't modify the original
+  is_relative_uri = False
+  if '/' not in url:
+    is_relative_uri = True
+    u = URL()
+    u.path = url
+    url = u
+  else:
+    url = URL(url) # make a copy so we don't modify the original
   
   if not ref_base_url:
     if Application.current and Application.current.request:
@@ -106,5 +113,12 @@ def normalize_url(url, ref_base_url=None):
     url.host = ref_base_url.host
   if url.port == 0:
     url.port = ref_base_url.port
+  if is_relative_uri:
+    base_path = ref_base_url.path
+    if not base_path:
+      base_path = '/'
+    elif not base_path.endswith('/'):
+      base_path = base_path + '/'
+    url.path = base_path + url.path
   
   return url
