@@ -85,7 +85,7 @@ class RoutingTests(TestCase):
     not_found_tests = []
     for name in special_names:
       not_found_tests.append(('/level2/%s' % name, http.NotFound))
-      dest, args, params = self.router(URL('/%s' % name), [], {})
+      dest, args, params = self.router('GET', URL('/%s' % name), [], {})
       self.assertTrue(dest())
     # These should fail
     self.assertRoutes(*not_found_tests)
@@ -103,7 +103,7 @@ class RoutingTests(TestCase):
     for t in urls:
       self.assertRoute(*t)
   
-  def assertRoute(self, url, expected_return, params={}, router=None):
+  def assertRoute(self, url, expected_return, params={}, router=None, method='GET'):
     if router is None:
       r = self.router
     else:
@@ -111,7 +111,7 @@ class RoutingTests(TestCase):
     url = URL(url)
     if echo:
       print '\nRouting \'%s\' expected to return %r (params=%s)' % (url, expected_return, params)
-    dest, args, params = r(url, [], params)
+    dest, args, params = r(method, url, [], params)
     if isinstance(expected_return, http.Status):
       try:
         dest_returned = dest()
