@@ -127,7 +127,7 @@ int PyDict_assoc_val_with_key(PyObject *dict, PyObject *val, PyObject *key) {
       if (PyDict_SetItem(dict, key, new_val) != 0)
         return -1;
       
-      assert_refcount(new_val, == 2);
+      assert_refcount(new_val, > 1);
       Py_DECREF(new_val); // we don't own it anymore
     }
   }
@@ -142,11 +142,19 @@ int PyDict_assoc_val_with_key(PyObject *dict, PyObject *val, PyObject *key) {
 }
 
 
-int smisk_parse_input_data(char *s, const char *separator, int is_cookie_data, PyObject *dict) {
+int smisk_parse_input_data( char *s,
+                            const char *separator,
+                            int is_cookie_data, 
+                            PyObject *dict,
+                            const char *encoding )
+{
   char *scpy, *key, *val, *strtok_ctx = NULL;
+  PyObject *py_key, *py_val;
   int status = 0;
   
-  log_debug("smisk_parse_input_data '%s'", s);
+  log_debug("smisk_parse_input_data '%s' encoding=%s", 
+            s, (encoding ? encoding : "NULL") );
+  
   scpy = strdup(s);
   key = strtok_r(scpy, separator, &strtok_ctx);
   
@@ -163,22 +171,48 @@ int smisk_parse_input_data(char *s, const char *separator, int is_cookie_data, P
         goto next_part;
     }
     
-    PyObject *py_key, *py_val;
-    
     smisk_url_decode(key, val ? val - key : strlen(key));
     
     if (val) { // have a value
       *val++ = '\0'; // '=' -> '\0'
       int val_len = smisk_url_decode(val, strlen(val));
-      py_val = PyString_FromStringAndSize(val, val_len);
+      if (!(py_val = PyString_FromStringAndSize(val, val_len))) {
+        status = -1;
+        break;
+      }
+      
+      if (encoding && (smisk_str_to_unicode(&py_val, encoding, "strict") == -1)) {
+        Py_DECREF(py_val);
+        status = -1;
+        break;
+      }
     }
     else {
       py_val = Py_None;
       Py_INCREF(Py_None);
     }
     
-    // save
-    py_key = PyString_FromString(key);
+    // Key
+    if ( (py_key = PyString_FromString(key)) == NULL) {
+      Py_DECREF(py_val);
+      status = -1;
+      break;
+    }
+    
+    if (encoding) {
+      // As we might use the dictionary for keyword args, which need to be str and not unicode,
+      // we normalize encoding to utf-8.
+      if (smisk_str_recode(&py_key, encoding, SMISK_KEY_ENCODING, "replace") == -1) {
+        Py_DECREF(py_key);
+        Py_DECREF(py_val);
+        status = -1;
+        break;
+      }
+    }
+    
+    assert(PyString_CheckExact(py_key) == 1);
+    assert(PyUnicode_CheckExact(py_val) == 1);
+    
     if ((status = PyDict_assoc_val_with_key(dict, py_val, py_key)) != 0)
       break;
     
@@ -403,4 +437,45 @@ long smisk_object_hash(PyObject *obj) {
     Py_DECREF(x);
   }
   return h;
+}
+
+
+int smisk_str_recode( PyObject **str,
+                             const char *src_encoding,
+                             const char *dst_encoding,
+                             const char *errors ) {
+  // Does not modify recount on str
+  PyObject *u, *s, *orig_str;
+  
+  if (strcmp(src_encoding, dst_encoding) == 0)
+    return 0;
+  
+  u = PyUnicode_FromEncodedObject(*str, src_encoding, errors);
+  if (!u)
+    return -1;
+  
+  s = PyUnicode_AsEncodedString(u, dst_encoding, errors);
+  Py_DECREF(u);
+  if (!s)
+    return -1;
+  orig_str = *str;
+  *str = s;
+  Py_DECREF(orig_str);
+  
+  return 0;
+}
+
+
+int smisk_str_to_unicode( PyObject **str, const char *encoding, const char *errors ) {
+  // Decrements str and returns new reference to new unicode object.
+  PyObject *u, *orig_str;
+  
+  u = PyUnicode_FromEncodedObject(*str, encoding, errors);
+  if (!u)
+    return -1;
+  orig_str = *str;
+  *str = u;
+  Py_DECREF(orig_str);
+  
+  return 0;
 }

@@ -41,7 +41,8 @@ int PyDict_assoc_val_with_key (PyObject *dict, PyObject *val, PyObject *key);
  * Parse input data (query string, post url-encoded, cookie, etc).
  * @return 0 on success.
  */
-int smisk_parse_input_data (char *s, const char *separator, int is_cookie_data, PyObject *dict);
+int smisk_parse_input_data (char *s, const char *separator, int is_cookie_data, 
+                            PyObject *dict, const char *encoding);
 
 /** Read a line from a FCGI stream */
 size_t smisk_stream_readline (char *str, int n, FCGX_Stream *stream);
@@ -78,7 +79,6 @@ PyObject *smisk_util_pack (const byte *data, size_t size, int nbits);
 /**
  * @param  list    list
  * @param  prefix  string
- * @return int
  */
 PyObject *smisk_find_string_by_prefix_in_dict (PyObject *list, PyObject *prefix);
 
@@ -106,5 +106,21 @@ int probably_call (float probability, probably_call_cb *cb, void *cb_arg);
  * calculating the hash.
  */
 long smisk_object_hash (PyObject *obj);
+
+
+/**
+ * Re-encode str if needed.
+ * Returns -1 on failure and 0 on success.
+ * On error, exception is set, -1 returned and str is NOT touched.
+ */
+int smisk_str_recode( PyObject **str, const char *srcenc, const char *dstenc,
+  const char *encerrors );
+
+/**
+ * Decode str into unicode.
+ * Returns -1 on failure and 0 on success.
+ * On error, exception is set, -1 returned and str is NOT touched.
+ */
+int smisk_str_to_unicode( PyObject **str, const char *encoding, const char *encerrors );
 
 #endif

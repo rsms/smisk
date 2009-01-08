@@ -26,6 +26,10 @@ THE SOFTWARE.
 
 
 
-int smisk_multipart_parse_stream (FCGX_Stream *stream, long len, PyObject *post, PyObject *files);
+int smisk_multipart_parse_stream (FCGX_Stream *stream,
+                                  long len,
+                                  PyObject *post,
+                                  PyObject *files,
+                                  const char *encoding);
 
 #endif

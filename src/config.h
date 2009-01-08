@@ -54,5 +54,7 @@ THE SOFTWARE.
 // Max size for form post data (x-www-form-urlencoded)
 #define SMISK_FORM_DATA_MAX_SIZE 1024000000
 
+// How to encode strs used for dict keys
+#define SMISK_KEY_ENCODING "utf-8"
 
 #endif

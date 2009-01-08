@@ -37,6 +37,7 @@ PyObject *smisk_InvalidSessionError; // extends PyExc_ValueError
 // String constants
 PyObject *kString_http;
 PyObject *kString_https;
+PyObject *kString_utf_8;
 
 // Functions
 PyObject *smisk_bind (PyObject *self, PyObject *args);

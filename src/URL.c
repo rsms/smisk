@@ -659,27 +659,52 @@ PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
 PyDoc_STRVAR(smisk_URL_decompose_query_DOC,
   "Parses a query string into a dictionary.\n"
   "\n"
-  ":param  str:\n"
-  ":type   str: string\n"
-  ":rtype: string\n"
+  ":param  string:\n"
+  ":type   string: str\n"
+  ":param  encoding: 'utf-8' by default. None to disable.\n"
+  ":type   encoding: str\n"
+  ":rtype: string (str or unicode)\n"
   ":raises TypeError: if str is not a string\n"
   ":see:   `Request.get`\n"
   ":see:   `Request.post`");
-PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *str) {
+PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
+  
+  PyObject *string = NULL;
+  const char *encoding = NULL;
+  static char *kwlist[] = { "string", "encoding", NULL };
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", kwlist, &string, &encoding))
+    return NULL;
+  
   char *s;
   PyObject *d;
   
-  if ((s = PyString_AsString(str)) == NULL)
+  if (!PyString_CheckExact(string)) {
+    string = PyObject_Str(string);
+    if (string == NULL)
+      return NULL;
+  }
+  else {
+    Py_INCREF(string);
+  }
+  
+  if ((s = PyString_AsString(string)) == NULL) {
+    Py_DECREF(string);
     return NULL; // TypeError raised
+  }
   
-  if ((d = PyDict_New()) == NULL)
+  if ((d = PyDict_New()) == NULL) {
+    Py_DECREF(string);
     return NULL;
+  }
   
-  if (smisk_parse_input_data(s, "&", 0, d) != 0) {
+  if (smisk_parse_input_data(s, "&", 0, d, encoding) != 0) {
+    Py_DECREF(string);
     Py_DECREF(d);
     return NULL;
   }
+  
+  Py_DECREF(string);
   
   return d;
 }
@@ -831,7 +856,8 @@ static PyMethodDef smisk_URL_methods[] = {
   {"escape", (PyCFunction)smisk_URL_escape,   METH_STATIC|METH_O, smisk_URL_escape_DOC},
   {"decode", (PyCFunction)smisk_URL_decode,   METH_STATIC|METH_O, smisk_URL_decode_DOC},
   {"unescape", (PyCFunction)smisk_URL_decode, METH_STATIC|METH_O, smisk_URL_unescape_DOC},
-  {"decompose_query", (PyCFunction)smisk_URL_decompose_query, METH_STATIC|METH_O, smisk_URL_decompose_query_DOC},
+  {"decompose_query", (PyCFunction)smisk_URL_decompose_query, METH_STATIC|METH_VARARGS|METH_KEYWORDS, 
+    smisk_URL_decompose_query_DOC},
   
   // Instance methods
   {"to_s",    (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, smisk_URL_to_s_DOC},

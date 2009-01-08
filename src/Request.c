@@ -96,6 +96,9 @@ static int _parse_request_body(smisk_Request* self) {
   if ((self->files = PyDict_New()) == NULL)
     return -1;
   
+  if (smisk_require_app() == -1)
+    return -1;
+  
   if ((content_type = FCGX_GetParam("CONTENT_TYPE", self->envp))) {
     // Parse content-length if available
     char *t = FCGX_GetParam("CONTENT_LENGTH", self->envp);
@@ -103,14 +106,14 @@ static int _parse_request_body(smisk_Request* self) {
     
     if (strstr(content_type, "multipart/")) {
       rc = smisk_multipart_parse_stream(self->input->stream, content_length, 
-                                        self->post, self->files);
+                                        self->post, self->files, SMISK_APP_ENCODING);
       if (rc != 0)
         return -1;
     }
     else if (strstr(content_type, "/x-www-form-urlencoded")) {
       // Todo: Optimize: keep s buffer and reuse it between calls.
       char *s = _read_form_data(self->input->stream, content_length);
-      int parse_status = smisk_parse_input_data(s, "&", 0, self->post);
+      int parse_status = smisk_parse_input_data(s, "&", 0, self->post, SMISK_APP_ENCODING);
       free(s);
       
       if (parse_status != 0)
@@ -559,8 +562,11 @@ PyObject *smisk_Request_get_get(smisk_Request* self) {
     );
     
     if (self->url->query && (self->url->query != Py_None) && (PyString_Size(self->url->query) > 0)) {
-      assert_refcount(self->get, == 1);
-      if (smisk_parse_input_data(PyString_AsString(self->url->query), "&", 0, self->get) != 0) {
+      assert_refcount(self->get, > 0);
+      
+      if (smisk_parse_input_data(PyString_AsString(self->url->query), "&", 0, 
+                                 self->get, SMISK_APP_ENCODING) != 0)
+      {
         Py_DECREF(self->get);
         self->get = NULL;
         return NULL;
@@ -604,9 +610,12 @@ PyObject *smisk_Request_get_cookies(smisk_Request* self) {
     if ((self->cookies = PyDict_New()) == NULL)
       return NULL;
     
+    if (smisk_require_app() != 0)
+      return NULL;
+    
     if ((http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp))) {
       log_debug("Parsing cookies");
-      if (smisk_parse_input_data(http_cookie, ";", 1, self->cookies) != 0) {
+      if (smisk_parse_input_data(http_cookie, ";", 1, self->cookies, SMISK_APP_ENCODING) != 0) {
         Py_DECREF(self->cookies);
         self->cookies = NULL;
         return NULL;

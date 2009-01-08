@@ -53,6 +53,7 @@ PyObject *os_module;
 // Other static strings (only used in C API)
 PyObject *kString_http;
 PyObject *kString_https;
+PyObject *kString_utf_8;
 
 // Smisk main thread python global interp. lock thread state.
 PyThreadState *smisk_py_thstate;
@@ -281,6 +282,7 @@ PyMODINIT_FUNC initcore(void) {
   // Constants: Other static strings (only used in C API)
   kString_http = PyString_InternFromString("http");
   kString_https = PyString_InternFromString("https");
+  kString_utf_8 = PyString_InternFromString("utf-8");
   
   // Constants: Special variables
   if (PyModule_AddStringConstant(smisk_core_module, "__build__", SMISK_BUILD_ID) != 0)

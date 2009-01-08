@@ -218,6 +218,7 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
     // Default values
     self->show_traceback = Py_True; Py_INCREF(Py_True);
     self->forks = 0;
+    self->encoding = kString_utf_8; Py_INCREF(kString_utf_8);
     self->fork_pids = NULL;
     
     // Application.current = self
@@ -251,6 +252,7 @@ void smisk_Application_dealloc(smisk_Application *self) {
   Py_DECREF(self->response);
   Py_XDECREF(self->sessions);
   Py_DECREF(self->show_traceback);
+  Py_DECREF(self->encoding);
   
   if (self->fork_pids)
     free(self->fork_pids);
@@ -690,54 +692,36 @@ static int smisk_Application_set_sessions(smisk_Application* self, PyObject *ses
 }
 
 
+
+PyObject *smisk_Application_get_encoding(smisk_Application* self) {
+  log_trace("ENTER");
+  Py_INCREF(self->encoding); // callers reference
+  return self->encoding;
+}
+
+
+static int smisk_Application_set_encoding(smisk_Application* self, PyObject *encoding) {
+  log_trace("ENTER");
+  
+  REPLACE_OBJ(self->encoding, PyObject_Str(encoding), PyObject);
+  
+  if (!self->encoding)
+    return -1;
+  
+  if ( ((PyObject *)self->request) != Py_None )
+    Py_CLEAR(self->request->get);
+  
+  // Note: We can not remove lazy POST because the original data is
+  //       no longer available after initial parsing.
+  
+  return 0;
+}
+
+
 /********** type configuration **********/
 
 PyDoc_STRVAR(smisk_Application_DOC,
-  "An application.\n"
-  "\n"
-  "Simple example::\n"
-  "\n"
-  " from smisk.core import Application\n"
-  " class MyApp(Application):\n"
-  "   def service(self):\n"
-  "     self.response.write('<h1>Hello World!</h1>')\n"
-  " \n"
-  " MyApp().run()\n"
-  "\n"
-  "Example of standalone/listening/slave process::\n"
-  "\n"
-  " from smisk.core import Application, bind\n"
-  " class MyApp(Application):\n"
-  "   def service(self):\n"
-  "     self.response.write('<h1>Hello World!</h1>')\n"
-  "  \n"
-  " bind('hostname:1234')\n"
-  " MyApp().run()\n"
-  "\n"
-  "It is also possible to use your own types to represent ``Requests`` and ``Responses``. "
-    "You set `request_class` and/or `response_class` to a type, before "
-    "`application_will_start()` has been called. For example::\n"
-  "\n"
-  " from smisk.core import Application, Request\n"
-  " class MyRequest(Request):\n"
-  "   def from_internet_explorer(self):\n"
-  "     return self.env.get('HTTP_USER_AGENT','').find('MSIE') != -1\n"
-  " \n"
-  " class MyApp(Application):\n"
-  "   def __init__(self):\n"
-  "     super(MyApp, self).__init__()\n"
-  "     self.request_class = MyRequest\n"
-  " \n"
-  "   def service(self):\n"
-  "     if self.request.from_internet_explorer():\n"
-  "       self.response.write('<h1>Good bye, cruel World!</h1>')\n"
-  "     else:\n"
-  "       self.response.write('<h1>Hello World!</h1>')\n"
-  " \n"
-  " MyApp().run()\n"
-  "\n"
-  ":cvar current: Current application instance, if any. See also: `smisk.core.app`.\n"
-  ":type current: Application\n");
+  "An application");
 
 // Methods
 static PyMethodDef smisk_Application_methods[] = {
@@ -762,6 +746,14 @@ static PyGetSetDef smisk_Application_getset[] = {
     (getter)smisk_Application_get_sessions,
     (setter)smisk_Application_set_sessions,
     ":type: `smisk.session.Store`", NULL},
+  
+  {"encoding",
+    (getter)smisk_Application_get_encoding,
+    (setter)smisk_Application_set_encoding,
+    "Sets the encoding used for GET/POST accesses. If the GET or POST "
+    "dictionary has already been created, it is removed and recreated on the "
+    "next access (so that it is decoded correctly). "
+    "Defaults to 'utf-8'", NULL},
   
   {NULL, NULL, NULL, NULL, NULL}
 };
