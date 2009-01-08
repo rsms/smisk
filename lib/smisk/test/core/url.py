@@ -80,6 +80,7 @@ class URLTests(TestCase):
     assert u.query == None
     assert u.fragment == ''
   
+  
   def test_decompose_query(self):
     u = URL('http://a/?email=foo%2Bbar@internets.com&&stale_key&&mos=abc&mos=123&&&')
     q = URL.decompose_query(u.query)
@@ -87,6 +88,33 @@ class URLTests(TestCase):
     self.assertEquals(q['stale_key'], None)
     self.assertEquals(q['mos'], ['abc', '123'])
     self.assertContains(q.keys(), ['email', 'stale_key', 'mos'])
+  
+  def test_decompose_query_decode(self):
+    u = URL('http://a/?name=%E5%E4%F6')
+    q = URL.decompose_query(u.query, encoding='latin-1')
+    self.assertTrue(isinstance(q['name'], unicode))
+    self.assertEquals(q['name'], u'\xe5\xe4\xf6')
+    
+    u = URL('http://a/?name=%E5%E4%F6')
+    self.assertRaises(UnicodeDecodeError, lambda: URL.decompose_query(u.query, encoding='utf-8'))
+    
+    u = URL('http://a/?name=%C3%A5%C3%A4%C3%B6%EF%A3%BF')
+    q = URL.decompose_query(u.query, encoding='utf-8')
+    self.assertTrue(isinstance(q['name'], unicode))
+    self.assertEquals(q['name'], u'\xe5\xe4\xf6\uf8ff')
+  
+  def test_decompose_query_embedded_unicode_for_non_unicode_charsets(self):
+    '''Clients acting within a non-unicode compliant charset, like Latin-1, sends
+    out-of-charset characters entity-encoded in unicode-order.
+    
+    i.e. the Apple becomes '%26%2363743%3B' -> '&#63743;'.
+    
+    Because Smisk is purely unicode on the inside, we care for decoding this data.
+    '''
+    u = URL('http://a/?symbol=%26%2363743%3B')
+    q = URL.decompose_query(u.query, encoding='latin-1') # encoding shouldnt matter in this case
+    self.assertEquals(q['symbol'], u'\uf8ff') # xxx currently this test fail because we have not implemented decoding of these kind of entities (yet).
+    
   
   def test_to_s_1(self):
     raw = 'http://john:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5'
