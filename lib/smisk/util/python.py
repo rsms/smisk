@@ -102,7 +102,7 @@ def find_closest_syspath(path, namebuf):
   return find_closest_syspath(path, namebuf)
 
 
-def load_modules(path, deep=False, skip_first_init=True):
+def load_modules(path, deep=False, skip_first_init=True, libdir=None, parent_name=None):
   '''Import all modules in a directory.
   
   :param path: Path of a directory
@@ -121,7 +121,11 @@ def load_modules(path, deep=False, skip_first_init=True):
   :rtype:   dict'''
   loaded = sys.modules.copy()
   path = os.path.abspath(path)
-  parent_name, top_path = find_closest_syspath(path, [])
+  if libdir and parent_name:
+    top_path = os.path.abspath(libdir)
+    parent_name = parent_name
+  else:
+    parent_name, top_path = find_closest_syspath(path, [])
   sys.path[0:0] = [top_path]
   loaded_paths = {}
   for name,mod in sys.modules.items():
@@ -146,14 +150,16 @@ def _load_modules(path, deep, skip_init, parent_name, loaded, loaded_paths):
       continue
     
     if os.path.isdir(fpath):
-      if deep:
-        # skip_init is False because this method is a slave and the
-        # master argument is skip_first_init.
-        if parent_name:
-          parent_name = '%s.%s' % (parent_name, f)
-        else:
-          parent_name = f
-        _load_modules(fpath, deep, False, parent_name, loaded, loaded_paths)
+      if deep and ( os.path.isfile(os.path.join(fpath, '__init__.py')) 
+                    or os.path.isfile(os.path.join(fpath, '__init__.pyc'))
+                    or os.path.isfile(os.path.join(fpath, '__init__.pyo')) ):
+          # skip_init is False because this method is a slave and the
+          # master argument is skip_first_init.
+          if parent_name:
+            parent_name = '%s.%s' % (parent_name, f)
+          else:
+            parent_name = f
+          _load_modules(fpath, deep, False, parent_name, loaded, loaded_paths)
       continue
     
     if not os.path.splitext(f)[1].startswith('.py'):
