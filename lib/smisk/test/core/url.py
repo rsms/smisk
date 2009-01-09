@@ -91,15 +91,15 @@ class URLTests(TestCase):
   
   def test_decompose_query_decode(self):
     u = URL('http://a/?name=%E5%E4%F6')
-    q = URL.decompose_query(u.query, encoding='latin-1')
+    q = URL.decompose_query(u.query, charset='latin-1')
     self.assertTrue(isinstance(q['name'], unicode))
     self.assertEquals(q['name'], u'\xe5\xe4\xf6')
     
     u = URL('http://a/?name=%E5%E4%F6')
-    self.assertRaises(UnicodeDecodeError, lambda: URL.decompose_query(u.query, encoding='utf-8'))
+    self.assertRaises(UnicodeDecodeError, lambda: URL.decompose_query(u.query, charset='utf-8'))
     
     u = URL('http://a/?name=%C3%A5%C3%A4%C3%B6%EF%A3%BF')
-    q = URL.decompose_query(u.query, encoding='utf-8')
+    q = URL.decompose_query(u.query, charset='utf-8')
     self.assertTrue(isinstance(q['name'], unicode))
     self.assertEquals(q['name'], u'\xe5\xe4\xf6\uf8ff')
   
@@ -112,7 +112,7 @@ class URLTests(TestCase):
   #  Because Smisk is purely unicode on the inside, we care for decoding this data.
   #  '''
   #  u = URL('http://a/?symbol=%26%2363743%3B')
-  #  q = URL.decompose_query(u.query, encoding='latin-1') # encoding shouldnt matter in this case
+  #  q = URL.decompose_query(u.query, charset='latin-1') # charset shouldnt matter in this case
   #  self.assertEquals(q['symbol'], u'\uf8ff') # xxx currently this test fail because we have not implemented decoding of these kind of entities (yet).
     
   

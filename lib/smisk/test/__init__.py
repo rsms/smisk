@@ -2,7 +2,7 @@
 # encoding: utf-8
 '''Unit test suite.
 '''
-import unittest, os
+import unittest, sys, os
 
 class TestCase(unittest.TestCase):
   def assertContains(self, collection1, collection2):
@@ -18,17 +18,41 @@ class TestCase(unittest.TestCase):
     '''
     for item in collection1:
       if item not in collection2:
-        raise unittest.AssertionError(u'%r !contains %r' % (collection1, collection2))
+        raise AssertionError(u'%r !contains %r' % (collection1, collection2))
   
 
-def suite():
-  from smisk.util.python import load_modules
+def load_suites(module_names):
   suites = []
-  for m in load_modules(os.path.dirname(__file__), deep=True).values():
-    try:
-      suites.append(m.suite())
-    except AttributeError:
-      pass
+  if isinstance(module_names, str):
+    module_names = module_names.strip().split('\n')
+  for modname in module_names:
+    modname = modname.strip()
+    if modname:
+      __import__(modname)
+      mod = sys.modules[modname]
+      try:
+        suites.append(getattr(mod, 'suite')())
+      except AttributeError, e:
+        if "has no attribute 'suite'" in e.args[0]:
+          e.args = ('module %s has no suite' % mod,)
+        raise e
+  return suites
+
+def suite():
+  # for some reeeeally weird reason, the live test must be run before mvc.*
+  suites = load_suites('''
+    smisk.test.live.negotiate_charset
+    
+    smisk.test.config
+    smisk.test.core.url
+    smisk.test.core.xml
+    smisk.test.inflection
+    smisk.test.mvc.control
+    smisk.test.mvc.routing
+    smisk.test.serialization
+    smisk.test.util.introspect
+    smisk.test.util.string_
+  ''')
   return unittest.TestSuite(suites)
 
 def test():
