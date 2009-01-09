@@ -99,6 +99,7 @@ class Response(smisk.core.Response):
   
   charset = 'utf-8'
   '''Character encoding used to encode the response body.
+  :Deprecated: use Application.charset instead
   '''
   
   def adjust_status(self, has_content):
@@ -429,9 +430,10 @@ class Application(smisk.core.Application):
     # Look at Accept-Charset header and set self.response.charset accordingly
     accept_charset = self.request.env.get('HTTP_ACCEPT_CHARSET', False)
     if accept_charset:
-      cqs, highqs, partials, accept_any = parse_qvalue_header(accept_charset.lower(), '*', None)
+      cqs, highqs, partials, accept_any = parse_qvalue_header(accept_charset.lower(),
+                                            '*', None, self.response.charset)
       # If the charset we have already set is not in highq, use the first usable encoding
-      if self.response.charset not in highqs:
+      if cqs is not True:
         alt_cs = None
         for cq in cqs:
           c = cq[0]
@@ -605,8 +607,7 @@ class Application(smisk.core.Application):
     # No response body
     if rsp is None:
       if self.template:
-        return self.template.render_unicode().encode(
-          self.response.charset, self.unicode_errors)
+        return self.template.render_unicode().encode(self.response.charset, self.unicode_errors)
       elif self.response.serializer and self.response.serializer.handles_empty_response:
         self.response.charset, rsp = self.response.serializer.serialize(rsp, self.response.charset)
         return rsp
@@ -690,7 +691,7 @@ class Application(smisk.core.Application):
     self.request.serializer = None
     self.response.format = None
     self.response.serializer = None
-    self.response.charset = Response.charset
+    self.response.charset = self.charset
     self.destination = None
     self.template = None
     

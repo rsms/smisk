@@ -6,7 +6,7 @@ from smisk.core import URL, Application
 
 __all__ = ['parse_qvalue_header', 'tokenize_path', 'strip_filename_extension', 'normalize_url']
 
-def parse_qvalue_header(s, accept_any_equals='*/*', partial_endswith='/*'):
+def parse_qvalue_header(s, accept_any_equals='*/*', partial_endswith='/*', return_true_if_accepts_charset=None):
   '''Parse a qvalue HTTP header'''
   vqs = []
   highqs = []
@@ -27,11 +27,15 @@ def parse_qvalue_header(s, accept_any_equals='*/*', partial_endswith='/*'):
       if pp != -1:
         q = int(float(part[pp+2:])*100.0)
         part = part[:p]
+        if return_true_if_accepts_charset is not None and part == return_true_if_accepts_charset:
+          return (True, True, True, True)
         vqs.append([part, q])
         if q == 100:
           highqs.append(part)
         continue
     # No qvalue; we use three classes: any (q=0), partial (q=50) and complete (q=100)
+    if return_true_if_accepts_charset is not None and part == return_true_if_accepts_charset:
+      return (True, True, True, True)
     qual = 100
     if part == accept_any_equals:
       qual = 0
