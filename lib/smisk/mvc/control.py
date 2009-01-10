@@ -361,9 +361,15 @@ def leaf_reflection(leaf):
   
   try:
     http_methods = leaf.methods
-    if enable_reflection  and  'OPTIONS' not in http_methods:
-      # Need to make a copy here, or we'll change the actual setting on the leaf
+    # Some special rules:
+    if 'OPTIONS' not in http_methods:
+      # Need to make a copy here, or we'll change the actual setting on the leaf.
+      # Note: We set OPTIONS implicitly, because we want flexibility. See note in 
+      #       decorators.expose for more information.
       http_methods = http_methods + ['OPTIONS']
+    if 'HEAD' not in http_methods  and  'GET' in http_methods:
+      # HEAD is a GET but without the actual body
+      http_methods = http_methods + ['HEAD']
   except AttributeError:
     http_methods = ['OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE']
   

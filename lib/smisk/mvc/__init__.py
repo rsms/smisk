@@ -505,15 +505,26 @@ class Application(smisk.core.Application):
       leaf_methods = self.destination.leaf.methods
       method = self.request.method
       log.debug('leaf allows %r, request is %r', leaf_methods, method)
-      if method  and  leaf_methods is not None:
+      
+      if leaf_methods is not None:
         method_not_allowed = method not in leaf_methods
         is_opts_and_refl = (method == 'OPTIONS'  and  control.enable_reflection)
         
-        if method_not_allowed  or  method == 'OPTIONS':
+        if method_not_allowed  and  method == 'HEAD' and 'GET' in leaf_methods:
+          # HEAD is always allowed as long as GET is allowed.
+          # We perform the check here in order to give the user the possibility
+          # to explicitly @expose a leaf with OPTIONS included in the methods 
+          # argument. (Same reason with OPTIONS further down here)
+          method_not_allowed = False
+        elif method_not_allowed  or  method == 'OPTIONS':
           # HTTP 1.1 requires us to specify allowed methods in a 405 response
           # and we should also include Allow for OPTIONS requests.
-          if is_opts_and_refl:
+          if is_opts_and_refl and method_not_allowed:
+            # OPTIONS was not in leaf_methods, so add it through copy (not appending)
             leaf_methods = leaf_methods + ['OPTIONS']
+          if 'HEAD' not in leaf_methods  and  'GET' in leaf_methods:
+            # HEAD was not in leaf_methods, but GET is, so add it through copy (not appending)
+            leaf_methods = leaf_methods + ['HEAD']
           self.response.headers.append('Allow: ' + ', '.join(leaf_methods))
         
         if method_not_allowed:
@@ -675,9 +686,15 @@ class Application(smisk.core.Application):
     if log.level <= logging.DEBUG:
       self._log_debug_sending_rsp(rsp)
     
-    # Send body
-    assert isinstance(rsp, str)
-    self.response.write(rsp)
+    # Send headers
+    self.response.begin()
+    
+    # Head does not contain a payload, but all the headers should be exactly
+    # like they would with a GET. (Including Content-Length)
+    if self.request.method != 'HEAD':
+      # Send body
+      assert isinstance(rsp, str)
+      self.response.write(rsp)
   
   
   def service(self):
