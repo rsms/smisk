@@ -418,6 +418,13 @@ class Serializer(object):
   
 
 # Load built-in serializers
-import os
-from smisk.util.python import load_modules
-load_modules(os.path.dirname(__file__))
+import smisk.serialization.json, \
+       smisk.serialization.php_serial, \
+       smisk.serialization.plain_text, \
+       smisk.serialization.plist, \
+       smisk.serialization.python_pickle, \
+       smisk.serialization.python_py, \
+       smisk.serialization.xhtml, \
+       smisk.serialization.xmlrpc, \
+       smisk.serialization.xspf, \
+       smisk.serialization.yaml_serial

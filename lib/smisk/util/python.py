@@ -105,6 +105,9 @@ def find_closest_syspath(path, namebuf):
 def load_modules(path, deep=False, skip_first_init=True, libdir=None, parent_name=None):
   '''Import all modules in a directory.
   
+  .. deprecated:: 1.1.1
+    This function will be removed in future versions.
+  
   :param path: Path of a directory
   :type  path: string
   
@@ -119,6 +122,7 @@ def load_modules(path, deep=False, skip_first_init=True, libdir=None, parent_nam
   
   :returns: A dictionary of modules imported, keyed by name.
   :rtype:   dict'''
+  # DEPRECATED 1.1.1
   loaded = sys.modules.copy()
   path = os.path.abspath(path)
   if libdir and parent_name:
@@ -142,6 +146,7 @@ def load_modules(path, deep=False, skip_first_init=True, libdir=None, parent_nam
   return loaded
 
 def _load_modules(path, deep, skip_init, parent_name, loaded, loaded_paths):
+  # DEPRECATED 1.1.1
   for f in os.listdir(path):
     fpath = os.path.join(path, f)
     
