@@ -32,7 +32,7 @@
   #define REGFORMAT "%016lx"
 #elif defined(REG_EIP)
   #define SIGSEGV_STACK_X86
-  #define REGFORMAT "%08x"
+  #define REGFORMAT "%08lx"
 #else
   #define SIGSEGV_STACK_GENERIC
   #define REGFORMAT "%x"
@@ -54,16 +54,9 @@ static void smisk_crash_write_backtrace(siginfo_t *info, void *ptr, FILE *out) {
 
 #if defined(SIGSEGV_STACK_X86) || defined(SIGSEGV_STACK_IA64)
   ucontext_t *ucontext = (ucontext_t*)ptr;
-  
   for (i = 0; i < NGREG; i++)
-    fprintf(out, "reg[%02lu]     = 0x" REGFORMAT "\n", i, (unsigned long)ucontext->uc_mcontext.gregs[i]);
-    /*
-    Debian i686:
-    src/crash_dump.c:59: warning: format ‘%02lu’ expects type ‘long unsigned int’, 
-                                  but argument 3 has type ‘size_t’
-    src/crash_dump.c:59: warning: format ‘%08x’ expects type ‘unsigned int’, but 
-                                  argument 4 has type ‘long unsigned int’
-    */
+    fprintf(out, "reg[%zu]     = 0x" REGFORMAT "\n", i, (unsigned long)ucontext->uc_mcontext.gregs[i]);
+  
 # if defined(SIGSEGV_STACK_IA64)
   ip = (void*)ucontext->uc_mcontext.gregs[REG_RIP];
   bp = (void**)ucontext->uc_mcontext.gregs[REG_RBP];
