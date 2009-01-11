@@ -11,7 +11,7 @@ written in C, but controlled by Python.
 
 It is designed to widen the common bottle necks in heavy-duty web services.
 
-More information at the `Smisk website <http://smisk.hunch.se/>`_
+More information at the `Smisk website <http://python-smisk.org/>`_
 
 
 Getting Started

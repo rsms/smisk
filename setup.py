@@ -632,7 +632,7 @@ setup(
     'Download\n'
     '========\n'
   ),
-  url = 'http://trac.hunch.se/smisk',
+  url = 'http://python-smisk.org/',
   platforms = "ALL",
   classifiers = classifiers,
   zip_safe = True,
