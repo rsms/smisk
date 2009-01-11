@@ -308,22 +308,11 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
       return -1;
     }
     
-    Py_DECREF(py_key);
     Py_DECREF(py_val);
   }
-  else {
-    // no value, only key
-    #if DEBUG_SMISK_MULTIPART
-      log_debug("storing None for form data %s without value", ctx->part_name);
-    #endif
-    
-    if (PyDict_assoc_val_with_key(ctx->post, Py_None, py_key) != 0) {
-      Py_DECREF(py_key);
-      return -1;
-    }
-    
-    Py_DECREF(py_key);
-  }
+  // else: No value, no business.
+  
+  Py_DECREF(py_key);
   
   return 0;
 }
