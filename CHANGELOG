@@ -2,33 +2,64 @@ Changes
 =======
 
 1.1.1
+-----
 
-* YAML serialization (RW) #21 [a72dc2f0855b]
-* Handles MySQL reconnects #23 [49cb2034a8b1]
-* Makes full use of HTTP 1.1 request methods.
+* Fully unicode on the inside -- request.get, .post, .cookies, etc return
+  unicode values and where dictionary keys are used, which have been translated
+  from the outside world, they are guranteeded to be encoded as UTF-8.
+  (Dictionary keys used as keyword arguments must be str in Python <=2.5)
+
+* YAML read/write-serialization #21 [a72dc2f0855b]
+
+* Handles and reconnects dead MySQL-connections. #23 [49cb2034a8b1]
+
+* No longer stores empty parts as None from multipart messages. #15
+  [d9920fb75ca2]
+
+* Makes full use of HTTP 1.1 request methods (OPTIONS, GET, HEAD, PUT, POST,
+  DELETE).
+
 * smisk.mvc.model no longer disposes SA/Elixir sessions for each request, but
   tries to reuse a session as long as no error occur.
+
 * redirect_to() respects and retains explicit request format, denoted by path
-  extension.
+  extension in the original request.
+
+* smisk.test.live introduces "live" tests, running a server and a client,
+  measuring communication and effects.
+
 
 1.1.0
+-----
 
-* MVC module – smisk.mvc
-* Better unicode support
-* Compatible with Debian Etch
-* Host server URL rewrites now propagating correctly
+* MVC module – smisk.mvc.
+
+* Better unicode support.
+
+* Compatible with Debian Etch.
+
+* Host server URL rewrites now propagating correctly.
+
 
 1.0.1
+-----
 
-* Full WSGI support – passes the wsgiref validation tests
-* Iterable request makes reading input data simple
+* Full WSGI support – passes the wsgiref validation tests.
+
+* Iterable request makes reading input data simple.
+
 * Stream implements writelines for optimized sending of chunks of strings.
+
 * Response implements a Stream.writelines proxy, automatically calling
-  begin()
-* Callable response makes responses simpler. Based on writelines
+  begin().
+
+* Callable response makes responses simpler. Based on writelines.
+
 * Fixed a bug where smisk_multipart_parse_file would try to fclose a
   uninitialized fd. [11c4ffae718f]
 
+
 1.0.0
+-----
 
 * First stable version
