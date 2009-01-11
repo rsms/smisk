@@ -1,7 +1,7 @@
 # encoding: utf-8
 '''Helpers
 '''
-from smisk.core import URL
+from smisk.core import URL, Application
 from smisk.mvc import control, http
 from smisk.mvc.model import Entity
 import urllib
@@ -34,15 +34,21 @@ def redirect_to(url, entity=None, status=http.Found, **params):
     else:
       # url is probably an leaf
       url = control.uri_for(url)
+      # Add filename extension if the initial request used it
+      try:
+        ext = Application.current.request.url.path.rsplit('.', 1)[1]
+        url = url + '.' + ext
+      except:
+        pass
   
   # Append any params to url
   if params:
     if not url.endswith('?'):
       if '?' in url:
-        url += '&'
+        url = url + '&'
       else:
-        url += '?'
-    url += compose_query(params)
+        url = url + '?'
+    url = url + compose_query(params)
   
   # Status3xx.service() will perform further work on this url or 
   # path (absolutize it, etc)

@@ -13,12 +13,12 @@ class root(Controller):
     kittens = [dict(k) for k in Kitten.query.all()]
     return {'kittens': kittens}
 
-  def create(self, **params):
-    kitten = Kitten(**params)
+  def create(self, name, color=None, year_born=None):
+    kitten = Kitten(name=name, color=color, year_born=year_born)
     redirect_to(self.read, kitten)
   
-  def read(self, **params):
-    kitten = Kitten.get_by(**params)
+  def read(self, name):
+    kitten = Kitten.get_by(name=name)
     return kitten.to_dict()
   
   def update(self, name, **params):
@@ -30,6 +30,10 @@ class root(Controller):
     kitten = Kitten.get_by(name=name)
     kitten.delete()
     redirect_to(self)
+  
+  def noop(self):
+    return None
+  
 
 if __name__ == '__main__':
   main(config='kittens')

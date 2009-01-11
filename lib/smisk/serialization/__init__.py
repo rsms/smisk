@@ -314,11 +314,13 @@ class Serializer(object):
     Might return None to indicate that someone else should handle the error encoding.
     
     `params` will always contain:
-      * "name":         string  Name of the error. i.e. "Not Found"
-      * "code":         int     Error code. i.e. 404
-      * "description":  string  Description of the error.
-      * "traceback":    object  A list of strings or None if not available.
-      * "server":       string  Short one line description of the server name, port and software.
+      * "code":         int       Error code. i.e. 123
+      * "name":         unicode   Name of the error. i.e. "404 Not Found"
+      * "description":  unicode   Description of the error or the emtpy string.
+      * "server":       unicode   Short one line description of the server name, port and software.
+    
+    `params` might contain:
+      * "traceback":    list      A list of strings.
     
     :param status:    HTTP status
     :type  status:    smisk.mvc.http.Status

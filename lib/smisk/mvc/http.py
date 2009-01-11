@@ -65,7 +65,7 @@ class Status(object):
       desc = self.name
       if args:
         desc = ', '.join(args)
-      return {'code': self.code, 'description': desc, 'http_error': True}
+      return {'description': desc}
   
   @property
   def is_error(self):
@@ -73,6 +73,9 @@ class Status(object):
   
   def __str__(self):
     return '%d %s' % (self.code, self.name)
+  
+  def __unicode__(self):
+    return u'%d %s' % (self.code, self.name.decode('ascii'))
   
   def __repr__(self):
     return 'Status(%r, %r)' % (self.code, self.name)

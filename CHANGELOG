@@ -1,6 +1,16 @@
 Changes
 =======
 
+1.1.1
+
+* YAML serialization (RW) #21 [a72dc2f0855b]
+* Handles MySQL reconnects #23 [49cb2034a8b1]
+* Makes full use of HTTP 1.1 request methods.
+* smisk.mvc.model no longer disposes SA/Elixir sessions for each request, but
+  tries to reuse a session as long as no error occur.
+* redirect_to() respects and retains explicit request format, denoted by path
+  extension.
+
 1.1.0
 
 * MVC module – smisk.mvc

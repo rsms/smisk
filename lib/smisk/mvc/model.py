@@ -6,9 +6,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-default_engine_opts = {
-  'pool_size': 1
-}
+default_engine_opts = {}
 
 try:
   # Ignore the SA string type depr warning
@@ -22,7 +20,7 @@ try:
   from sqlalchemy.pool import StaticPool
   import sqlalchemy.orm
   
-  # Replace Elixir default session (evens out difference between 0.5 - 0.6)
+  # Replace Elixir default session (evens out difference between Elixir 0.5 - 0.6)
   elixir.session = sqlalchemy.orm.scoped_session(sqlalchemy.orm.sessionmaker(
     autoflush=True, transactional=True))
   

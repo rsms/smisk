@@ -290,7 +290,6 @@ class Application(smisk.core.Application):
       filename = os.path.basename(self.request.url.path)
       p = filename.rfind('.')
       if p != -1:
-        self.request.url.path = strip_filename_extension(self.request.url.path)
         self.response.format = filename[p+1:].lower()
         if log.level <= logging.DEBUG:
           log.debug('response format %r deduced from request filename extension', 
@@ -609,6 +608,36 @@ class Application(smisk.core.Application):
       return self.destination(*args, **params)
   
   
+  def _call_leaf_and_handle_model_session(self, req_args, req_params):
+    _debug = log.level <= logging.DEBUG
+    try:
+      rsp = self.call_leaf(req_args, req_params)
+      if _debug:
+        log.debug('model.session.dirty = %r', [s for s in model.session.registry()])
+        log.debug('model.session.commit! 200 OK')
+      model.session.commit()
+      return rsp
+    except Exception, e:
+      if _debug:
+        log.debug('model.session.dirty = %r', [s for s in model.session.registry()])
+      error = not (isinstance(e, http.HTTPExc) and not e.status.is_error)
+      if not error:
+        if _debug:
+          log.debug('model.session.commit! %s', e.status)
+        try:
+          model.session.commit()
+        except Exception, e:
+          error = True
+      
+      if error:
+        if _debug:
+          log.debug('model.session.rollback!')
+        model.session.rollback()
+        model.session.close_all()
+      
+      raise
+  
+  
   def encode_response(self, rsp):
     '''Encode the response object `rsp`
     
@@ -730,7 +759,7 @@ class Application(smisk.core.Application):
     if self.request.method == 'OPTIONS' and \
     (self.request.env.get('SCRIPT_NAME') == '*' or self.request.url.path == '/*'):
       return self.service_server_OPTIONS(req_args, req_params)
-      
+    
     # Resolve route to destination
     self.destination, req_args, req_params = \
       self.routes(self.request.method, self.request.url, req_args, req_params)
@@ -740,33 +769,16 @@ class Application(smisk.core.Application):
     
     # Call the leaf which might generate a response object: rsp
     if model.metadata.bind:
-      try:
-        try:
-          rsp = self.call_leaf(req_args, req_params)
-          model.session.commit()
-        except http.HTTPExc, e:
-          if not e.status.is_error:
-            log.debug('committing model transaction before handling non-error http status')
-            model.session.commit()
-          else:
-            log.debug('rolling back model transaction')
-            model.session.rollback()
-          raise
-        except:
-          log.debug('rolling back model transaction')
-          model.session.rollback()
-          raise
-      finally:
-        model.session.remove()
+      rsp = self._call_leaf_and_handle_model_session(req_args, req_params)
     else:
       rsp = self.call_leaf(req_args, req_params)
-  
+    
     # Aquire template, if any
     if self.template is None and self.templates is not None:
       template_path = self.destination.template_path
       if template_path:
         self.template = self.template_for_path(os.path.join(*template_path))
-  
+    
     # Encode response
     rsp = self.encode_response(rsp)
     
@@ -864,45 +876,42 @@ class Application(smisk.core.Application):
         log.error('%d Request failed for %r', status.code, self.request.url.path, 
           exc_info=(extyp, exval, tb))
         # Reset headers
-        self.response.headers = []
+        self.response.headers = ['Vary: Accept, Accept-Charset']
       else:
-        log.info('Non-200 HTTP status %s: %s for uri %r', extyp.__name__, exval, 
+        log.info('HTTP status %s: %s for uri %r', extyp.__name__, exval, 
           self.request.url.uri)
-        # Filter headers
-        self.response.remove_headers('status:', 'vary:')
       
-      # Set headers
-      self.response.headers.extend([
-        'Status: %s' % status,
-        'Vary: Accept, Accept-Charset'
-      ])
+      # Set status header
+      self.response.replace_header('Status: %s' % status)
       
       # Set params
-      params['name'] = unicode(status.name)
+      params['name'] = unicode(status)
       params['code'] = getattr(exval, 'code', 0)
       try:
         params['code'] = int(params['code'])
       except ValueError:
         params['code'] = 0
-      params['server'] = u'%s at %s' %\
-        (self.request.env['SERVER_SOFTWARE'], self.request.env['SERVER_NAME'])
+      params['server'] = u'%s at %s' % (
+        self.request.env['SERVER_SOFTWARE'].decode('utf-8'),
+        self.request.env['SERVER_NAME'].decode('utf-8'))
       
       # Include traceback if enabled
-      if self.show_traceback:
+      if self.show_traceback and status.is_error:
         params['traceback'] = format_exc((extyp, exval, tb))
-      else:
-        params['traceback'] = None
       
       # HTTP exception has a bound leaf we want to call
       if isinstance(exval, http.HTTPExc):
         status_service_rsp = exval(self)
         if isinstance(status_service_rsp, StringType):
           rsp = status_service_rsp
-        elif status_service_rsp:
-          assert isinstance(status_service_rsp, DictType)
+        elif isinstance(status_service_rsp, DictType):
           params.update(status_service_rsp)
+      
+      # Make sure description is set and is unicode
       if not params.get('description', False):
         params['description'] = unicode(getattr(exval, 'message', exval))
+      elif not isinstance(params['description'], unicode):
+        params['description'] = unicode(params['description'])
       
       # Service the error
       self.error_service(status, rsp, (extyp, exval, tb), params)
