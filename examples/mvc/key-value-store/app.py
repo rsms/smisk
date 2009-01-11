@@ -37,4 +37,4 @@ class root(Controller):
   
 
 if __name__ == '__main__':
-  main(config='method-based-kvs')
+  main(config='key-value-store')

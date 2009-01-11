@@ -30,10 +30,6 @@ class root(Controller):
     kitten = Kitten.get_by(name=name)
     kitten.delete()
     redirect_to(self)
-  
-  def noop(self):
-    return None
-  
 
 if __name__ == '__main__':
   main(config='kittens')

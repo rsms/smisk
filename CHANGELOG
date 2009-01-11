@@ -17,7 +17,7 @@ Changes
   [d9920fb75ca2]
 
 * Makes full use of HTTP 1.1 request methods (OPTIONS, GET, HEAD, PUT, POST,
-  DELETE).
+  DELETE). See example application: examples/mvc/key-value-store/
 
 * smisk.mvc.model no longer disposes SA/Elixir sessions for each request, but
   tries to reuse a session as long as no error occur.
