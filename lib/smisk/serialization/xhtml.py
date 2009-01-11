@@ -90,6 +90,8 @@ class XHTMLSerializer(Serializer):
     # Override if description_html is set
     if 'description_html' in params:
       xp['description'] = params['description_html']
+    if 'traceback' not in xp:
+      xp['traceback'] = ''
     s = ERROR_TEMPLATE % xp
     return (charset, s.encode(charset, cls.unicode_errors))
   
