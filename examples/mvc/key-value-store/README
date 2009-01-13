@@ -34,3 +34,6 @@ value: 5
 $ curl -X POST -d 'value=internets' localhost:8080/entry/something-else
 $ curl -X GET localhost:8080/entry/something-else.txt
 value: internets
+$ curl -X DELETE localhost:8080/entry/something-else
+$ curl -X GET localhost:8080/entry/something-else.txt
+404 Not Found
