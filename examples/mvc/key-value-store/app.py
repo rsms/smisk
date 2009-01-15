@@ -7,32 +7,35 @@ from smisk.config import config
 
 class root(Controller):
   def __init__(self):
+    # If persistent evaluates to True, the contents of the shared 
+    # dict will be flushed to disk on shutdown and read from disk 
+    # on startup, thus providing a persistent set of data.
     self.entries = shared_dict(persistent=config.get('persistent'))
   
   @expose(methods='GET')
   def __call__(self):
-    '''Lists all available keys.
+    '''List available entries.
     '''
-    return {'pid': os.getpid(), 'entries': self.entries}
+    return {'entries': self.entries}
   
   @expose(methods=('POST', 'PUT'))
   def set(self, key, value):
-    '''Creates an entry or modifies a value.
+    '''Create or modify an entry.
     '''
     self.entries[key] = value
   
   @expose(methods='GET')
   def get(self, key):
-    '''Aquires a value.
+    '''Get value for key.
     '''
     try:
-      return {'pid': os.getpid(), 'value': self.entries[key]}
+      return {'value': self.entries[key]}
     except KeyError:
       raise http.NotFound('no value associated with key %r' % key)
   
   @expose(methods='DELETE')
   def delete(self, key):
-    '''Removes an entry.
+    '''Remove entry.
     '''
     if key not in self.entries:
       raise http.NotFound('no such entry %r' % key)
@@ -40,4 +43,6 @@ class root(Controller):
   
 
 if __name__ == '__main__':
+  # Load the configuration file key-value-store.conf while assembling
+  # the application
   main(config='key-value-store')
