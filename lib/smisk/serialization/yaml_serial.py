@@ -19,9 +19,7 @@ try:
 except ImportError:
   yaml = None
   from warnings import warn
-  warning_msg = 'YAML not available -- disabling YAML serializer. (Install PyYAML to fix this)'
-  warn(warning_msg)
-  log.warn(warning_msg)
+  warn('YAML not available -- disabling YAML serializer')
 
 class YAMLSerializer(Serializer):
   '''Human-readable data serialization

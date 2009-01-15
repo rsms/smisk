@@ -29,7 +29,7 @@ def shared_dict(name=None, nodes=['127.0.0.1:11211'], memcached_debug=0):
   return d
 
 
-class MCDict(MutableMapping):
+class MCDict(dict, MutableMapping):
   def __init__(self, client, key_prefix=None):
     self.client = client
     self.key_prefix = key_prefix

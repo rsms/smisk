@@ -32,10 +32,11 @@ storage.
 #------------------------------------------------------------------------
 
 import cPickle
-import sys, os
+import sys, os, atexit
 import smisk.core.bsddb as db
 from smisk.util.cache import app_shared_key
 from smisk.util.type import MutableMapping
+from tempfile import gettempdir
 
 #At version 2.3 cPickle switched to using protocol instead of bin
 if sys.version_info[:3] >= (2, 3, 0):
@@ -61,18 +62,22 @@ else:
 
 _dicts = {}
 
-def shared_dict(homedir=None, name=None, mode=0600, dbenv=None, type=db.DB_HASH, flags=db.DB_CREATE):
-  name_org = name
-  if name is None:
-    name = app_shared_key()
+def shared_dict(filename=None, homedir=None, name=None, mode=0600, dbenv=None, 
+                type=db.DB_HASH, flags=db.DB_CREATE, persistent=False):
+  orig_name = name
+  is_tempdir = False
   
-  if homedir is None:
-    from tempfile import gettempdir
-    homedir = os.path.join(gettempdir(), '%s.ipc' % name)
-    import atexit, shutil
-    atexit.register(shutil.rmtree, homedir, True)
-  
-  filename = os.path.join(homedir, name)
+  if filename:
+    filename = os.path.abspath(filename)
+    homedir = os.path.dirname(filename)
+    name = os.path.basename(filename)
+  else:
+    if name is None:
+      name = app_shared_key()
+    if homedir is None:
+      is_tempdir = True
+      homedir = os.path.join(gettempdir(), '%s.ipc' % name)
+    filename = os.path.join(homedir, name)
   
   try:
     return _dicts[filename]
@@ -86,9 +91,13 @@ def shared_dict(homedir=None, name=None, mode=0600, dbenv=None, type=db.DB_HASH,
     dbenv = db.DBEnv(0)
     dbenv.open(homedir, db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_CDB, 0)
   
-  d = DBDict(dbenv)
-  d.open(filename, name_org, type, flags, mode)
+  d = DBDict(dbenv, sync=persistent)
+  d.open(filename, name, type, flags, mode)
   _dicts[filename] = d
+  
+  if not persistent and is_tempdir:
+    import shutil
+    atexit.register(shutil.rmtree, homedir, True)
   
   return d
 
@@ -97,13 +106,14 @@ def shared_dict(homedir=None, name=None, mode=0600, dbenv=None, type=db.DB_HASH,
 class DBDictError(db.DBError): pass
 
 
-class DBDict(MutableMapping):
+class DBDict(dict, MutableMapping):
   """Hold pickled objects, built upon a bsddb DB object.  It
   automatically pickles/unpickles data objects going to/from the DB.
   """
   
-  def __init__(self, dbenv=None):
+  def __init__(self, dbenv=None, sync=False):
     self.db = db.DB(dbenv)
+    self.sync = sync
     self._closed = True
     if HIGHEST_PROTOCOL:
       self.protocol = HIGHEST_PROTOCOL
@@ -141,12 +151,6 @@ class DBDict(MutableMapping):
   def __contains__(self, key):
     return self.db.has_key(key)
   
-  def keys(self, txn=None):
-    if txn != None:
-      return self.db.keys(txn)
-    else:
-      return self.db.keys()
-  
   if sys.version_info[0:2] >= (2, 6):
     def __iter__(self):
       return self.db.__iter__()
@@ -160,35 +164,37 @@ class DBDict(MutableMapping):
 
 
   def close(self, *args, **kwargs):
+    if self.sync:
+      self.db.sync()
     self.db.close(*args, **kwargs)
     self._closed = True
-
-
+  
   def __repr__(self):
-    items = 'closed'
-    if not self._closed:
-      items = '%d items' % len(self.db)
-    return '<%s.%s @ 0x%x - %s>' % (
-      self.__module__, self.__class__.__name__, id(self), items)
-
-
-  def items(self, txn=None):
-    if txn != None:
-      items = self.db.items(txn)
+    if self._closed:
+      return '<%s.%s @ 0x%x - closed>' % (
+        self.__module__, self.__class__.__name__, id(self), items)
     else:
-      items = self.db.items()
-    newitems = []
-    for k, v in items:
-      newitems.append( (k, cPickle.loads(v)) )
-    return newitems
+      return repr(dict([(k, cPickle.loads(v)) for k,v in self.db.items()]))
+  
+  def keys(self, txn=None):
+    if txn != None:
+      return self.db.keys(txn)
+    else:
+      return self.db.keys()
 
   def values(self, txn=None):
     if txn != None:
       values = self.db.values(txn)
     else:
       values = self.db.values()
-
-    return map(cPickle.loads, values)
+    return [cPickle.loads(v) for v in values]
+  
+  def items(self, txn=None):
+    if txn != None:
+      items = self.db.items(txn)
+    else:
+      items = self.db.items()
+    return [(k, cPickle.loads(v)) for k,v in items]
 
   #-----------------------------------
   # Other methods

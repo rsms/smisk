@@ -1,11 +1,11 @@
-:mod:`smisk.ipc` --- InterProcess Communication
+:mod:`smisk.ipc` --- Inter-process communication
 ===========================================================
 
 .. module:: smisk.ipc
 .. versionadded:: 1.1.2
 
 
-Module contents
+Functions
 -------------------------------------------------
 
 
@@ -39,3 +39,14 @@ Module contents
     
     main(App)
   
+
+
+Modules
+-------------------------------------------------
+
+.. toctree::
+  :maxdepth: 1
+  
+  smisk.ipc.bsddb
+  smisk.ipc.memcached
+

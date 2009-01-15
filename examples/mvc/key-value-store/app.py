@@ -2,15 +2,18 @@
 # encoding: utf-8
 from smisk.mvc import *
 from smisk.mvc.model import *
+from smisk.ipc import shared_dict
+from smisk.config import config
 
 class root(Controller):
-  entries = {}
+  def __init__(self):
+    self.entries = shared_dict(persistent=config.get('persistent'))
   
   @expose(methods='GET')
   def __call__(self):
     '''Lists all available keys.
     '''
-    return {'keys': self.entries.keys()}
+    return {'pid': os.getpid(), 'entries': self.entries}
   
   @expose(methods=('POST', 'PUT'))
   def set(self, key, value):
@@ -23,7 +26,7 @@ class root(Controller):
     '''Aquires a value.
     '''
     try:
-      return {'value': self.entries[key]}
+      return {'pid': os.getpid(), 'value': self.entries[key]}
     except KeyError:
       raise http.NotFound('no value associated with key %r' % key)
   

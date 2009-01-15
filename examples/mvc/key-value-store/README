@@ -37,3 +37,11 @@ value: internets
 $ curl -X DELETE localhost:8080/entry/something-else
 $ curl -X GET localhost:8080/entry/something-else.txt
 404 Not Found
+
+
+
+Tip:
+
+If you are using bash as your shell (which you probably are if you don't know what that is), you can create 100 keys to play with using this line:
+
+for (( i=0; i<=100; i++ )); do curl -X PUT -d 'value=hello'$i 'localhost:8080/entry/my-key'$i; done

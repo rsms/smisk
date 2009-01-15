@@ -8,6 +8,7 @@ Utilities
 .. toctree::
   :maxdepth: 1
   
+  smisk.util.benchmark
   smisk.util.DateTime
   smisk.util.cache
   smisk.util.collections
