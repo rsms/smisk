@@ -1,4 +1,4 @@
-#!/bin/env python
+# encoding: utf-8
 try:
   import cmemcached as memcache
 except ImportError:
