@@ -297,8 +297,6 @@ PyMODINIT_FUNC initcore(void) {
       return; \
     }
   R(Application_register_types, != 0);
-  R(Application_register_types, != 0);
-  R(Application_register_types, != 0);
   R(Request_register_types, != 0);
   R(Response_register_types, != 0);
   R(Stream_register_types, != 0);
