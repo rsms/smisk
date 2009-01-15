@@ -352,7 +352,7 @@ PyObject *smisk_Request_log_error(smisk_Request* self, PyObject *msg) {
     return NULL;
   }
   
-  if (!msg || !SMISK_PyString_Check(msg)) {
+  if (!msg || !SMISK_STRING_CHECK(msg)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }

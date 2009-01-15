@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
+import os
+os.putenv('MACOSX_DEPLOYMENT_TARGET', '10.5')
 try:
   from setuptools import setup
 except ImportError:
@@ -7,7 +9,7 @@ except ImportError:
   use_setuptools()
   from setuptools import setup
 
-import sys, os, time, platform, re, subprocess
+import sys, time, platform, re, subprocess
 
 from setuptools import Extension as _Extension, Distribution, Command
 from pkg_resources import parse_version
@@ -47,8 +49,6 @@ HAVE_HEADERS = [
   'sys/utsname.h'
 ]
 
-test_result = None # Used by tests
-
 #-------------------------------
 
 sources = [
@@ -72,24 +72,26 @@ sources = [
   'src/SessionStore.c',
   'src/FileSessionStore.c',
 
-    'src/xml/__init__.c']
+    'src/xml/__init__.c',
+    'src/bsddb.c']
 
 
 classifiers = [
   'Environment :: Console',
   'Intended Audience :: Developers',
+  'Intended Audience :: Information Technology',
   'License :: OSI Approved :: MIT License',
   'Operating System :: MacOS :: MacOS X',
   'Operating System :: POSIX',
   'Operating System :: Unix',
   'Programming Language :: C',
   'Programming Language :: Python',
+  'Natural Language :: English',
   'Topic :: Internet :: WWW/HTTP',
   'Topic :: Software Development :: Libraries :: Python Modules'
 ]
 
 
-# xxx: need to detect this in another way, since version never has a tag (we set tags at build time)
 if v[2] == '*final':
   classifiers.append('Development Status :: 5 - Production/Stable')
 else:
@@ -121,7 +123,7 @@ def shell_cmd(args, cwd=BASE_DIR):
   '''
   if not isinstance(args, (list, tuple)):
     args = [args]
-  ps = Popen(args, shell=True, cwd=cwd, stdout=PIPE, stderr=PIPE, close_fds=True)
+  ps = Popen(args, shell=True, cwd=cwd, stdout=PIPE, stderr=PIPE, close_fds=True, env={})
   stdout, stderr = ps.communicate()
   if ps.returncode != 0:
     if stderr:
@@ -179,6 +181,7 @@ def core_build_id():
         _core_build_id = time.strftime('urn:utcts:%Y%m%d%H%M%S', time.gmtime())
   return _core_build_id
 
+
 # -----------------------------------------
 # Commands
 
@@ -220,7 +223,18 @@ class build_ext(_build_ext):
   
   def finalize_options(self):
     _build_ext.finalize_options(self)
-    self.libraries.append('fcgi')
+    
+    # Process BSDDB module build
+    orig_syspath = sys.path
+    sys.path[0:0] = ['admin']
+    import setup_bsddb
+    sys.path = orig_syspath
+    self.bsddb = setup_bsddb
+    
+    self.include_dirs.append(self.bsddb.incdir)
+    self.library_dirs.append(self.bsddb.libdir)
+    
+    self.libraries.extend(['fcgi', self.bsddb.dblib])
     self.define = [
       ('SMISK_VERSION', '"%s"' % version),
       ('SMISK_BUILD_ID', '"%s"' % core_build_id()),
@@ -390,9 +404,7 @@ class config(_config):
   
   def _libraries(self):
     global required_libraries, libraries
-    for n in [
-    ('fcgi', ['fastcgi.h', 'fcgiapp.h'])
-      ]:
+    for n in [('fcgi', ['fastcgi.h', 'fcgiapp.h'])]:
       log.info('checking for library %s', n[0])
       sys.stdout.flush()
       self._silence()

@@ -2,7 +2,7 @@
 '''
 __all__ = ['version','author','email','copyright','license','version_info']
 
-version = "1.1.1" # Major.Minor.Build (see tag_build in setup.cfg)
+version = "1.1.2" # Major.Minor.Build (see tag_build in setup.cfg)
 author = "Rasmus Andersson"
 email = "rasmus@flajm.com"
 copyright = "Copyright 2007-2009 Rasmus Andersson"

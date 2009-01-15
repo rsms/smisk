@@ -137,7 +137,7 @@ PyObject *smisk_xml_escape_py(PyObject *self, PyObject *str) {
   Py_ssize_t orglen, newlen;
   PyObject *newstr_py, *unicode_str = NULL;
   
-  if (!SMISK_PyString_Check(str)) {
+  if (!SMISK_STRING_CHECK(str)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }
@@ -202,12 +202,20 @@ PyDoc_STRVAR(smisk_xml_DOC,
 
 PyObject *smisk_xml_register (PyObject *parent) {
   log_trace("ENTER");
-  smisk_xml = Py_InitModule("smisk.core.xml", methods);
+  
+  if ((smisk_xml = Py_InitModule("smisk.core.xml", methods)) == NULL) {
+    log_error("Py_InitModule(\"smisk.core.xml\", methods) failed");
+    return NULL;
+  }
+  
   PyModule_AddStringConstant(smisk_xml, "__doc__", smisk_xml_DOC);
+  
   if (PyModule_AddObject(parent, "xml", smisk_xml) != 0) {
+    log_error("PyModule_AddObject(parent, \"xml\", smisk_xml) != 0");
     Py_DECREF(smisk_xml);
     return NULL;
   }
+  
   return smisk_xml;
 }
 

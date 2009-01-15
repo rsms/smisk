@@ -27,6 +27,9 @@ THE SOFTWARE.
 
 // Types
 typedef uint8_t byte;
+#if (PY_VERSION_HEX < 0x02050000)
+typedef ssize_t Py_ssize_t;
+#endif
 
 /* Convert an ASCII hex digit to the corresponding number between 0
    and 15.  H should be a hexadecimal digit that satisfies isxdigit;
@@ -41,10 +44,26 @@ typedef uint8_t byte;
 #define XNUM_TO_digit(x) ("0123456789abcdef"[x] + 0)
 
 
-// Py 2.4 compat
-#if (PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION < 5)
-#define Py_ssize_t ssize_t
+// Python 3 is on the horizon... (currently only used by )
+#if (PY_VERSION_HEX < 0x02060000)  /* really: before python trunk r63675 */
+  /* These #defines map to their equivalent on earlier python versions. */
+  #define PyBytes_FromStringAndSize PyString_FromStringAndSize
+  #define PyBytes_FromString PyString_FromString
+  #define PyBytes_AsStringAndSize PyString_AsStringAndSize
+  #define PyBytes_Check PyString_Check
+  #define PyBytes_GET_SIZE PyString_GET_SIZE
+  #define PyBytes_AS_STRING PyString_AS_STRING
 #endif
+#if (PY_VERSION_HEX >= 0x03000000)
+  #define NUMBER_Check    PyLong_Check
+  #define NUMBER_AsLong   PyLong_AsLong
+  #define NUMBER_FromLong PyLong_FromLong
+#else
+  #define NUMBER_Check    PyInt_Check
+  #define NUMBER_AsLong   PyInt_AsLong
+  #define NUMBER_FromLong PyInt_FromLong
+#endif
+
 
 // Get minimum value
 #ifndef min
@@ -95,8 +114,8 @@ typedef uint8_t byte;
   PyDict_SetItemString(*_PyObject_GetDictPtr((PyObject *)PyObject_ptr_type), char_ptr_name,\
   (PyObject *)PyObject_ptr_value)
 
-// Workaround for a nasty bug where PyString_Check() segfaults when given a unicode object.
-#define SMISK_PyString_Check(obj) (PyString_Check(obj) || PyUnicode_Check(obj))
+// instanceof(obj, (bytes, str, unicode)
+#define SMISK_STRING_CHECK(obj) (PyBytes_Check(obj) || PyUnicode_Check(obj))
 
 // Set IOError with errno and filename info. Return NULL
 #define PyErr_SET_FROM_ERRNO   PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__)

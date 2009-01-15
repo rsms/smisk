@@ -70,6 +70,7 @@
   smisk.config
   smisk.core
   smisk.inflection
+  smisk.ipc
   smisk.mvc
   smisk.release
   smisk.serialization

@@ -1,8 +1,20 @@
 # encoding: utf-8
 '''Types
 '''
-import re
+import sys, re
 from types import *
+
+if sys.version_info[0:2] <= (2, 5):
+  try:
+    from UserDict import DictMixin
+  except ImportError:
+    # DictMixin is new in Python 2.3
+    class DictMixin: pass
+  MutableMapping = DictMixin
+else :
+  import collections
+  MutableMapping = collections.MutableMapping
+
 
 class Symbol:
   '''General purpose named object.

@@ -195,7 +195,7 @@ PyObject *smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject *se
   if (probably_call(self->gc_probability, _gc_run, (void *)self) == -1)
     return NULL;
   
-  if ( !SMISK_PyString_Check(session_id) ) {
+  if ( !SMISK_STRING_CHECK(session_id) ) {
     PyErr_SetString(PyExc_TypeError, "session_id must be a string");
     return NULL;
   }

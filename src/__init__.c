@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include "SessionStore.h"
 #include "FileSessionStore.h"
 #include "xml/__init__.h"
+#include "bsddb.h"
 #include "crash_dump.h"
 
 #include <fastcgi.h>
@@ -75,7 +76,7 @@ PyObject *smisk_bind(PyObject *self, PyObject *args) {
   
   // Save reference to first argument and type check it
   path = PyTuple_GET_ITEM(args, 0);
-  if (path == NULL || !SMISK_PyString_Check(path)) {
+  if (path == NULL || !SMISK_STRING_CHECK(path)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }
@@ -186,7 +187,7 @@ PyObject *smisk_uid(PyObject *self, PyObject *args) {
     if (node == Py_None) {
       node = NULL;
     }
-    else if (node == NULL || !SMISK_PyString_Check(node)) {
+    else if (node == NULL || !SMISK_STRING_CHECK(node)) {
       PyErr_SetString(PyExc_TypeError, "second argument must be a string");
       return NULL;
     }
@@ -213,7 +214,7 @@ PyObject *smisk_pack(PyObject *self, PyObject *args) {
   // data
   if (PyTuple_GET_SIZE(args) > 0) {
     data = PyTuple_GET_ITEM(args, 0);
-    if (data == NULL || !SMISK_PyString_Check(data)) {
+    if (data == NULL || !SMISK_STRING_CHECK(data)) {
       PyErr_SetString(PyExc_TypeError, "first argument must be a string");
       return NULL;
     }
@@ -269,7 +270,8 @@ PyMODINIT_FUNC initcore(void) {
 	}
   
   // Create module
-  smisk_core_module = Py_InitModule("smisk.core", module_methods);
+  if ((smisk_core_module = Py_InitModule("smisk.core", module_methods)) == NULL)
+    return;
   
   // Initialize crash dumper
   smisk_crash_dump_init();
@@ -289,25 +291,32 @@ PyMODINIT_FUNC initcore(void) {
     return;
   
   // Register types
-  if (!smisk_core_module ||
-    (smisk_Application_register_types(smisk_core_module) != 0) ||
-    (smisk_Request_register_types(smisk_core_module) != 0) ||
-    (smisk_Response_register_types(smisk_core_module) != 0) ||
-    (smisk_Stream_register_types(smisk_core_module) != 0) ||
-    (smisk_URL_register_types(smisk_core_module) != 0) ||
-    (smisk_SessionStore_register_types(smisk_core_module) != 0) ||
-    (smisk_FileSessionStore_register_types(smisk_core_module) != 0) ||
-    (smisk_xml_register(smisk_core_module) == NULL)
-    ) {
-      return;
-  }
+  #define R(name, okstmt) \
+    if (smisk_ ## name(smisk_core_module) okstmt) { \
+      log_error("sub-component initializer '" #name "' failed"); \
+      return; \
+    }
+  R(Application_register_types, != 0);
+  R(Application_register_types, != 0);
+  R(Application_register_types, != 0);
+  R(Request_register_types, != 0);
+  R(Response_register_types, != 0);
+  R(Stream_register_types, != 0);
+  R(URL_register_types, != 0);
+  R(SessionStore_register_types, != 0);
+  R(FileSessionStore_register_types, != 0);
+  R(xml_register, == NULL);
+  R(bsddb_register, == NULL);
+  #undef R
   
   // Exceptions
   if (!(smisk_InvalidSessionError = PyErr_NewException("smisk.core.InvalidSessionError", PyExc_ValueError, NULL))
     ||
     (PyModule_AddObject(smisk_core_module, "InvalidSessionError", smisk_InvalidSessionError) == -1)
     )
+  {
     return;
+  }
   
   // Setup ObjectProxies for app, request and response
   PyObject *smisk_util_objectproxy = PyImport_ImportModule("smisk.util.objectproxy");

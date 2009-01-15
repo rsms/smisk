@@ -183,7 +183,7 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   Py_ssize_t orglen, newlen;
   PyObject *newstr_py, *unicode_str = NULL;
   
-  if (!SMISK_PyString_Check(str)) {
+  if (!SMISK_STRING_CHECK(str)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }
@@ -480,7 +480,7 @@ int smisk_URL_init(smisk_URL *self, PyObject *args, PyObject *kwargs) {
   // Save reference to first argument (a string) and type check it
   str = PyTuple_GET_ITEM(args, 0);
   
-  if (!SMISK_PyString_Check(str)) {
+  if (!SMISK_STRING_CHECK(str)) {
     str = PyObject_Str(str);
     if (str == NULL)
       return -1;
@@ -588,7 +588,7 @@ PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
   register PyStringObject *newstr_py;
   PyObject *unicode_str = NULL;
   
-  if (!SMISK_PyString_Check(str)) {
+  if (!SMISK_STRING_CHECK(str)) {
     PyErr_SetString(PyExc_TypeError, "first argument must be a string");
     return NULL;
   }

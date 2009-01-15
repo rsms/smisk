@@ -85,7 +85,7 @@ Functions
   This is the only way to set/get Type/Class properties.
   Based on the python interal function ``PyObject **_PyObject_GetDictPtr(PyObject *)``
   
-  :Returns: A `PyString` or NULL if an exception was raised.
+  :Returns: A `PyObject` or NULL if an exception was raised.
   
   .. versionadded:: 1.1
 
@@ -114,7 +114,7 @@ Functions
   ``error_code`` is executed if ``getter`` returns ``NULL``.
 
 
-.. cfunction:: int SMISK_PyString_Check(PyObject *object)
+.. cfunction:: int SMISK_STRING_CHECK(PyObject *object)
 
   Macro for testing if `object` is a kind of string (either `str` or `unicode`).
   Workaround for a nasty bug in ``PyString_Check()``.

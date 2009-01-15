@@ -379,7 +379,7 @@ PyObject *smisk_find_string_by_prefix_in_dict(PyObject *list, PyObject *prefix) 
   if (list == NULL)
     return PyErr_Format(PyExc_TypeError, "smisk_find_string_by_prefix_in_dict() called with list=NULL");
   
-  if (!prefix || !SMISK_PyString_Check(prefix))
+  if (!prefix || !SMISK_STRING_CHECK(prefix))
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
   num_items = PyList_GET_SIZE(list);
@@ -388,7 +388,7 @@ PyObject *smisk_find_string_by_prefix_in_dict(PyObject *list, PyObject *prefix) 
   
   // Iterate over headers
   for (i=0; i<num_items; i++) {
-    if ( (item = PyList_GET_ITEM(list, i)) && SMISK_PyString_Check(item) ) {
+    if ( (item = PyList_GET_ITEM(list, i)) && SMISK_STRING_CHECK(item) ) {
       item_len = PyString_Size(item);
       if (item_len < prefix_len)
         continue;
