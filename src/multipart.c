@@ -229,12 +229,12 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
   
   // Add dict with file information to the ctx->files dict
   if (bytes) {
-    PyObject *py_key = PyString_FromString(ctx->part_name);
+    PyObject *py_key = PyBytes_FromString(ctx->part_name);
     PyObject *m = PyDict_New();
     
-    PyDict_SetItemString(m, "filename",     PyString_FromString(ctx->filename));
-    PyDict_SetItemString(m, "content_type", PyString_FromString(ctx->content_type));
-    PyDict_SetItemString(m, "path",         PyString_FromString(fn));
+    PyDict_SetItemString(m, "filename",     PyBytes_FromString(ctx->filename));
+    PyDict_SetItemString(m, "content_type", PyBytes_FromString(ctx->content_type));
+    PyDict_SetItemString(m, "path",         PyBytes_FromString(fn));
     PyDict_SetItemString(m, "size",         PyLong_FromUnsignedLong(bytes));
     
     if (PyDict_assoc_val_with_key(ctx->files, m, py_key) != 0)
@@ -278,10 +278,10 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
   
   #if DEBUG_SMISK_MULTIPART
     log_debug("form_data: BODY = \"%s\"",
-      PyString_AS_STRING(PyObject_Repr(PyString_FromString(ctx->buf.ptr))) );
+      PyBytes_AS_STRING(PyObject_Repr(PyBytes_FromString(ctx->buf.ptr))) );
   #endif
   
-  PyObject *py_key = PyString_FromString(ctx->part_name);
+  PyObject *py_key = PyBytes_FromString(ctx->part_name);
   
   // Recode key if needed
   if (ctx->charset && (smisk_str_recode(&py_key, ctx->charset, SMISK_KEY_CHARSET, "replace") == -1)) {
@@ -293,7 +293,7 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
     *(p-2) = '\0'; // \r\n -> \0\n
     len -= 2; // because above line
     
-    PyObject *py_val = PyString_FromString(ctx->buf.ptr);
+    PyObject *py_val = PyBytes_FromString(ctx->buf.ptr);
     
     // Decode value if needed
     if (ctx->charset && (smisk_str_to_unicode(&py_val, ctx->charset, "strict") == -1)) {

@@ -36,15 +36,15 @@ THE SOFTWARE.
 #include "URL.h"
 
 
-PyObject *smisk_PyString_FromStringAndSize_lower(const char *src, Py_ssize_t length) {
+PyObject *smisk_PyBytes_FromStringAndSize_lower(const char *src, Py_ssize_t length) {
   PyObject *dst;
   char *dst_p;
   Py_ssize_t i;
   
-  if ((dst = PyString_FromStringAndSize(NULL, length)) == NULL)
+  if ((dst = PyBytes_FromStringAndSize(NULL, length)) == NULL)
     return NULL;
   
-  dst_p = PyString_AS_STRING(dst);
+  dst_p = PyBytes_AS_STRING(dst);
   
   for (i = 0; i < length; i++) {
     *dst_p = tolower((char)src[i]);
@@ -88,7 +88,7 @@ PyObject *smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
   }
   Py_DECREF(format_exception);
   
-  msg = PyString_FromString("");
+  msg = PyBytes_FromString("");
   Py_ssize_t i = 0, lines_len = PyList_GET_SIZE(lines);
   for (; i < lines_len; i++) {
     PyString_ConcatAndDel(&msg, PyList_GET_ITEM(lines, i));
@@ -176,7 +176,7 @@ int smisk_parse_input_data( char *s,
     if (val) { // have a value
       *val++ = '\0'; // '=' -> '\0'
       int val_len = smisk_url_decode(val, strlen(val));
-      if (!(py_val = PyString_FromStringAndSize(val, val_len))) {
+      if (!(py_val = PyBytes_FromStringAndSize(val, val_len))) {
         status = -1;
         break;
       }
@@ -193,7 +193,7 @@ int smisk_parse_input_data( char *s,
     }
     
     // Key
-    if ( (py_key = PyString_FromString(key)) == NULL) {
+    if ( (py_key = PyBytes_FromString(key)) == NULL) {
       Py_DECREF(py_val);
       status = -1;
       break;
@@ -210,7 +210,7 @@ int smisk_parse_input_data( char *s,
       }
     }
     
-    assert(PyString_Check(py_key) == 1);
+    assert(PyBytes_Check(py_key) == 1);
     assert(PyUnicode_Check(py_val) == 1);
     
     if ((status = PyDict_assoc_val_with_key(dict, py_val, py_key)) != 0)
@@ -355,18 +355,18 @@ PyObject *smisk_util_pack (const byte *data, size_t size, int nbits) {
   PyObject *return_str;
   switch(nbits) {
     case 6:
-      return_str = PyString_FromStringAndSize(NULL, 27);
+      return_str = PyBytes_FromStringAndSize(NULL, 27);
       break;
     case 5:
-      return_str = PyString_FromStringAndSize(NULL, 32);
+      return_str = PyBytes_FromStringAndSize(NULL, 32);
       break;
     case 4:
-      return_str = PyString_FromStringAndSize(NULL, 40);
+      return_str = PyBytes_FromStringAndSize(NULL, 40);
       break;
     default:
       return PyErr_Format(PyExc_ValueError, "Invalid number of bits: %d", nbits);
   }
-  smisk_encode_bin(data, size, PyString_AS_STRING(return_str), nbits);
+  smisk_encode_bin(data, size, PyBytes_AS_STRING(return_str), nbits);
   return return_str;
 }
 
@@ -402,11 +402,11 @@ PyObject *smisk_find_string_by_prefix_in_dict(PyObject *list, PyObject *prefix) 
         }
       }
       if (prefix_it)
-        return PyInt_FromLong((long)i);
+        return NUMBER_FromLong((long)i);
     }
   }
   
-  return PyInt_FromLong(-1L);
+  return NUMBER_FromLong(-1L);
 }
 
 

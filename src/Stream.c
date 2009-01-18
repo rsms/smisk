@@ -35,7 +35,7 @@ static int _get_opt_ssize_arg(Py_ssize_t *length, PyObject *args, Py_ssize_t pos
     if ( (len = PyTuple_GET_ITEM(args, pos)) == NULL )
       return 0;
     
-    if (!PyInt_Check(len)) {
+    if (!NUMBER_Check(len)) {
       PyErr_Format(PyExc_TypeError, "first argument must be an integer");
       return 0;
     }
@@ -119,7 +119,7 @@ PyObject *smisk_Stream_readline(smisk_Stream* self, PyObject *args) {
     return NULL;
   
   // Init string
-  if ((str = PyString_FromStringAndSize(NULL, length)) == NULL)
+  if ((str = PyBytes_FromStringAndSize(NULL, length)) == NULL)
     return NULL;
   
   // Setup vars for the acctual read loop
@@ -127,7 +127,7 @@ PyObject *smisk_Stream_readline(smisk_Stream* self, PyObject *args) {
   Py_ssize_t n;
   char *po, *p;
   
-  po = PyString_AS_STRING(str);
+  po = PyBytes_AS_STRING(str);
   p = po;
   n = length;
   
@@ -251,12 +251,12 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
     EXTERN_OP_START;
     
     // Init string
-    if ((str = PyString_FromStringAndSize(NULL, length)) == NULL) {
+    if ((str = PyBytes_FromStringAndSize(NULL, length)) == NULL) {
       EXTERN_OP_END;
       return NULL;
     }
     
-    rc = FCGX_GetStr(PyString_AS_STRING(str), length, self->stream);
+    rc = FCGX_GetStr(PyBytes_AS_STRING(str), length, self->stream);
     // rc is now bytes read (will never be less than 0)
     
     // Size down the string if needed
@@ -271,7 +271,7 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
   }
   // Zero is Zero!
   else if (length == 0) {
-    if ((str = PyString_FromStringAndSize("", 0)) == NULL)
+    if ((str = PyBytes_FromStringAndSize("", 0)) == NULL)
       return NULL;
   }
   // Read all
@@ -285,14 +285,14 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
     rc = 0;
     
     // Create string
-    if ((str = PyString_FromStringAndSize(NULL, bufsize)) == NULL)
+    if ((str = PyBytes_FromStringAndSize(NULL, bufsize)) == NULL)
       return NULL;
     
     EXTERN_OP_START;
     
     // Start reading
     while (1) {
-      strdat = PyString_AS_STRING(str)+rc;
+      strdat = PyBytes_AS_STRING(str)+rc;
       rc = FCGX_GetStr(strdat, bufchunksize, self->stream);
       // note: FCGX_GetStr does not return error indication. Lowest return value is 0.
       
@@ -336,7 +336,7 @@ PyDoc_STRVAR(smisk_Stream_write_byte_DOC,
   ":raises smisk.IOError: if the byte could not be written");
 PyObject *smisk_Stream_write_byte(smisk_Stream* self, PyObject *ch) {
   log_trace("ENTER");
-  if (!ch || !PyInt_Check(ch)) {
+  if (!ch || !NUMBER_Check(ch)) {
     PyErr_Format(PyExc_TypeError, "first argument must be an integer");
     return NULL;
   }
@@ -374,13 +374,13 @@ PyObject *smisk_Stream_write(smisk_Stream* self, PyObject *args) {
   
   // Save reference to first argument and type check it
   str = PyTuple_GET_ITEM(args, 0);
-  if (!PyString_Check(str))
+  if (!PyBytes_Check(str))
     return PyErr_Format(PyExc_TypeError, "first argument must be a str");
   
   // Figure out length
   if (argc > 1) {
     PyObject *arg1 = PyTuple_GET_ITEM(args, 1);
-    if (!PyInt_Check(arg1))
+    if (!NUMBER_Check(arg1))
       return PyErr_Format(PyExc_TypeError, "second argument must be an integer");
     length = PyInt_AS_LONG(arg1);
   }
@@ -415,7 +415,7 @@ PyObject *smisk_Stream_perform_writelines(smisk_Stream *self,
   while ( (string = PyIter_Next(iterator)) ) {
     
     // Make sure we have a byte string
-    if (!PyString_Check(string)) {
+    if (!PyBytes_Check(string)) {
       PyObject *old = string;
       // Encode if charset was specified
       if (charset && PyUnicode_Check(string)) {
@@ -522,8 +522,8 @@ PyObject *smisk_Stream___iternext__(smisk_Stream *self) {
   // Conforms to PEP 234 <http://www.python.org/dev/peps/pep-0234/>
   PyObject *str = smisk_Stream_readline(self, NULL);
   // we know smisk_Stream_readline returns a str and not unicode,
-  // so we are safe to use PyString_GET_SIZE here:
-  if (PyString_GET_SIZE(str) == 0) {
+  // so we are safe to use PyBytes_GET_SIZE here:
+  if (PyBytes_GET_SIZE(str) == 0) {
     Py_DECREF(str);
     return NULL; // End iteration
   }

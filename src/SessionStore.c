@@ -37,7 +37,7 @@ PyObject *smisk_SessionStore_new(PyTypeObject *type, PyObject *args, PyObject *k
     return NULL;
   
   self->ttl = 900;
-  self->name = PyString_FromString("SID");
+  self->name = PyBytes_FromString("SID");
   
   return (PyObject *)self;
 }

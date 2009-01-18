@@ -599,16 +599,16 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
          "\r\n"
          "%s%s%s\r\n",
         // we know this is a normal string, thus no unicode support
-        strlen(header)+PyString_GET_SIZE(msg)+strlen(footer)+2,
+        strlen(header)+PyBytes_GET_SIZE(msg)+strlen(footer)+2,
         header,
-        PyString_AS_STRING(msg), 
+        PyBytes_AS_STRING(msg), 
         footer);
     );
   }
   else {
     // we know this is a normal string, thus no unicode support
-    EXTERN_OP( rc = FCGX_PutStr(PyString_AS_STRING(msg),
-                                PyString_GET_SIZE(msg),
+    EXTERN_OP( rc = FCGX_PutStr(PyBytes_AS_STRING(msg),
+                                PyBytes_GET_SIZE(msg),
                                 self->response->out->stream) );
   }
   

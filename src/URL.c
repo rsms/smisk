@@ -202,7 +202,7 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
       return NULL;
   }
   
-  if ((orgstr = PyString_AS_STRING(str)) == NULL)
+  if ((orgstr = PyBytes_AS_STRING(str)) == NULL)
     return NULL;
   
   newlen = orglen;
@@ -225,18 +225,18 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
   }
   
   // Initialize new PyString
-  if ((newstr_py = PyString_FromStringAndSize(NULL, newlen)) == NULL)
+  if ((newstr_py = PyBytes_FromStringAndSize(NULL, newlen)) == NULL)
     return NULL;
   
   // Do the actual encoding
-  newstr = PyString_AS_STRING(newstr_py);
+  newstr = PyBytes_AS_STRING(newstr_py);
   _url_encode(orgstr, orglen, newstr, mask);
   
   if (unicode_str) {
     Py_DECREF(str); // release utf8 intermediate copy
     str = newstr_py;
     newstr_py = PyUnicode_DecodeUTF8(newstr, newlen, "strict");
-    Py_DECREF(str); // release intermediate newstr_py created in PyString_FromStringAndSize
+    Py_DECREF(str); // release intermediate newstr_py created in PyBytes_FromStringAndSize
   }
   
   // Return new string
@@ -370,25 +370,25 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
   self->fragment = Py_None;
   
   if ( u->proto.len ) {
-    self->scheme = smisk_PyString_FromStringAndSize_lower(u->proto.ptr, (Py_ssize_t)u->proto.len);
+    self->scheme = smisk_PyBytes_FromStringAndSize_lower(u->proto.ptr, (Py_ssize_t)u->proto.len);
     if (self->scheme == NULL)
       return -1;
   }
 
   if ( u->user.len ) {
-    self->user = PyString_FromStringAndSize((char*)u->user.ptr, u->user.len);
+    self->user = PyBytes_FromStringAndSize((char*)u->user.ptr, u->user.len);
     if (self->user == NULL)
       return -1;
   }
 
   if ( u->pass.len ) {
-    self->password = PyString_FromStringAndSize((char*)u->pass.ptr, u->pass.len);
+    self->password = PyBytes_FromStringAndSize((char*)u->pass.ptr, u->pass.len);
     if (self->password == NULL)
       return -1;
   }
 
   if ( u->host.len ) {
-    self->host = PyString_FromStringAndSize((char*)u->host.ptr, u->host.len);
+    self->host = PyBytes_FromStringAndSize((char*)u->host.ptr, u->host.len);
     if (self->host == NULL)
       return -1;
   }
@@ -407,29 +407,29 @@ static int _parse(smisk_URL* self, const char *s, ssize_t len) {
     if ( (q_start != NULL) && (f_start != NULL) ) {
       // Really both q & f? (The ? comes before the #)
       if ( q_start < f_start ) {
-        self->path = PyString_FromStringAndSize((char*)u->uri.ptr, q_start - u->uri.ptr);
-        self->query = PyString_FromStringAndSize((char*)q_start+1,  f_start - q_start -1);
-        self->fragment = PyString_FromStringAndSize((char*)f_start+1, u->uri.len - (f_start - u->uri.ptr) -1);
+        self->path = PyBytes_FromStringAndSize((char*)u->uri.ptr, q_start - u->uri.ptr);
+        self->query = PyBytes_FromStringAndSize((char*)q_start+1,  f_start - q_start -1);
+        self->fragment = PyBytes_FromStringAndSize((char*)f_start+1, u->uri.len - (f_start - u->uri.ptr) -1);
       }
       // Only frag, but with a ? somewhere in it
       else {
-        self->path = PyString_FromStringAndSize((char*)u->uri.ptr, f_start - u->uri.ptr);
-        self->fragment = PyString_FromStringAndSize((char*)f_start+1, u->uri.len - (f_start - u->uri.ptr) -1);
+        self->path = PyBytes_FromStringAndSize((char*)u->uri.ptr, f_start - u->uri.ptr);
+        self->fragment = PyBytes_FromStringAndSize((char*)f_start+1, u->uri.len - (f_start - u->uri.ptr) -1);
       }
     }
     // Only query
     else if ( q_start != NULL ) {
-      self->path = PyString_FromStringAndSize((char*)u->uri.ptr, q_start - u->uri.ptr);
-      self->query = PyString_FromStringAndSize((char*)q_start+1,  u->uri.len - (q_start - u->uri.ptr) -1);
+      self->path = PyBytes_FromStringAndSize((char*)u->uri.ptr, q_start - u->uri.ptr);
+      self->query = PyBytes_FromStringAndSize((char*)q_start+1,  u->uri.len - (q_start - u->uri.ptr) -1);
     }
     // Only frag
     else if ( f_start != NULL ) {
-      self->path = PyString_FromStringAndSize((char*)u->uri.ptr, f_start - u->uri.ptr);
-      self->fragment = PyString_FromStringAndSize((char*)f_start+1,  u->uri.len - (f_start - u->uri.ptr) -1);
+      self->path = PyBytes_FromStringAndSize((char*)u->uri.ptr, f_start - u->uri.ptr);
+      self->fragment = PyBytes_FromStringAndSize((char*)f_start+1,  u->uri.len - (f_start - u->uri.ptr) -1);
     }
     // Neither query nor frag
     else {
-      self->path = PyString_FromStringAndSize((char*)u->uri.ptr, u->uri.len);
+      self->path = PyBytes_FromStringAndSize((char*)u->uri.ptr, u->uri.len);
     }
   }
   
@@ -600,10 +600,10 @@ PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
       return NULL;
   }
   
-  if ((orgstr = PyString_AS_STRING(str)) == NULL)
+  if ((orgstr = PyBytes_AS_STRING(str)) == NULL)
     return NULL;
   
-  orglen = PyString_GET_SIZE(str);
+  orglen = PyBytes_GET_SIZE(str);
   if (orglen < 1) {
     // Empty string
     if (unicode_str) {
@@ -615,10 +615,10 @@ PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
   }
   
   // Initialize new PyString
-  if ((newstr_py = (PyStringObject *)PyString_FromStringAndSize(orgstr, orglen)) == NULL)
+  if ((newstr_py = (PyStringObject *)PyBytes_FromStringAndSize(orgstr, orglen)) == NULL)
     return NULL;
   
-  newstr = PyString_AS_STRING(newstr_py);
+  newstr = PyBytes_AS_STRING(newstr_py);
   
   newlen = smisk_url_decode(newstr, (size_t)orglen);
   
@@ -640,7 +640,7 @@ PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
     // Return decoded unicode string
     unicode_str = PyUnicode_DecodeUTF8(newstr, newlen, "strict");
     
-    // Release intermediate newstr_py created in PyString_FromStringAndSize.
+    // Release intermediate newstr_py created in PyBytes_FromStringAndSize.
     Py_DECREF(newstr_py);
     
     // Return decoded unicode string
@@ -679,7 +679,7 @@ PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *args, PyObject 
   char *s;
   PyObject *d;
   
-  if (!PyString_Check(string)) {
+  if (!PyBytes_Check(string)) {
     string = PyObject_Str(string);
     if (string == NULL)
       return NULL;
@@ -765,25 +765,25 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
       &scheme, &user, &password, &host, &port, &port80, &path, &query, &fragment))
     return NULL;
   
-  one = PyInt_FromLong(1);
+  one = NUMBER_FromLong(1);
   
   // DRY -- otherwise kittens will be wasted.
   #define ENABLED(x) ( self->x != Py_None && (x == NULL || x == Py_True || x == one) )
   
-  PyObject *s = PyString_FromStringAndSize("", 0);
+  PyObject *s = PyBytes_FromStringAndSize("", 0);
   
   if (ENABLED(scheme)) {
     PyString_Concat(&s, self->scheme);
-    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("://", 3));
+    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("://", 3));
   }
   
   if (ENABLED(user)) {
     PyString_Concat(&s, self->user);
     if (ENABLED(password)) {
-      PyString_ConcatAndDel(&s, PyString_FromStringAndSize(":", 1));
+      PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize(":", 1));
       PyString_Concat(&s, self->password);
     }
-    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("@", 1));
+    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("@", 1));
   }
   
   if (ENABLED(host))
@@ -799,12 +799,12 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
     PyString_Concat(&s, self->path);
   
   if (ENABLED(query) && self->query != Py_None && PyString_Size(self->query) > 0) {
-    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("?", 1));
+    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("?", 1));
     PyString_Concat(&s, self->query);
   }
   
   if (ENABLED(fragment) && self->fragment != Py_None) {
-    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("#", 1));
+    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("#", 1));
     PyString_Concat(&s, self->fragment);
   }
   
@@ -822,12 +822,12 @@ PyObject *smisk_URL_get_uri(smisk_URL* self) {
   Py_INCREF(s); // this is the callers reference eventually.
   
   if (self->query != Py_None && PyString_Size(self->query) > 0) {
-    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("?", 1));
+    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("?", 1));
     PyString_Concat(&s, self->query);
   }
   
   if (self->fragment != Py_None) {
-    PyString_ConcatAndDel(&s, PyString_FromStringAndSize("#", 1));
+    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("#", 1));
     PyString_Concat(&s, self->fragment);
   }
   

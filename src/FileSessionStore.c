@@ -134,7 +134,7 @@ int smisk_FileSessionStore_init(smisk_FileSessionStore *self, PyObject *args, Py
       Py_DECREF((PyObject *)self);
       return -1;
     }
-    PyString_ConcatAndDel(&self->file_prefix, PyString_FromString("/smisk-sess."));
+    PyString_ConcatAndDel(&self->file_prefix, PyBytes_FromString("/smisk-sess."));
     if (self->file_prefix == NULL) {
       log_debug("PyString_ConcatAndDel failed");
       Py_DECREF((PyObject *)self);
@@ -142,7 +142,7 @@ int smisk_FileSessionStore_init(smisk_FileSessionStore *self, PyObject *args, Py
     }
   }
   else {
-    self->file_prefix = PyString_FromString("/tmp/smisk-sess.");
+    self->file_prefix = PyBytes_FromString("/tmp/smisk-sess.");
   }
   
   self->gc_probability = 0.1;

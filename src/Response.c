@@ -144,17 +144,17 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
     server = "unknown server software";
   
   if (strstr(server, "lighttpd/1.4")) {
-    s = PyString_FromString("X-LIGHTTPD-send-file: ");
+    s = PyBytes_FromString("X-LIGHTTPD-send-file: ");
     log_debug("Adding \"X-LIGHTTPD-send-file: %s\" header for Lighttpd <=1.4",
       PyString_AsString(filename));
   }
   else if (strstr(server, "lighttpd/") || strstr(server, "Apache/2")) {
-    s = PyString_FromString("X-Sendfile: ");
+    s = PyBytes_FromString("X-Sendfile: ");
     log_debug("Adding \"X-Sendfile: %s\" header for Lighttpd >=1.5 | Apache >=2",
       PyString_AsString(filename));
   }
   else if (strstr(server, "nginx/")) {
-    s = PyString_FromString("X-Accel-Redirect: ");
+    s = PyBytes_FromString("X-Accel-Redirect: ");
     log_debug("Adding \"X-Accel-Redirect: %s\" header for Nginx",
       PyString_AsString(filename));
   }
@@ -276,7 +276,7 @@ PyObject *smisk_Response_write(smisk_Response* self, PyObject *str) {
   log_trace("ENTER");
   int is_unicode = 0;
   
-  if (!str || ( !PyString_Check(str) && !(is_unicode = PyUnicode_Check(str))) )
+  if (!str || ( !PyBytes_Check(str) && !(is_unicode = PyUnicode_Check(str))) )
     return PyErr_Format(PyExc_TypeError, "first argument must be a str or unicode");
   
   // Return immediately if empty string 
@@ -338,7 +338,7 @@ PyDoc_STRVAR(smisk_Response_find_header_DOC,
 PyObject *smisk_Response_find_header(smisk_Response* self, PyObject *prefix) {
   log_trace("ENTER");
   if (self->headers == NULL)
-    return PyInt_FromLong(-1L);
+    return NUMBER_FromLong(-1L);
   return smisk_find_string_by_prefix_in_dict(self->headers, prefix);
 }
 
@@ -405,21 +405,21 @@ PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObje
     // Add Expires for compatibility reasons
     // ;Expires=Wdy, DD-Mon-YY HH:MM:SS GMT
     // XXX check for NULL returns
-    PyObject *expires = PyString_FromStringAndSize(NULL, 36);
+    PyObject *expires = PyBytes_FromStringAndSize(NULL, 36);
     time_t t = time(NULL) + max_age;
     strftime(PyString_AsString(expires), 36, ";Expires=%a, %d-%b-%g %H:%M:%S GMT", gmtime(&t));
     PyString_ConcatAndDel(&s, expires);
   }
   else {
-    PyString_ConcatAndDel(&s, PyString_FromString(";Discard"));
+    PyString_ConcatAndDel(&s, PyBytes_FromString(";Discard"));
   }
   
   if (secure)
-    PyString_ConcatAndDel(&s, PyString_FromString(";Secure"));
+    PyString_ConcatAndDel(&s, PyBytes_FromString(";Secure"));
     
   // More info: http://msdn2.microsoft.com/en-us/library/ms533046(VS.85).aspx
   if (http_only)
-    PyString_ConcatAndDel(&s, PyString_FromString(";HttpOnly"));
+    PyString_ConcatAndDel(&s, PyBytes_FromString(";HttpOnly"));
   
   // Make sure self->headers is initialized
   ENSURE_BY_GETTER(self->headers, smisk_Response_get_headers(self), return NULL; );

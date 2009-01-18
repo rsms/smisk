@@ -89,7 +89,7 @@ PyObject *smisk_bind(PyObject *self, PyObject *args) {
   if (PyTuple_GET_SIZE(args) > 1) {
     PyObject *arg1 = PyTuple_GET_ITEM(args, 1);
     if (arg1 != NULL) {
-      if (!PyInt_Check(arg1)) {
+      if (!NUMBER_Check(arg1)) {
         PyErr_SetString(PyExc_TypeError, "second argument must be an integer");
         return NULL;
       }
@@ -153,7 +153,7 @@ PyObject *smisk_listening(PyObject *self, PyObject *args) {
   }
   else if (addr->sa_family == AF_UNIX) {
     // XXX: This may be a bit risky...
-    s = PyString_FromString(((struct sockaddr_un *)addr)->sun_path);
+    s = PyBytes_FromString(((struct sockaddr_un *)addr)->sun_path);
   }
   
   if (s == Py_None)
@@ -173,7 +173,7 @@ PyObject *smisk_uid(PyObject *self, PyObject *args) {
   if (PyTuple_GET_SIZE(args) > 0) {
     PyObject *arg = PyTuple_GET_ITEM(args, 0);
     if (arg != NULL && arg != Py_None) {
-      if (!PyInt_Check(arg)) {
+      if (!NUMBER_Check(arg)) {
         PyErr_SetString(PyExc_TypeError, "first argument must be an integer");
         return NULL;
       }
@@ -200,7 +200,7 @@ PyObject *smisk_uid(PyObject *self, PyObject *args) {
   }
   
   if ( (nbits == 0) || (nbits == -1) )
-    return PyString_FromStringAndSize((const char *)uid.digest, 20);
+    return PyBytes_FromStringAndSize((const char *)uid.digest, 20);
   else
     return smisk_uid_format(&uid, nbits);
 }
@@ -224,7 +224,7 @@ PyObject *smisk_pack(PyObject *self, PyObject *args) {
   if (PyTuple_GET_SIZE(args) > 1) {
     PyObject *arg = PyTuple_GET_ITEM(args, 1);
     if (arg != NULL) {
-      if (!PyInt_Check(arg)) {
+      if (!NUMBER_Check(arg)) {
         PyErr_SetString(PyExc_TypeError, "second argument must be an integer");
         return NULL;
       }

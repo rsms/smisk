@@ -156,7 +156,7 @@ PyObject *smisk_xml_escape_py(PyObject *self, PyObject *str) {
       return NULL;
   }
   
-  if ((orgstr = PyString_AS_STRING(str)) == NULL)
+  if ((orgstr = PyBytes_AS_STRING(str)) == NULL)
     return NULL;
   
   newlen = smisk_xml_encode_newlen(orgstr, (size_t)orglen);
@@ -170,10 +170,10 @@ PyObject *smisk_xml_escape_py(PyObject *self, PyObject *str) {
     return str;
   }
   
-  if ( (newstr_py = PyString_FromStringAndSize(NULL, newlen)) == NULL)
+  if ( (newstr_py = PyBytes_FromStringAndSize(NULL, newlen)) == NULL)
     return NULL;
   
-  newstr = PyString_AS_STRING(newstr_py);
+  newstr = PyBytes_AS_STRING(newstr_py);
   
   smisk_xml_encode_p(orgstr, (size_t)orglen, newstr);
   
@@ -181,7 +181,7 @@ PyObject *smisk_xml_escape_py(PyObject *self, PyObject *str) {
     Py_DECREF(str); // release utf8 intermediate copy
     str = newstr_py;
     newstr_py = PyUnicode_DecodeUTF8(newstr, newlen, "strict");
-    Py_DECREF(str); // release intermediate newstr_py created in PyString_FromStringAndSize
+    Py_DECREF(str); // release intermediate newstr_py created in PyBytes_FromStringAndSize
   }
   
   return newstr_py;

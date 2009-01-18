@@ -417,7 +417,7 @@ PyObject *smisk_Request_get_env(smisk_Request* self) {
           
           if (_cached_SERVER_SOFTWARE_k == NULL) {
             
-            k = PyString_FromStringAndSize(*envp, value-*envp);
+            k = PyBytes_FromStringAndSize(*envp, value-*envp);
             if (k) PyString_InternInPlace(&k);
             if (k == NULL)
               return NULL;
@@ -439,7 +439,7 @@ PyObject *smisk_Request_get_env(smisk_Request* self) {
           continue;
         }
         
-        k = PyString_FromStringAndSize(*envp, value-*envp);
+        k = PyBytes_FromStringAndSize(*envp, value-*envp);
         if (k) PyString_InternInPlace(&k);
         if (k == NULL)
           return NULL;
@@ -493,7 +493,7 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
     // User
     if ((s = FCGX_GetParam("REMOTE_USER", self->envp))) {
       old = self->url->user;
-      self->url->user = PyString_FromString(s);
+      self->url->user = PyBytes_FromString(s);
       Py_CLEAR(old);
     }
     
@@ -501,15 +501,15 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
     s = FCGX_GetParam("SERVER_NAME", self->envp);
     old = self->url->host;
     if ((p = strchr(s, ':'))) {
-      self->url->host = PyString_FromStringAndSize(s, p-s);
+      self->url->host = PyBytes_FromStringAndSize(s, p-s);
       self->url->port = atoi(p+1);
     }
     else if ((s2 = FCGX_GetParam("SERVER_PORT", self->envp))) {
-      self->url->host = PyString_FromString(s);
+      self->url->host = PyBytes_FromString(s);
       self->url->port = atoi(s2);
     }
     else {
-      self->url->host = PyString_FromString(s);
+      self->url->host = PyBytes_FromString(s);
     }
     if (self->url->host == NULL)
       return NULL;
@@ -519,7 +519,7 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
     // Path
     if ((s = FCGX_GetParam("SCRIPT_NAME", self->envp))) {
       old = self->url->path;
-      self->url->path = PyString_FromString(s);
+      self->url->path = PyBytes_FromString(s);
       if (self->url->path == NULL)
         return NULL;
       Py_DECREF(old);
@@ -531,7 +531,7 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
       So we concat these strings into one
       */
       if ((s = FCGX_GetParam("PATH_INFO", self->envp))) {
-        PyString_ConcatAndDel(&self->url->path, PyString_FromString(s));
+        PyString_ConcatAndDel(&self->url->path, PyBytes_FromString(s));
         if (self->url->path == NULL)
           return NULL;
       }
@@ -540,7 +540,7 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
     // Query string
     if ((s = FCGX_GetParam("QUERY_STRING", self->envp))) {
       old = self->url->query;
-      self->url->query = PyString_FromString(s);
+      self->url->query = PyBytes_FromString(s);
       Py_DECREF(old);
     }
   }
@@ -663,7 +663,7 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
         REPLACE_PyObject(self->session_id, s);
       }
       // Not a valid string -- discard
-      if (!PyString_Check(self->session_id)) {
+      if (!PyBytes_Check(self->session_id)) {
         log_debug("Inconsistency error: Provided SID is not a string -- discarding SID");
         Py_CLEAR(self->session_id);
       }
