@@ -84,15 +84,17 @@ def shared_dict(filename=None, homedir=None, name=None, mode=0600, dbenv=None,
   except KeyError:
     pass
   
+  if not persistent and os.path.isdir(homedir):
+    try:
+      shutil.rmtree(homedir, True)
+      os.mkdir(homedir)
+    except:
+      pass
+  
   if not os.path.isdir(homedir):
     os.mkdir(homedir)
   
   if not dbenv:
-    if not persistent and os.path.isdir(homedir):
-      try:
-        shutil.rmtree(homedir, True)
-      except:
-        pass
     dbenv = db.DBEnv(0)
     dbenv.open(homedir, db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_CDB, 0)
   
