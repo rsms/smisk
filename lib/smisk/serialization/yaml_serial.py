@@ -18,8 +18,6 @@ try:
   __all__.extend(['Loader', 'Dumper'])
 except ImportError:
   yaml = None
-  from warnings import warn
-  warn('YAML not available -- disabling YAML serializer')
 
 class YAMLSerializer(Serializer):
   '''Human-readable data serialization

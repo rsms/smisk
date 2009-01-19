@@ -8,17 +8,20 @@ JSON: JavaScript Object Notation
 from smisk.core import request
 from smisk.serialization import serializers, Serializer
 try:
-  from cjson import encode as json_encode, decode as json_decode,\
-                    DecodeError, EncodeError
+  from cjson import \
+              encode as json_encode,\
+              decode as json_decode,\
+              DecodeError,\
+              EncodeError
 except ImportError:
   try:
-    from minjson import write as json_encode, read as json_decode,\
-                        ReadException as DecodeError,\
-                        WriteException as EncodeError
+    from minjson import \
+               write as json_encode,\
+                read as json_decode,\
+       ReadException as DecodeError,\
+      WriteException as EncodeError
   except ImportError:
     json_encode = None
-    from warnings import warn
-    warn('No JSON implementation available. Install cjson or minjson.')
 
 class JSONSerializer(Serializer):
   '''JSON with JSONP support.
