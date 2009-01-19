@@ -92,6 +92,9 @@
  * Modified by Rasmus Andersson for the Smisk project. (2009-01-13)
  */
 
+#undef MOD_IDENT
+#define MOD_IDENT "smisk.core.bsddb"
+
 /* --------------------------------------------------------------------- */
 
 #include <stddef.h>   /* for offsetof() */
@@ -7003,6 +7006,8 @@ static struct PyModuleDef bsddbmodule = {
 
 PyObject *smisk_bsddb_register(PyObject *parent)
 {
+    log_trace("ENTER");
+    
     PyObject* m;
     PyObject* d;
     PyObject* pybsddb_version_s = PyBytes_FromString( PY_BSDDB_VERSION );
