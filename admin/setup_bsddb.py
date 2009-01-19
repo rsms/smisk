@@ -231,19 +231,19 @@ if os.name == 'posix':
   if static:
     print """\
 \aWARNING:
-\tIt appears that the old bsddb module is staticly linked in the
-\tPython executable. This will cause various random problems for
-\tbsddb3, up to and including segfaults. Please rebuild your
-\tPython either with bsddb disabled, or with it built as a shared
-\tdynamic extension. Watch out for other modules (e.g. dbm) that create
-\tdependencies in the python executable to libdb as a side effect."""
-    st = raw_input("Build anyway? (yes/[no]) ")
-    if st != "yes":
-      sys.exit(1)
+\tIt appears that the old bsddb module is staticly linked in the Python
+\texecutable. This will cause various random problems for smisk.core.bsddb/
+\tbsddb3, up to and including segfaults. Please rebuild your Python either
+\twith bsddb disabled, or with it built as a shared dynamic extension. Watch
+\tout for other modules (e.g. dbm) that create dependencies in the python
+\texecutable to libdb as a side effect."""
+    #st = raw_input("Build anyway? (yes/[no]) ")
+    #if st != "yes":
+    sys.exit(1)
 
 
 elif os.name == 'nt':
-  print >> sys.stderr, 'Windows is not (yet) supported'
+  print >> sys.stderr, 'Windows is not supported (yet)'
 
 
 
