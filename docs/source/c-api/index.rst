@@ -404,14 +404,6 @@ String manipulation
   
   TODO
 
-.. cmacro:: STR_LTRIM_ST
-  
-  TODO
-
-.. cmacro:: STR_LTRIM_STRN
-  
-  TODO
-
 
 String comparison
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

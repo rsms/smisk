@@ -216,12 +216,7 @@ typedef ssize_t Py_ssize_t;
 	
 
 // String macros
-#define STR_LTRIM_S(s) \
-  for (; *(s)==' '; (s)++);
-#define STR_LTRIM_ST(s) \
-  for (; (*(s)==' ')||(*(s) == '\t')); s++);
-#define STR_LTRIM_STRN(s) \
-  for (; (*(s)==' ')||(*(s) == '\t')||(*(s) == '\r')||(*(s) == '\n'); s++);
+#define STR_LTRIM_S(s) for(; *(s)==' '; (s)++)
 
 // String comparison. Inspired by Igor Sysoev.
 #if (SMISK_SYS_LITTLE_ENDIAN && SMISK_SYS_NONALIGNED)
