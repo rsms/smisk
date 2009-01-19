@@ -87,20 +87,24 @@ class ProcessIOSupervisor(threading.Thread):
     try:
       while not self.finished.isSet() and read_set:
         rlist, wlist, xlist = select.select(read_set, [], [])
-      
+        
         if self.p.stdout in rlist:
           line = os.read(self.p.stdout.fileno(), 4096)
           if line:
             self.delegate.on_process_stdout(self.p, line)
           else:
             read_set.remove(self.p.stdout)
-      
+        
         if self.p.stderr in rlist:
           line = os.read(self.p.stderr.fileno(), 4096)
           if line:
             self.delegate.on_process_stderr(self.p, line)
           else:
             read_set.remove(self.p.stderr)
+        
+        if self.p.stderr not in rlist and self.p.stdout not in rlist:
+          self.log.info('neither stderr nor stdout left in rlist -- stopping')
+          break
     except Exception, e:
       self.delegate.on_process_exception(*sys.exc_info())
       self.stop()
@@ -248,6 +252,7 @@ class LighttpdServer(object):
               self.p.kill()
             break
           time.sleep(0.1)
+      os.waitpid(self.p.pid, 0)
       self.log.debug('process %r [%d] exited', self.p, self.p.pid)
       self.p = None
       self.on_server_stopped(self)
@@ -342,6 +347,15 @@ class HTTPResponse(httplib.HTTPResponse):
       self._body = self.read()
     return self._body
   
+  def dump(self, stream=sys.stdout):
+    '''Dump the full response.
+    '''
+    print >> stream, {10:'HTTP/1.0',11:'HTTP/1.1'}[self.version], self.status, self.reason
+    for kv in self.getheaders():
+      print >> stream, '%s: %s' % kv
+    print >> stream, ''
+    print >> stream, self.read()
+  
 
 
 class Client(object):
@@ -428,21 +442,54 @@ class Client(object):
 
 
 class LiveTestCase(TestCase):
-  def setUp(self):
+  def setUp(self, basedir=None):
+    if not basedir:
+      basedir = os.path.dirname(sys.modules[self.__class__.__module__].__file__)
     logging.basicConfig(level=logging.WARN, format="%(name)-40s %(message)s")
-    self.server = LighttpdServer(basedir=os.path.dirname(sys.modules[self.__class__.__module__].__file__))
+    self.server = LighttpdServer(basedir=basedir)
     self.server.start()
-    try:
-      self.client = Client(self.server)
-      self.client.connect()
-    except:
-      self.server.stop()
+    self._connections = []
+  
+  def connection(self):
+    client = Client(self.server)
+    client.connect()
+    self._connections.append(client)
+    return client
   
   def tearDown(self):
-    self.server.stop()
-    self.client.disconnect()
+    for client in self._connections:
+      try:
+        client.disconnect()
+      except:
+        pass
+    try:
+      self.server.stop()
+      while 1:
+        pid, status, rusage = os.wait3(os.WNOHANG)
+        if pid == 0:
+          break
+        #print 'killing %d' % pid 
+        os.kill(pid, 9)
+    except:
+      pass
   
-
+  def __del__(self):
+    self.tearDown()
+  
+  def assertResponseHeaderEquals(self, rsp, header_named, eq_string):
+    if not rsp.headerEquals(header_named, eq_string):
+      v = rsp.get_header(header_named)
+      raise AssertionError("value of response header %r: %r != %r" %\
+        (header_named, v, eq_string))
+  
+  def assertResponseHeaderIsSet(self, rsp, header_named):
+    if not rsp.headerIsSet(header_named):
+      raise AssertionError("response header %r is not set" % header_named)
+  
+  def assertResponseHeaderNotSet(self, rsp, header_named):
+    if rsp.headerIsSet(header_named):
+      raise AssertionError("response header %r is set" % header_named)
+  
 
 
 # Test system, version, etc
@@ -473,11 +520,7 @@ if __name__ == '__main__':
     cli = Client(server)
     cli.connect()
     r = cli.request('GET', '/')
-    print {10:'HTTP/1.0',11:'HTTP/1.1'}[r.version], r.status, r.reason
-    for kv in r.getheaders():
-      print '%s: %s' % kv
-    print ''
-    print r.read()
+    r.dump()
     
   finally:
     server.stop()
