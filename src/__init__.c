@@ -321,6 +321,7 @@ PyMODINIT_FUNC  PyInit__smisk(void)    /* Note the two underscores */
   }
   
   // Setup ObjectProxies for app, request and response
+  // Todo: implement ObjectProxy in C in order to remove dependency on objectproxy.py
   PyObject *smisk_util_objectproxy = PyImport_ImportModule("smisk.util.objectproxy");
   if (smisk_util_objectproxy == NULL)
     return;
