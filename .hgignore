@@ -5,6 +5,7 @@ syntax:glob
 *.pyo
 *.pyc
 *.crash
+*.so
 MANIFEST
 setuptools-*.egg
 * copy.*
