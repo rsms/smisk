@@ -7367,6 +7367,11 @@ PyObject *smisk_bsddb_register(PyObject *parent)
 #if (DBVER >= 46)
     ADD_INT(d, DB_REP_CHECKPOINT_DELAY);
     ADD_INT(d, DB_REP_FULL_ELECTION_TIMEOUT);
+    ADD_INT(d, DB_REP_LEASE_TIMEOUT);
+#endif
+#if (DBVER >= 47)
+    ADD_INT(d, DB_REP_HEARTBEAT_MONITOR);
+    ADD_INT(d, DB_REP_HEARTBEAT_SEND);
 #endif
 
 #if (DBVER >= 45)
