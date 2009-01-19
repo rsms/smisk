@@ -1,6 +1,45 @@
 Changes
 =======
 
+1.1.2
+-----
+
+* Inter-process communication module smisk.ipc, providing a shared dictionary
+  which can be concurrently manipulated by a set of processes.
+
+* Berkely DB module smisk.core.bsddb
+
+* Benchmark utility module smisk.util.benchmark exposes an iterator which can
+  be used to easily benchmark snippets of code.
+  
+* The key-value store example application now uses the shared dictionary
+  provided by smisk.ipc.
+
+* smisk.util.cache has a new function – app_shared_key – returning a byte
+  string which can be used to uniqely identify the application. The key is
+  based on the entry file (the python file in which __name__ == "__main__").
+
+* smisk.util.type exposes MutableMapping – in Python >=2.6 this is 
+  collections.MutableMapping, in Python >=2.3 it is UserDict.DictMixin.
+
+* Serializers no longer emit warning.warn-messages when no suiting
+  implementations are available. Now they are simply not registered whitout as
+  much as a whisper.
+
+* In the C library, the macro SMISK_PyString_Check has changed name to 
+  SMISK_STRING_CHECK (however it still does the exact same thing as before,
+  just that in preparation for porting Smisk to Python 3, we need to sort out
+  the different meanings of "bytes strings" and "character strings")
+
+* In the C library, we use PyBytes instead of PyString and NUMBER_* instead of
+  some PyInt-functions, having macros for Python <2.5. This is a step toward
+  the Python 3 port.
+
+* smisk.core is now stored as _smisk and imported by smisk/core/__init__.py.
+  This follows the naming custom of other machine-native modules as well as
+  provides better name (i.e. _smisk.so instead of core.so) in various listings.
+
+
 1.1.1
 -----
 
