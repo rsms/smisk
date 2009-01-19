@@ -32,7 +32,7 @@ storage.
 #------------------------------------------------------------------------
 
 import cPickle
-import sys, os, atexit
+import sys, os, atexit, shutil
 import smisk.core.bsddb as db
 from smisk.util.cache import app_shared_key
 from smisk.util.type import MutableMapping
@@ -91,12 +91,17 @@ def shared_dict(filename=None, homedir=None, name=None, mode=0600, dbenv=None,
     dbenv = db.DBEnv(0)
     dbenv.open(homedir, db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_CDB, 0)
   
+  if not persistent and os.path.isdir(homedir):
+    try:
+      shutil.rmtree(homedir, True)
+    except:
+      pass
+  
   d = DBDict(dbenv, sync=persistent)
   d.open(filename, name, type, flags, mode)
   _dicts[filename] = d
   
   if not persistent and is_tempdir:
-    import shutil
     atexit.register(shutil.rmtree, homedir, True)
   
   return d
