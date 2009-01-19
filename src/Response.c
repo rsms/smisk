@@ -146,17 +146,17 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   if (strstr(server, "lighttpd/1.4")) {
     s = PyBytes_FromString("X-LIGHTTPD-send-file: ");
     log_debug("Adding \"X-LIGHTTPD-send-file: %s\" header for Lighttpd <=1.4",
-      PyString_AsString(filename));
+      PyBytes_AsString(filename));
   }
   else if (strstr(server, "lighttpd/") || strstr(server, "Apache/2")) {
     s = PyBytes_FromString("X-Sendfile: ");
     log_debug("Adding \"X-Sendfile: %s\" header for Lighttpd >=1.5 | Apache >=2",
-      PyString_AsString(filename));
+      PyBytes_AsString(filename));
   }
   else if (strstr(server, "nginx/")) {
     s = PyBytes_FromString("X-Accel-Redirect: ");
     log_debug("Adding \"X-Accel-Redirect: %s\" header for Nginx",
-      PyString_AsString(filename));
+      PyBytes_AsString(filename));
   }
   else {
     return PyErr_Format(PyExc_EnvironmentError, "sendfile not supported by host server ('%s')", server);
@@ -166,7 +166,7 @@ PyObject *smisk_Response_send_file(smisk_Response* self, PyObject *filename) {
   ENSURE_BY_GETTER(self->headers, smisk_Response_get_headers(self), return NULL; );
   
   // Add filename
-  PyString_Concat(&s, filename);
+  PyBytes_Concat(&s, filename);
   if (s == NULL)
     return NULL;
   
@@ -204,8 +204,8 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
     && (smisk_Application_current->request->initial_session_hash == 0))
   {
     log_debug("New session - sending SID with Set-Cookie: %s=%s;Version=1;Path=/",
-      PyString_AsString(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
-      PyString_AsString(smisk_Application_current->request->session_id));
+      PyBytes_AsString(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
+      PyBytes_AsString(smisk_Application_current->request->session_id));
     // First-time session!
     if (!SMISK_STRING_CHECK(((smisk_SessionStore *)smisk_Application_current->sessions)->name)) {
       PyErr_SetString(PyExc_TypeError, "sessions.name is not a string");
@@ -214,8 +214,8 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
     }
     assert(smisk_Application_current->request->session_id);
     FCGX_FPrintF(self->out->stream, "Set-Cookie: %s=%s;Version=1;Path=/\r\n",
-      PyString_AsString(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
-      PyString_AsString(smisk_Application_current->request->session_id)
+      PyBytes_AsString(((smisk_SessionStore *)smisk_Application_current->sessions)->name),
+      PyBytes_AsString(smisk_Application_current->request->session_id)
     );
   }
   
@@ -241,7 +241,7 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
     for (i=0;i<num_headers;i++) {
       str = PyList_GET_ITEM(self->headers, i);
       if (str && SMISK_STRING_CHECK(str)) {
-        FCGX_PutStr(PyString_AsString(str), PyString_Size(str), self->out->stream);
+        FCGX_PutStr(PyBytes_AsString(str), PyBytes_Size(str), self->out->stream);
         FCGX_PutChar('\r', self->out->stream);
         FCGX_PutChar('\n', self->out->stream);
       }
@@ -280,7 +280,7 @@ PyObject *smisk_Response_write(smisk_Response* self, PyObject *str) {
     return PyErr_Format(PyExc_TypeError, "first argument must be a str or unicode");
   
   // Return immediately if empty string 
-  if ( (is_unicode && PyUnicode_GetSize(str) == 0) || (!is_unicode && PyString_Size(str) == 0) )
+  if ( (is_unicode && PyUnicode_GetSize(str) == 0) || (!is_unicode && PyBytes_Size(str) == 0) )
     Py_RETURN_NONE;
   
   // Encode unicode
@@ -299,7 +299,7 @@ PyObject *smisk_Response_write(smisk_Response* self, PyObject *str) {
   }
   
   // Write data
-  if ( smisk_Stream_perform_write(self->out, str, PyString_Size(str)) == -1 ) {
+  if ( smisk_Stream_perform_write(self->out, str, PyBytes_Size(str)) == -1 ) {
     if (is_unicode) {
       Py_DECREF(str);
     }
@@ -375,7 +375,7 @@ PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObje
   
   name = smisk_url_encode(name, strlen(name), 1);
   value = smisk_url_encode(value, strlen(value), 1);
-  s = PyString_FromFormat("Set-Cookie: %s=%s;Version=%d", name, value, version);
+  s = PyBytes_FromFormat("Set-Cookie: %s=%s;Version=%d", name, value, version);
   free(name); // smisk_url_encode
   free(value); // smisk_url_encode
   
@@ -384,42 +384,42 @@ PyObject *smisk_Response_set_cookie(smisk_Response* self, PyObject *args, PyObje
   
   if (comment) {
     comment = smisk_url_encode(comment, strlen(comment), 1);
-    PyString_ConcatAndDel(&s, PyString_FromFormat(";Comment=%s", comment));
+    PyBytes_ConcatAndDel(&s, PyBytes_FromFormat(";Comment=%s", comment));
     free(comment);
   }
   
   if (domain) {
     domain = smisk_url_encode(domain, strlen(domain), 1);
-    PyString_ConcatAndDel(&s, PyString_FromFormat(";Domain=%s", domain));
+    PyBytes_ConcatAndDel(&s, PyBytes_FromFormat(";Domain=%s", domain));
     free(domain);
   }
   
   if (path) {
     path = smisk_url_encode(path, strlen(path), 1);
-    PyString_ConcatAndDel(&s, PyString_FromFormat(";Path=%s", path));
+    PyBytes_ConcatAndDel(&s, PyBytes_FromFormat(";Path=%s", path));
     free(path);
   }
   
   if (max_age > -1) {
-    PyString_ConcatAndDel(&s, PyString_FromFormat(";Max-Age=%d", max_age));
+    PyBytes_ConcatAndDel(&s, PyBytes_FromFormat(";Max-Age=%d", max_age));
     // Add Expires for compatibility reasons
     // ;Expires=Wdy, DD-Mon-YY HH:MM:SS GMT
     // XXX check for NULL returns
     PyObject *expires = PyBytes_FromStringAndSize(NULL, 36);
     time_t t = time(NULL) + max_age;
-    strftime(PyString_AsString(expires), 36, ";Expires=%a, %d-%b-%g %H:%M:%S GMT", gmtime(&t));
-    PyString_ConcatAndDel(&s, expires);
+    strftime(PyBytes_AsString(expires), 36, ";Expires=%a, %d-%b-%g %H:%M:%S GMT", gmtime(&t));
+    PyBytes_ConcatAndDel(&s, expires);
   }
   else {
-    PyString_ConcatAndDel(&s, PyBytes_FromString(";Discard"));
+    PyBytes_ConcatAndDel(&s, PyBytes_FromString(";Discard"));
   }
   
   if (secure)
-    PyString_ConcatAndDel(&s, PyBytes_FromString(";Secure"));
+    PyBytes_ConcatAndDel(&s, PyBytes_FromString(";Secure"));
     
   // More info: http://msdn2.microsoft.com/en-us/library/ms533046(VS.85).aspx
   if (http_only)
-    PyString_ConcatAndDel(&s, PyBytes_FromString(";HttpOnly"));
+    PyBytes_ConcatAndDel(&s, PyBytes_FromString(";HttpOnly"));
   
   // Make sure self->headers is initialized
   ENSURE_BY_GETTER(self->headers, smisk_Response_get_headers(self), return NULL; );

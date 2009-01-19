@@ -55,7 +55,7 @@ static int _get_opt_ssize_arg(Py_ssize_t *length, PyObject *args, Py_ssize_t pos
 
 
 int smisk_Stream_perform_write(smisk_Stream* self, PyObject *str, Py_ssize_t length) {
-  EXTERN_OP( int rc = FCGX_PutStr(PyString_AsString(str), length, self->stream) );
+  EXTERN_OP( int rc = FCGX_PutStr(PyBytes_AsString(str), length, self->stream) );
   if (rc == -1) {
     PyErr_SET_FROM_ERRNO;
     return -1;
@@ -160,8 +160,8 @@ PyObject *smisk_Stream_readline(smisk_Stream* self, PyObject *args) {
   length -= n;
   
   // Resize string (Almost all cases need this so no check before)
-  if (_PyString_Resize(&str, length) == -1) {
-    log_error("_PyString_Resize(%p, %ld) == -1", str, (long)length);
+  if (_PyBytes_Resize(&str, length) == -1) {
+    log_error("_PyBytes_Resize(%p, %ld) == -1", str, (long)length);
     return NULL;
   }
   
@@ -260,10 +260,10 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
     // rc is now bytes read (will never be less than 0)
     
     // Size down the string if needed
-    if (rc < length && _PyString_Resize(&str, (Py_ssize_t)rc) != 0) {
+    if (rc < length && _PyBytes_Resize(&str, (Py_ssize_t)rc) != 0) {
       EXTERN_OP_END;
       Py_DECREF(str);
-      log_error("_PyString_Resize(%p, %d) == -1", str, rc);
+      log_error("_PyBytes_Resize(%p, %d) == -1", str, rc);
       return NULL;
     }
     
@@ -306,9 +306,9 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
       // Need resize?
       if (bufsize < buflength+bufchunksize) {
         bufsize *= 2;
-        if (_PyString_Resize(&str, bufsize) == -1) {
+        if (_PyBytes_Resize(&str, bufsize) == -1) {
           EXTERN_OP_END;
-          log_error("_PyString_Resize(%p, %ld) == -1", str, (long)bufsize);
+          log_error("_PyBytes_Resize(%p, %ld) == -1", str, (long)bufsize);
           return NULL;
         }
       }
@@ -317,8 +317,8 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
     EXTERN_OP_END;
     
     // Size down the string to the correct length
-    if (_PyString_Resize(&str, buflength) == -1) {
-      log_debug("_PyString_Resize(%p, %ld) == -1", str, buflength);
+    if (_PyBytes_Resize(&str, buflength) == -1) {
+      log_debug("_PyBytes_Resize(%p, %ld) == -1", str, buflength);
       return NULL;
     }
   }
@@ -385,7 +385,7 @@ PyObject *smisk_Stream_write(smisk_Stream* self, PyObject *args) {
     length = PyInt_AS_LONG(arg1);
   }
   else {
-    length = PyString_Size(str);
+    length = PyBytes_Size(str);
   }
   
   // Write to stream
@@ -438,7 +438,7 @@ PyObject *smisk_Stream_perform_writelines(smisk_Stream *self,
     
     // We save length, so we can skip calling smisk_Stream_perform_write at all if
     // the string is empty.
-    string_length = PyString_Size(string);
+    string_length = PyBytes_Size(string);
     if ( string_length ) {
       if ( ( first_write_cb && first_write_cb(cb_user_data) != 0 )
         || ( smisk_Stream_perform_write(self, string, string_length) != 0 ) )

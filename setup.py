@@ -663,7 +663,7 @@ setup(
   include_package_data=True,
   exclude_package_data={"debian" : ["*"]},
   ext_modules = [Extension(
-    name = 'smisk.core',
+    name = '_smisk',
     sources = sources,
     undef_macros = undef_macros
   )],

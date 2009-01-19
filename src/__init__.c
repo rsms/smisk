@@ -98,10 +98,10 @@ PyObject *smisk_bind(PyObject *self, PyObject *args) {
   }
   
   // Bind/listen
-  fd = FCGX_OpenSocket(PyString_AsString(path), backlog);
+  fd = FCGX_OpenSocket(PyBytes_AsString(path), backlog);
   if (fd < 0) {
     log_debug("ERROR: FCGX_OpenSocket(\"%s\", %d) returned %d. errno: %d", 
-      PyString_AsString(path), backlog, fd, errno);
+      PyBytes_AsString(path), backlog, fd, errno);
     return PyErr_SET_FROM_ERRNO;
   }
   
@@ -147,7 +147,7 @@ PyObject *smisk_listening(PyObject *self, PyObject *args) {
     if (((struct sockaddr_in *)addr)->sin_addr.s_addr != (in_addr_t)0) {
       saddr = (char *)inet_ntoa(((struct sockaddr_in *)addr)->sin_addr);
     }
-    s = PyString_FromFormat("%s:%d",
+    s = PyBytes_FromFormat("%s:%d",
       saddr, 
       htons(((struct sockaddr_in *)addr)->sin_port) );
   }
@@ -193,7 +193,7 @@ PyObject *smisk_uid(PyObject *self, PyObject *args) {
     }
   }
   
-  if ((node ? smisk_uid_create(&uid, PyString_AsString(node), PyString_Size(node))
+  if ((node ? smisk_uid_create(&uid, PyBytes_AsString(node), PyBytes_Size(node))
             : smisk_uid_create(&uid, NULL, 0)) == -1) {
     PyErr_SetString(PyExc_SystemError, "smisk_uid_create() failed");
     return NULL;
@@ -232,7 +232,7 @@ PyObject *smisk_pack(PyObject *self, PyObject *args) {
     }
   }
   
-  return smisk_util_pack((const byte *)PyString_AsString(data), PyString_Size(data), nbits);
+  return smisk_util_pack((const byte *)PyBytes_AsString(data), PyBytes_Size(data), nbits);
 }
 
 
@@ -258,8 +258,12 @@ static PyMethodDef module_methods[] = {
   {NULL, NULL, 0, NULL}
 };
 
-
-PyMODINIT_FUNC initcore(void) {
+#if (PY_VERSION_HEX < 0x03000000)
+PyMODINIT_FUNC init_smisk(void)
+#else
+PyMODINIT_FUNC  PyInit__smisk(void)    /* Note the two underscores */
+#endif
+{
   log_trace("ENTER");
   int rc;
   
@@ -270,7 +274,7 @@ PyMODINIT_FUNC initcore(void) {
 	}
   
   // Create module
-  if ((smisk_core_module = Py_InitModule("smisk.core", module_methods)) == NULL)
+  if ((smisk_core_module = Py_InitModule("_smisk", module_methods)) == NULL)
     return;
   
   // Initialize crash dumper
@@ -282,9 +286,9 @@ PyMODINIT_FUNC initcore(void) {
     return;
   
   // Constants: Other static strings (only used in C API)
-  kString_http = PyString_InternFromString("http");
-  kString_https = PyString_InternFromString("https");
-  kString_utf_8 = PyString_InternFromString("utf-8");
+  kString_http = PyBytes_InternFromString("http");
+  kString_https = PyBytes_InternFromString("https");
+  kString_utf_8 = PyBytes_InternFromString("utf-8");
   
   // Constants: Special variables
   if (PyModule_AddStringConstant(smisk_core_module, "__build__", SMISK_BUILD_ID) != 0)

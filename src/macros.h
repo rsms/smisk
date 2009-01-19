@@ -47,12 +47,21 @@ typedef ssize_t Py_ssize_t;
 // Python 3 is on the horizon... (currently only used by )
 #if (PY_VERSION_HEX < 0x02060000)  /* really: before python trunk r63675 */
   /* These #defines map to their equivalent on earlier python versions. */
-  #define PyBytes_FromStringAndSize PyString_FromStringAndSize
-  #define PyBytes_FromString PyString_FromString
-  #define PyBytes_AsStringAndSize PyString_AsStringAndSize
-  #define PyBytes_Check PyString_Check
-  #define PyBytes_GET_SIZE PyString_GET_SIZE
-  #define PyBytes_AS_STRING PyString_AS_STRING
+  #define PyBytes_FromStringAndSize   PyString_FromStringAndSize
+  #define PyBytes_FromString          PyString_FromString
+  #define PyBytes_AsStringAndSize     PyString_AsStringAndSize
+  #define PyBytes_Check               PyString_Check
+  #define PyBytes_GET_SIZE            PyString_GET_SIZE
+  #define PyBytes_AS_STRING           PyString_AS_STRING
+  #define PyBytes_AsString            PyString_AsString
+  #define PyBytes_InternFromString    PyString_InternFromString
+  
+  #define PyBytes_FromFormat          PyString_FromFormat
+  #define PyBytes_Size                PyString_Size
+  #define PyBytes_ConcatAndDel        PyString_ConcatAndDel
+  #define PyBytes_Concat              PyString_Concat
+  #define PyBytes_InternInPlace       PyString_InternInPlace
+  #define _PyBytes_Resize             _PyString_Resize
 #endif
 #if (PY_VERSION_HEX >= 0x03000000)
   #define NUMBER_Check    PyLong_Check

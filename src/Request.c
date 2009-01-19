@@ -182,7 +182,7 @@ static int _cleanup_session(smisk_Request* self) {
   if (self->session_id) {
     long h = 0;
     
-    log_debug("_cleanup_session: self->session_id = %s", self->session_id ? PyString_AsString(self->session_id) : "NULL");
+    log_debug("_cleanup_session: self->session_id = %s", self->session_id ? PyBytes_AsString(self->session_id) : "NULL");
     log_debug("_cleanup_session: self->session = %p", self->session);
     log_debug("_cleanup_session: self->initial_session_hash = 0x%lx", self->initial_session_hash);
     log_debug("_cleanup_session: smisk_object_hash(self->session) = 0x%lx", self->session ? smisk_object_hash(self->session) : 0);
@@ -232,7 +232,7 @@ static int _cleanup_uploads(smisk_Request* self) {
       if (file != Py_None) {
         PyObject *path = PyDict_GetItemString(file, "path");
         if (path) {
-          char *fn = PyString_AsString(path);
+          char *fn = PyBytes_AsString(path);
           log_debug("Trying to unlink file '%s' (%s)", 
             fn, smisk_file_exist(fn) ? "exists" : "not found - skipping");
           if (smisk_file_exist(fn) && (unlink(fn) != 0)) {
@@ -358,9 +358,9 @@ PyObject *smisk_Request_log_error(smisk_Request* self, PyObject *msg) {
   }
   
   EXTERN_OP( rc = FCGX_FPrintF(self->errors->stream, format, Py_GetProgramName(), 
-                               getpid(), PyString_AsString(msg)) );
+                               getpid(), PyBytes_AsString(msg)) );
   if (rc == -1) {
-    EXTERN_OP(fprintf(stderr, format, Py_GetProgramName(), getpid(), PyString_AsString(msg)));
+    EXTERN_OP(fprintf(stderr, format, Py_GetProgramName(), getpid(), PyBytes_AsString(msg)));
     return PyErr_SET_FROM_ERRNO;
   }
   
@@ -418,11 +418,11 @@ PyObject *smisk_Request_get_env(smisk_Request* self) {
           if (_cached_SERVER_SOFTWARE_k == NULL) {
             
             k = PyBytes_FromStringAndSize(*envp, value-*envp);
-            if (k) PyString_InternInPlace(&k);
+            if (k) PyBytes_InternInPlace(&k);
             if (k == NULL)
               return NULL;
             
-            v = PyString_FromFormat("%s smisk/%s", ++value, SMISK_VERSION);
+            v = PyBytes_FromFormat("%s smisk/%s", ++value, SMISK_VERSION);
             if (v == NULL) {
               Py_DECREF(k);
               return NULL;
@@ -440,11 +440,11 @@ PyObject *smisk_Request_get_env(smisk_Request* self) {
         }
         
         k = PyBytes_FromStringAndSize(*envp, value-*envp);
-        if (k) PyString_InternInPlace(&k);
+        if (k) PyBytes_InternInPlace(&k);
         if (k == NULL)
           return NULL;
         
-        v = PyString_InternFromString(++value);
+        v = PyBytes_InternFromString(++value);
         if (v == NULL) {
           Py_DECREF(k);
           return NULL;
@@ -513,7 +513,7 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
     }
     if (self->url->host == NULL)
       return NULL;
-    PyString_InternInPlace(&self->url->host);
+    PyBytes_InternInPlace(&self->url->host);
     Py_CLEAR(old);
     
     // Path
@@ -531,7 +531,7 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
       So we concat these strings into one
       */
       if ((s = FCGX_GetParam("PATH_INFO", self->envp))) {
-        PyString_ConcatAndDel(&self->url->path, PyBytes_FromString(s));
+        PyBytes_ConcatAndDel(&self->url->path, PyBytes_FromString(s));
         if (self->url->path == NULL)
           return NULL;
       }
@@ -561,10 +561,10 @@ PyObject *smisk_Request_get_get(smisk_Request* self) {
       return NULL;
     );
     
-    if (self->url->query && (self->url->query != Py_None) && (PyString_Size(self->url->query) > 0)) {
+    if (self->url->query && (self->url->query != Py_None) && (PyBytes_Size(self->url->query) > 0)) {
       assert_refcount(self->get, > 0);
       
-      if (smisk_parse_input_data(PyString_AsString(self->url->query), "&", 0, 
+      if (smisk_parse_input_data(PyBytes_AsString(self->url->query), "&", 0, 
                                  self->get, SMISK_APP_CHARSET) != 0)
       {
         Py_DECREF(self->get);
@@ -671,10 +671,10 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
     
     // Did receive SID
     if ( self->session_id != NULL ) {
-      log_debug("SID '%s' provided by request", PyString_AsString(self->session_id));
+      log_debug("SID '%s' provided by request", PyBytes_AsString(self->session_id));
       // As this is the first time we aquire the SID and it was provided by the user,
       // we will also read up the session to validate wherethere this SID is valid.
-      if (!_valid_sid(PyString_AsString(self->session_id), PyString_Size(self->session_id))) {
+      if (!_valid_sid(PyBytes_AsString(self->session_id), PyBytes_Size(self->session_id))) {
         log_debug("Invalid SID provided by request (illegal format)");
         Py_CLEAR(self->session_id);
       }
@@ -780,7 +780,7 @@ static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
   // Passing None causes the current session to be destroyed
   if (val == Py_None) {
     if (self->session != Py_None) {
-      log_debug("Destroying session '%s'", PyString_AsString(self->session_id));
+      log_debug("Destroying session '%s'", PyBytes_AsString(self->session_id));
       assert(smisk_Application_current);
       assert(smisk_Application_current->sessions);
       

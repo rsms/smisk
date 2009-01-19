@@ -91,7 +91,7 @@ PyObject *smisk_format_exc(PyObject *type, PyObject *value, PyObject *tb) {
   msg = PyBytes_FromString("");
   Py_ssize_t i = 0, lines_len = PyList_GET_SIZE(lines);
   for (; i < lines_len; i++) {
-    PyString_ConcatAndDel(&msg, PyList_GET_ITEM(lines, i));
+    PyBytes_ConcatAndDel(&msg, PyList_GET_ITEM(lines, i));
     if (msg == NULL) {
       log_debug("msg == NULL");
       Py_DECREF(lines);
@@ -383,16 +383,16 @@ PyObject *smisk_find_string_by_prefix_in_dict(PyObject *list, PyObject *prefix) 
     return PyErr_Format(PyExc_TypeError, "first argument must be a string");
   
   num_items = PyList_GET_SIZE(list);
-  prefix_len = PyString_Size(prefix);
-  prefix_ptr = PyString_AsString(prefix);
+  prefix_len = PyBytes_Size(prefix);
+  prefix_ptr = PyBytes_AsString(prefix);
   
   // Iterate over headers
   for (i=0; i<num_items; i++) {
     if ( (item = PyList_GET_ITEM(list, i)) && SMISK_STRING_CHECK(item) ) {
-      item_len = PyString_Size(item);
+      item_len = PyBytes_Size(item);
       if (item_len < prefix_len)
         continue;
-      item_ptr = PyString_AsString(item);
+      item_ptr = PyBytes_AsString(item);
       prefix_it = prefix_ptr;
       
       for (x = 0; x < prefix_len; x++) {

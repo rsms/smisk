@@ -282,7 +282,7 @@ PyObject *smisk_Application_run(smisk_Application *self) {
   // Set program name to argv[0]
   PyObject *argv = PySys_GetObject("argv");
   if (PyList_GET_SIZE(argv))
-    Py_SetProgramName(basename(PyString_AsString(PyList_GetItem(argv, 0))));
+    Py_SetProgramName(basename(PyBytes_AsString(PyList_GetItem(argv, 0))));
   
   // Setup request object
   FCGX_Request request;
@@ -339,7 +339,7 @@ PyObject *smisk_Application_run(smisk_Application *self) {
     #if SMISK_DEBUG
       else if (!smisk_Application_trapped_signal) {
         PyObject *repr = PyObject_Repr((PyObject *)self);
-        log_debug("%s.service() failed", PyString_AsString(repr));
+        log_debug("%s.service() failed", PyBytes_AsString(repr));
         Py_DECREF(repr);
       }
     #endif
@@ -360,8 +360,8 @@ PyObject *smisk_Application_run(smisk_Application *self) {
           type_repr = PyObject_Repr((PyObject *)type);
           value_repr = PyObject_Repr((PyObject *)value);
           tb_repr = PyObject_Repr((PyObject *)tb);
-          log_debug("Exeption: type=%s, value=%s, tb=%s", PyString_AsString(type_repr),
-                    PyString_AsString(value_repr), PyString_AsString(tb_repr));
+          log_debug("Exeption: type=%s, value=%s, tb=%s", PyBytes_AsString(type_repr),
+                    PyBytes_AsString(value_repr), PyBytes_AsString(tb_repr));
           Py_DECREF(type_repr);
           Py_DECREF(value_repr);
           Py_DECREF(tb_repr);
@@ -516,8 +516,8 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
   );
   
   // Get reference to last line of trace, containing short message
-  exc_strp = PyString_AsString(exc_str);
-  Py_ssize_t len = PyString_Size(exc_str)-2;
+  exc_strp = PyBytes_AsString(exc_str);
+  Py_ssize_t len = PyBytes_Size(exc_str)-2;
   for (; len; len-- ) {
     if (exc_strp[len] == '\n') {
       log_debug("%s", exc_strp+len);
@@ -546,27 +546,27 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
     port = FCGX_GetParam("SERVER_PORT", self->request->envp);
   
   // Format error message
-  msg = PyString_FromFormat("<h1>Service Error</h1>\n"
+  msg = PyBytes_FromFormat("<h1>Service Error</h1>\n"
     "<p class=\"message\">%s</p>\n"
     "<pre class=\"traceback\">%s</pre>\n"
     "<hr/><address>%s at %s port %s</address>\n",
     value_repr ? value_repr : "",
     ((self->show_traceback == Py_True) ? exc_strp : "Additional information has been logged."),
-    PyString_AsString(PyDict_GetItemString(self->request->env, "SERVER_SOFTWARE")),
+    PyBytes_AsString(PyDict_GetItemString(self->request->env, "SERVER_SOFTWARE")),
     hostname ? hostname : "?",
     port ? port : "?");
   
   // Log exception throught fcgi error stream
   EXTERN_OP(
-    rc = FCGX_PutStr(PyString_AsString(exc_str), 
-                     PyString_Size(exc_str),
+    rc = FCGX_PutStr(PyBytes_AsString(exc_str), 
+                     PyBytes_Size(exc_str),
                      self->request->errors->stream)
   );
   if (rc == -1) {
     // Fall back to stderr
     log_error("Error in %s.error(): %s",
-      PyString_AsString(PyObject_Str((PyObject *)self)),
-      PyString_AsString(exc_str));
+      PyBytes_AsString(PyObject_Str((PyObject *)self)),
+      PyBytes_AsString(exc_str));
     goto return_error_from_errno;
   }
   

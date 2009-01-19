@@ -142,7 +142,7 @@ PyObject *smisk_xml_escape_py(PyObject *self, PyObject *str) {
     return NULL;
   }
   
-  orglen = PyString_Size(str);
+  orglen = PyBytes_Size(str);
   
   if (orglen < 1) {
     Py_INCREF(str);

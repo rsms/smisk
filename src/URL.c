@@ -188,7 +188,7 @@ static PyObject *encode_or_escape(PyObject *self, PyObject *str, int mask) {
     return NULL;
   }
   
-  orglen = PyString_Size(str);
+  orglen = PyBytes_Size(str);
   
   if (orglen < 1) {
     Py_INCREF(str);
@@ -489,7 +489,7 @@ int smisk_URL_init(smisk_URL *self, PyObject *args, PyObject *kwargs) {
     Py_INCREF(str);
   }
   
-  if (!_parse(self, PyString_AsString(str), PyString_Size(str))) {
+  if (!_parse(self, PyBytes_AsString(str), PyBytes_Size(str))) {
     PyErr_SetString(PyExc_ValueError, "Failed to parse URL");
     Py_DECREF(str);
     Py_DECREF(self);
@@ -688,7 +688,7 @@ PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *args, PyObject 
     Py_INCREF(string);
   }
   
-  if ((s = PyString_AsString(string)) == NULL) {
+  if ((s = PyBytes_AsString(string)) == NULL) {
     Py_DECREF(string);
     return NULL; // TypeError raised
   }
@@ -773,39 +773,39 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   PyObject *s = PyBytes_FromStringAndSize("", 0);
   
   if (ENABLED(scheme)) {
-    PyString_Concat(&s, self->scheme);
-    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("://", 3));
+    PyBytes_Concat(&s, self->scheme);
+    PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("://", 3));
   }
   
   if (ENABLED(user)) {
-    PyString_Concat(&s, self->user);
+    PyBytes_Concat(&s, self->user);
     if (ENABLED(password)) {
-      PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize(":", 1));
-      PyString_Concat(&s, self->password);
+      PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize(":", 1));
+      PyBytes_Concat(&s, self->password);
     }
-    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("@", 1));
+    PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("@", 1));
   }
   
   if (ENABLED(host))
-    PyString_Concat(&s, self->host);
+    PyBytes_Concat(&s, self->host);
   
   // port is an int, so we can't use our pretty ENABLED macro here
   if ( (port == NULL || port == Py_True || port == one) && (self->port > 0) ) {
     if (self->port != 80 || (port80 == Py_True || port80 == one) )
-      PyString_ConcatAndDel(&s, PyString_FromFormat(":%d", self->port));
+      PyBytes_ConcatAndDel(&s, PyBytes_FromFormat(":%d", self->port));
   }
   
   if (ENABLED(path))
-    PyString_Concat(&s, self->path);
+    PyBytes_Concat(&s, self->path);
   
-  if (ENABLED(query) && self->query != Py_None && PyString_Size(self->query) > 0) {
-    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("?", 1));
-    PyString_Concat(&s, self->query);
+  if (ENABLED(query) && self->query != Py_None && PyBytes_Size(self->query) > 0) {
+    PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("?", 1));
+    PyBytes_Concat(&s, self->query);
   }
   
   if (ENABLED(fragment) && self->fragment != Py_None) {
-    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("#", 1));
-    PyString_Concat(&s, self->fragment);
+    PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("#", 1));
+    PyBytes_Concat(&s, self->fragment);
   }
   
   #undef ENABLED
@@ -821,14 +821,14 @@ PyObject *smisk_URL_get_uri(smisk_URL* self) {
   PyObject *s = self->path;
   Py_INCREF(s); // this is the callers reference eventually.
   
-  if (self->query != Py_None && PyString_Size(self->query) > 0) {
-    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("?", 1));
-    PyString_Concat(&s, self->query);
+  if (self->query != Py_None && PyBytes_Size(self->query) > 0) {
+    PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("?", 1));
+    PyBytes_Concat(&s, self->query);
   }
   
   if (self->fragment != Py_None) {
-    PyString_ConcatAndDel(&s, PyBytes_FromStringAndSize("#", 1));
-    PyString_Concat(&s, self->fragment);
+    PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("#", 1));
+    PyBytes_Concat(&s, self->fragment);
   }
   
   return s;
