@@ -221,6 +221,37 @@ Classes
     Possible values: ``strict, ignore, replace, xmlcharrefreplace, backslashreplace``
   
     :type: string
+  
+  
+  .. attribute:: autoclear_model_session
+  
+  Automatically clear the model session cache before each request is handled.
+  
+  You should not disable this unless any of the following statements apply:
+  
+  * You do not use smisk.model or SQLAlchemy at all (no database).
+  
+  * You run only one process (safe to cache).
+  
+  * Your application only reads a set of data that never changes.
+  
+  * Your model does not involve entity relations.
+  
+  Disabling this means entities stay in the local memory cache between sessions.
+  (Relations and their content etc are cached, but not the actual data in the entities)
+  
+  Consider this model::
+  
+    class Department(Entity):
+      people = OneToMany('Person')
+    
+    class Person(Entity):
+      department = ManyToOne('Department')
+  
+  Now, imagine we have two processes running; process A and process B. Process A gets a request to add a new person to an existing department. Afterwards, process B is requested to list all people in the same department. Now, if autoclear_model_session where set to False, the previously added person would no show up in the listing of people in the department which process B queried. This is because which people is "contained within" what department has been implicitly cached by SQLAlchemy.
+  
+  :type: bool
+  :default: :samp:`True`
 
 
 

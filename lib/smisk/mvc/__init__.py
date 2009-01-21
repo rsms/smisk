@@ -180,6 +180,10 @@ class Application(smisk.core.Application):
   '''How to handle unicode conversions
   '''
   
+  autoclear_model_session = True
+  '''Automatically clear the model session cache before each request is handled.
+  '''
+  
   def __init__(self, router=None, templates=None, *args, **kwargs):
     '''Initialize a new application
     '''
@@ -611,6 +615,10 @@ class Application(smisk.core.Application):
   def _call_leaf_and_handle_model_session(self, req_args, req_params):
     _debug = log.level <= logging.DEBUG
     try:
+      if self.autoclear_model_session:
+        if _debug:
+          log.debug('Clearing session. Calling model.session.clear()')
+        model.session.clear()
       rsp = self.call_leaf(req_args, req_params)
       if _debug:
         log.debug('model.session.dirty = %r', [s for s in model.session.registry()])
@@ -628,13 +636,13 @@ class Application(smisk.core.Application):
           model.session.commit()
         except Exception, e:
           error = True
-      
+    
       if error:
         if _debug:
           log.debug('model.session.rollback!')
         model.session.rollback()
         model.session.close_all()
-      
+    
       raise
   
   
