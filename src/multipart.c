@@ -51,7 +51,7 @@ THE SOFTWARE.
 
 typedef struct {
   char *lbuf2; /* used for file reading as line tail */
-  long content_length; /* currently unused */
+  long long content_length; /* currently unused */
   int error;
   cstr_t buf;
   char *boundary;
