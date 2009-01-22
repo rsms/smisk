@@ -29,7 +29,7 @@ THE SOFTWARE.
 #include "cstr.h"
 
 // Enable multipart-specific debugging
-#define SMISK_DEBUG_MULTIPART 1
+//#define SMISK_DEBUG_MULTIPART 1
 // Make sure SMISK_DEBUG is 1 if SMISK_DEBUG_MULTIPART is enabled
 #if SMISK_DEBUG_MULTIPART
   #ifndef SMISK_DEBUG
@@ -51,7 +51,6 @@ THE SOFTWARE.
 
 typedef struct {
   char *lbuf2; /* used for file reading as line tail */
-  long long content_length; /* currently unused */
   int error;
   cstr_t buf;
   char *boundary;
@@ -71,7 +70,6 @@ typedef struct {
 
 void smisk_multipart_ctx_reset(multipart_ctx_t *ctx) {
   ctx->stream = NULL;
-  ctx->content_length = 0;
   ctx->error = 0;
   ctx->eof = 0;
   ctx->boundary_len = 0;
@@ -80,6 +78,8 @@ void smisk_multipart_ctx_reset(multipart_ctx_t *ctx) {
   ctx->filename[0] = 0;
   ctx->content_type[0] = 0;
   ctx->part_name[0] = 0;
+  ctx->bytes_read = 0;
+  ctx->size_limit = 0;
 }
 
 
@@ -476,11 +476,9 @@ int smisk_multipart_parse_stream (FCGX_Stream *stream,
   
   // Attach context info
   __ctx.stream = stream;
-  __ctx.content_length = content_length;
   __ctx.post = post;
   __ctx.files = files;
   __ctx.charset = charset;
-  __ctx.bytes_read = 0L;
   __ctx.size_limit = size_limit;
   
   // find boundary
