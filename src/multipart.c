@@ -78,8 +78,8 @@ void smisk_multipart_ctx_reset(multipart_ctx_t *ctx) {
   ctx->filename[0] = 0;
   ctx->content_type[0] = 0;
   ctx->part_name[0] = 0;
-  ctx->bytes_read = 0;
-  ctx->size_limit = 0;
+  ctx->bytes_read = 0LL;
+  ctx->size_limit = 0LL;
 }
 
 
