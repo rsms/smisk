@@ -445,11 +445,6 @@ Macros defined in *config.h*.
 .. cmacro:: SMISK_STREAM_READLINE_LENGTH
   
   Default readline length for :meth:`smisk.Stream.readline()`.
-  
-
-.. cmacro:: SMISK_POST_SIZE_MEMORY_LIMIT
-  
-  How much post data can be stored in memory, instead of being written to disk.
 
 
 .. cmacro:: SMISK_FILE_UPLOAD_DIR

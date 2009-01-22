@@ -30,15 +30,14 @@ THE SOFTWARE.
 #include "SessionStore.h"
 
 #include <unistd.h>
-#include <structmember.h>
 #include <fastcgi.h>
 #include <ctype.h> /* tolower() */
 
 #pragma mark Internal
 
-static char *_read_form_data(FCGX_Stream *stream, long length) {
+static char *_read_form_data(FCGX_Stream *stream, long long length, long long size_limit) {
   char *s = NULL;
-  long p = 0; /* current position in output buffer */
+  long long p = 0; /* current position in output buffer */
   long n = 256*1024; /* max size the block can grow to each round */
   int bytes_read;
   
@@ -50,16 +49,19 @@ static char *_read_form_data(FCGX_Stream *stream, long length) {
       /* All bytes read? */
       if (p >= length)
         break;
-      
-      /* Hit max total size? */
-      if (p >= SMISK_FORM_DATA_MAX_SIZE) {
-        log_error("WARNING! form data exceeding SMISK_FORM_DATA_MAX_SIZE -- truncating");
-        break;
-      }
 
       /* Make sure we don't grow the block larger than the actual size of the data */
       if (n > length)
         n = length;
+    }
+    
+    /* Hit max total size? */
+    if (p >= size_limit) {
+      if (s)
+        free(s);
+      log_debug("ctx.bytes_read >= ctx.size_limit");
+      PyErr_Format(PyExc_RuntimeError, "form data size limit exceeded");
+      return NULL;
     }
 
     s = realloc(s, n + 1);
@@ -87,7 +89,7 @@ static char *_read_form_data(FCGX_Stream *stream, long length) {
 
 static int _parse_request_body(smisk_Request* self) {
   char *content_type;
-  long content_length;
+  long long content_length;
   int rc;
   
   if ((self->post = PyDict_New()) == NULL)
@@ -100,26 +102,62 @@ static int _parse_request_body(smisk_Request* self) {
     return -1;
   
   if ((content_type = FCGX_GetParam("CONTENT_TYPE", self->envp))) {
-    // Parse content-length if available
+    /*
+     * Note on missing content length:
+     *
+     * Most host servers (for instance Lighttpd) actively tries to restrict
+     * out-of-protocol requests. This means that we will for instance never
+     * receieve a POST without content length. The host server should respond
+     * with 411 Length Required for requests which by the appropriate
+     * specification (HTTP 1.1 or 1.0) is required to annotate the request
+     * with length.
+     */
+    
+    /* Parse content-length if available */
     char *t = FCGX_GetParam("CONTENT_LENGTH", self->envp);
-    content_length = t ? atol(t) : -1;
+    content_length = t ? atoll(t) : -1;
+    rc = 0;
     
     if (strstr(content_type, "multipart/")) {
-      rc = smisk_multipart_parse_stream(self->input->stream, content_length, 
-                                        self->post, self->files, SMISK_APP_CHARSET);
-      if (rc != 0)
+      if ( (content_length == -1)                       /* unknown length */ 
+        || (content_length <= self->max_multipart_size) /* lower or equal the limit */
+        || (self->max_multipart_size < 0) )             /* no limit */
+      {
+        return smisk_multipart_parse_stream(self->input->stream, content_length, 
+                                            self->post, self->files, SMISK_APP_CHARSET,
+                                            self->max_multipart_size);
+      }
+      else if (self->max_multipart_size > 0) {
+        /* if the limit is 0, we do not want to raise an exception since
+         * it's the global behaviour.
+         */
+        PyErr_Format(PyExc_RuntimeError, "multipart data size limit exceeded");
         return -1;
+      }
     }
     else if (strstr(content_type, "/x-www-form-urlencoded")) {
-      // Todo: Optimize: keep s buffer and reuse it between calls.
-      char *s = _read_form_data(self->input->stream, content_length);
-      int parse_status = smisk_parse_input_data(s, "&", 0, self->post, SMISK_APP_CHARSET);
-      free(s);
-      
-      if (parse_status != 0)
+      if ( (content_length == -1)                       /* unknown length */ 
+        || (
+            (content_length <= self->max_formdata_size) /* lower or equal the limit */
+            && (content_length != 0)                    /* content length is not zero */
+         ) )
+      {
+        char *s = _read_form_data(self->input->stream, content_length, self->max_formdata_size);
+        if (s == NULL)
+          return -1;
+        int parse_status = smisk_parse_input_data(s, "&", 0, self->post, SMISK_APP_CHARSET);
+        free(s);
+        if (parse_status != 0)
+          return -1;
+      }
+      else if (content_length != 0) {
+        log_debug("form data size limit exceeded: %lld > %lld", content_length, self->max_formdata_size);
+        PyErr_Format(PyExc_RuntimeError, "form data size limit exceeded");
         return -1;
+      }
     }
-    // else, leave it as raw input
+    
+    /* else, leave it as raw input */
   }
   
   return 0;
@@ -308,6 +346,10 @@ PyObject * smisk_Request_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
       Py_DECREF(self);
       return NULL;
     }
+    
+    // Set default values for max_*_size
+    self->max_multipart_size = 2147483648LL;  /* 2 GB */
+    self->max_formdata_size = 10737418LL;        /* 10 MB */
   }
   
   return (PyObject *)self;
@@ -926,37 +968,10 @@ static PyGetSetDef smisk_Request_getset[] = {
 
 // Class members
 static struct PyMemberDef smisk_Request_members[] = {
-  {"input", T_OBJECT_EX, offsetof(smisk_Request, input), RO,
-    "Input stream.\n"
-    "\n"
-    "If you send any data which is neither ``x-www-form-urlencoded`` nor ``multipart`` "
-    "format, you will be able to read the raw POST body from this stream.\n"
-    "\n"
-    "You could read ``x-www-form-urlencoded`` or ``multipart`` POST requests in raw "
-    "format, but you have to read from this stream before calling any of `post` or "
-    "`files`, since they will otherwise trigger the built-in parser and read all data "
-    "from the stream.\n"
-    "\n"
-    "**Example of how to parse a JSON request:**::\n"
-    "\n"
-    "\n"
-    " import cjson as json\n"
-    " from smisk.core import *\n"
-    " class App(Application):\n"
-    "   def service(self):\n"
-    "     if request.env['REQUEST_METHOD'] == 'POST':\n"
-    "       response('Input: ', repr(json.decode(self.request.input.read())), \"\\n\")\n"
-    " \n"
-    " App().run()\n"
-    "\n"
-    "You could then send a request using curl for example:\n"
-    "\n"
-    "``curl --data-binary '{\"Url\": \"http://www.example.com/image/481989943\", \"Position\": [125, \"100\"]}' http://localhost:8080/``\n"
-    "\n"
-    ":type: `Stream`\n"
-    },
-  
-  {"errors",   T_OBJECT_EX, offsetof(smisk_Request, errors),   RO, ":type: `Stream`"},
+  {"input", T_OBJECT_EX, offsetof(smisk_Request, input), RO, "Input stream"},
+  {"errors", T_OBJECT_EX, offsetof(smisk_Request, errors), RO, "Error stream"},
+  {"max_multipart_size", T_LONGLONG, offsetof(smisk_Request, max_multipart_size), 0, NULL},
+  {"max_formdata_size", T_LONGLONG, offsetof(smisk_Request, max_formdata_size), 0, NULL},
   
   {NULL, 0, 0, 0, NULL}
 };

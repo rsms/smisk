@@ -29,16 +29,16 @@ THE SOFTWARE.
 #include "cstr.h"
 
 // Enable multipart-specific debugging
-//#define DEBUG_SMISK_MULTIPART 1
-// Make sure DEBUG_SMISK is 1 if DEBUG_SMISK_MULTIPART is enabled
-#if DEBUG_SMISK_MULTIPART
-  #ifndef DEBUG_SMISK
-    #warning DEBUG_SMISK_MULTIPART is enabled without DEBUG_SMISK being defined. Disabling DEBUG_SMISK_MULTIPART
-    #undef DEBUG_SMISK_MULTIPART
+#define SMISK_DEBUG_MULTIPART 1
+// Make sure SMISK_DEBUG is 1 if SMISK_DEBUG_MULTIPART is enabled
+#if SMISK_DEBUG_MULTIPART
+  #ifndef SMISK_DEBUG
+    #warning SMISK_DEBUG_MULTIPART is enabled without SMISK_DEBUG being defined. Disabling SMISK_DEBUG_MULTIPART
+    #undef SMISK_DEBUG_MULTIPART
   #else
-    #if ! DEBUG_SMISK
-      #warning DEBUG_SMISK_MULTIPART is enabled without DEBUG_SMISK being enabled. Disabling DEBUG_SMISK_MULTIPART
-      #undef DEBUG_SMISK_MULTIPART
+    #if ! SMISK_DEBUG
+      #warning SMISK_DEBUG_MULTIPART is enabled without SMISK_DEBUG being enabled. Disabling SMISK_DEBUG_MULTIPART
+      #undef SMISK_DEBUG_MULTIPART
     #endif
   #endif
 #endif
@@ -50,8 +50,8 @@ THE SOFTWARE.
  ((_s_[0] == '-') && (_s_[1] == '-') && (strncmp(_s_, ctx->boundary, ctx->boundary_len) == 0))
 
 typedef struct {
-  char *lbuf2; // used for file reading as line tail
-  long content_length;
+  char *lbuf2; /* used for file reading as line tail */
+  long content_length; /* currently unused */
   int error;
   cstr_t buf;
   char *boundary;
@@ -63,7 +63,9 @@ typedef struct {
   PyObject *post;
   PyObject *files;
   int eof;
-  const char *charset; // If not NULL, used for decoding part names and form data.
+  const char *charset; /* if not NULL, used for decoding part names and form data */
+  long long bytes_read; /* total number of bytes read */
+  long long size_limit; /* max number of bytes we are permitted to read in total */
 } multipart_ctx_t;
 
 
@@ -111,7 +113,7 @@ char *smisk_multipart_mktmpfile(multipart_ctx_t *ctx) {
     fn = SMISK_FILE_UPLOAD_DIR;
   fn = tempnam(fn, SMISK_FILE_UPLOAD_PREFIX);
   
-  #if DEBUG_SMISK_MULTIPART
+  #if SMISK_DEBUG_MULTIPART
     log_debug("Creating temporary file '%s'", fn);
   #endif
   
@@ -131,15 +133,14 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
   ssize_t bw;
   size_t bytes = 0;
   
-  #if DEBUG_SMISK_MULTIPART
+  #if SMISK_DEBUG_MULTIPART
     log_debug("parsing part: file");
     double timer = smisk_microtime();
   #endif
   
   // Read line and write line
   char *lbuf1, *lbuf2, *p;
-  size_t lbuf1_len, lbuf2_len;
-  int boundary_hit;
+  int lbuf1_len, lbuf2_len, boundary_hit;
   
   lbuf1 = ctx->buf.ptr;
   lbuf2 = ctx->lbuf2;
@@ -152,6 +153,17 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
   while ( (!boundary_hit) && 
          (lbuf1_len = smisk_stream_readline(lbuf1, SMISK_STREAM_READLINE_LENGTH, ctx->stream)) )
   {
+    ctx->bytes_read += lbuf1_len;
+    if(ctx->bytes_read >= ctx->size_limit) {
+      if (f)
+        fclose(f);
+      #if SMISK_DEBUG_MULTIPART
+      log_debug("multipart size limit exceeded: %lld > %lld", ctx->bytes_read, ctx->size_limit);
+      #endif
+      PyErr_Format(PyExc_RuntimeError, "multipart size limit exceeded");
+      return 1;
+    }
+    
     if (BOUNDARY_HIT_TEST(lbuf1)) {
       e = ctx->buf.ptr; for (;( (*e != '\r') && (*e != '\0') ); e++); // find end
       if ( (e > ctx->buf.ptr+2) && (*(e-1) == '-') && (*(e-2) == '-') ) {
@@ -205,7 +217,7 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
     lbuf2_len = lbuf1_len;
   }
   
-  #if DEBUG_SMISK_MULTIPART
+  #if SMISK_DEBUG_MULTIPART
     if (bytes) {
       timer = smisk_microtime()-timer;
       double adjusted_size = (double)bytes;
@@ -247,26 +259,33 @@ int smisk_multipart_parse_file(multipart_ctx_t *ctx) {
 
 
 int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
-  size_t bytes_read, len;
+  size_t len;
+  int bytes_read;
   char *p, *e;
   
-  #if DEBUG_SMISK_MULTIPART
+  #if SMISK_DEBUG_MULTIPART
     log_debug("parsing part: form data");
   #endif
   
   // Read line and write line
   p = ctx->buf.ptr;
   while ((bytes_read = smisk_stream_readline(p, SMISK_STREAM_READLINE_LENGTH, ctx->stream))) {
+    
+    ctx->bytes_read += bytes_read;
+    if(ctx->bytes_read >= ctx->size_limit) {
+      #if SMISK_DEBUG_MULTIPART
+      log_debug("multipart size limit exceeded: %lld > %lld", ctx->bytes_read, ctx->size_limit);
+      #endif
+      PyErr_Format(PyExc_RuntimeError, "multipart size limit exceeded");
+      return 1;
+    }
+    
     if (BOUNDARY_HIT_TEST(p)) {
       e = p; for (;( (*e != '\r') && (*e != '\0') ); e++); // find end
       if ( (e > p+2) && (*(e-1) == '-') && (*(e-2) == '-') ) {
-        //print("  > hit end boundary - end of message");
         ctx->eof = 1;
       }
-      /*else {
-        print("  > hit boundary - end of part ('%s')", p);
-      }*/
-      *p = 0; // terminate before boundary start
+      *p = 0; /* terminate before boundary start */
       break;
     }
     p += bytes_read;
@@ -276,7 +295,7 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
     }
   }
   
-  #if DEBUG_SMISK_MULTIPART
+  #if SMISK_DEBUG_MULTIPART
     log_debug("form_data: BODY = \"%s\"",
       PyBytes_AS_STRING(PyObject_Repr(PyBytes_FromString(ctx->buf.ptr))) );
   #endif
@@ -321,6 +340,7 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
 // return 0 on success, !0 on error
 int smisk_multipart_parse_part(multipart_ctx_t *ctx) {
   char *p, *buf, is_file = 0;
+  int bytes_read;
   
   buf = ctx->buf.ptr;
   
@@ -328,13 +348,23 @@ int smisk_multipart_parse_part(multipart_ctx_t *ctx) {
   ctx->content_type[0] = 0;
   
   // Parse headers
-  while ( FCGX_GetLine(buf, SMISK_STREAM_READLINE_LENGTH, ctx->stream) ) {
+  while ( (bytes_read = smisk_stream_readline(buf, SMISK_STREAM_READLINE_LENGTH, ctx->stream)) ) {
+    
+    ctx->bytes_read += bytes_read;
+    if(ctx->bytes_read >= ctx->size_limit) {
+      #if SMISK_DEBUG_MULTIPART
+      log_debug("multipart size limit exceeded: %lld > %lld", ctx->bytes_read, ctx->size_limit);
+      #endif
+      PyErr_Format(PyExc_RuntimeError, "multipart size limit exceeded");
+      return 1;
+    }
+    
     if (buf[0] == '\r' && buf[1] == '\n' && buf[2] == '\0') {
       // end of headers
       break;
     }
     
-    #if DEBUG_SMISK_MULTIPART
+    #if SMISK_DEBUG_MULTIPART
       log_debug("part \"%s\"", buf);
     #endif
     
@@ -377,7 +407,7 @@ int smisk_multipart_parse_part(multipart_ctx_t *ctx) {
           //      decoding in smisk_multipart_parse_file and 
           //      smisk_multipart_parse_form_data, overriding ctx->charset.
           
-          #if DEBUG_SMISK_MULTIPART
+          #if SMISK_DEBUG_MULTIPART
             log_debug("ctx->content_type = \"%s\"", ctx->content_type);
           #endif
         }
@@ -397,7 +427,7 @@ int smisk_multipart_parse_part(multipart_ctx_t *ctx) {
     }
   }
   else {
-    #if DEBUG_SMISK_MULTIPART
+    #if SMISK_DEBUG_MULTIPART
       log_debug("One or several parts in multipart post data missing "
                 "name-attribute -- ignoring its payload");
     #endif
@@ -415,16 +445,16 @@ static multipart_ctx_t __ctx = {NULL};
 
 
 int smisk_multipart_parse_stream (FCGX_Stream *stream,
-                                  long content_length,
+                                  long long content_length,
                                   PyObject *post, 
                                   PyObject *files,
-                                  const char *charset)
+                                  const char *charset,
+                                  long long size_limit)
 {
   //multipart_ctx_t ctx;
-  int status = 0;
-  size_t bytes_read;
+  int status = 0, bytes_read;
   
-  if (content_length <= 0)
+  if ( (content_length == 0) || (size_limit < 1) )
     return 0;
   
   // init context
@@ -438,20 +468,37 @@ int smisk_multipart_parse_stream (FCGX_Stream *stream,
     smisk_multipart_ctx_reset(&__ctx);
   }
   
+  if ( (content_length > 0) && (content_length < size_limit) )
+    size_limit = content_length+10;
+    /* if the data continues more than 10 bytes after what
+       was promised in content_length, a RuntimeException will be
+       raised telling the size_limit was hit. */
+  
   // Attach context info
   __ctx.stream = stream;
   __ctx.content_length = content_length;
   __ctx.post = post;
   __ctx.files = files;
   __ctx.charset = charset;
+  __ctx.bytes_read = 0L;
+  __ctx.size_limit = size_limit;
   
   // find boundary
   if ((bytes_read = smisk_stream_readline(__ctx.boundary, SMISK_STREAM_READLINE_LENGTH, __ctx.stream))) {
     __ctx.boundary_len = bytes_read-2; // -2 = -\r\n
     __ctx.boundary[__ctx.boundary_len] = 0;
+    
+    __ctx.bytes_read += bytes_read;
+    if(__ctx.bytes_read >= __ctx.size_limit) {
+      #if SMISK_DEBUG_MULTIPART
+      log_debug("multipart size limit exceeded: %lld > %lld", __ctx.bytes_read, __ctx.size_limit);
+      #endif
+      PyErr_Format(PyExc_RuntimeError, "multipart size limit exceeded");
+      return 1;
+    }
   
     // We got our first part, so let's get going
-    int limit=9;
+    int limit = 9;
     while ((!__ctx.eof) && limit--) {
       if ((status = smisk_multipart_parse_part(&__ctx)) != 0)
         break;

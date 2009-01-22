@@ -45,7 +45,7 @@ int smisk_parse_input_data (char *s, const char *separator, int is_cookie_data,
                             PyObject *dict, const char *charset);
 
 /** Read a line from a FCGI stream */
-size_t smisk_stream_readline (char *str, int n, FCGX_Stream *stream);
+int smisk_stream_readline (char *str, int n, FCGX_Stream *stream);
 
 /**
  * Print bytes - unsafe or outside ASCII characters are printed as \xXX

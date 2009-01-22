@@ -24,23 +24,16 @@ THE SOFTWARE.
 
 #include "system_config.h"
 
-#define SMISK_1KB 1024
-#define SMISK_1MB 1048576
-#define SMISK_1GB 1073741824
-
 // If defined, the crash dump code will not be compiled in.
 //#define SMISK_NO_CRASH_REPORTING
 
 // Chunk size for reading unknown length from a stream
-#define SMISK_STREAM_READ_CHUNKSIZE SMISK_1KB
+#define SMISK_STREAM_READ_CHUNKSIZE 1024
 
 // Default readline length for smisk.Stream.readline()
 // Should probably match the buffer size lifcgi uses for 
 // streams. See creation of NewReader or NewWriter in fcgiapp.c
 #define SMISK_STREAM_READLINE_LENGTH 8192
-
-// How much post data can be stored in memory instead of being written to disk
-#define SMISK_POST_SIZE_MEMORY_LIMIT SMISK_1MB
 
 // In case TEMPDIR is not present in env, this is used as a fallback.
 // Must end with a slash.
@@ -54,9 +47,6 @@ THE SOFTWARE.
 //          stop sharing sessions with each other, which is dangerous. Do not
 //          change unless during a major version step.
 #define SMISK_SESSION_NBITS 5
-
-// Max size for form post data (x-www-form-urlencoded)
-#define SMISK_FORM_DATA_MAX_SIZE SMISK_1GB
 
 // How to encode strs used for dict keys
 #define SMISK_KEY_CHARSET "utf-8"

@@ -10,6 +10,11 @@ class MyApp(Application):
     self.sessions.ttl = 10
     self.charset = 'iso-8859-1'
   
+  def application_will_start(self):
+    # Apply request input limits (reaaaally low, for testing purposes)
+    self.request.max_multipart_size = 1024*1024 # 1 MB
+    self.request.max_formdata_size = 51 # 51 bytes is exactly the amount of the default values in index.html
+  
   def service(self):
     self.response.headers = ["Content-Type: text/plain;charset=" + self.charset]
     

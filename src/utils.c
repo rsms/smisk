@@ -158,6 +158,13 @@ int smisk_parse_input_data( char *s,
   scpy = strdup(s);
   key = strtok_r(scpy, separator, &strtok_ctx);
   
+  py_val = Py_None;
+  Py_INCREF(Py_None);
+  
+  py_val = Py_None;
+  Py_INCREF(Py_None);
+  
+  
   while (key) {
     val = strchr(key, '=');
     
@@ -176,6 +183,9 @@ int smisk_parse_input_data( char *s,
     if (val) { // have a value
       *val++ = '\0'; // '=' -> '\0'
       int val_len = smisk_url_decode(val, strlen(val));
+      if (py_val == (PyObject *)Py_None) {
+        Py_DECREF(py_val);
+      }
       if (!(py_val = PyBytes_FromStringAndSize(val, val_len))) {
         status = -1;
         break;
@@ -186,10 +196,6 @@ int smisk_parse_input_data( char *s,
         status = -1;
         break;
       }
-    }
-    else {
-      py_val = Py_None;
-      Py_INCREF(Py_None);
     }
     
     // Key
@@ -211,7 +217,9 @@ int smisk_parse_input_data( char *s,
     }
     
     assert(PyBytes_Check(py_key) == 1);
-    assert(PyUnicode_Check(py_val) == 1);
+    if (py_val != (PyObject *)Py_None) {
+      assert(PyUnicode_Check(py_val) == 1);
+    }
     
     if ((status = PyDict_assoc_val_with_key(dict, py_val, py_key)) != 0)
       break;
@@ -220,6 +228,10 @@ int smisk_parse_input_data( char *s,
     Py_DECREF(py_val);
     
 next_part:
+    
+    py_val = Py_None;
+    Py_INCREF(Py_None);
+    
     key = strtok_r(NULL, separator, &strtok_ctx);
   } // end while (var)
 
@@ -229,7 +241,7 @@ next_part:
 }
 
 
-size_t smisk_stream_readline(char *str, int n, FCGX_Stream *stream) {
+int smisk_stream_readline(char *str, int n, FCGX_Stream *stream) {
   int c;
   char *p = str;
   

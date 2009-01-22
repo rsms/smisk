@@ -15,6 +15,10 @@ Changes
 * The key-value store example application now uses the shared dictionary
   provided by smisk.ipc.
 
+* smisk.core.Request have two soft limits – max_multipart_size and 
+  max_formdata_size – for limiting automatically handled input data size. These
+  soft limits can also be used to disable the automated parsing of Smisk.
+
 * smisk.util.cache has a new function – app_shared_key – returning a byte
   string which can be used to uniqely identify the application. The key is
   based on the entry file (the python file in which __name__ == "__main__").
@@ -38,6 +42,11 @@ Changes
 * smisk.core is now stored as _smisk and imported by smisk/core/__init__.py.
   This follows the naming custom of other machine-native modules as well as
   provides better name (i.e. _smisk.so instead of core.so) in various listings.
+
+* Fixed a bug in smisk.core where a www-form-urlencoded request with incorrect
+  content length and the first key was longer than the provided content length,
+  smisk would induce strange errors (because trying to set NULL into a python
+  dict).
 
 
 1.1.1

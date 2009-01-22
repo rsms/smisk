@@ -25,8 +25,8 @@ THE SOFTWARE.
 #include "Stream.h"
 #include "URL.h"
 
-//#include <fcgi_config.h>
 #include <fcgiapp.h>
+#include <structmember.h> /* Python: for T_LONGLONG definition */
 
 #define FCGI_REQUEST_STATE_NEVER_ACCEPTED 0
 #define FCGI_REQUEST_STATE_ACCEPTED 1
@@ -34,6 +34,10 @@ THE SOFTWARE.
 
 /* Size of buffer used to convert values and keys in envp */
 #define FCGI_REQUEST_ENVP_BUF_SIZE 1024
+
+#ifndef T_LONGLONG
+  #error T_LONGLONG is not defined which means this Python version does not support long long integers, which we need
+#endif
 
 typedef struct {
   PyObject_HEAD;
@@ -50,6 +54,8 @@ typedef struct {
   PyObject      *session; // special object (session data)
   PyObject      *session_id; // lazy string
   PyObject      *referring_url; // lazy URL
+  long long     max_multipart_size;
+  long long     max_formdata_size;
   
   // Public C
   FCGX_ParamArray envp;
