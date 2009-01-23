@@ -24,9 +24,7 @@ except ImportError:
     json_encode = None
 
 class JSONSerializer(Serializer):
-  '''JSON with JSONP support.
-  
-  JSONP support through passing the special ``callback`` query string parameter.
+  '''JSON serializer
   '''
   name = 'JSON: JavaScript Object Notation'
   extensions = ('json',)
@@ -34,17 +32,14 @@ class JSONSerializer(Serializer):
   
   @classmethod
   def serialize(cls, params, charset):
-    callback = None
-    if request:
-      callback = request.get.get('callback', None)
-    if callback:
-      return (None, '%s(%s);' % (callback, json_encode(params)))
-    else:
-      return (None, json_encode(params))
+    # For compatibility with Smisk <1.1.2
+    if 'callback' in request.get:
+      return JSONPSerializer.serialize(params, charset)
+    return (None, json_encode(params))
   
   @classmethod
   def serialize_error(cls, status, params, charset):
-    return (None, json_encode(params))
+    return cls.serialize(params, charset)
   
   @classmethod
   def unserialize(cls, file, length=-1, charset=None):
@@ -58,9 +53,26 @@ class JSONSerializer(Serializer):
       return ((st,), None)
   
 
+class JSONPSerializer(JSONSerializer):
+  '''JSONP serializer
+  
+  JSONP support through passing the special ``callback`` query string parameter.
+  '''
+  name = 'JSONP: JavaScript Object Notation with Padding'
+  extensions = ('jsonp',)
+  media_types = ('text/javascript',)
+  
+  @classmethod
+  def serialize(cls, params, charset):
+    callback = request.get.get('callback', u'jsonp_callback')
+    s = '%s(%s);' % (callback.encode('utf-8'), json_encode(params))
+    return (charset, s)
+  
+
 # Don't register if we did not find a json implementation
 if json_encode is not None:
   serializers.register(JSONSerializer)
+  serializers.register(JSONPSerializer)
 
 if __name__ == '__main__':
   s = JSONSerializer.serialize({
