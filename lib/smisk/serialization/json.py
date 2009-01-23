@@ -59,7 +59,7 @@ class JSONPSerializer(JSONSerializer):
   JSONP support through passing the special ``callback`` query string parameter.
   '''
   name = 'JSONP: JavaScript Object Notation with Padding'
-  extensions = ('jsonp',)
+  extensions = ('jsonp','js')
   media_types = ('text/javascript',)
   
   @classmethod
