@@ -730,7 +730,8 @@ class Application(smisk.core.Application):
     # like they would with a GET. (Including Content-Length)
     if self.request.method != 'HEAD':
       # Send body
-      assert isinstance(rsp, str)
+      if __debug__:
+        assert isinstance(rsp, str), 'type(rsp) == %s' % type(rsp)
       self.response.write(rsp)
   
   
