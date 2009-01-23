@@ -32,6 +32,8 @@ def parse_qvalue_header(s, accept_any_equals='*/*', partial_endswith='/*', retur
         vqs.append([part, q])
         if q == 100:
           highqs.append(part)
+        if part == accept_any_equals:
+          accept_any = True
         continue
     # No qvalue; we use three classes: any (q=0), partial (q=50) and complete (q=100)
     if return_true_if_accepts_charset is not None and part == return_true_if_accepts_charset:
