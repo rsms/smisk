@@ -257,11 +257,21 @@ class Router(object):
       raise TypeError('configuration parameter %r must be a list' % config_key)
     for filter in filters:
       try:
+        # Convert a list or tuple mapping
+        if isinstance(filter, (tuple, list)):
+          if len(filter) > 2:
+            filter = {'methods':filter[0], 'pattern': filter[1], 'destination': filter[2]}
+          else:
+            filter = {'pattern': filter[0], 'destination': filter[1]}
+        # Create a filter from the mapping
         dest = URL(filter['destination'])
         self.filter(filter['pattern'], dest, match_on_full_url=dest.scheme,
                     methods=filter.get('methods', None))
       except TypeError, e:
-        e.args = ('configuration parameter %r must contain dictionaries' % config_key,)
+        e.args = ('configuration parameter %r must contain dictionaries or lists' % config_key,)
+        raise
+      except IndexError, e:
+        e.args = ('%r in configuration parameter %r' % (e.message, config_key),)
         raise
       except KeyError, e:
         e.args = ('%r in configuration parameter %r' % (e.message, config_key),)
