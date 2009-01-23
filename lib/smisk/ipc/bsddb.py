@@ -1,4 +1,4 @@
-#!/bin/env python
+# encoding: utf-8
 #------------------------------------------------------------------------
 #       Copyright (c) 1997-2001 by Total Control Software
 #             All Rights Reserved
