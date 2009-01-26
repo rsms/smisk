@@ -93,8 +93,9 @@ def merge(a, b):
   '''
   if isinstance(a, list):
     a.extend(b)
+    return a
   elif isinstance(a, dict):
-    merge_dict(a, b)
+    return merge_dict(a, b)
   else:
     raise TypeError('first argument must be a list or a dict')
 
@@ -113,3 +114,27 @@ def merge_dict(a, b, merge_lists=True):
       a[bk].extend(bv)
     else:
       a[bk] = bv
+  return a
+
+def merged(a, b):
+  '''Like merge but does not modify *a*
+  '''
+  if isinstance(a, (list,tuple)):
+    return a + b
+  elif isinstance(a, dict):
+    return merged_dict(a, b)
+  else:
+    raise TypeError('first argument must be a list or a dict')
+
+def merged_dict(a, b, merge_lists=True):
+  '''Like merge_dict but does not modify *a*
+  '''
+  a = a.copy()
+  for bk,bv in b.iteritems():
+    if a.has_key(bk) and hasattr(bv, 'has_key') and hasattr(a[bk], 'has_key'):
+      a[bk] = merged_dict(a[bk], bv, merge_lists)
+    elif merge_lists and hasattr(bv, 'extend') and hasattr(a.get(bk), 'extend'):
+      a[bk] = a[bk] + bv
+    else:
+      a[bk] = bv
+  return a
