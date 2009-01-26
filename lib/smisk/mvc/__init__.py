@@ -223,7 +223,7 @@ class Application(smisk.core.Application):
           self.templates.directories = []
           self.templates = None
       if self.templates and not config.has_key('smisk.mvc.template.autoreload'):
-        config.set_default('smisk.mvc.template.autoreload', config.get('smisk.autoreload.enable'))
+        config.set_default('smisk.mvc.template.autoreload', config.get('smisk.autoreload'))
     
     # Set fallback serializer
     if isinstance(Response.fallback_serializer, basestring):

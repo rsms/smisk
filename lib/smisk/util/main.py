@@ -225,7 +225,8 @@ class Main(object):
       log.info('Listening on %s', smisk.core.listening())
     
     # Enable auto-reloading if any of these are True:
-    if _config.get('smisk.autoreload.modules', _config.get('smisk.autoreload.config')):
+    if _config.get('smisk.autoreload.modules') \
+    or _config.get('smisk.autoreload.config', _config.get('smisk.autoreload')):
       from smisk.autoreload import Autoreloader
       ar = Autoreloader()
       ar.start()
