@@ -23,19 +23,49 @@ THE SOFTWARE.
 #define SMISK_MACROS_H
 
 #include <Python.h>
+#include <pyconfig.h>
+#include <structmember.h>
 #include <stdint.h>
 
-// Types
+#ifndef HAVE_LONG_LONG
+  #error This system does not support 64-bit integers which are needed by Smisk
+#endif
+
+/* Types */
 typedef uint8_t byte;
 #if (PY_VERSION_HEX < 0x02050000)
   typedef ssize_t Py_ssize_t;
-  /* support for 64-bit integers first appeared in Python 2.5 */
-  #define T_LONGLONG T_LONG
-#else
-  #ifndef T_LONGLONG
-    #error T_LONGLONG is not defined which means this Python version does not support long long integers, which we need
-  #endif
 #endif
+
+/* If current Python does not include T_LONGLONG, we need to 
+ * provide get/setters ourselves */
+#ifndef T_LONGLONG
+  #define SMISK_LONGLONG_GETTER(type, property) \
+    static PyObject *_get_ ## property (type* self) {\
+      return PyLong_FromLongLong(self->property);\
+    }
+  
+  #define SMISK_LONGLONG_SETTER(type, property) \
+    static int _set_ ## property (type* self, PyObject *arg) {\
+      if (PyLong_Check(arg)) {\
+        self->property = PyLong_AsLongLong(arg);\
+      }\
+      else {\
+        long long prev_val = self->property;\
+        self->property = (long long)PyInt_AsLong(arg);\
+        if (self->property == -1 && PyErr_Occurred()) {\
+          self->property = prev_val;\
+          return -1;\
+        }\
+      }\
+      return 0;\
+    }
+  
+  #define SMISK_LONGLONG_GETSETTER(type, property)\
+    SMISK_LONGLONG_GETTER(type, property)\
+    SMISK_LONGLONG_SETTER(type, property)
+#endif
+
 
 /* Convert an ASCII hex digit to the corresponding number between 0
    and 15.  H should be a hexadecimal digit that satisfies isxdigit;
@@ -50,7 +80,7 @@ typedef uint8_t byte;
 #define XNUM_TO_digit(x) ("0123456789abcdef"[x] + 0)
 
 
-// Python 3 is on the horizon... (currently only used by )
+/* Python 3 is on the horizon... (currently only used by ) */
 #if (PY_VERSION_HEX < 0x02060000)  /* really: before python trunk r63675 */
   /* These #defines map to their equivalent on earlier python versions. */
   #define PyBytes_FromStringAndSize   PyString_FromStringAndSize
@@ -61,7 +91,6 @@ typedef uint8_t byte;
   #define PyBytes_AS_STRING           PyString_AS_STRING
   #define PyBytes_AsString            PyString_AsString
   #define PyBytes_InternFromString    PyString_InternFromString
-  
   #define PyBytes_FromFormat          PyString_FromFormat
   #define PyBytes_Size                PyString_Size
   #define PyBytes_ConcatAndDel        PyString_ConcatAndDel
@@ -80,7 +109,7 @@ typedef uint8_t byte;
 #endif
 
 
-// Get minimum value
+/* Get minimum value */
 #ifndef min
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
 #endif
@@ -88,15 +117,14 @@ typedef uint8_t byte;
 #define max(X, Y)  ((X) > (Y) ? (X) : (Y))
 #endif
 
-// Module identifier, used in logging
+/* Module identifier, used in logging */
 #define MOD_IDENT "smisk.core"
 
-// Converting MY_MACRO to "<value of MY_MACRO>".
-// i.e. QUOTE(PY_MAJOR_VERSION) -> "2"
+/* Converting MY_MACRO to "<value of MY_MACRO>" i.e. QUOTE(PY_MAJOR_VERSION) -> "2" */
 #define _QUOTE(x) #x
 #define QUOTE(x) _QUOTE(x)
 
-// Replace a PyObject while counting references
+/* Replace a PyObject while counting references */
 #define REPLACE_OBJ(destination, new_value, type) \
   do { \
     type *__old_ ## type ## __LINE__ = (type *)(destination); \
@@ -107,7 +135,7 @@ typedef uint8_t byte;
 
 #define REPLACE_PyObject(dst, value) REPLACE_OBJ(dst, value, PyObject)
 
-// Ensure a lazy instance variable is available
+/* Ensure a lazy instance variable is available */
 #define ENSURE_BY_GETTER(direct, getter, ...) \
   if (direct == NULL) {\
     PyObject *tmp = getter;\
@@ -118,10 +146,11 @@ typedef uint8_t byte;
     }\
   }
 
-// Get and set arbitrary attributes of objects.
-// This is the only way to set/get Type/Class properties.
-// Uses the interal function PyObject **_PyObject_GetDictPtr(PyObject *);
-// Returns PyObject * (NULL if an exception was raised)
+/* Get and set arbitrary attributes of objects.
+ * This is the only way to set/get Type/Class properties.
+ * Uses the interal function PyObject **_PyObject_GetDictPtr(PyObject *);
+ * Returns PyObject * (NULL if an exception was raised)
+ */
 #define SMISK_PyObject_GET(PyObject_ptr_type, char_ptr_name) \
   PyDict_GetItemString(*_PyObject_GetDictPtr((PyObject *)PyObject_ptr_type), char_ptr_name)
 // Returns 0 on success, -1 on failure.
@@ -132,17 +161,17 @@ typedef uint8_t byte;
 // instanceof(obj, (bytes, str, unicode)
 #define SMISK_STRING_CHECK(obj) (PyBytes_Check(obj) || PyUnicode_Check(obj))
 
-// Set IOError with errno and filename info. Return NULL
+/* Set IOError with errno and filename info. Return NULL */
 #define PyErr_SET_FROM_ERRNO   PyErr_SetFromErrnoWithFilename(PyExc_IOError, __FILE__)
 
 // Log to stderr
 #define log_error(fmt, ...) fprintf(stderr, MOD_IDENT " [%d] ERROR %s:%d: " fmt "\n", \
   getpid(), __FILE__, __LINE__, ##__VA_ARGS__)
 
-// Used for temporary debugging
+/* Used for temporary debugging */
 #define _DUMP_REFCOUNT(o) log_error("*** %s: %ld", #o, (o) ? (long int)(o)->ob_refcnt : 0)
 
-// Log to stderr, but only in debug builds
+/* Log to stderr, but only in debug builds */
 #if SMISK_DEBUG
   #define SMISK_TRACE 1
   #define log_debug(fmt, ...) fprintf(stderr, MOD_IDENT " [%d] DEBUG %s:%d: " fmt "\n",\
@@ -183,16 +212,17 @@ typedef uint8_t byte;
 #endif
 
 
-// Global Python interpreter lock helpers.
-//
-// Python has a somewhat retarded way of handling threads.
-// Even though smisk.core isn't threaded, we need to make
-// sure external operations which might block (for example
-// FCGX_Accept_r) does not hold on to the global interpreter
-// lock.
-//
-// smisk_py_thstate is defined in __init__.h and implemented
-// in __init__.c
+/* Python global interpreter lock helpers.
+ *
+ * Python has a somewhat retarded way of handling threads.
+ * Even though smisk.core isn't threaded, we need to make
+ * sure external operations which might block (for example
+ * FCGX_Accept_r) does not hold on to the global interpreter
+ * lock.
+ *
+ * smisk_py_thstate is defined in __init__.h and implemented
+ * in __init__.c
+ */
 #define EXTERN_OP_START \
 	smisk_py_thstate = PyThreadState_Swap(NULL); \
 	PyEval_ReleaseLock()
@@ -208,23 +238,23 @@ typedef uint8_t byte;
 	PyEval_AcquireLock(); \
   PyThreadState_Swap(state_var);
 
-// Smisk main state_var
+/* Smisk main state_var */
 #define EXTERN_OP(section) \
   _EXTERN_OP(smisk_py_thstate, section)
 
-// Temporary state_var
+/* Temporary state_var */
 #define EXTERN_OP2(section) \
 	_EXTERN_OP(PyThreadState *_thread_state ## __LINE__, section)
 
-// Custom state_var
+/* Custom state_var */
 #define EXTERN_OP3(state_var, section) \
 	_EXTERN_OP(state_var, section)
 	
 
-// String macros
+/* String macros */
 #define STR_LTRIM_S(s) for(; *(s)==' '; (s)++)
 
-// String comparison. Inspired by Igor Sysoev.
+/* String comparison. Inspired by Igor Sysoev. */
 #if (SMISK_SYS_LITTLE_ENDIAN && SMISK_SYS_NONALIGNED)
 
 #define smisk_str3cmp(m, c0, c1, c2)                                       \

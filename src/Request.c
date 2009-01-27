@@ -892,13 +892,20 @@ static PyObject *smisk_Request_get_method(smisk_Request* self) {
 }
 
 
+#ifndef T_LONGLONG
+  SMISK_LONGLONG_GETSETTER(smisk_Request, max_multipart_size);
+  SMISK_LONGLONG_GETSETTER(smisk_Request, max_formdata_size);
+#endif
+
+
 #pragma mark -
 #pragma mark Iteration
 
 
 PyObject *smisk_Request___iter__(smisk_Request *self) {
   log_trace("ENTER");
-  return Py_INCREF(self->input), (PyObject*)self->input;
+  Py_INCREF(self->input);
+  return (PyObject*)self->input;
 }
 
 
@@ -960,8 +967,14 @@ static PyGetSetDef smisk_Request_getset[] = {
   {"referring_url", (getter)smisk_Request_get_referring_url,  (setter)0,
     ":type: smisk.core.URL", NULL},
   
-  {"method", (getter)smisk_Request_get_method,  (setter)0,
-    ":type: str", NULL},
+  {"method", (getter)smisk_Request_get_method, (setter)0, ":type: str", NULL},
+  
+#ifndef T_LONGLONG
+  {"max_multipart_size", (getter)_get_max_multipart_size, 
+    (setter)_set_max_multipart_size, ":type: long", NULL},
+  {"max_formdata_size", (getter)_get_max_formdata_size,
+    (setter)_set_max_formdata_size, ":type: long", NULL},
+#endif
   
   {NULL, NULL, NULL, NULL, NULL}
 };
@@ -970,9 +983,10 @@ static PyGetSetDef smisk_Request_getset[] = {
 static struct PyMemberDef smisk_Request_members[] = {
   {"input", T_OBJECT_EX, offsetof(smisk_Request, input), RO, "Input stream"},
   {"errors", T_OBJECT_EX, offsetof(smisk_Request, errors), RO, "Error stream"},
+#ifdef T_LONGLONG
   {"max_multipart_size", T_LONGLONG, offsetof(smisk_Request, max_multipart_size), 0, NULL},
   {"max_formdata_size", T_LONGLONG, offsetof(smisk_Request, max_formdata_size), 0, NULL},
-  
+#endif
   {NULL, 0, 0, 0, NULL}
 };
 

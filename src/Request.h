@@ -26,7 +26,6 @@ THE SOFTWARE.
 #include "URL.h"
 
 #include <fcgiapp.h>
-#include <structmember.h> /* Python: for T_LONGLONG definition */
 
 #define FCGI_REQUEST_STATE_NEVER_ACCEPTED 0
 #define FCGI_REQUEST_STATE_ACCEPTED 1
@@ -51,15 +50,8 @@ typedef struct {
   PyObject      *session; // special object (session data)
   PyObject      *session_id; // lazy string
   PyObject      *referring_url; // lazy URL
-  
-#if (PY_VERSION_HEX < 0x02050000)
-  /* support for 64-bit integers first appeared in Python 2.5 */
-  long          max_multipart_size;
-  long          max_formdata_size;
-#else
   long long     max_multipart_size;
   long long     max_formdata_size;
-#endif
   
   // Public C
   FCGX_ParamArray envp;
