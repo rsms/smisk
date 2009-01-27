@@ -135,6 +135,10 @@ typedef uint8_t byte;
 
 #define REPLACE_PyObject(dst, value) REPLACE_OBJ(dst, value, PyObject)
 
+#ifndef Py_TYPE
+  #define Py_TYPE(ob)	(((PyObject*)(ob))->ob_type)
+#endif
+
 /* Ensure a lazy instance variable is available */
 #define ENSURE_BY_GETTER(direct, getter, ...) \
   if (direct == NULL) {\

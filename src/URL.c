@@ -470,32 +470,59 @@ PyObject *smisk_URL_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 
 int smisk_URL_init(smisk_URL *self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
-  PyObject *str;
+  PyObject *arg;
   
   // No arguments? (new empty url)
   if ( !args || (PyTuple_GET_SIZE(args) == 0) )
     return 0;
   
   // Save reference to first argument (a string) and type check it
-  str = PyTuple_GET_ITEM(args, 0);
+  arg = PyTuple_GET_ITEM(args, 0);
   
-  if (!SMISK_STRING_CHECK(str)) {
-    str = PyObject_Str(str);
-    if (str == NULL)
-      return -1;
+  if (smisk_URL_Check(arg)) {
+    /* Copy another URL object */
+    smisk_URL *orig = (smisk_URL *)arg;
+    
+    self->scheme    = orig->scheme;
+    self->user      = orig->user;
+    self->password  = orig->password;
+    self->host      = orig->host;
+    self->port      = orig->port;
+    self->path      = orig->path;
+    self->query     = orig->query;
+    self->fragment  = orig->fragment;
+    
+    Py_INCREF(self->scheme);
+    Py_INCREF(self->user);
+    Py_INCREF(self->password);
+    Py_INCREF(self->host);
+    Py_INCREF(self->path);
+    Py_INCREF(self->query);
+    Py_INCREF(self->fragment);
   }
   else {
-    Py_INCREF(str);
+    /* Aquire bytes and parse them as a URL */
+    if (!SMISK_STRING_CHECK(arg)) {
+      arg = PyObject_Str(arg);
+      if (arg == NULL) {
+        Py_DECREF(self);
+        return -1;
+      }
+    }
+    else {
+      Py_INCREF(arg);
+    }
+    
+    if (!_parse(self, PyBytes_AsString(arg), PyBytes_Size(arg))) {
+      PyErr_SetString(PyExc_ValueError, "Failed to parse URL");
+      Py_DECREF(arg);
+      Py_DECREF(self);
+      return -1;
+    }
+    
+    Py_DECREF(arg);
   }
   
-  if (!_parse(self, PyBytes_AsString(str), PyBytes_Size(str))) {
-    PyErr_SetString(PyExc_ValueError, "Failed to parse URL");
-    Py_DECREF(str);
-    Py_DECREF(self);
-    return -1;
-  }
-  
-  Py_DECREF(str);
   return 0;
 }
 

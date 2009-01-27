@@ -37,12 +37,16 @@ typedef struct {
   
 } smisk_URL;
 
+// class URL (the URL type object)
+PyTypeObject smisk_URLType;
+
+#define smisk_URL_CheckExact(op) (Py_TYPE(op) == &smisk_URLType)
+#define smisk_URL_Check(op) \
+  ((Py_TYPE(op) == &smisk_URLType) || PyObject_TypeCheck((PyObject *)(op), &smisk_URLType))
+
 // C API only
 size_t smisk_url_decode (char *str, size_t length); // returns (new) length of str
 char *smisk_url_encode (const char *s, size_t length, int full); // returns a newly allocated string
-
-// class URL (the URL type object)
-PyTypeObject smisk_URLType;
 
 // Type setup
 int smisk_URL_register_types (PyObject *module);

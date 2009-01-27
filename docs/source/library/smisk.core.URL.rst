@@ -48,7 +48,15 @@
     
     :type: string
   
-
+  
+  
+  .. method:: __init__(obj) -> URL
+  
+    Initialize a new URL from *obj*.
+    
+    If *obj* is a subclass of :class:`URL`, a shallow copy of *obj* will be returned. If *obj* is something else, it will be, converted to if needed and, treated as bytes which are then parsed like they would represent a (complete or partial) URL.
+  
+  
   .. method:: to_s(scheme=True, user=True, password=True, host=True, port=True, port80=True, path=True, query=True, fragment=True) -> str
   
     String representation.
