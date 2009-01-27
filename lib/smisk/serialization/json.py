@@ -24,9 +24,9 @@ except ImportError:
     json_encode = None
 
 class JSONSerializer(Serializer):
-  '''JSON serializer
+  '''JavaScript Object Notation
   '''
-  name = 'JSON: JavaScript Object Notation'
+  name = 'JSON'
   extensions = ('json',)
   media_types = ('application/json',)
   
@@ -54,11 +54,11 @@ class JSONSerializer(Serializer):
   
 
 class JSONPSerializer(JSONSerializer):
-  '''JSONP serializer
+  '''JavaScript Object Notation with Padding
   
   JSONP support through passing the special ``callback`` query string parameter.
   '''
-  name = 'JSONP: JavaScript Object Notation with Padding'
+  name = 'JSONP'
   extensions = ('jsonp','js')
   media_types = ('text/javascript',)
   
