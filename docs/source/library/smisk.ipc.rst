@@ -9,7 +9,7 @@ Functions
 -------------------------------------------------
 
 
-.. function:: shared_dict() -> dict
+.. function:: shared_dict(persistent=False) -> dict
 
   Aquire the shared dictionary which can be concurrently manipulated by multiple processes.
   
@@ -39,6 +39,9 @@ Functions
     
     main(App)
   
+  :param persistent:
+    If True, the dictionary will persist between application restarts (i.e.
+    the contents of the dict is synced and keept on disk).
 
 
 Modules
