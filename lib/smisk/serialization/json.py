@@ -33,7 +33,7 @@ class JSONSerializer(Serializer):
   @classmethod
   def serialize(cls, params, charset):
     # For compatibility with Smisk <1.1.2
-    if 'callback' in request.get:
+    if request and 'callback' in request.get:
       return JSONPSerializer.serialize(params, charset)
     return (None, json_encode(params))
   
@@ -64,7 +64,9 @@ class JSONPSerializer(JSONSerializer):
   
   @classmethod
   def serialize(cls, params, charset):
-    callback = request.get.get('callback', u'jsonp_callback')
+    callback = u'jsonp_callback'
+    if request:
+      callback = request.get.get('callback', callback)
     s = '%s(%s);' % (callback.encode('utf-8'), json_encode(params))
     return (charset, s)
   
