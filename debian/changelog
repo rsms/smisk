@@ -1,3 +1,9 @@
+python-smisk (1.1.3-1) stable testing unstable; urgency=low
+
+  * Upstream release 1.1.3
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Sun,  22 Feb 2009 21:00:00 +0100
+
 python-smisk (1.1.2-3) stable testing unstable; urgency=low
 
   * Fixed missing module hints in setup.py
