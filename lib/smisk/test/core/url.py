@@ -17,6 +17,7 @@ class URLTests(TestCase):
     assert URL.unescape(escaped) == URL.decode(escaped)
     self.assertEquals(URL.decode("foo%2Bbar@internets.com"), "foo+bar@internets.com")
   
+  
   def test_encode_decode_string_type(self):
     self.assertEquals(type(URL.encode(u"foo+bar@internets.com")), type(u"foo%2Bbar@internets.com"))
     self.assertEquals(type(URL.encode("foo+bar@internets.com")), type("foo%2Bbar@internets.com"))
@@ -24,6 +25,7 @@ class URLTests(TestCase):
     self.assertEquals(type(URL.escape("foo+bar@internets.com")), type("foo%2Bbar@internets.com"))
     self.assertEquals(type(URL.decode(u"foo%2Bbar@internets.com")), type(u"foo+bar@internets.com"))
     self.assertEquals(type(URL.decode("foo%2Bbar@internets.com")), type("foo+bar@internets.com"))
+  
   
   def test_clean_strings(self):
     # Should be unmodified and retain pointers
@@ -36,6 +38,7 @@ class URLTests(TestCase):
     encoded = URL.encode(raw)
     assert encoded == raw
     assert id(encoded) == id(raw)
+  
   
   def test_parse(self):
     u = URL('http://john:secret@www.mos.tld/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
@@ -89,6 +92,7 @@ class URLTests(TestCase):
     self.assertEquals(q['mos'], ['abc', '123'])
     self.assertContains(q.keys(), ['email', 'stale_key', 'mos'])
   
+  
   def test_decompose_query_decode(self):
     u = URL('http://a/?name=%E5%E4%F6')
     q = URL.decompose_query(u.query, charset='latin-1')
@@ -123,6 +127,7 @@ class URLTests(TestCase):
     self.assertEquals(str(u), raw)
     self.assertEquals(unicode(u), unicode(raw))
   
+  
   def test_to_s_2_port(self):
     u = URL('http://fisk.tld:1983/some/path')
     self.assertEquals(u.to_s(port=0), 'http://fisk.tld/some/path')
@@ -132,6 +137,7 @@ class URLTests(TestCase):
     self.assertEquals(u.to_s(port=0), 'http://fisk.tld/some/path')
     self.assertEquals(u.to_s(port80=0), 'http://fisk.tld/some/path')
     self.assertEquals(u.to_s(port=0, port80=1), 'http://fisk.tld/some/path')
+  
   
   def test_to_s_3(self):
     u = URL('http://john:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
@@ -188,12 +194,19 @@ class URLTests(TestCase):
     # no query
     self.assertEquals(u.to_s(scheme=1, user=1, password=1, host=1, port=1, path=1, query=0, fragment=0), 'http://john:secret@fisk.tld:1983/some/path.ext')
   
+  
   def test_to_s_4(self):
     u = URL('http://john:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
     self.assertEquals(u.to_s(scheme='ftp'), 'ftp://john:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
     self.assertEquals(u.to_s(user='bob'), 'http://bob:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
+    self.assertEquals(u.to_s(password='bob'), 'http://john:bob@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
+    self.assertEquals(u.to_s(host='bob'), 'http://john:secret@bob:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
+    self.assertEquals(u.to_s(port=123), 'http://john:secret@fisk.tld:123/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
     self.assertEquals(u.to_s(user=0, path='/internets'), 'http://fisk.tld:1983/internets?arg1=245&arg2=hej%20du#chapter5')
+    self.assertEquals(u.to_s(query='grekisk_afton=yes'), 'http://john:secret@fisk.tld:1983/some/path.ext?grekisk_afton=yes#chapter5')
+    self.assertEquals(u.to_s(fragment='m0'), 'http://john:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#m0')
   
+
 
 def suite():
   return unittest.TestSuite([
