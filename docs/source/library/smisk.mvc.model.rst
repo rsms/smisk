@@ -2,7 +2,7 @@
 =================================================
 
 .. module:: smisk.mvc.model
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 Object Relational Mapper (ORM), normally backed by a RDBMS like SQLite, MySQL or PostgreSQL.
 

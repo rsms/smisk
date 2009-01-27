@@ -2,7 +2,7 @@
 ===========================================================
 
 .. module:: smisk.util.main
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 
 Configuration parameters

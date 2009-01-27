@@ -1,7 +1,7 @@
 :mod:`smisk.serialization.xhtml`
 =================================================
 
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 .. automodule:: smisk.serialization.xhtml
   :members:

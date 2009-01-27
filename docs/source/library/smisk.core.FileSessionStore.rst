@@ -23,7 +23,7 @@ Instance attributes
 
 .. attribute:: smisk.core.FileSessionStore.gc_probability
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
   
   A value between 0 and 1 which defines the probability that sessions are
   garbage collected.

@@ -67,7 +67,7 @@ Instance attributes
   it's in :meth:`~smisk.core.Application.run()` where the forking goes down.
   Defaults to 0 (disabled).
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 .. attribute:: smisk.core.Application.request_class
 

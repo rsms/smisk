@@ -1,7 +1,7 @@
 :mod:`smisk.mvc.template.filters`
 =================================================
 
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 .. automodule:: smisk.mvc.template.filters
   :members:

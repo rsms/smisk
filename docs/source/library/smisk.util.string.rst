@@ -1,7 +1,7 @@
 :mod:`smisk.util.string`
 =================================================
 
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 .. automodule:: smisk.util.string
   :members:

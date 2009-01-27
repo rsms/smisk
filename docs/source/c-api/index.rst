@@ -27,7 +27,7 @@ Members
   
   The module itself.
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 .. cvar:: PyObject* Error
   
@@ -62,7 +62,7 @@ Functions
 
 .. cfunction:: PyObject* smisk_unbind(PyObject *self)
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 .. cfunction:: PyObject* smisk_listening(PyObject *self, PyObject *args)
@@ -70,12 +70,12 @@ Functions
 
 .. cfunction:: PyObject* smisk_uid(PyObject *self, PyObject *args)
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 .. cfunction:: PyObject* smisk_pack(PyObject *self, PyObject *args)
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 .. cfunction:: PyObject* SMISK_PyObject_GET(PyObject *object, char *attrname)
@@ -87,7 +87,7 @@ Functions
   
   :Returns: A `PyObject` or NULL if an exception was raised.
   
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 .. cfunction:: int SMISK_PyObject_SET(PyObject *object, char *attrname, PyObject *value)
@@ -99,7 +99,7 @@ Functions
   
   :Returns: -1 is an error occured or 0 on success.
   
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 .. cfunction:: void REPLACE_OBJ(destination, new_value, type)
@@ -463,5 +463,5 @@ Macros defined in *config.h*.
   
   Session ID compactness.
   
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 

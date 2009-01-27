@@ -2,7 +2,7 @@
 =================================================
 
 .. module:: smisk.mvc.helpers
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 All members of this module is exported in :mod:`smisk.mvc`.
 

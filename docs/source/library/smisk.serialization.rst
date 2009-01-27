@@ -1,7 +1,7 @@
 :mod:`smisk.serialization` --- Data serialization
 =================================================
 
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 .. automodule:: smisk.serialization
   :members:

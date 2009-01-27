@@ -1,7 +1,7 @@
 :mod:`smisk.util.introspect`
 =================================================
 
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 .. automodule:: smisk.util.introspect
   :members:

@@ -1,7 +1,7 @@
 :mod:`smisk.serialization.xmlbase`
 =================================================
 
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 .. automodule:: smisk.serialization.xmlbase
   :members:

@@ -5,7 +5,7 @@ Templating.
 
 :requires: `mako <http://www.makotemplates.org/>`__
 
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 
 Configuration parameters

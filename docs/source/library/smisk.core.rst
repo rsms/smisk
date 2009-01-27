@@ -52,7 +52,7 @@ Attributes
   
   :See: :attr:`Application.current`
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 .. attribute:: request
@@ -68,7 +68,7 @@ Attributes
   
   :See: :attr:`Application.request`
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 .. attribute:: response
@@ -84,7 +84,7 @@ Attributes
   
   :See: :attr:`Application.response`
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 Functions
@@ -116,7 +116,7 @@ Functions
   
   :raises: IOError on failure.
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 .. function:: listening() -> string
@@ -152,7 +152,7 @@ Functions
   :param node:  Optional data to be used when creating the uid.
   :type  node:  string
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 .. function:: pack(data[, nbits=5]) -> string
@@ -177,14 +177,14 @@ Functions
   :type  nbits: int
   :see: :func:`uid()`
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 .. function:: object_hash(object) -> long
 
   Calculate a hash from any python object.
 
-  .. versionadded:: 1.1
+  .. versionadded:: 1.1.0
 
 
 Classes

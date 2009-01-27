@@ -2,7 +2,7 @@
 ===========================================================
 
 .. module:: smisk.autoreload
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 Automatically reload processes when components are updated.
 

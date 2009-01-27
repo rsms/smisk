@@ -1,7 +1,7 @@
 :mod:`smisk.serialization.json`
 =================================================
 
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 .. module:: smisk.serialization.json
 
 JSON: JavaScript Object Notation

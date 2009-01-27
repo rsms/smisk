@@ -2,7 +2,7 @@
 =================================================
 
 .. module:: smisk.util.frozen
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 Immutable types
 

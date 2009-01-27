@@ -114,7 +114,7 @@
 
   .. attribute:: referring_url
 
-    .. versionadded:: 1.1
+    .. versionadded:: 1.1.0
   
     :type: :class:`~smisk.core.URL`
 
