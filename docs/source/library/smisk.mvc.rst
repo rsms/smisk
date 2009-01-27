@@ -2,7 +2,7 @@
 ===========================================================
 
 .. module:: smisk.mvc
-.. versionadded:: 1.1
+.. versionadded:: 1.1.0
 
 Model-View-Controller-based sub-framework.
 
@@ -525,6 +525,18 @@ Classes
   
     :type: smisk.serialization.Serializer
 
+
+  .. attribute:: cn_url
+    
+    .. versionadded:: 1.1.2
+    
+    URL with any filename extension removed, for use with Content
+    Negotiation.
+    
+    If the request did not contain a filename extension, this is the same
+    object as :attr:`smisk.core.Request.url`.
+    
+    :type: :class:`smisk.core.URL`
 
 
 

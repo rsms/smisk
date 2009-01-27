@@ -82,6 +82,10 @@ class Request(smisk.core.Request):
   serializer = None
   '''Serializer used for decoding request payload.
   '''
+  
+  cn_url = None
+  '''URL but with any filename extension removed, for use with Content Negotiation.
+  '''
 
 
 class Response(smisk.core.Response):
@@ -295,6 +299,8 @@ class Application(smisk.core.Application):
       p = filename.rfind('.')
       if p != -1:
         self.response.format = filename[p+1:].lower()
+        self.request.cn_url = URL(self.request.url) # copy
+        self.request.cn_url.path = self.request.cn_url.path[:-len(self.response.format)-1]
         if log.level <= logging.DEBUG:
           log.debug('response format %r deduced from request filename extension', 
             self.response.format)
@@ -407,7 +413,7 @@ class Application(smisk.core.Application):
       if no_http_exc or len(serializers) < 2:
         return Response.fallback_serializer
       else:
-        raise http.MultipleChoices(self.request.url)
+        raise http.MultipleChoices(self.request.cn_url)
       
     # Return the default serializer
     return Response.serializer
@@ -740,10 +746,12 @@ class Application(smisk.core.Application):
     '''
     if log.level <= logging.INFO:
       timer = Timer()
-      log.info('Serving %s for client %s', request.url, request.env.get('REMOTE_ADDR','?'))
+      log.info('Serving %s for client %s', self.request.url, 
+        self.request.env.get('REMOTE_ADDR','?'))
     
     # Reset pre-transaction properties
     self.request.serializer = None
+    self.request.cn_url = self.request.url
     self.response.format = None
     self.response.serializer = None
     self.response.charset = self.charset
@@ -766,7 +774,7 @@ class Application(smisk.core.Application):
     # The "/*" is an extension from Smisk. Most host servers respond to "*" themselves,
     # without asking Smisk.
     if self.request.method == 'OPTIONS' and \
-    (self.request.env.get('SCRIPT_NAME') == '*' or self.request.url.path == '/*'):
+    (self.request.env.get('SCRIPT_NAME') == '*' or self.request.cn_url.path == '/*'):
       return self.service_server_OPTIONS(req_args, req_params)
     
     # Resolve route to destination

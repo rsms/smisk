@@ -125,10 +125,10 @@ class Status300(Status):
     from smisk.serialization import serializers
     rsp = Status.service(self, app)
     if url is None:
-      url = app.request.url
+      url = app.request.cn_url
     elif not isinstance(url, URL):
       url = URL(url)
-    path = strip_filename_extension(url.path)
+    path = url.path
     query = ''
     if url.query:
       query = '?' + url.query
