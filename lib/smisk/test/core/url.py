@@ -188,6 +188,12 @@ class URLTests(TestCase):
     # no query
     self.assertEquals(u.to_s(scheme=1, user=1, password=1, host=1, port=1, path=1, query=0, fragment=0), 'http://john:secret@fisk.tld:1983/some/path.ext')
   
+  def test_to_s_4(self):
+    u = URL('http://john:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
+    self.assertEquals(u.to_s(scheme='ftp'), 'ftp://john:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
+    self.assertEquals(u.to_s(user='bob'), 'http://bob:secret@fisk.tld:1983/some/path.ext?arg1=245&arg2=hej%20du#chapter5')
+    self.assertEquals(u.to_s(user=0, path='/internets'), 'http://fisk.tld:1983/internets?arg1=245&arg2=hej%20du#chapter5')
+  
 
 def suite():
   return unittest.TestSuite([

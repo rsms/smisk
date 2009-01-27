@@ -795,11 +795,16 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   
   // DRY -- otherwise kittens will be wasted.
   #define ENABLED(x) ( self->x != Py_None && (x == NULL || x == Py_True || x == one) )
+  #define SENABLED(x) ( (x != NULL) && PyBytes_Check(x) && (PyBytes_Size(x) > 0) )
   
   PyObject *s = PyBytes_FromStringAndSize("", 0);
   
   if (ENABLED(scheme)) {
     PyBytes_Concat(&s, self->scheme);
+    PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("://", 3));
+  }
+  else if (SENABLED(scheme)) {
+    PyBytes_Concat(&s, scheme);
     PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("://", 3));
   }
   
@@ -809,32 +814,68 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
       PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize(":", 1));
       PyBytes_Concat(&s, self->password);
     }
+    else if (SENABLED(password)) {
+      PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize(":", 1));
+      PyBytes_Concat(&s, password);
+    }
+    PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("@", 1));
+  }
+  else if (SENABLED(user)) {
+    PyBytes_Concat(&s, user);
+    if (ENABLED(password)) {
+      PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize(":", 1));
+      PyBytes_Concat(&s, self->password);
+    }
+    else if (SENABLED(password)) {
+      PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize(":", 1));
+      PyBytes_Concat(&s, password);
+    }
     PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("@", 1));
   }
   
   if (ENABLED(host))
     PyBytes_Concat(&s, self->host);
+  else if (SENABLED(host))
+    PyBytes_Concat(&s, host);
   
   // port is an int, so we can't use our pretty ENABLED macro here
   if ( (port == NULL || port == Py_True || port == one) && (self->port > 0) ) {
     if (self->port != 80 || (port80 == Py_True || port80 == one) )
       PyBytes_ConcatAndDel(&s, PyBytes_FromFormat(":%d", self->port));
   }
+  else if (port && NUMBER_Check(port)) {
+    /* might cause integer overflow, but what the hell – the input should 
+     * have been checked earlier by whoever called us. */
+    int _port = (int)NUMBER_AsLong(port);
+    if ( (_port > 0) && (_port != 80 || (port80 == Py_True || port80 == one)) )
+      PyBytes_ConcatAndDel(&s, PyBytes_FromFormat(":%d", _port));
+  }
   
   if (ENABLED(path))
     PyBytes_Concat(&s, self->path);
+  else if (SENABLED(path))
+    PyBytes_Concat(&s, path);
   
-  if (ENABLED(query) && self->query != Py_None && PyBytes_Size(self->query) > 0) {
+  if (ENABLED(query) && PyBytes_Size(self->query) > 0) {
     PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("?", 1));
     PyBytes_Concat(&s, self->query);
   }
+  else if (SENABLED(query)) {
+    PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("?", 1));
+    PyBytes_Concat(&s, query);
+  }
   
-  if (ENABLED(fragment) && self->fragment != Py_None) {
+  if (ENABLED(fragment)) {
     PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("#", 1));
     PyBytes_Concat(&s, self->fragment);
   }
+  else if (SENABLED(fragment)) {
+    PyBytes_ConcatAndDel(&s, PyBytes_FromStringAndSize("#", 1));
+    PyBytes_Concat(&s, fragment);
+  }
   
   #undef ENABLED
+  #undef SENABLED
   
   Py_DECREF(one);
   return s;
