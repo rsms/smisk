@@ -28,7 +28,13 @@ THE SOFTWARE.
 // Types
 typedef uint8_t byte;
 #if (PY_VERSION_HEX < 0x02050000)
-typedef ssize_t Py_ssize_t;
+  typedef ssize_t Py_ssize_t;
+  /* support for 64-bit integers first appeared in Python 2.5 */
+  #define T_LONGLONG T_LONG
+#else
+  #ifndef T_LONGLONG
+    #error T_LONGLONG is not defined which means this Python version does not support long long integers, which we need
+  #endif
 #endif
 
 /* Convert an ASCII hex digit to the corresponding number between 0

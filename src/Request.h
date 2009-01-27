@@ -35,9 +35,6 @@ THE SOFTWARE.
 /* Size of buffer used to convert values and keys in envp */
 #define FCGI_REQUEST_ENVP_BUF_SIZE 1024
 
-#ifndef T_LONGLONG
-  #error T_LONGLONG is not defined which means this Python version does not support long long integers, which we need
-#endif
 
 typedef struct {
   PyObject_HEAD;
@@ -54,8 +51,15 @@ typedef struct {
   PyObject      *session; // special object (session data)
   PyObject      *session_id; // lazy string
   PyObject      *referring_url; // lazy URL
+  
+#if (PY_VERSION_HEX < 0x02050000)
+  /* support for 64-bit integers first appeared in Python 2.5 */
+  long          max_multipart_size;
+  long          max_formdata_size;
+#else
   long long     max_multipart_size;
   long long     max_formdata_size;
+#endif
   
   // Public C
   FCGX_ParamArray envp;
