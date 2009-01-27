@@ -651,6 +651,7 @@ setup(
   package_dir = {'': 'lib'},
   packages = [
     'smisk',
+    'smisk.core',
     'smisk.inflection',
     'smisk.mvc',
     'smisk.mvc.template',
