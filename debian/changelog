@@ -1,3 +1,9 @@
+python-smisk (1.1.2-2) stable testing unstable; urgency=low
+
+  * Fixed missing smisk.core hint in setup.pu
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Tue,  27 Jan 2009 03:10:00 +0100
+
 python-smisk (1.1.2-1) stable testing unstable; urgency=low
 
   * Upstream release 1.1.2
