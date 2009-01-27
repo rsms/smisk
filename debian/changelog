@@ -1,6 +1,12 @@
+python-smisk (1.1.2-3) stable testing unstable; urgency=low
+
+  * Fixed missing module hints in setup.py
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Tue,  27 Jan 2009 04:30:00 +0100
+
 python-smisk (1.1.2-2) stable testing unstable; urgency=low
 
-  * Fixed missing smisk.core hint in setup.pu
+  * Fixed missing smisk.core hint in setup.py
 
  -- Rasmus Andersson <rasmus@flajm.com>  Tue,  27 Jan 2009 03:10:00 +0100
 
