@@ -647,7 +647,7 @@ setup(
   url = 'http://python-smisk.org/',
   platforms = "ALL",
   classifiers = classifiers,
-  zip_safe = True,
+  zip_safe = False, # I don't like zipped eggs. However Smisk _can_ be zip-egged.
   package_dir = {'': 'lib'},
   packages = [
     'smisk',
