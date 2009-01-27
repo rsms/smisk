@@ -215,10 +215,12 @@ int smisk_parse_input_data( char *s,
       }
     }
     
-    assert(PyBytes_Check(py_key) == 1);
-    if (py_val != (PyObject *)Py_None) {
-      assert(PyUnicode_Check(py_val) == 1);
-    }
+    #ifndef NDEBUG
+      assert(PyBytes_Check(py_key) == 1);
+      if (py_val != (PyObject *)Py_None && charset) {
+        assert(PyUnicode_Check(py_val) == 1);
+      }
+    #endif
     
     if ((status = PyDict_assoc_val_with_key(dict, py_val, py_key)) != 0)
       break;
