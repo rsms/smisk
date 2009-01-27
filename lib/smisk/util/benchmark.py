@@ -13,23 +13,27 @@ def benchmark(name='benchmark', iterations=1000000, outfp=sys.stderr, it_subtrac
   it = itertools.repeat(None, iterations)
   u0 = resource.getrusage(resource.RUSAGE_SELF)
   real = time.time()
+  exc = None
   try:
     for x in it:
       yield x
-  finally:
-    real = time.time() - real
-    u1 = resource.getrusage(resource.RUSAGE_SELF)
-    if gcold:
-      gc.enable()
-    if it_subtractor > 0.0:
-      real -= it_subtractor * float(iterations)
-    outfp.flush()
-    print >> outfp, '\n%s:  %6.1f calls/sec' % (name, iterations/real)
-    print >> outfp, '-----------------------------------'
-    print >> outfp, 'avg. call ', fmt(real/iterations)
-    print >> outfp, '-----------------------------------'
-    print >> outfp, 'real      ', fmt(real)
-    print >> outfp, 'user      ', fmt(u1.ru_utime - u0.ru_utime)
-    print >> outfp, 'system    ', fmt(u1.ru_stime - u0.ru_stime)
-    outfp.flush()
+  except Exception, e:
+    exc = e
+  real = time.time() - real
+  u1 = resource.getrusage(resource.RUSAGE_SELF)
+  if gcold:
+    gc.enable()
+  if it_subtractor > 0.0:
+    real -= it_subtractor * float(iterations)
+  outfp.flush()
+  print >> outfp, '\n%s:  %6.1f calls/sec' % (name, iterations/real)
+  print >> outfp, '-----------------------------------'
+  print >> outfp, 'avg. call ', fmt(real/iterations)
+  print >> outfp, '-----------------------------------'
+  print >> outfp, 'real      ', fmt(real)
+  print >> outfp, 'user      ', fmt(u1.ru_utime - u0.ru_utime)
+  print >> outfp, 'system    ', fmt(u1.ru_stime - u0.ru_stime)
+  outfp.flush()
+  if exc:
+    raise exc
 
