@@ -23,7 +23,9 @@ fi
 # Confirm working revision is synchronized with repository
 ensure_clean_working_revision() {
   RREV=$REV
-  if [[ $(git status 2> /dev/null | tail -n1) != "nothing to commit (working directory clean)" ]]; then
+  ST="$(git status 2> /dev/null | tail -n1)"
+  if [[ "$ST" != "nothing to commit (working directory clean)" ]] \
+  && [[ "$ST" != 'nothing added to commit but untracked files present (use "git add" to track)' ]]; then
     MSG="Work tree $RREV is not clean. You need to commit or revert modifications first."
     if [ "$DRY_RUN" != "" ] && [ $DRY_RUN -eq 1 ]; then
       echo "$0: Warning: $MSG"
