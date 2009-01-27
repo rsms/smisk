@@ -629,7 +629,6 @@ setup(
   version = version,
   author = author,
   author_email = email,
-  download_url = "http://trac.hunch.se/smisk/dist/",
   license = license,
   description = "High-performance web service framework",
   long_description = (

@@ -17,8 +17,11 @@ More information at the `Smisk website <http://python-smisk.org/>`_
 Getting Started
 ===============
 
-* Install with ``easy_install smisk`` or download from `PyPI <http://pypi.python.org/pypi/smisk>`_
-* Have a look at a few `examples <http://trac.hunch.se/smisk/browser/examples>`_
+* Install with ``easy_install smisk``, download from
+  `PyPI <http://pypi.python.org/pypi/smisk>`_ or 
+  `use a Debian package <http://python-smisk.org/downloads>`_
+  
+* Have a look at a few `examples <http://python-smisk.org/examples>`_
 
 
 Examples
@@ -43,7 +46,7 @@ And here we have a WSGI compatible application::
 
   main(hello_app)
 
-More examples `available here... <http://trac.hunch.se/smisk/browser/examples>`_
+More examples `available here... <http://python-smisk.org/examples>`_
 
 
 Authors & Contributors
