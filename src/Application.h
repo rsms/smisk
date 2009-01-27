@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 #ifndef SMISK_APPLICATION_H
 #define SMISK_APPLICATION_H
-#include <Python.h>
 #include "Request.h"
 #include "Response.h"
 

@@ -27,7 +27,6 @@ THE SOFTWARE.
 #include <fcgiapp.h>
 #include <fastcgi.h>
 
-#include <structmember.h>
 #include <signal.h>
 #include <limits.h> // for PATH_MAX
 #include <libgen.h>

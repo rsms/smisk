@@ -24,7 +24,6 @@ THE SOFTWARE.
 #include "Response.h"
 #include "Application.h"
 #include "SessionStore.h"
-#include <structmember.h>
 #include <ctype.h>
 #include <fastcgi.h>
 

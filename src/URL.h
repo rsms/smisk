@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 #ifndef SMISK_URL_H
 #define SMISK_URL_H
-#include <Python.h>
 
 typedef struct {
   PyObject_HEAD;

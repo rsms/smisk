@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 #ifndef SMISK_MULTIPART_H
 #define SMISK_MULTIPART_H
-#include <Python.h>
 #include <fcgiapp.h>
 
 

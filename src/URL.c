@@ -23,7 +23,6 @@ THE SOFTWARE.
 #include "URL.h"
 #include "atoin.h"
 #include "utils.h"
-#include <structmember.h>
 
 #pragma mark Private C
 

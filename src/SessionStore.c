@@ -24,8 +24,6 @@ THE SOFTWARE.
 #include "file.h"
 #include "SessionStore.h"
 
-#include <structmember.h>
-
 
 #pragma mark Initialization & deallocation
 

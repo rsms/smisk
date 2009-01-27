@@ -22,7 +22,6 @@ THE SOFTWARE.
 #ifndef SMISK_UTILS_H
 #define SMISK_UTILS_H
 
-#include <Python.h>
 #include <fcgiapp.h>
 
 /** Like PyBytes_FromStringAndSize but filters src through lower() */

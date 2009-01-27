@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 #ifndef SMISK_RESPONSE_H
 #define SMISK_RESPONSE_H
-#include <Python.h>
 #include "Stream.h"
 
 #include <fcgiapp.h>

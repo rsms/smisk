@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 #ifndef SMISK_REQUEST_H
 #define SMISK_REQUEST_H
-#include <Python.h>
 #include "Stream.h"
 #include "URL.h"
 

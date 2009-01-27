@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 #include "__init__.h"
 #include "Stream.h"
-#include <structmember.h>
 
 #pragma mark Private C
 

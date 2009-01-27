@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 #ifndef SMISK_STREAM_H
 #define SMISK_STREAM_H
-#include <Python.h>
 #include <fcgiapp.h>
 
 typedef struct {

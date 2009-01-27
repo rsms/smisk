@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 #include "../__init__.h"
 #include "__init__.h"
-#include <structmember.h>
 
 #undef MOD_IDENT
 #define MOD_IDENT "smisk.core.xml"

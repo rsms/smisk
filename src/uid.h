@@ -22,7 +22,6 @@ THE SOFTWARE.
 #ifndef SMISK_UID_H
 #define SMISK_UID_H
 
-#include <Python.h>
 #include <fcgiapp.h>
 #include "utils.h" /* For smisk_uid_format which expands to smisk_util_pack */
 

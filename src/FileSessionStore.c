@@ -29,7 +29,6 @@ THE SOFTWARE.
   #include <fcntl.h>
 #endif
 
-#include <structmember.h>
 #include <marshal.h>
 #include <pythread.h>
 #include <stdlib.h>

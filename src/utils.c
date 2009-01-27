@@ -28,7 +28,6 @@ THE SOFTWARE.
 #endif
 
 #include <fcgiapp.h>
-#include <Python.h>
 #include <marshal.h> /* for smisk_object_hash */
 
 #include "utils.h"

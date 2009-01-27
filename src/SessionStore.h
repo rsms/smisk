@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 #ifndef SMISK_SESSION_STORE_H
 #define SMISK_SESSION_STORE_H
-#include <Python.h>
 
 typedef struct {
   PyObject_HEAD;

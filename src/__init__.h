@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 #ifndef SMISK_MODULE_H
 #define SMISK_MODULE_H
-#include <Python.h>
 
 // fcgi socket fd
 int smisk_listensock_fileno;
