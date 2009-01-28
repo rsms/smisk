@@ -9,7 +9,7 @@ Standards-Version: 3.8.0
 Package: python-smisk
 Architecture: any
 Depends: libc6 (>= 2.3), libfcgi0ldbl (>= 2.4) | libfcgi0c2 (>= 2.4), python (<< 2.6), python (>= 2.4), python-central (>= 0.5), libdb4.7 | libdb4.6 | libdb4.5 | libdb4.4
-Recommends: python-elixir, python-cjson, python-mako
+Recommends: python-elixir, python-cjson, python-mako, python-yaml
 Suggests: lighttpd, nginx
 XB-Python-Version: ${python:Versions}
 Homepage: http://trac.hunch.se/smisk
