@@ -231,6 +231,17 @@ class build_ext(_build_ext):
     sys.path = orig_syspath
     self.bsddb = setup_bsddb
     
+    self.include_dirs.extend([
+      '/usr/include',
+      '/usr/local/include',
+      '/usr/include'])
+    self.library_dirs.extend([
+      '/lib64',
+      '/usr/lib64',
+      '/lib',
+      '/usr/lib',
+      '/usr/local/lib'])
+    
     self.include_dirs.append(self.bsddb.incdir)
     self.library_dirs.append(self.bsddb.libdir)
     
@@ -245,6 +256,10 @@ class build_ext(_build_ext):
     self._run_config_if_needed()
     self._check_prefix_modified()
     self._configure_compiler()
+    
+    log.info('include dirs: %r', self.include_dirs)
+    log.info('library dirs: %r', self.library_dirs)
+    
     _build_ext.run(self)
   
   def built_product_paths(self):
@@ -413,8 +428,6 @@ class config(_config):
       if not ok:
         log.error("missing required library %s" % n[0])
         sys.exit(1)
-      else:
-        log.debug("found\n")
   
   def _run(self, body, headers=None, include_dirs=None, libraries=None, library_dirs=None, lang='c'):
     self._silence()

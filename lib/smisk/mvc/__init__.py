@@ -616,33 +616,27 @@ class Application(smisk.core.Application):
     _debug = log.level <= logging.DEBUG
     try:
       if self.autoclear_model_session:
-        if _debug:
-          log.debug('Clearing session. Calling model.session.clear()')
+        if _debug: log.debug('clearing session')
         model.session.clear()
       rsp = self.call_leaf(req_args, req_params)
       if _debug:
         log.debug('model.session.dirty = %r', [s for s in model.session.registry()])
-        log.debug('model.session.commit! 200 OK')
-      model.session.commit()
+      model.commit_if_needed()
       return rsp
     except Exception, e:
       if _debug:
         log.debug('model.session.dirty = %r', [s for s in model.session.registry()])
       error = not (isinstance(e, http.HTTPExc) and not e.status.is_error)
       if not error:
-        if _debug:
-          log.debug('model.session.commit! %s', e.status)
         try:
-          model.session.commit()
+          model.commit_if_needed()
         except Exception, e:
           error = True
-    
+      
       if error:
-        if _debug:
-          log.debug('model.session.rollback!')
-        model.session.rollback()
+        model.rollback_if_needed()
         model.session.close_all()
-    
+      
       raise
   
   

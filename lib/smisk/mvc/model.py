@@ -170,9 +170,12 @@ try:
     else:
       log.info('binding to %r', str(url_st))
     
-    # Create, configure and bind engine
+    # Dispose any previous connection
     if metadata.bind and hasattr(metadata.bind, 'dispose'):
+      log.debug('disposing old connection %r', metadata.bind)
       metadata.bind.dispose()
+    
+    # Create, configure and bind engine
     metadata.bind = sql.create_engine(url, **engine_opts)
   
   config.add_filter(smisk_mvc_metadata)
@@ -187,3 +190,24 @@ except ImportError, e:
   # So mvc.Application can do "if model.metadata.bind: ..."
   class metadata(object):
     bind = None
+  
+  session = None
+
+
+def commit_if_needed():
+  mreg = session.registry()
+  if mreg and mreg.transaction:
+    if mreg.transaction.session and mreg.transaction._active:
+      log.info('committing %r', mreg.transaction)
+      mreg.transaction.commit()
+    log.debug('removing transaction from %r', mreg)
+    mreg.transaction = None
+
+def rollback_if_needed():
+  mreg = session.registry()
+  if mreg and mreg.transaction:
+    if mreg.transaction.session and mreg.transaction._active:
+      log.info('rolling back %r', mreg.transaction)
+      mreg.transaction.rollback()
+    log.debug('removing transaction from %r', mreg)
+    mreg.transaction = None
