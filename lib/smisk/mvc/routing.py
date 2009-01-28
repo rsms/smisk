@@ -49,8 +49,21 @@ class Destination(object):
     try:
       return self._call_leaf(*args, **params)
     except TypeError, e:
-      GOT_MUL = ' got multiple values for keyword argument '
       desc = e.args[0]
+      
+      # Find out if the problem was caused in self._call_leaf or originates someplace else
+      tb = sys.exc_info()[2]
+      if not tb:
+        raise
+      while 1:
+        if tb.tb_next:
+          tb = tb.tb_next
+        else:
+          break
+      if tb.tb_lineno != self._call_leaf.im_func.func_code.co_firstlineno+1:
+        raise
+      
+      GOT_MUL = ' got multiple values for keyword argument '
       
       def req_args():
         info = introspect.callable_info(self.leaf)
@@ -60,13 +73,10 @@ class Destination(object):
             args.append(k)
         return ', '.join(args)
       
-      if desc.find(' takes at least ') > 0 and desc.find(' arguments ') > 0:
-        raise http.BadRequest('%s requires parameters: %s. Received %r, %r' % \
-          (self.uri, req_args(), params, args))
-      elif desc.find(' takes exactly ') != -1:
-        raise http.BadRequest('%s requires parameters: %s. '\
-          'Received %r, %r' % (self.uri, req_args(), params, args))
-        # takes exactly 3 non-keyword arguments (2 given)
+      if (desc.find(' takes at least ') > 0 and desc.find(' arguments ') > 0) or (desc.find(' takes exactly ') > 0):
+        log.debug('TypeError', exc_info=1)
+        raise http.BadRequest('Missing required parameters: %r (Received %r, %r)' % \
+          (req_args(), params, args))
       else:
         p = desc.find(GOT_MUL)
         if p > 0:
