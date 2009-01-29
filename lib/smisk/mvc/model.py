@@ -173,7 +173,14 @@ try:
     # Dispose any previous connection
     if metadata.bind and hasattr(metadata.bind, 'dispose'):
       log.debug('disposing old connection %r', metadata.bind)
-      metadata.bind.dispose()
+      try:
+        metadata.bind.dispose()
+      except Exception, e:
+        if e.args and e.args[0] and 'SQLite objects created in a thread' in e.args[0]:
+          log.debug('SQLite connections can not be disposed from other threads'\
+            ' -- simply leaving it to the GC')
+        else:
+          log.warn('failed to properly dispose the connection', exc_info=True)
     
     # Create, configure and bind engine
     metadata.bind = sql.create_engine(url, **engine_opts)
