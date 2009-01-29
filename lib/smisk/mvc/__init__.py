@@ -188,6 +188,11 @@ class Application(smisk.core.Application):
   '''Automatically clear the model session cache before each request is handled.
   '''
   
+  _pending_rebind_model_metadata = None
+  '''Used internally for queueing a model session rebinding, which need to be 
+  done in the main thread.
+  '''
+  
   def __init__(self, router=None, templates=None, *args, **kwargs):
     '''Initialize a new application
     '''
@@ -625,13 +630,9 @@ class Application(smisk.core.Application):
         if _debug: log.debug('clearing session')
         model.session.clear()
       rsp = self.call_leaf(req_args, req_params)
-      if _debug:
-        log.debug('model.session.dirty = %r', [s for s in model.session.registry()])
       model.commit_if_needed()
       return rsp
     except Exception, e:
-      if _debug:
-        log.debug('model.session.dirty = %r', [s for s in model.session.registry()])
       error = not (isinstance(e, http.HTTPExc) and not e.status.is_error)
       if not error:
         try:
@@ -777,6 +778,12 @@ class Application(smisk.core.Application):
     
     # Adjust formats if required by destination
     self.apply_leaf_restrictions()
+    
+    # Rebind model metadata if needed
+    if self._pending_rebind_model_metadata is not None:
+      log.info('rebinding model metadata')
+      self._pending_rebind_model_metadata()
+      self._pending_rebind_model_metadata = None
     
     # Call the leaf which might generate a response object: rsp
     if model.metadata.bind:

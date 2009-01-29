@@ -120,7 +120,7 @@ try:
       return
     
     # Parse url into an accessible structure
-    from smisk.core import URL
+    from smisk.core import URL, Application
     url_st = URL(url)
     
     # Make a copy of the default options
@@ -164,32 +164,40 @@ try:
     if url_st.password:
       url_st.password = '***'
     
-    # Log configuration
-    if engine_opts:
-      log.info('binding to %r with options %r', str(url_st), engine_opts)
+    def rebind_model_metadata():
+      # Dispose any previous connection
+      if metadata.bind and hasattr(metadata.bind, 'dispose'):
+        log.debug('disposing old connection %r', metadata.bind)
+        try:
+          metadata.bind.dispose()
+        except Exception, e:
+          if e.args and e.args[0] and 'SQLite objects created in a thread' in e.args[0]:
+            log.debug('SQLite connections can not be disposed from other threads'\
+              ' -- simply leaving it to the GC')
+          else:
+            log.warn('failed to properly dispose the connection', exc_info=True)
+    
+      # Create, configure and bind engine
+      if engine_opts:
+        log.info('binding to %r with options %r', str(url_st), engine_opts)
+      else:
+        log.info('binding to %r', str(url_st))
+      metadata.bind = sql.create_engine(url, **engine_opts)
+    
+    # Queue action or call it directly
+    if hasattr(Application.current, '_pending_rebind_model_metadata'):
+      log.info('queued pending metadata rebind')
+      Application.current._pending_rebind_model_metadata = rebind_model_metadata
     else:
-      log.info('binding to %r', str(url_st))
-    
-    # Dispose any previous connection
-    if metadata.bind and hasattr(metadata.bind, 'dispose'):
-      log.debug('disposing old connection %r', metadata.bind)
-      try:
-        metadata.bind.dispose()
-      except Exception, e:
-        if e.args and e.args[0] and 'SQLite objects created in a thread' in e.args[0]:
-          log.debug('SQLite connections can not be disposed from other threads'\
-            ' -- simply leaving it to the GC')
-        else:
-          log.warn('failed to properly dispose the connection', exc_info=True)
-    
-    # Create, configure and bind engine
-    metadata.bind = sql.create_engine(url, **engine_opts)
+      # Run in this thread -- might cause problems with thread-local stored connections
+      rebind_model_metadata()
   
   config.add_filter(smisk_mvc_metadata)
   # dont export these
   del smisk_mvc_metadata
   del config
   
+
 except ImportError, e:
   warn('Elixir and/or SQLAlchemy is not installed -- smisk.mvc.model is not '\
        'available. (%s)', e.message)
@@ -201,20 +209,29 @@ except ImportError, e:
   session = None
 
 
+def _perform_if_dirty(sess, call_if_dirty, logprefix, check_modified=True):
+  if sess:
+    if sess.transaction and sess.transaction.session and sess.transaction._active:
+      log.debug('%s model session because of a started transaction', logprefix)
+      call_if_dirty()
+    elif check_modified:
+      modified = [ent for ent in sess if sess.is_modified(ent, passive=True)]
+      if modified:
+        log.debug('%s model session because of modified entities: %r', logprefix, modified)
+        call_if_dirty()
+    if sess.transaction:
+      # remove session in order to avoid keeping open sessions between requests
+      sess.transaction = None
+
 def commit_if_needed():
-  mreg = session.registry()
-  if mreg and mreg.transaction:
-    if mreg.transaction.session and mreg.transaction._active:
-      log.info('committing %r', mreg.transaction)
-      mreg.transaction.commit()
-    log.debug('removing transaction from %r', mreg)
-    mreg.transaction = None
+  '''
+  session.registry() => a orm.session.Sess, subclass of orm.session.Session
+  session.commit() == session.registry().commit()
+  '''
+  sess = session.registry()
+  return _perform_if_dirty(sess, sess.commit, 'committing')
 
 def rollback_if_needed():
-  mreg = session.registry()
-  if mreg and mreg.transaction:
-    if mreg.transaction.session and mreg.transaction._active:
-      log.info('rolling back %r', mreg.transaction)
-      mreg.transaction.rollback()
-    log.debug('removing transaction from %r', mreg)
-    mreg.transaction = None
+  sess = session.registry()
+  return _perform_if_dirty(sess, sess.rollback, 'rolling back', check_modified=False)
+
