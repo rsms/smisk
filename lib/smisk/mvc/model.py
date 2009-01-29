@@ -209,7 +209,7 @@ except ImportError, e:
   session = None
 
 
-def _perform_if_dirty(sess, call_if_dirty, logprefix, check_modified=True):
+def _perform_if_dirty(sess, call_if_dirty, logprefix, check_modified=False):
   if sess:
     if sess.transaction and sess.transaction.session and sess.transaction._active:
       log.debug('%s model session because of a started transaction', logprefix)
@@ -223,15 +223,15 @@ def _perform_if_dirty(sess, call_if_dirty, logprefix, check_modified=True):
       # remove session in order to avoid keeping open sessions between requests
       sess.transaction = None
 
-def commit_if_needed():
+def commit_if_needed(check_modified=False):
   '''
   session.registry() => a orm.session.Sess, subclass of orm.session.Session
   session.commit() == session.registry().commit()
   '''
   sess = session.registry()
-  return _perform_if_dirty(sess, sess.commit, 'committing')
+  return _perform_if_dirty(sess, sess.commit, 'committing', check_modified)
 
-def rollback_if_needed():
+def rollback_if_needed(check_modified=False):
   sess = session.registry()
-  return _perform_if_dirty(sess, sess.rollback, 'rolling back', check_modified=False)
+  return _perform_if_dirty(sess, sess.rollback, 'rolling back', check_modified)
 
