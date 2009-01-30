@@ -3,7 +3,7 @@
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 {%- endblock %}
 {%- set reldelim1 = reldelim1 is not defined and '&nbsp;&rarr;&nbsp;&nbsp;' or reldelim1 %}
-{%- set reldelim2 = reldelim2 is not defined and ' |' or reldelim2 %}
+{%- set reldelim2 = reldelim2 is not defined and '&nbsp;&nbsp;' or reldelim2 %}
 {%- macro relbar %}
     <div class="related">
       <h3>Navigation</h3>
@@ -11,7 +11,7 @@
         {%- for rellink in rellinks %}
         <li class="right" {% if loop.first %}style="margin-right: 10px"{% endif %}>
           <a href="{{ pathto(rellink[0]) }}" title="{{ rellink[1]|striptags }}"
-             accesskey="{{ rellink[2] }}">{{ rellink[3] }}</a>
+             accesskey="{{ rellink[2] }}">{%- if rellink[3] == 'previous' %}&larr;&nbsp;{%- elif rellink[3] == 'modules' %}&#x2630;&nbsp;{% endif %}{{ rellink[3] }}{%- if rellink[3] == 'next' %}&nbsp;&rarr;{% endif %}</a>
           {%- if not loop.first %}{{ reldelim2 }}{% endif %}</li>
         {%- endfor %}
         <li><a href="http://python-smisk.org/">smisk</a></li>
@@ -40,22 +40,22 @@
           {%- endblock %}
           {%- block sidebartoc %}
           {%- if display_toc %}
-            <h3>Table Of Contents</h3>
+            <h3>Contents</h3>
             {{ toc }}
           {%- endif %}
           {%- endblock %}
           {%- block sidebarrel %}
           {%- if prev %}
             <h4>Previous topic</h4>
-            <p class="topless"><a href="{{ prev.link|e }}" title="previous chapter">{{ prev.title }}</a></p>
+            <p class="topless"><a href="{{ prev.link|e }}" title="previous chapter">&larr; {{ prev.title }}</a></p>
           {%- endif %}
           {%- if next %}
             <h4>Next topic</h4>
-            <p class="topless"><a href="{{ next.link|e }}" title="next chapter">{{ next.title }}</a></p>
+            <p class="topless"><a href="{{ next.link|e }}" title="next chapter">{{ next.title }} &rarr;</a></p>
           {%- endif %}
           {%- endblock %}
           {%- if sourcename %}
-            <h3>This Page</h3>
+            <h3>This page</h3>
             <ul class="this-page-menu">
             {%- if builder == 'web' %}
               <li><a href="#comments">Comments ({{ comments|length }} so far)</a></li>
@@ -82,6 +82,12 @@
             {%- endif %}
           {%- endif %}
           {%- endblock %}
+          <h3>Top modules</h3>
+          <ul>
+            {%- for modname in ['smisk.autoreload','smisk.charsets','smisk.config','smisk.core','smisk.inflection','smisk.ipc','smisk.mvc','smisk.release','smisk.serialization','smisk.session','smisk.test','smisk.util','smisk.wsgi'] %}
+            <li><a href="{{ pathto('library/' + modname)|e }}">{{ modname|e }}</a>
+            {%- endfor %}
+          </ul>
         </div>
       </div>
       {%- endif %}
@@ -91,12 +97,16 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     {%- if builder != 'htmlhelp' %}
-      {%- set titlesuffix = " &mdash; " + docstitle %}
+      {%- if title != 'Overview' %}
+        {%- set titlesuffix = " &mdash; " + docstitle %}
+      {% else %}
+        {%- set titlesuffix = docstitle %}
+      {% endif %}
     {%- endif %}
-    <title>{{ title|striptags }}{{ titlesuffix }}</title>
+    <title>{%- if title != 'Overview' %}{{ title|striptags }}{% endif %}{{ titlesuffix }}</title>
     {%- if builder == 'web' %}
     <link rel="stylesheet" href="{{ pathto('index') }}?do=stylesheet{%
-      if in_admin_panel %}&admin=yes{% endif %}" type="text/css" />
+      if in_admin_panel %}&amp;admin=yes{% endif %}" type="text/css" />
     {%- for link, type, title in page_links %}
     <link rel="alternate" type="{{ type|e(true) }}" title="{{ title|e(true) }}" href="{{ link|e(true) }}" />
     {%- endfor %}
@@ -190,5 +200,18 @@
     {%- endif %}
     </div>
 {%- endblock %}
+    <script type="text/javascript">
+      if (document.location.host.indexOf("python-smisk.org") != -1) {
+        var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+        document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+      }
+    </script><script type="text/javascript">
+      if (document.location.host.indexOf("python-smisk.org") != -1) {
+        try {
+        var pageTracker = _gat._getTracker("UA-7185897-1");
+        pageTracker._trackPageview();
+        } catch(err) {}
+      }
+    </script>
   </body>
 </html>

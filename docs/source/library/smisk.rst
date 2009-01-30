@@ -4,6 +4,33 @@ smisk
 .. module:: smisk
 
 
+Modules
+-------------------------------------------------
+
+.. toctree::
+  :maxdepth: 1
+  
+  smisk.autoreload
+  smisk.charsets
+  smisk.config
+  smisk.core
+  smisk.inflection
+  smisk.ipc
+  smisk.mvc
+  smisk.release
+  smisk.serialization
+  smisk.session
+  smisk.test
+  smisk.util
+  smisk.wsgi
+
+
+See :ref:`library <library-index>` for a complete overview of all modules.
+
+
+Attributes
+-------------------------------------------------
+
 .. attribute:: __version__
   
   Library version. I.e. :samp:`1.2.3`
@@ -59,21 +86,3 @@ smisk
   
   :see: :attr:`smisk.core.response`
 
-
-.. rubric:: Modules
-
-.. toctree::
-  :maxdepth: 1
-  
-  smisk.autoreload
-  smisk.charsets
-  smisk.config
-  smisk.core
-  smisk.inflection
-  smisk.ipc
-  smisk.mvc
-  smisk.release
-  smisk.serialization
-  smisk.session
-  smisk.util
-  smisk.wsgi

@@ -6,6 +6,8 @@ memcached
 
 Memcached IPC backend
 
+:Requires: `cmemcached <http://code.google.com/p/python-libmemcached/>`_ | `memcache <http://www.tummy.com/Community/software/python-memcached/>`_
+
 
 Functions
 -------------------------------------------------

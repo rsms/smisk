@@ -1,6 +1,6 @@
 .. _c-api:
 
-c-api
+C API
 ===========================================================
 
 This is the C API for :mod:`smisk.core`.
@@ -464,4 +464,14 @@ Macros defined in *config.h*.
   Session ID compactness.
   
   .. versionadded:: 1.1.0
+
+
+
+Related documents
+-------------------------------------------------
+
+.. toctree::
+  :maxdepth: 1
+
+  Debugging the Smisk core library <debugging>
 

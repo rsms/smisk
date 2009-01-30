@@ -1,6 +1,6 @@
 .. _library-index:
 
-library
+Library
 ====================================
 
 :Release: |version|

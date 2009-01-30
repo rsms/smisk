@@ -1,8 +1,8 @@
 json
 =================================================
 
-.. versionadded:: 1.1.0
 .. module:: smisk.serialization.json
+.. versionadded:: 1.1.0
 
 JSON: JavaScript Object Notation
 

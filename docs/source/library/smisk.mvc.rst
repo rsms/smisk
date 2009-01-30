@@ -45,7 +45,11 @@ Configuration parameters
   
   The value should be the name of a serializer *extension* (the value should be a valid key in the :attr:`smisk.serialization.serializers.extensions <smisk.serialization.Registry.extensions>` dictionary).
   
-  :type: string
+  If not set, the :attr:`Response.fallback_serializer` will be used for clients not requesting 
+  any particular content type.
+  
+  :default: :samp:`None`
+  :type: str
 
 
 .. describe:: smisk.mvc.etag
@@ -56,19 +60,21 @@ Configuration parameters
   in the ``hashlib`` module (i.e. "md5"), or a something respoding
   in the same way as the hash functions in hashlib. i.e. need to
   return a hexadecimal string rep when:
+  
+  .. code-block:: python
 
     h = etag(data)
     h.update(more_data)
     etag_value = h.hexdigest()
-
+  
   Enabling this is generally *not recommended* as it introduces a
   small to moderate performance hit, because a checksum need to be
-  calculated for each response, and the nature of the data --
-  Smisk can not know exactly about all stakes in a transaction,
+  calculated for each response, and because of the nature of the data
+  Smisk does not know about all stakes in a transaction,
   thus constructing a valid ETag might somethimes be impossible.
 
   :default: :samp:`None`
-  :type: string
+  :type: str
 
 
 .. describe:: smisk.mvc.strict_tcn
@@ -614,19 +620,43 @@ Classes
     :raises IOError:
   
   
-  .. method:: adjust_status(self, has_content)
+  .. method:: adjust_status(has_content)
 
     .. versionadded:: 1.1.1
     
     Make sure appropriate status is set for the response.
   
   
-  .. method:: remove_header(self, name)
+  .. method:: remove_header(name)
 
     .. versionadded:: 1.1.1
     
     Remove any instance of header named or prefixed *name*.
   
+
+  .. method:: remove_headers(*names)
+
+    .. versionadded:: 1.1.1
+    
+    Remove any instance of headers named or prefixed *\*names*.
+  
+  
+  .. method:: replace_header(header)
+
+    .. versionadded:: 1.1.1
+    
+    Replace any instances of the same header type with *header*.
+    
+    >>> response.headers
+    []
+    >>> response.headers.append('Content-Type: text/humbug')
+    >>> response.headers.append('X-Name: Fuffens')
+    >>> response.headers
+    ['Content-Type: text/humbug', 'X-Name: Fuffens']
+    >>> response.replace_header('Content-type: text/plain')
+    >>> response.headers
+    ['X-Name: Fuffens', 'Content-type: text/plain']
+
 
 
 .. ------------------------------------------------------------------------------------------

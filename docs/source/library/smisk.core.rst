@@ -21,9 +21,10 @@ Attributes
   
   Build identifier in URN form, distinguishing each unique build.
   
-  *Format changed in version 1.1:* in version 1.0 this 
-  was an abritrary (per-build unique) string. In 1.1 this is now a 
-  uniform URN.
+  :see: :attr:`smisk.release.build` for more information about this attribute.
+  
+  .. versionchanged:: 1.1.0
+    Prior to version 1.1.0, this was a abritrary (per-build unique) string. In 1.1.0 this is now a URN.
 
 
 .. attribute:: app
