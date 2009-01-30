@@ -2,8 +2,10 @@ include LICENSE
 include README
 include CHANGELOG
 include MANIFEST.in.sdist
+include setup_bsddb.py
+include ez_setup.py
 
-graft doc
+graft docs/source
 graft debug
 graft examples
 graft src
