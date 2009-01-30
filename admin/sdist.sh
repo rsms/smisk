@@ -1,7 +1,10 @@
 #!/bin/sh
 usage() { (cat <<USAGE
 usage: $0 [--upload] [python]
-Package and upload source distributions.
+
+Pack, sign and upload source distributions to python-smisk.org.
+If you want to publish to PyPI, use the regular ./setup.py sdist command.
+
 USAGE
   ) >&2
 }
