@@ -28,7 +28,7 @@ rm -rf dist || exit 1
 $PYTHON setup.py sdist || exit 1
 FN=$( cd dist && echo smisk-*.tar.gz )
 openssl dgst -md5 -hex "dist/$FN" | cut -d ' ' -f 2 > "dist/$FN.md5" || exit 1
-openssl dgst -sha1 -hex "dist/$FN" > "dist/$FN.sha1" || exit 1
+openssl dgst -sha1 -hex "dist/$FN" | cut -d ' ' -f 2 > "dist/$FN.sha1" || exit 1
 gpg --detach-sign --armor "dist/$FN" || exit 1
 
 if [ $UPLOAD -eq 1 ]; then
