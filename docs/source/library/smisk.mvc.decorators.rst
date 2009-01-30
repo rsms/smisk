@@ -1,4 +1,4 @@
-:mod:`smisk.mvc.decorators`
+decorators
 =================================================
 
 .. versionadded:: 1.1.0

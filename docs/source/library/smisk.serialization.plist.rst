@@ -1,4 +1,4 @@
-:mod:`smisk.serialization.plist`
+plist
 =================================================
 
 .. versionadded:: 1.1.0

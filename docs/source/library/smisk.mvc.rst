@@ -1,4 +1,4 @@
-:mod:`smisk.mvc` --- MVC
+mvc
 ===========================================================
 
 .. module:: smisk.mvc
@@ -94,7 +94,7 @@ Configuration parameters
   :type: bool
 
 
-Module contents
+Functions
 -------------------------------------------------
 
 .. function:: environment() -> string
@@ -156,10 +156,8 @@ Module contents
   
   
 
-
-
 Classes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------------------------
 
 
 .. class:: Main(smisk.util.main.Main)
@@ -253,9 +251,9 @@ Classes
   :type: bool
   :default: :samp:`True`
 
-
-
-
+  
+  
+  
 
   .. method:: __init__(router=None, templates=None, show_traceback=False, *args, **kwargs)
   
@@ -511,6 +509,7 @@ Classes
 
 
 
+.. ------------------------------------------------------------------------------------------
 
 
 
@@ -528,7 +527,7 @@ Classes
 
   .. attribute:: cn_url
     
-    .. versionadded:: 1.1.2
+    .. versionadded:: 1.1.3
     
     URL with any filename extension removed, for use with Content
     Negotiation.
@@ -538,6 +537,9 @@ Classes
     
     :type: :class:`smisk.core.URL`
 
+
+
+.. ------------------------------------------------------------------------------------------
 
 
 
@@ -626,6 +628,8 @@ Classes
     Remove any instance of header named or prefixed *name*.
   
 
+
+.. ------------------------------------------------------------------------------------------
 
 
 

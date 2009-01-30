@@ -1,4 +1,4 @@
-:mod:`smisk.util.DateTime`
+DateTime
 =================================================
 
 .. versionadded:: 1.1.0

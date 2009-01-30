@@ -1,4 +1,4 @@
-:mod:`smisk.core.bsddb` --- Berkeley DB
+bsddb
 ===========================================================
 
 .. module:: smisk.core.bsddb

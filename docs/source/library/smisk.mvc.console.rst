@@ -1,4 +1,4 @@
-:mod:`smisk.mvc.console`
+console
 =================================================
 
 .. versionadded:: 1.1.0

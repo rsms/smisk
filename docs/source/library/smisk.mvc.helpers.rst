@@ -1,4 +1,4 @@
-:mod:`smisk.mvc.helpers`
+helpers
 =================================================
 
 .. module:: smisk.mvc.helpers

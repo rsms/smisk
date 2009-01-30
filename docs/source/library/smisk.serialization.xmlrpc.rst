@@ -1,4 +1,4 @@
-:mod:`smisk.serialization.xmlrpc`
+xmlrpc
 =================================================
 
 .. versionadded:: 1.1.0

@@ -1,4 +1,4 @@
-:mod:`smisk.util.string`
+string
 =================================================
 
 .. versionadded:: 1.1.0

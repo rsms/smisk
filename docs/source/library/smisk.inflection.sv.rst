@@ -1,4 +1,4 @@
-:mod:`smisk.inflection.sv`
+sv
 =================================================
 
 .. automodule:: smisk.inflection.sv

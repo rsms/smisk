@@ -1,8 +1,10 @@
-:mod:`smisk.mvc.model` --- M in MVC
+model
 =================================================
 
 .. module:: smisk.mvc.model
 .. versionadded:: 1.1.0
+
+The M in MVC.
 
 Object Relational Mapper (ORM), normally backed by a RDBMS like SQLite, MySQL or PostgreSQL.
 
@@ -70,8 +72,8 @@ Contents of *app.py*::
 
 Contents of *kittens.conf*:
 
-..code-block:: javascript
-  
+.. code-block:: javascript
+
   "smisk.mvc.model": { "url": "sqlite:///tmp/kittens.sqlite" }
 
 
@@ -84,7 +86,7 @@ Try running the server and see a kitten getting born:
     `<http://elixir.ematia.de/trac/wiki/TutorialDivingIn>`__
   
   Learn more about SQLAlchemys ORM layer:
-    `<http://www.sqlalchemy.org/docs/ormtutorial.html>`__
+    `<http://www.sqlalchemy.org/docs/05/ormtutorial.html>`__
 
 
 Configuration parameters
@@ -232,7 +234,7 @@ Configuration parameters
   
 
 
-Module attributes
+Attributes
 -------------------------------------------------
 
 .. attribute:: sql
@@ -251,3 +253,44 @@ Module attributes
   
   :type: dict
 
+
+Functions
+-------------------------------------------------
+
+.. function:: commit_if_needed(check_modified=False)
+  
+  Commit any started transactions.
+  
+  If check_modified is True and there is no active transaction, all touched entities are checked for modification and if any has been modified, a new transaction is opened and committed. This is a relatively expensive operation.
+  
+  This function is automatically called by :meth:`smisk.mvc.Application.service()`.
+
+
+.. function:: rollback_if_needed(check_modified=False)
+  
+  Rollback any started transactions.
+  
+  If check_modified is True and there is no active transaction, all touched entities are checked for modification and if any has been modified, a rollback will be unconditionally issued. This is a relatively expensive operation.
+  
+  This function is automatically called by :meth:`smisk.mvc.Application.service()`.
+
+
+
+Classes
+-------------------------------------------------
+
+
+.. class:: SingleProcessPool(sqlalchemy.pool.StaticPool)
+  
+  A connection pool using only a single connection (since Smisk is not multi-threaded).
+  
+  Unless the configuration parameter ``smisk.mvc.model > poolclass`` is present, 
+  this pool will be used for most dialects.
+
+
+.. class:: MySQLConnectionPool(SingleProcessPool)
+  
+  Subclass of :class:`SingleProcessPool` handling timed out MySQL connections.
+  
+  Unless the configuration parameter ``smisk.mvc.model > poolclass`` is present, 
+  this pool will be used for mysql dialects.

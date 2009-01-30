@@ -1,4 +1,4 @@
-:mod:`smisk.serialization.python_pickle`
+python_pickle
 =================================================
 
 .. versionadded:: 1.1.0

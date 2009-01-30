@@ -1,4 +1,4 @@
-:mod:`smisk.util.python`
+python
 =================================================
 
 .. versionadded:: 1.1.0

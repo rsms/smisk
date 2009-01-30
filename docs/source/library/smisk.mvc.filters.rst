@@ -1,4 +1,4 @@
-:mod:`smisk.mvc.filters`
+filters
 =================================================
 
 .. versionadded:: 1.1.0

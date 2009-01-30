@@ -1,4 +1,4 @@
-:mod:`smisk.serialization.xhtml`
+xhtml
 =================================================
 
 .. versionadded:: 1.1.0

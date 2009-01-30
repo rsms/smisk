@@ -1,4 +1,4 @@
-:mod:`smisk.autoreload`
+autoreload
 ===========================================================
 
 .. module:: smisk.autoreload
@@ -68,7 +68,7 @@ Configuration parameters
   :type: bool
 
 
-Module contents
+Classes
 -------------------------------------------------
 
 .. class:: smisk.autoreload.Autoreloader(smisk.util.threads.Monitor)

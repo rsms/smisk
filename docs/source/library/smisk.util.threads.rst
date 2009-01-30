@@ -1,4 +1,4 @@
-:mod:`smisk.util.threads`
+threads
 =================================================
 
 .. versionadded:: 1.1.0

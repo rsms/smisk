@@ -1,6 +1,8 @@
-:mod:`smisk.core.xml` --- XML utilities
+xml
 ===========================================================
 
 .. module:: smisk.core.xml
+
+XML utilities
 
 TODO

@@ -1,4 +1,4 @@
-:mod:`smisk.release`
+release
 ===========================================================
 
 .. module:: smisk.release

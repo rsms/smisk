@@ -1,4 +1,4 @@
-:mod:`smisk.config`
+config
 =================================================
 
 .. module:: smisk.config
@@ -312,7 +312,8 @@ dictionaries::
   print config2['something_else']
 
 
-Module contents
+
+Attributes
 -------------------------------------------------
 
 
@@ -337,6 +338,11 @@ Module contents
   Default logging date format
 
 
+
+Functions
+-------------------------------------------------
+
+
 .. function:: configure_logging(conf)
   
   Configure the logging module based on *conf* dictionary.
@@ -346,6 +352,11 @@ Module contents
   (which it is by default).
   
   :see: `Logging`_
+
+
+
+Classes
+-------------------------------------------------
 
 
 .. class:: Configuration(dict)

@@ -1,4 +1,4 @@
-:mod:`smisk.serialization.plain_text`
+plain_text
 =================================================
 
 .. versionadded:: 1.1.0

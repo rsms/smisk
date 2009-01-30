@@ -1,4 +1,4 @@
-:mod:`smisk.mvc.control`
+control
 =================================================
 
 .. versionadded:: 1.1.0

@@ -1,6 +1,6 @@
 .. _c-api:
 
-Smisk C library
+c-api
 ===========================================================
 
 This is the C API for :mod:`smisk.core`.

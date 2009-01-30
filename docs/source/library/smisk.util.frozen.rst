@@ -1,4 +1,4 @@
-:mod:`smisk.util.frozen`
+frozen
 =================================================
 
 .. module:: smisk.util.frozen

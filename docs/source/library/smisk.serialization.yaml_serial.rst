@@ -1,4 +1,4 @@
-:mod:`smisk.serialization.yaml_serial`
+yaml_serial
 =================================================
 
 .. versionadded:: 1.1.1

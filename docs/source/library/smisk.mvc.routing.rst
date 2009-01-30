@@ -1,4 +1,4 @@
-:mod:`smisk.mvc.routing`
+routing
 =================================================
 
 .. versionadded:: 1.1.0

@@ -1,8 +1,10 @@
-:mod:`smisk.ipc` --- Inter-process communication
+ipc
 ===========================================================
 
 .. module:: smisk.ipc
 .. versionadded:: 1.1.2
+
+Inter-process communication
 
 
 Functions

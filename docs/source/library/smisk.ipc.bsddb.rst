@@ -1,11 +1,13 @@
-:mod:`smisk.ipc.bsddb` --- Berkeley DB IPC backend
+bsddb
 ===========================================================
 
 .. module:: smisk.ipc.bsddb
 .. versionadded:: 1.1.2
 
+Berkeley DB IPC backend
 
-Module contents
+
+Functions
 -------------------------------------------------
 
 .. function:: shared_dict(filename=None, homedir=None, name=None, mode=0600, dbenv=None, type=db.DB_HASH, flags=db.DB_CREATE, persistent=False) -> DBDict
@@ -13,10 +15,14 @@ Module contents
   Convenience function to create and/or return a DBDict.
 
 
+
+Classes
+-------------------------------------------------
+
+
 .. class:: DBDict(MutableMapping)
   
   TODO
-
 
 .. class:: DBDictError(db.DBError)
   

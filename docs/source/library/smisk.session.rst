@@ -1,4 +1,4 @@
-:mod:`smisk.session`
+session
 ===========================================================
 
 .. automodule:: smisk.session

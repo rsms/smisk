@@ -1,4 +1,4 @@
-:mod:`smisk.util.cache`
+cache
 =================================================
 
 .. versionadded:: 1.1.0

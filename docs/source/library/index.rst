@@ -1,7 +1,7 @@
 .. _library-index:
 
-Smisk Python Library
-##########################
+library
+====================================
 
 :Release: |version|
 :Date: |today|

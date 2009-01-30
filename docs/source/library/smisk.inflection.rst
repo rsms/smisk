@@ -1,4 +1,4 @@
-:mod:`smisk.inflection`
+inflection
 =================================================
 
 .. versionadded:: 1.1.0

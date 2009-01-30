@@ -1,4 +1,4 @@
-:mod:`smisk.serialization.php_serial`
+php_serial
 =================================================
 
 .. versionadded:: 1.1.0

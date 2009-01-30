@@ -1,4 +1,4 @@
-:mod:`smisk.util.main`
+main
 ===========================================================
 
 .. module:: smisk.util.main
@@ -22,7 +22,7 @@ Configuration parameters
   :default: :samp:`None`
 
 
-Module contents
+Functions
 -------------------------------------------------
 
 
@@ -141,8 +141,9 @@ Module contents
     :meth:`Main.setup()`, :meth:`Main.run()`
 
 
+
 Classes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------------------------
 
 
 .. class:: Main(object)

@@ -1,4 +1,4 @@
-:mod:`smisk.util.introspect`
+introspect
 =================================================
 
 .. versionadded:: 1.1.0

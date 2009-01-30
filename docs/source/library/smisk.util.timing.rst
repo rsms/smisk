@@ -1,4 +1,4 @@
-:mod:`smisk.util.timing`
+timing
 =================================================
 
 .. versionadded:: 1.1.0

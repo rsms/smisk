@@ -1,4 +1,4 @@
-:mod:`smisk.util.collections`
+collections
 =================================================
 
 .. versionadded:: 1.1.0

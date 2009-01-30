@@ -1,4 +1,4 @@
-:mod:`smisk.util.objectproxy`
+objectproxy
 =================================================
 
 .. versionadded:: 1.1.0

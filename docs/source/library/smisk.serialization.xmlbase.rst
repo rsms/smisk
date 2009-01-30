@@ -1,4 +1,4 @@
-:mod:`smisk.serialization.xmlbase`
+xmlbase
 =================================================
 
 .. versionadded:: 1.1.0

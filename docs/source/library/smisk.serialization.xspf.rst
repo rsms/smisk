@@ -1,4 +1,4 @@
-:mod:`smisk.serialization.xspf`
+xspf
 =================================================
 
 .. versionadded:: 1.1.0

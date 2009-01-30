@@ -1,4 +1,4 @@
-:mod:`smisk.serialization.json`
+json
 =================================================
 
 .. versionadded:: 1.1.0
@@ -29,6 +29,19 @@ JSON: JavaScript Object Notation
   JSON with JSONP support.
 
   JSONP support through passing the special callback query string parameter.
+
+  .. method:: serialize(params, charset)
+     
+  .. method:: serialize_error(status, params, charset)
+     
+  .. method:: unserialize(file, length=-1, charset=None)
+
+
+.. class:: smisk.serialization.json.JSONPSerializer()
+
+  JSON with Padding.
+
+  ``callback`` can be passed in the query string.
 
   .. method:: serialize(params, charset)
      

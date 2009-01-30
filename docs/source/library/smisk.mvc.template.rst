@@ -1,7 +1,7 @@
-:mod:`smisk.mvc.template` --- View in MVC
+template
 =================================================
 
-Templating.
+Templating – The V in MVC
 
 :requires: `mako <http://www.makotemplates.org/>`__
 

@@ -1,11 +1,11 @@
-:mod:`smisk.util.benchmark`
+benchmark
 ===========================================================
 
 .. module:: smisk.util.benchmark
 .. versionadded:: 1.1.2
 
 
-Module contents
+Functions
 -------------------------------------------------
 
 

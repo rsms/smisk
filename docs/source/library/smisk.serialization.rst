@@ -1,12 +1,13 @@
-:mod:`smisk.serialization` --- Data serialization
+serialization
 =================================================
-
-.. versionadded:: 1.1.0
 
 .. automodule:: smisk.serialization
   :members:
   :undoc-members:
 
+.. versionadded:: 1.1.0
+
+Data serialization
 
 .. rubric:: Modules
 

@@ -1,4 +1,4 @@
-:mod:`smisk.inflection.en`
+en
 =================================================
 
 .. automodule:: smisk.inflection.en
