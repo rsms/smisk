@@ -28,11 +28,17 @@ cfg = ConfigParser()
 cfg.read('setup.cfg')
 tag = ''
 v = None
+release_version = version
 if cfg.has_option('egg_info', 'tag_build'):
   tag = cfg.get('egg_info', 'tag_build')
-  v = parse_version("%s%s" % (version, tag.strip()))
+  release_version = release_version + tag.strip()
+  v = parse_version(release_version)
 else:
   v = parse_version(version)
+
+if '--release-version' in sys.argv:
+  print release_version
+  sys.exit(0)
 
 # we just need to do this right here. sorry.
 undef_macros=[]
@@ -176,6 +182,8 @@ def core_build_id():
         if _core_build_id[-1] == '+':
           dirty_extra = '%x' % int(time.time())
         _core_build_id = 'urn:rcsid:%s%s' % (_core_build_id, dirty_extra)
+        if 'SMISK_BUILD_ID_SUFFIX' in os.environ:
+          _core_build_id += os.environ['SMISK_BUILD_ID_SUFFIX']
       if not _core_build_id:
         # Not under revision control
         _core_build_id = time.strftime('urn:utcts:%Y%m%d%H%M%S', time.gmtime())
@@ -225,10 +233,7 @@ class build_ext(_build_ext):
     _build_ext.finalize_options(self)
     
     # Process BSDDB module build
-    orig_syspath = sys.path
-    sys.path[0:0] = ['admin']
     import setup_bsddb
-    sys.path = orig_syspath
     self.bsddb = setup_bsddb
     
     self.include_dirs.extend([
