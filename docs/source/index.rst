@@ -3,12 +3,9 @@
 Overview
 ===============================
 
-:Release: |release|
-:Date: |today|
-
 Welcome to the documentation of Smisk |release|.
+More information can be found at `python-smisk.org <http://python-smisk.org/>`_
 
-Smisk is a Simple, high-performance and scalable web service framework for FastCGI --- written in C, but controlled by Python.
 
 Starting points
 --------------------
@@ -26,7 +23,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-
-
-More information can be found at http://python-smisk.org/
