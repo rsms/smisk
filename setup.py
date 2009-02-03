@@ -129,7 +129,8 @@ def shell_cmd(args, cwd=BASE_DIR):
   '''
   if not isinstance(args, (list, tuple)):
     args = [args]
-  ps = Popen(args, shell=True, cwd=cwd, stdout=PIPE, stderr=PIPE, close_fds=True, env={})
+  ps = Popen(args, shell=True, cwd=cwd, stdout=PIPE, stderr=PIPE,
+             close_fds=True)
   stdout, stderr = ps.communicate()
   if ps.returncode != 0:
     if stderr:
@@ -174,7 +175,7 @@ def core_build_id():
     else:
       # Maybe under revision control
       try:
-        _core_build_id = shell_cmd(['hg id | cut -d \' \' -f 1'])
+        _core_build_id = shell_cmd(['git rev-parse master'])
       except IOError:
         pass
       if _core_build_id:
@@ -189,6 +190,9 @@ def core_build_id():
         _core_build_id = time.strftime('urn:utcts:%Y%m%d%H%M%S', time.gmtime())
   return _core_build_id
 
+if '--print-build-id' in sys.argv:
+  print core_build_id()
+  sys.exit(0)
 
 # -----------------------------------------
 # Commands

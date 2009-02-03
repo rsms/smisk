@@ -61,19 +61,17 @@ fi
 # Make a clean copy of the repository if we're building from a checkout
 CLEAN_COPY_DIR=
 ORG_DIR=$(pwd)
-if [ -d .hg ]; then
-  SMISK_BUILD_ID='rcsid:'${REV}
-  echo 'Creating a temporary, clean clone of this repository'
+SMISK_BUILD_ID=$(python setup.py --print-build-id)
+if [ -d .git ]; then
+  echo 'Creating a temporary, clean clone of the repository'
   CLEAN_COPY_DIR=$(mktemp -d -t dist-debian.XXXXXXXXXX)
   trap "rm -rf $CLEAN_COPY_DIR; exit $?" INT TERM EXIT
   CLEAN_COPY_DIR=${CLEAN_COPY_DIR}/${DEB_PACKAGE_NAME}-${UPSTREAM_VER}
-  hg clone "${ORG_DIR}" ${CLEAN_COPY_DIR}
+  git clone --local --quiet "${ORG_DIR}" ${CLEAN_COPY_DIR}
   cd ${CLEAN_COPY_DIR}
-  rm -rf .hg*
-else
-  SMISK_BUILD_ID='utcts:'$(date '+%Y%m%d%H%M%S')
+  rm -rf .git*
 fi
-export SMISK_BUILD_ID='urn:'${SMISK_BUILD_ID}':debian:'${DEB_REVISION}
+export SMISK_BUILD_ID="${SMISK_BUILD_ID}:debian:${DEB_REVISION}"
 
 # Build
 echo 'Running dpkg-buildpackage -rfakeroot'

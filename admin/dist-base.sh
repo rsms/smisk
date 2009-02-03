@@ -11,8 +11,8 @@ DEFAULT_PYTHON=$(which python)
 PACKAGE=$($DEFAULT_PYTHON setup.py --name)
 VER=$($DEFAULT_PYTHON setup.py --version)
 REV=
-if [ -d .hg ]; then
-  REV=$(hg id | cut -d ' ' -f 1)
+if [ -d .git ]; then
+  REV=$(git rev-parse master)
 fi
 
 # Security measure to make sure we don't end up with version-version
@@ -23,8 +23,8 @@ fi
 # Confirm working revision is synchronized with repository
 ensure_clean_working_revision() {
   RREV=$REV
-  if (echo "$RREV"|$GREP '+' > /dev/null); then
-    MSG="Working revision $RREV is not clean. You need to sort things out first."
+  if [[ $(git status 2> /dev/null | tail -n1) != "nothing to commit (working directory clean)" ]]; then
+    MSG="Work tree $RREV is not clean. You need to commit or revert modifications first."
     if [ "$DRY_RUN" != "" ] && [ $DRY_RUN -eq 1 ]; then
       echo "$0: Warning: $MSG"
       echo "$0: Notice: In a non-dry run the above warning would be an error and exit 1"
