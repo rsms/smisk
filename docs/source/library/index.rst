@@ -3,8 +3,7 @@
 Library
 ====================================
 
-:Release: |version|
-:Date: |today|
+:Release: |release|
 
 .. toctree::
   
