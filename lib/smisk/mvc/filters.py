@@ -3,38 +3,16 @@
 '''
 import smisk.core
 
-__all__ = ['BaseFilter', 'confirm']
+__all__ = ['confirm']
 
-class BaseFilter(object):
-  '''Base filter with a pass-through implementation.
-  '''
-  @staticmethod
-  def before(cls, *args, **kw):
-    '''Called before mvc.Application.service calls the actual leaf.
-    
-    Should return a tuple of (args, kw)
-    '''
-    return args, kw
-  
-  @staticmethod
-  def after(cls, rsp, *args, **kw):
-    '''Called after mvc.Application.service has called the actual leaf.
-    
-    rsp is the object returned from the actual leaf.
-    
-    Should return rsp
-    '''
-    return rsp
-  
-
-class confirm(BaseFilter):
+def confirm(leaf, *va, **params):
   '''Requires the client to resend the request, passing a one-time valid token
   as a confirmation.
   
   Used like this::
   
-    @expose(filters=filters.confirm)
-    def delete(self, id, confirmed=False, *args, **kwargs):
+    @confirm
+    def delete(self, id, confirmed, *args, **kwargs):
       item = Item.get_by(id=id)
       if confirmed:
         item.delete()
@@ -69,28 +47,42 @@ class confirm(BaseFilter):
       req.session = {}
   
   '''
-  @staticmethod
-  def before(confirm_token=None, *args, **kw):
-    kw['confirm_token'] = confirm_token
-    kw['confirmed'] = False
+  def f(*va, **params):
+    req = smisk.core.Application.current.request
+  
+    # Validate confirmation if available
+    params['confirmed'] = False
     try:
-      if confirm_token == smisk.core.Application.current.request.session['confirm_token']:
-        kw['confirmed'] = True
+      if params['confirm_token'] == req.session['confirm_token']:
+        params['confirmed'] = True
     except (KeyError, TypeError):
       pass
-    return args, kw
+    
+    # Make sure we don't keep confirm_token in params
+    try: del params['confirm_token']
+    except: pass
+    
+    # Call leaf
+    rsp = leaf(*va, **params)
   
-  @staticmethod
-  def after(rsp, confirmed=False, *args, **kw):
-    if not confirmed:
-      req = smisk.core.Application.current.request
+    # Add confirmation token if still unconfirmed
+    if not params['confirmed']:
       if not isinstance(req.session, dict):
         req.session = {}
       confirm_token = smisk.core.uid()
       req.session['confirm_token'] = confirm_token
-      #log.info("session['confirm_token']=%r", req.session['confirm_token'])
       if not isinstance(rsp, dict):
         rsp = {}
       rsp['confirm_token'] = confirm_token
+    else:
+      # Remove confirmation tokens
+      try: del req.session['confirm_token']
+      except: pass
+      try: del rsp['confirm_token']
+      except: pass
+  
+    # Return response
     return rsp
+  
+  return f
   
