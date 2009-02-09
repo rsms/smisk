@@ -79,7 +79,7 @@ class Templates(object):
     '''
     try:
       template = self.instances[uri]
-      if config.get('smisk.mvc.template.autoreload'):
+      if config.get('smisk.mvc.template.autoreload', config.get('smisk.autoreload')):
         if template is not None:
           template = self._check(uri, template)
         else:

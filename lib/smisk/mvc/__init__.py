@@ -231,8 +231,6 @@ class Application(smisk.core.Application):
           log.info('Template directory not found -- disabling templates.')
           self.templates.directories = []
           self.templates = None
-      if self.templates and not config.has_key('smisk.mvc.template.autoreload'):
-        config.set_default('smisk.mvc.template.autoreload', config.get('smisk.autoreload'))
     
     # Set fallback serializer
     if isinstance(Response.fallback_serializer, basestring):
