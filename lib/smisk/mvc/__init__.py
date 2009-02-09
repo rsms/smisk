@@ -188,6 +188,22 @@ class Application(smisk.core.Application):
   '''Automatically clear the model session cache before each request is handled.
   '''
   
+  leaf_filter = None
+  '''If not none, this will be called with the actual leaf callable as the first
+  argument for *every request*.
+  
+  Should look like this:
+  
+    def my_filter(leaf, *va, **kw):
+      # do something with args
+      rsp = leaf(*va, **kw)
+      # do something with the response
+      return rsp
+  
+  Like a global filter. Kinda like putting @somefilter above every leaf in an
+  application.
+  '''
+  
   _pending_rebind_model_metadata = None
   '''Used internally for queueing a model session rebinding, which need to be 
   done in the main thread.
@@ -250,6 +266,16 @@ class Application(smisk.core.Application):
     # Create tables if needed and setup any models
     if model.metadata.bind:
       model.setup_all(True)
+  
+  
+  def add_leaf_filter(self, filter):
+    if not callable(filter):
+      raise TypeError('first argument must be callable')
+    if callable(self.leaf_filter):
+      next_leaf_filter = self.leaf_filter
+      self.leaf_filter = lambda *va, **kw: filter(next_leaf_filter, *va, **kw)
+    else:
+      self.leaf_filter = lambda *va, **kw: filter(self.destination, *va, **kw)
   
   
   def application_will_start(self):
@@ -608,16 +634,10 @@ class Application(smisk.core.Application):
       self.response.headers.append('Vary: Accept-Charset')
     
     # Call leaf
-    if log.level <= logging.DEBUG:
-      log.debug('calling destination %r with args %r and params %r', self.destination, args, params)
-    try:
-      for filter in self.destination.leaf.filters:
-        args, params = filter.before(*args, **params)
-      rsp = self.destination(*args, **params)
-      for filter in self.destination.leaf.filters:
-        rsp = filter.after(rsp, *args, **params)
-      return rsp
-    except AttributeError:
+    log.debug('calling destination %r with args %r and params %r', self.destination, args, params)
+    if self.leaf_filter is not None:
+      return self.leaf_filter(*args, **params)
+    else:
       return self.destination(*args, **params)
   
   
