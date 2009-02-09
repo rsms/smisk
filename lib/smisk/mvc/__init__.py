@@ -226,9 +226,9 @@ class Application(smisk.core.Application):
         path = os.path.join(os.environ['SMISK_APP_DIR'], 'templates')
         if os.path.isdir(path):
           self.templates.directories = [path]
-          log.debug('Using template directories: %s', ', '.join(self.templates.directories))
+          log.debug('using template directories: %s', ', '.join(self.templates.directories))
         else:
-          log.info('Template directory not found -- disabling templates.')
+          log.info('template directory not found -- disabling templates.')
           self.templates.directories = []
           self.templates = None
     
@@ -280,7 +280,7 @@ class Application(smisk.core.Application):
       log.debug('available filename extensions: %s', ', '.join(serializers.extensions.keys()))
     
     # When we return, accept() in smisk.core is called
-    log.info('Accepting connections')
+    log.info('accepting connections')
   
   
   def application_did_stop(self):
@@ -364,7 +364,7 @@ class Application(smisk.core.Application):
     accept_types = self.request.env.get('HTTP_ACCEPT', None)
     if accept_types is not None and len(accept_types):
       if log.level <= logging.DEBUG:
-        log.debug('Client accepts: %r', accept_types)
+        log.debug('client accepts: %r', accept_types)
       
       # Parse the qvalue header
       tqs, highqs, partials, accept_any = parse_qvalue_header(accept_types, '*/*', '/*')
@@ -405,7 +405,7 @@ class Application(smisk.core.Application):
       # If an Accept header field is present, and if the server cannot send a response which 
       # is acceptable according to the combined Accept field value, then the server SHOULD 
       # send a 406 (not acceptable) response. [RFC 2616]
-      log.info('Client demanded content type(s) we can not respond in. "Accept: %s"', accept_types)
+      log.info('client demanded content type(s) we can not respond in. "Accept: %s"', accept_types)
       if config.get('smisk.mvc.strict_tcn', True):
         raise http.NotAcceptable()
     
@@ -463,13 +463,13 @@ class Application(smisk.core.Application):
           # which is acceptable according to the Accept-Charset header, then the server 
           # SHOULD send an error response with the 406 (not acceptable) status code, though 
           # the sending of an unacceptable response is also allowed. [RFC 2616]
-          log.info('Client demanded charset(s) we can not respond using. "Accept-Charset: %s"',
+          log.info('client demanded charset(s) we can not respond using. "Accept-Charset: %s"',
             accept_charset)
           if config.get('smisk.mvc.strict_tcn', True):
             raise http.NotAcceptable()
         
         if log.level <= logging.DEBUG:
-          log.debug('Using alternate response character encoding: %r (requested by client)',
+          log.debug('using alternate response character encoding: %r (requested by client)',
             self.response.charset)
     
     # Parse body if POST request
@@ -500,7 +500,7 @@ class Application(smisk.core.Application):
           if eparams is not None:
             params.update(eparams)
         except KeyError:
-          log.error('Unable to parse request -- no serializer able to decode %r', content_type)
+          log.error('unable to parse request -- no serializer able to decode %r', content_type)
           raise http.UnsupportedMediaType()
     
     return (args, params)
@@ -609,7 +609,7 @@ class Application(smisk.core.Application):
     
     # Call leaf
     if log.level <= logging.DEBUG:
-      log.debug('Calling destination %r with args %r and params %r', self.destination, args, params)
+      log.debug('calling destination %r with args %r and params %r', self.destination, args, params)
     try:
       for filter in self.destination.leaf.filters:
         args, params = filter.before(*args, **params)
@@ -739,7 +739,7 @@ class Application(smisk.core.Application):
     '''
     if log.level <= logging.INFO:
       timer = Timer()
-      log.info('Serving %s for client %s', self.request.url, 
+      log.info('serving %s for client %s', self.request.url, 
         self.request.env.get('REMOTE_ADDR','?'))
     
     # Reset pre-transaction properties
@@ -772,7 +772,7 @@ class Application(smisk.core.Application):
     
     # Resolve route to destination
     self.destination, req_args, req_params = \
-      self.routes(self.request.method, self.request.url, req_args, req_params)
+      self.routes(self.request.method, self.request.cn_url, req_args, req_params)
     
     # Adjust formats if required by destination
     self.apply_leaf_restrictions()
@@ -809,7 +809,7 @@ class Application(smisk.core.Application):
         uri = '%s.%s' % (self.destination.uri, self.response.serializer.extensions[0])
       else:
         uri = self.request.url.uri
-      log.info('Processed %s in %.3fms', uri, timer.time()*1000.0)
+      log.info('processed %s in %.3fms', uri, timer.time()*1000.0)
   
   
   def service_server_OPTIONS(self, args, params):
@@ -853,14 +853,14 @@ class Application(smisk.core.Application):
     :rtype: template.Template
     '''
     if log.level <= logging.DEBUG:
-      log.debug('Looking for template %s', uri)
+      log.debug('looking for template %s', uri)
     return self.templates.template_for_uri(uri, exc_if_not_found=False)
   
   def _log_debug_sending_rsp(self, rsp):
     _body = ''
     if rsp:
       _body = '<%d bytes>' % len(rsp)
-    log.debug('Sending response to %s: %r', self.request.env.get('REMOTE_ADDR','?'),
+    log.debug('sending response to %s: %r', self.request.env.get('REMOTE_ADDR','?'),
       '\r\n'.join(self.response.headers) + '\r\n\r\n' + _body)
   
   def _pad_rsp_for_msie(self, status_code, rsp):
@@ -873,7 +873,7 @@ class Application(smisk.core.Application):
         ielen += 1
         blen = len(rsp)
         if blen < ielen:
-          log.debug('Adding additional body content for MSIE')
+          log.debug('adding additional body content for MSIE')
           rsp = rsp + (' ' * (ielen-blen))
     return rsp
   
@@ -934,8 +934,8 @@ class Application(smisk.core.Application):
       
       return # We're done
     except:
-      log.error('Failed to encode error', exc_info=1)
-    log.error('Request failed for %r', self.request.url.path, exc_info=(extyp, exval, tb))
+      log.error('failed to encode error', exc_info=1)
+    log.error('request failed for %r', self.request.url.path, exc_info=(extyp, exval, tb))
     super(Application, self).error(extyp, exval, tb)
   
   
@@ -948,7 +948,7 @@ class Application(smisk.core.Application):
         if self.response.serializer is None:
           # In this case an error occured very early.
           self.response.serializer = Response.fallback_serializer
-          log.info('Responding using fallback serializer %s' % self.response.serializer)
+          log.info('responding using fallback serializer %s' % self.response.serializer)
         
         # Set format if a serializer was found
         format = self.response.serializer.extensions[0]
