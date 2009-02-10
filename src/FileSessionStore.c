@@ -235,7 +235,7 @@ PyObject *smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject *se
       }
       #if SMISK_DEBUG
         else {
-          log_debug("Successfully read session data from %s", pathname));
+          log_debug("Successfully read session data from %s", pathname);
         }
       #endif
       
