@@ -657,7 +657,7 @@ class Application(smisk.core.Application):
     _debug = log.level <= logging.DEBUG
     try:
       if self.autoclear_model_session:
-        if _debug: log.debug('clearing session')
+        if _debug: log.debug('clearing model session')
         model.session.clear()
       rsp = self.call_leaf(req_args, req_params)
       model.commit_if_needed()
