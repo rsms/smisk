@@ -223,7 +223,8 @@ static int _cleanup_session(smisk_Request* self) {
     log_debug("_cleanup_session: self->session_id = %s", self->session_id ? PyBytes_AsString(self->session_id) : "NULL");
     log_debug("_cleanup_session: self->session = %p", self->session);
     log_debug("_cleanup_session: self->initial_session_hash = 0x%lx", self->initial_session_hash);
-    log_debug("_cleanup_session: smisk_object_hash(self->session) = 0x%lx", self->session ? smisk_object_hash(self->session) : 0);
+    log_debug("_cleanup_session: smisk_object_hash(self->session) = 0x%lx", 
+      (self->session && self->session != Py_None) ? smisk_object_hash(self->session) : 0);
     assert(self->session);
     
     if (smisk_require_app() != 0)
