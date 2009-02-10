@@ -439,6 +439,7 @@ int probably_call(float probability, probably_call_cb *cb, void *cb_arg) {
 
 
 long smisk_object_hash(PyObject *obj) {
+  log_trace("ENTER smisk_object_hash(%p)", obj);
   PyObject *x;
   long h = PyObject_Hash(obj);
   if (h == -1) {
@@ -446,8 +447,14 @@ long smisk_object_hash(PyObject *obj) {
     log_debug("smisk_object_hash: calculating hash by marshalling");
     PyErr_Clear();
     x = PyMarshal_WriteObjectToString(obj, Py_MARSHAL_VERSION);
-    h = PyObject_Hash(x);
-    Py_DECREF(x);
+    if (x == NULL) {
+      PyErr_Clear();
+      h = PyObject_Hash(Py_None);
+    }
+    else {
+      h = PyObject_Hash(x);
+      Py_DECREF(x);
+    }
   }
   return h;
 }
