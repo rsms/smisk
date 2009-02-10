@@ -2,7 +2,7 @@
 # encoding: utf-8
 '''URL-to-function routing.
 '''
-import sys, re, logging
+import sys, re, logging, new
 from smisk.mvc import http
 from smisk.mvc import control
 from smisk.core import URL
@@ -92,13 +92,32 @@ class Destination(object):
     return self.leaf
   
   
+  _canonical_leaf = None
+  @property
+  def canonical_leaf(self):
+    if self._canonical_leaf is None:
+      self._canonical_leaf = self.leaf
+      try:
+        while 1:
+          self._canonical_leaf = self._canonical_leaf.parent_leaf
+      except AttributeError:
+        pass
+      if isinstance(self._canonical_leaf, FunctionType):
+        # In this case, the leaf has been decorated and thus need to be bound into
+        # a proper instance method.
+        self._canonical_leaf = new.instancemethod(self._canonical_leaf, 
+          self.leaf.im_self, self.leaf.im_class)
+      log.debug('%r.canonical_leaf = %r', self, self._canonical_leaf)
+    return self._canonical_leaf
+  
+  
   @property
   def path(self):
     '''Canonical exposed path.
     
     :rtype: list
     '''
-    return control.path_to(self.leaf)
+    return control.path_to(self.canonical_leaf)
   
   @property
   def uri(self):
@@ -106,7 +125,7 @@ class Destination(object):
     
     :rtype: string
     '''
-    return control.uri_for(self.leaf)
+    return control.uri_for(self.canonical_leaf)
   
   @property
   def template_path(self):
@@ -114,7 +133,7 @@ class Destination(object):
     
     :rtype: list
     '''
-    return control.template_for(self.leaf)
+    return control.template_for(self.canonical_leaf)
   
   def __str__(self):
     if self.path:
@@ -123,8 +142,8 @@ class Destination(object):
       return self.__repr__()
   
   def __repr__(self):
-    return '%s(leaf=%r, uri=%r)' \
-      % (self.__class__.__name__, self.leaf, self.uri)
+    return '%s(canonical_leaf=%r, uri=%r)' \
+      % (self.__class__.__name__, self.canonical_leaf, self.uri)
   
 
 class Filter(object):
@@ -364,7 +383,7 @@ class Router(object):
     node = control.root_controller()
     cls = node
     
-    log.debug('Resolving %s (%r) on tree %r', raw_path, path, node)
+    log.debug('resolving %s (%r) on tree %r', raw_path, path, node)
     
     # Check root
     if node is None:
@@ -374,22 +393,22 @@ class Router(object):
     if not path:
       try:
         node = node().__call__
-        log.debug('Found destination: %s', node)
+        log.debug('found leaf: %s', node)
         return node
       except AttributeError:
         return wrap_exc_in_callable(http.MethodNotFound('/'))
     
     # Traverse tree
     for part in path:
-      log.debug('Looking at part %r', part)
+      log.debug('looking at part %r', part)
       found = None
       
       # 1. Search subclasses first
-      log.debug('Matching %r to subclasses of %r', part, node)
+      log.debug('matching %r to subclasses of %r', part, node)
       try:
         subclasses = node.__subclasses__()
       except AttributeError:
-        log.debug('Node %r does not have subclasses -- returning MethodNotFound')
+        log.debug('node %r does not have subclasses -- returning MethodNotFound')
         return wrap_exc_in_callable(http.MethodNotFound(raw_path))
       for subclass in node.__subclasses__():
         if _node_name(subclass, subclass.controller_name()) == part:
@@ -403,7 +422,7 @@ class Router(object):
         continue
       
       # 2. Search methods
-      log.debug('Matching %r to methods of %r', part, node)
+      log.debug('matching %r to methods of %r', part, node)
       # Aquire instance
       if type(node) is type:
         node = node()
@@ -446,6 +465,6 @@ class Router(object):
     if node is None or not callable(node):
       return wrap_exc_in_callable(http.MethodNotFound(raw_path))
     
-    log.debug('Found destination: %s', node)
+    log.debug('found leaf: %s', node)
     return node
   
