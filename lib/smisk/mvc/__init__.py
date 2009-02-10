@@ -37,7 +37,7 @@ import smisk.core
 
 from smisk.core import app, request, response, URL
 from smisk.config import config, LOGGING_FORMAT, LOGGING_DATEFMT
-from smisk.mvc import http, control, model, filters
+from smisk.mvc import http, control, model
 from smisk.serialization import serializers, Serializer
 from smisk.util.cache import *
 from smisk.util.collections import *
@@ -269,13 +269,25 @@ class Application(smisk.core.Application):
   
   
   def add_leaf_filter(self, filter):
+    '''Add a app-global leaf filter.
+    
+    Example filter:
+    
+      def my_filter(leaf):
+        def f(*va, **kw):
+          # do something
+          rsp = leaf(*va, **kw)
+          # do something else
+          return rsp
+        return f
+    
+    '''
     if not callable(filter):
       raise TypeError('first argument must be callable')
     if callable(self.leaf_filter):
-      next_leaf_filter = self.leaf_filter
-      self.leaf_filter = lambda *va, **kw: filter(next_leaf_filter, *va, **kw)
+      self.leaf_filter = filter(self.leaf_filter)
     else:
-      self.leaf_filter = lambda *va, **kw: filter(self.destination, *va, **kw)
+      self.leaf_filter = lambda *va, **kw: filter(self.destination)(*va, **kw)
   
   
   def application_will_start(self):
