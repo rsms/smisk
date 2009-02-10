@@ -229,7 +229,15 @@ PyObject *smisk_FileSessionStore_read(smisk_FileSessionStore *self, PyObject *se
       
       data = PyMarshal_ReadObjectFromFile(fp);
       
-      IFDEBUG(if (data) log_debug("Successfully read session data from %s", pathname));
+      if (data == NULL) {
+        unlink(pathname);
+        PyErr_SetString(smisk_InvalidSessionError, "invalid session data");
+      }
+      #if SMISK_DEBUG
+        else {
+          log_debug("Successfully read session data from %s", pathname));
+        }
+      #endif
       
       if (smisk_file_unlock(fp) != 0) {
         PyErr_SET_FROM_ERRNO;
