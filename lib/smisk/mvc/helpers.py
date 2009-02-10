@@ -29,7 +29,9 @@ def redirect_to(url, entity=None, status=http.Found, **params):
   
   # The url might be a URL or leaf
   if not isinstance(url, basestring):
-    if isinstance(url, URL):
+    if not url:
+      url = '/'
+    elif isinstance(url, URL):
       url = str(url)
     else:
       # url is probably an leaf
