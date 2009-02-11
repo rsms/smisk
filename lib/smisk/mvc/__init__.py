@@ -53,6 +53,13 @@ from smisk.mvc.routing import Router, Destination
 from smisk.mvc.decorators import *
 from smisk.mvc.helpers import *
 
+# load basic serializers
+import smisk.serialization.json
+import smisk.serialization.plain_text
+import smisk.serialization.yaml_serial
+import smisk.serialization.xhtml
+import smisk.serialization.xmlrpc
+
 Controller = control.Controller
 try:
   Entity = model.Entity

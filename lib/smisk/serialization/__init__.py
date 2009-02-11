@@ -110,7 +110,14 @@ class Registry(object):
     if serializer in self.serializers:
       log.debug('skipped registering already registered serializer %r', serializer)
       return
-    log.debug('registered serializer %r', serializer)
+    log.debug('registering serializer %r', serializer)
+    # Check basics
+    if not isinstance(serializer.media_types, (tuple, list)):
+      raise TypeError('media_types attribute of %r must be a tuple or a list '\
+        'of strings' % serializer)
+    if not isinstance(serializer.extensions, (tuple, list)):
+      raise TypeError('extensions attribute of %r must be a tuple or a list '\
+        'of strings' % serializer)
     # Register Serializer
     self.serializers.append(serializer)
     # Register Media types
@@ -418,15 +425,3 @@ class Serializer(object):
     '''
     pass
   
-
-# Load built-in serializers
-import smisk.serialization.json, \
-       smisk.serialization.php_serial, \
-       smisk.serialization.plain_text, \
-       smisk.serialization.plist, \
-       smisk.serialization.python_pickle, \
-       smisk.serialization.python_py, \
-       smisk.serialization.xhtml, \
-       smisk.serialization.xmlrpc, \
-       smisk.serialization.xspf, \
-       smisk.serialization.yaml_serial
