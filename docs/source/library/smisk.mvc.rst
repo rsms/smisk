@@ -229,34 +229,61 @@ Classes
   
   .. attribute:: autoclear_model_session
   
-  Automatically clear the model session cache before each request is handled.
+    Automatically clear the model session cache before each request is handled.
   
-  You should not disable this unless any of the following statements apply:
+    You should not disable this unless any of the following statements apply:
   
-  * You do not use smisk.model or SQLAlchemy at all (no database).
+    * You do not use smisk.model or SQLAlchemy at all (no database).
   
-  * You run only one process (safe to cache).
+    * You run only one process (safe to cache).
   
-  * Your application only reads a set of data that never changes.
+    * Your application only reads a set of data that never changes.
   
-  * Your model does not involve entity relations.
+    * Your model does not involve entity relations.
   
-  Disabling this means entities stay in the local memory cache between sessions.
-  (Relations and their content etc are cached, but not the actual data in the entities)
+    Disabling this means entities stay in the local memory cache between sessions.
+    (Relations and their content etc are cached, but not the actual data in the entities)
   
-  Consider this model::
+    Consider this model::
   
-    class Department(Entity):
-      people = OneToMany('Person')
+      class Department(Entity):
+        people = OneToMany('Person')
     
-    class Person(Entity):
-      department = ManyToOne('Department')
+      class Person(Entity):
+        department = ManyToOne('Department')
   
-  Now, imagine we have two processes running; process A and process B. Process A gets a request to add a new person to an existing department. Afterwards, process B is requested to list all people in the same department. Now, if autoclear_model_session where set to False, the previously added person would no show up in the listing of people in the department which process B queried. This is because which people is "contained within" what department has been implicitly cached by SQLAlchemy.
+    Now, imagine we have two processes running; process A and process B. Process A gets a request to add a new person to an existing department. Afterwards, process B is requested to list all people in the same department. Now, if autoclear_model_session where set to False, the previously added person would no show up in the listing of people in the department which process B queried. This is because which people is "contained within" what department has been implicitly cached by SQLAlchemy.
   
-  :type: bool
-  :default: :samp:`True`
+    :type: ``bool``
+    :default: ``True``
 
+  
+  
+  .. attribute:: leaf_filters
+    
+    Application-global leaf filters, applied to all leafs in the controller tree.
+    
+    The filter are applied in the order they appear in this list.
+    
+    .. code-block:: python
+    
+      from smisk.mvc import *
+    
+      @leaf_filter
+      def ensure_page_title(leaf, *va, **kw):
+        rsp = leaf(*va, **kw)
+        rsp.setdefault('title', u'The Title')
+        return rsp
+    
+      class App(Application):
+        def application_will_start(self):
+          self.leaf_filters.append(ensure_page_title)
+          return Application.application_will_start(self)
+    
+      :type: ``list``
+      
+      .. versionadded:: 1.1.3
+  
   
   
   

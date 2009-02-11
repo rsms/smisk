@@ -188,20 +188,8 @@ class Application(smisk.core.Application):
   '''Automatically clear the model session cache before each request is handled.
   '''
   
-  leaf_filter = None
-  '''If not none, this will be called with the actual leaf callable as the first
-  argument for *every request*.
-  
-  Should look like this:
-  
-    def my_filter(leaf, *va, **kw):
-      # do something with args
-      rsp = leaf(*va, **kw)
-      # do something with the response
-      return rsp
-  
-  Like a global filter. Kinda like putting @somefilter above every leaf in an
-  application.
+  leaf_filters = []
+  '''App-global leaf filters
   '''
   
   _pending_rebind_model_metadata = None
@@ -215,6 +203,9 @@ class Application(smisk.core.Application):
     super(Application, self).__init__(*args, **kwargs)
     self.request_class = Request
     self.response_class = Response
+    
+    self.leaf_filters = []
+    self._leaf_filter = None
     
     if router is None:
       self.routes = Router()
@@ -268,26 +259,19 @@ class Application(smisk.core.Application):
       model.setup_all(True)
   
   
-  def add_leaf_filter(self, filter):
-    '''Add a app-global leaf filter.
-    
-    Example filter:
-    
-      def my_filter(leaf):
-        def f(*va, **kw):
-          # do something
-          rsp = leaf(*va, **kw)
-          # do something else
-          return rsp
-        return f
-    
-    '''
-    if not callable(filter):
-      raise TypeError('first argument must be callable')
-    if callable(self.leaf_filter):
-      self.leaf_filter = filter(self.leaf_filter)
-    else:
-      self.leaf_filter = lambda *va, **kw: filter(self.destination)(*va, **kw)
+  def _compile_leaf_filters(self):
+    self._leaf_filter = None
+    if self.leaf_filters:
+      log.debug('compiling %d app-global leaf filters', len(self.leaf_filters))
+      for filter in self.leaf_filters:
+        if callable(filter):
+          log.debug('pushed app-global leaf filter %r', filter)
+          if self._leaf_filter is None:
+            # This little trick makes us able to pre-compile these filters
+            # and still later modify self.destination.
+            self._leaf_filter = lambda *va, **kw: filter(self.destination)(*va, **kw)
+          else:
+            self._leaf_filter = filter(self._leaf_filter)
   
   
   def application_will_start(self):
@@ -295,6 +279,10 @@ class Application(smisk.core.Application):
     # Calling basicConfig has no effect if logging is already configured.
     # (for example by an application configuration)
     logging.basicConfig(format=LOGGING_FORMAT, datefmt=LOGGING_DATEFMT)
+    
+    # Assure all imported controllers are instantiated
+    for controller in control.controllers():
+      pass
     
     # Call setup()
     self.setup()
@@ -310,6 +298,9 @@ class Application(smisk.core.Application):
     if model.metadata.bind:
       import atexit
       atexit.register(model.cleanup_all)
+    
+    # Compile app-global leaf filters
+    self._compile_leaf_filters()
     
     # Info about serializers
     if log.level <= logging.DEBUG:
@@ -619,7 +610,7 @@ class Application(smisk.core.Application):
       pass
   
   
-  def call_leaf(self, args, params):
+  def _call_leaf(self, args, params):
     '''
     Resolves and calls the appropriate leaf, passing args and params to it.
     
@@ -647,8 +638,8 @@ class Application(smisk.core.Application):
     
     # Call leaf
     log.debug('calling destination %r with args %r and params %r', self.destination, args, params)
-    if self.leaf_filter is not None:
-      return self.leaf_filter(*args, **params)
+    if self._leaf_filter is not None:
+      return self._leaf_filter(*args, **params)
     else:
       return self.destination(*args, **params)
   
@@ -659,7 +650,7 @@ class Application(smisk.core.Application):
       if self.autoclear_model_session:
         if _debug: log.debug('clearing model session')
         model.session.clear()
-      rsp = self.call_leaf(req_args, req_params)
+      rsp = self._call_leaf(req_args, req_params)
       model.commit_if_needed()
       return rsp
     except Exception, e:
@@ -819,7 +810,7 @@ class Application(smisk.core.Application):
     if model.metadata.bind:
       rsp = self._call_leaf_and_handle_model_session(req_args, req_params)
     else:
-      rsp = self.call_leaf(req_args, req_params)
+      rsp = self._call_leaf(req_args, req_params)
     
     # Aquire template, if any
     if self.template is None and self.templates is not None:
