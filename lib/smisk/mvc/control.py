@@ -201,6 +201,9 @@ def leaf_is_visible(node, cls=None):
   return True
 
 
+# -------------------
+
+
 def _cached_path_to(cache_key, node, cache, resolve_template):
   try:
     return cache[cache_key]
