@@ -764,6 +764,15 @@ class Application(smisk.core.Application):
       timer = Timer()
       log.info('serving %s for client %s', self.request.url, 
         self.request.env.get('REMOTE_ADDR','?'))
+      if log.level <= logging.DEBUG:
+        reqh = '\n'.join(['  %s: %s' % (k[5:6]+k[6:].lower().replace('_','-'), v) \
+          for k,v in self.request.env.items() if k.startswith('HTTP_')])
+        log.debug('reconstructed request:\n  %s %s %s\n%s',
+          self.request.method, 
+          self.request.url.to_s(scheme=0,user=0,host=0,port=0),
+          self.request.env.get('SERVER_PROTOCOL','?'),
+          reqh)
+        
     
     # Reset pre-transaction properties
     self.request.serializer = None
