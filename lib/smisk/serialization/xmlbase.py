@@ -31,9 +31,15 @@ class XMLSerializer(Serializer):
   '''XML serializer baseclass.
   
   Baseclass for XML serializers.
+  
+  This serializer can be registered, but is not registered by default since
+  it's incapable of both decoding and encoding data. However it can be
+  registered to accept text/xml in order to use xml templates.
   '''
   name = 'XML'
   charset = 'utf-8'
+  extensions = ('xml',)
+  media_types = ('text/xml')
   
   xml_declaration = '<?xml version="1.0" encoding="%s"?>\n'
   ''':type: string
