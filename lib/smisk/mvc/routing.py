@@ -24,6 +24,21 @@ def _node_name(node, fallback):
     return fallback
   return n
 
+def _find_canonical_leaf(leaf, rel_im_leaf):
+  canonical_leaf = leaf
+  try:
+    while 1:
+      canonical_leaf = canonical_leaf.parent_leaf
+  except AttributeError:
+    pass
+  if isinstance(canonical_leaf, FunctionType) \
+  and canonical_leaf.__name__ not in ('va_kwa_wrapper', 'exc_wrapper'):
+    # In this case, the leaf has been decorated and thus need to be bound into
+    # a proper instance method.
+    canonical_leaf = new.instancemethod(canonical_leaf, rel_im_leaf.im_self, rel_im_leaf.im_class)
+  return canonical_leaf
+
+
 class Destination(object):
   '''A callable destination.
   '''
@@ -96,17 +111,7 @@ class Destination(object):
   @property
   def canonical_leaf(self):
     if self._canonical_leaf is None:
-      self._canonical_leaf = self.leaf
-      try:
-        while 1:
-          self._canonical_leaf = self._canonical_leaf.parent_leaf
-      except AttributeError:
-        pass
-      if isinstance(self._canonical_leaf, FunctionType):
-        # In this case, the leaf has been decorated and thus need to be bound into
-        # a proper instance method.
-        self._canonical_leaf = new.instancemethod(self._canonical_leaf, 
-          self.leaf.im_self, self.leaf.im_class)
+      self._canonical_leaf = _find_canonical_leaf(self.leaf, self.leaf)
       log.debug('%r.canonical_leaf = %r', self, self._canonical_leaf)
     return self._canonical_leaf
   
