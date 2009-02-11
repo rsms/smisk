@@ -4,9 +4,9 @@
 import types
 import smisk.mvc.filters
 
-__all__ = ['expose', 'hide']
+__all__ = ['expose', 'hide', 'leaf_filter']
 
-def expose(slug=None, template=None, formats=None, delegates=False, filters=None, methods=None):
+def expose(slug=None, template=None, formats=None, delegates=False, methods=None):
   '''Explicitly expose a function, optionally configure how it is exposed.
   '''
   def entangle(func):
@@ -40,16 +40,6 @@ def expose(slug=None, template=None, formats=None, delegates=False, filters=None
         if not isinstance(s, basestring):
           raise TypeError('formats must be a tuple or list of strings, alternatively a single string')
     
-    # Filters
-    if filters is not None:
-      if isinstance(filters, list):
-        func.filters = filters
-      else:
-        func.filters = [filters]
-      for f in func.filters:
-        if not hasattr(f, 'before') or not callable(f.before) or not hasattr(f, 'after') or not callable(f.after):
-          raise TypeError('filter %r must have two callable attributes: before and after' % f)
-    
     # Methods
     if methods is not None:
       if isinstance(methods, (list, tuple)):
@@ -77,3 +67,12 @@ def hide(func=None):
     return entangle(func)
   return entangle
 
+
+def leaf_filter(filter):
+  def entangle(leaf, *va, **kw):
+    def f(*va, **kw):
+      return filter(leaf, *va, **kw)
+    f.parent_leaf = leaf
+    return f
+  entangle.__name__ = filter.__name__+'_leaf_filter'
+  return entangle
