@@ -192,6 +192,7 @@ class introspect(object):
       cls._info_cache[callable_cache_key(f)] = va_kwa_wrapper.info
       va_kwa_wrapper.wrapped_func = f
       va_kwa_wrapper.im_func = f
+      va_kwa_wrapper.__name__ = f.__name__
       try:
         va_kwa_wrapper.im_class = f.im_class
       except AttributeError:
