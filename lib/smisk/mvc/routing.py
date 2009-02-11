@@ -194,6 +194,8 @@ class RegExpFilter(Filter):
       raise ValueError('first argument "pattern" must be a Regex object or a string, not %s'\
         % type(pattern).__name__)
     else:
+      if not isinstance(pattern, unicode):
+        pattern = unicode(pattern)
       self.pattern = re.compile(pattern, regexp_flags)
     
     if not isinstance(destination_path, (basestring, URL)):
@@ -232,9 +234,10 @@ class RegExpFilter(Filter):
     if m is not None:
       if self.params:
         params = self.params.copy()
-        params.update(m.groupdict())
       else:
-        params = m.groupdict()
+        params = {}
+      for k,v in m.groupdict().items():
+        params[k.encode('utf-8')] = v
       return [], params
     
     return None2
