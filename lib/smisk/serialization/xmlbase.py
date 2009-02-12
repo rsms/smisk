@@ -173,18 +173,4 @@ class XMLSerializer(Serializer):
     e = Element(name, **attributes)
     e.text = text
     return e
-
-if __name__ == '__main__':
-  print XMLPlistETreeSerializer.serialize({
-    'message': 'Hello worlds',
-    'internets': [
-      'interesting',
-      'lolz',
-      42.0,
-      {
-        'tubes': [1,3,16,18,24],
-        'persons': True
-      }
-    ],
-    'today': datetime.now()
-  }, charset='utf-8')
+  
