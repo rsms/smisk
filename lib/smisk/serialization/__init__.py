@@ -59,9 +59,6 @@ class data(object):
     '''
     return cls(base64.decodestring(string))
   
-  def __str__(self):
-    return self.bytes or ''
-  
   def __cmp__(self, other):
     if isinstance(other, self.__class__):
       other = other.bytes
