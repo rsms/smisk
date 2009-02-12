@@ -1,7 +1,7 @@
 # encoding: utf-8
 '''Date and Time utilities
 '''
-import re
+import re, time
 from datetime import datetime, timedelta, tzinfo
 ZERO_TIMEDELTA = timedelta(0)
 
