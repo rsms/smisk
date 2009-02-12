@@ -24,8 +24,8 @@ THE SOFTWARE.
 
 #include "system_config.h"
 
-// If defined, the crash dump code will not be compiled in.
-//#define SMISK_NO_CRASH_REPORTING
+// If defined, smisk will enable built-in crash reporting tools
+//#define SMISK_ENABLE_CRASH_REPORTING 1
 
 // Chunk size for reading unknown length from a stream
 #define SMISK_STREAM_READ_CHUNKSIZE 1024

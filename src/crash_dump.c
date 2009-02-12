@@ -10,7 +10,7 @@
  *
  * Copyright (C) 2005 - 2006 Jaco Kroon
  */
-#ifndef SMISK_NO_CRASH_REPORTING
+#if SMISK_ENABLE_CRASH_REPORTING
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -246,19 +246,22 @@ void smisk_crash_dump_init(void) {
   action.sa_flags = SA_SIGINFO;
   // Important: Only register for signals which have
   //            its codes in the si_codes table above.
-  if (sigaction(SIGILL, &action, NULL) < 0)
-    perror("sigaction"); return;
-  
-  if (sigaction(SIGFPE, &action, NULL) < 0)
-    perror("sigaction"); return;
-  
-  if (sigaction(SIGBUS, &action, NULL) < 0)
-    perror("sigaction"); return;
-  
+  if (sigaction(SIGILL, &action, NULL) < 0) {
+    perror("sigaction");
+    return;
+  }
+  if (sigaction(SIGFPE, &action, NULL) < 0) {
+    perror("sigaction");
+    return;
+  }
+  if (sigaction(SIGBUS, &action, NULL) < 0) {
+    perror("sigaction");
+    return;
+  }
   if (sigaction(SIGSEGV, &action, NULL) < 0)
     perror("sigaction");
 }
 
-#else /* SMISK_NO_CRASH_REPORTING */
+#else /* SMISK_ENABLE_CRASH_REPORTING */
 void smisk_crash_dump_init(void) {}
 #endif
