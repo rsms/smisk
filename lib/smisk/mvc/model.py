@@ -207,7 +207,7 @@ except ImportError, e:
     bind = None
   
   session = None
-  Entity = object
+  Entity = None
 
 
 def _perform_if_dirty(sess, call_if_dirty, logprefix, check_modified=False):
