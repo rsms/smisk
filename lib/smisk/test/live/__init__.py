@@ -442,6 +442,8 @@ class Client(object):
 
 
 class LiveTestCase(TestCase):
+  _connections = []
+  
   def setUp(self, basedir=None):
     if not basedir:
       basedir = os.path.dirname(sys.modules[self.__class__.__module__].__file__)
