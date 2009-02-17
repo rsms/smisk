@@ -20,7 +20,7 @@ TFN=".uploading-$(date '+%y%m%d-%H%M%S')-$VER"
 echo "Uploading HTML docs to python-smisk.org:$REMOTEDIR/$TFN"
 scp -Cr "docs/html" "python-smisk.org:$REMOTEDIR/$TFN"
 echo "Upload done. Staging new files $REMOTEDIR/$TFN -> $REMOTEDIR/$VER"
-ssh python-smisk.org "cd $REMOTEDIR && rm -rf $VER && mv -f $TFN $VER"
+ssh python-smisk.org "cd $REMOTEDIR && mv -f $VER .$VER && (mv -f $TFN $VER && rm -rf .$VER) || mv -f .$VER $VER"
 
 echo "If you wish to make this documentation the current one, do this:"
 echo "  ssh python-smisk.org 'cd $REMOTEDIR && ln -sf $VER current'"
