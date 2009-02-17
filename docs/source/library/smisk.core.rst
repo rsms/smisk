@@ -947,7 +947,7 @@ Classes
       
       >>> from smisk.core import URL
       >>> print URL.decompose_query('name=Jack%20%C3%B6l&age=53')
-      {'age': '53', 'name': 'Jack \xc3\xb6l'}
+      {'age': u'53', 'name': u'Jack \xc3\xb6l'}
       
     
     :param  charset:
