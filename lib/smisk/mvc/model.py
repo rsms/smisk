@@ -200,13 +200,14 @@ try:
 
 except ImportError, e:
   warn('Elixir and/or SQLAlchemy is not installed -- smisk.mvc.model is not '\
-       'available. (%s)', e.message)
+       'available. (%s)' % e)
   
   # So mvc.Application can do "if model.metadata.bind: ..."
   class metadata(object):
     bind = None
   
   session = None
+  Entity = object
 
 
 def _perform_if_dirty(sess, call_if_dirty, logprefix, check_modified=False):
