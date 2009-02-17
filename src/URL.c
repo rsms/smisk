@@ -640,8 +640,6 @@ PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
 }
 
 
-PyDoc_STRVAR(smisk_URL_decompose_query_DOC,
-  "Parses a query string into a dictionary");
 PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   
@@ -696,8 +694,6 @@ PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *args, PyObject 
 }
 
 
-PyDoc_STRVAR(smisk_URL_to_s_DOC, "String representation");
-PyDoc_STRVAR(smisk_URL_to_str_DOC, "Alias of to_s()");
 PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   PyObject *scheme, *user, *password, *host, *port, *port80, *path, *query, *fragment;
@@ -841,12 +837,12 @@ static PyMethodDef smisk_URL_methods[] = {
   {"escape", (PyCFunction)smisk_URL_escape,   METH_STATIC|METH_O, smisk_URL_escape_DOC},
   {"decode", (PyCFunction)smisk_URL_decode,   METH_STATIC|METH_O, smisk_URL_decode_DOC},
   {"unescape", (PyCFunction)smisk_URL_decode, METH_STATIC|METH_O, smisk_URL_unescape_DOC},
-  {"decompose_query", (PyCFunction)smisk_URL_decompose_query, METH_STATIC|METH_VARARGS|METH_KEYWORDS, 
-    smisk_URL_decompose_query_DOC},
+  {"decompose_query", (PyCFunction)smisk_URL_decompose_query, METH_STATIC|METH_VARARGS|METH_KEYWORDS,
+    PyDoc_STR("Parses a query string into a dictionary")},
   
   // Instance methods
-  {"to_s",    (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, smisk_URL_to_s_DOC},
-  {"to_str",  (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, smisk_URL_to_str_DOC}, // alias of to_s
+  {"to_s",    (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, PyDoc_STR("String representation")},
+  {"to_str",  (PyCFunction)smisk_URL_to_s,    METH_VARARGS|METH_KEYWORDS, PyDoc_STR("Alias of to_s()")}, // alias of to_s
   
   {NULL, NULL, 0, NULL}
 };
@@ -859,14 +855,14 @@ static PyGetSetDef smisk_URL_getset[] = {
 
 // Class Members
 static struct PyMemberDef smisk_URL_members[] = {
-  {"scheme",    T_OBJECT_EX, offsetof(smisk_URL, scheme),   0, ":type: string"},
-  {"user",      T_OBJECT_EX, offsetof(smisk_URL, user),     0, ":type: string"},
-  {"password",  T_OBJECT_EX, offsetof(smisk_URL, password), 0, ":type: string"},
-  {"host",      T_OBJECT_EX, offsetof(smisk_URL, host),     0, ":type: string"},
-  {"port",      T_UINT,      offsetof(smisk_URL, port),     0, ":type: uint"},
-  {"path",      T_OBJECT_EX, offsetof(smisk_URL, path),     0, ":type: string"},
-  {"query",     T_OBJECT_EX, offsetof(smisk_URL, query),    0, ":type: string"},
-  {"fragment",  T_OBJECT_EX, offsetof(smisk_URL, fragment), 0, ":type: string"},
+  {"scheme",    T_OBJECT_EX, offsetof(smisk_URL, scheme),   0, PyDoc_STR(":type: string")},
+  {"user",      T_OBJECT_EX, offsetof(smisk_URL, user),     0, PyDoc_STR(":type: string")},
+  {"password",  T_OBJECT_EX, offsetof(smisk_URL, password), 0, PyDoc_STR(":type: string")},
+  {"host",      T_OBJECT_EX, offsetof(smisk_URL, host),     0, PyDoc_STR(":type: string")},
+  {"port",      T_UINT,      offsetof(smisk_URL, port),     0, PyDoc_STR(":type: uint")},
+  {"path",      T_OBJECT_EX, offsetof(smisk_URL, path),     0, PyDoc_STR(":type: string")},
+  {"query",     T_OBJECT_EX, offsetof(smisk_URL, query),    0, PyDoc_STR(":type: string")},
+  {"fragment",  T_OBJECT_EX, offsetof(smisk_URL, fragment), 0, PyDoc_STR(":type: string")},
   {NULL, 0, 0, 0, NULL}
 };
 

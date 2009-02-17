@@ -861,56 +861,99 @@ Classes
   
     Initialize a new URL from *obj*.
     
-    If *obj* is a subclass of :class:`URL`, a shallow copy of *obj* will be returned. If *obj* is something else, it will be, converted to if needed and, treated as bytes which are then parsed like they would represent a (complete or partial) URL.
+    If *obj* is a subclass of :class:`URL`, a shallow copy of *obj* will be returned. 
+    If *obj* is something else, it will be, converted to if needed and, treated as bytes 
+    which are then parsed like they would represent a (complete or partial) URL.
   
   
   .. method:: to_s(scheme=True, user=True, password=True, host=True, port=True, port80=True, path=True, query=True, fragment=True) -> str
   
     String representation.
 
-    By passing *False* (or *0* (zero)) for any of the arguments, you can omit certain parts from being included in the string produced. This can come in handy when for example you want to sanitize away password or maybe not include any path, query or fragment.
+    By passing *False* (or *0* (zero)) for any of the arguments, you can omit certain parts 
+    from being included in the string produced. This can come in handy when for example you 
+    want to sanitize away password or maybe not include any path, query or fragment.
     
-    In some cases, you will probably not want to include port 80 or 443::
+    If a string is passed for one of the keyword arguments, that string is used instead
+    of the value stored inside the URL object::
     
-      my_url.to_s(port=my_url.port not in (80,443))
+      >>> from smisk.core import URL
+      >>> URL('http://host.name:1234/some/path').to_s()
+      'http://host.name:1234/some/path'
+      >>> URL('http://host.name:1234/some/path').to_s(host='another.host')
+      'http://another.host:1234/some/path'
     
-    :param  scheme:
-    :param  user:
-    :param  password:
-    :param  host:
-    :param  port:
-    :param  port80:
-    :param  path:
-    :param  query:
-    :param  fragment:
-    :type   scheme:    bool
-    :type   user:      bool
-    :type   password:  bool
-    :type   host:      bool
-    :type   port:      bool
-    :type   port80:    bool
-    :type   path:      bool
-    :type   query:     bool
-    :type   fragment:  bool
-    :rtype: string
+    In some cases, you may not want to include certain port numbers (80 and 443 in most cases)::
+    
+      >>> from smisk.core import URL
+      >>> url = URL('https://host:443/some/path')
+      >>> url.to_s(port=url.port not in (80,443))
+      'https://host/some/path'
+    
+    :rtype: str
     :aliases: to_str, __str__
   
   
-  .. staticmethod:: encode(s) -> str
-  
-  
-  .. staticmethod:: escape(s) -> str
-  
-  
-  .. staticmethod:: decode(s) -> str
-  
-  
-  .. staticmethod:: unescape(s) -> str
-  
-  
-  .. staticmethod:: decompose_query(s) -> str
-  
+  .. staticmethod:: encode(s) -> basestring
+    
+    Encode any unsafe or reserved characters in a given string for use in URI and URL contexts.
 
+    The difference between encode and escape is that this function encodes characters 
+    like / and : which are considered safe for rendering url's, but not for using as a 
+    component in path, query or the fragment.
+
+    In other words: Use :meth:`encode()` for path, query and fragment components.
+    Use :meth:`escape()` on whole URLs for safe rendering in other contexts.
+
+    Characters being escaped: ``$ &+,/;=?<>"#%{}|\^~[]`@``:
+    Also low and high characters ``(< 33 || > 126)`` are encoded.
+
+    :param  s:
+    :type   s: basestring
+    :raises TypeError: if *s* is not a str or unicode
+  
+  
+  
+  .. staticmethod:: escape(s) -> basestring
+    
+    Escape unsafe characters ``<> "#%{}|\^~[]`@:\033`` in a given string for use in URI and URL contexts.
+    
+    See documentation of :meth:`encode()` to find out about the differences.
+    
+    :param  s:
+    :type   s: basestring
+    :raises TypeError: if *s* is not a str or unicode
+  
+  
+  
+  .. staticmethod:: decode(s) -> basestring
+    
+    Restore data previously encoded by :meth:`encode()` or :meth:`escape()`.
+
+    Done by transforming the sequences ``%HH`` to the character represented by 
+    the hexadecimal digits ``HH``.
+
+    :param  str:
+    :type   str: basestring
+    :raises TypeError: if *s* is not a str or unicode
+    :aliases: unescape
+  
+  
+  .. staticmethod:: decompose_query(string, charset='utf-8') -> str
+  
+    Parses a query string into a dictionary.
+    
+    .. code-block:: python
+      
+      >>> from smisk.core import URL
+      >>> print URL.decompose_query('name=Jack%20%C3%B6l&age=53')
+      {'age': '53', 'name': 'Jack \xc3\xb6l'}
+      
+    
+    :param  charset:
+      Character encoding of *s* used to create unicode values and normalized str keys.
+      If *charset* is ``None``, a `str` (bytes) is returned instead of a `unicode`.
+    :type   charset: str
 
 
 
