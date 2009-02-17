@@ -409,13 +409,13 @@ def _configure_logging_root_formatter(conf):
 
 def _configure_logging_levels(levels):
   # reset all loggers level to NOTSET
-  for name, logger in logging.Logger.manager.loggerDict.iteritems():
+  for name, logger in logging.Logger.manager.loggerDict.items():
     try:
       logger.setLevel(logging.NOTSET)
     except AttributeError:
       pass
   # assign new levels to specified loggers
-  for logger_name, level_name in levels.iteritems():
+  for logger_name, level_name in levels.items():
     if isinstance(level_name, int):
       level = level_name
     else:

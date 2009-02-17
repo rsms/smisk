@@ -57,7 +57,7 @@ def export(obj):
   if not obj:
     return
   if isinstance(obj, DictType):
-    for k,v in obj.iteritems():
+    for k,v in obj.items():
       try:
         setattr(__builtin__, k, v)
       except:
@@ -214,9 +214,9 @@ Type help() for interactive help, or help(object) for help about object.
       return pydoc.help(*args, **kwargs)
   
   # Export locals and globals
-  for k,v in locals().iteritems():
+  for k,v in locals().items():
     setattr(__builtin__, k, v)
-  for k,v in globals().iteritems():
+  for k,v in globals().items():
     setattr(__builtin__, k, v)
   
   __builtin__.help = _Helper()

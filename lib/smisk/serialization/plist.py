@@ -126,7 +126,7 @@ class XMLPlistSerializer(XMLSerializer):
   @classmethod
   def build_dict(cls, obj):
     e = Element('dict')
-    for key, value in obj.iteritems():
+    for key, value in obj.items():
       e.append(cls.xml_mktext('key', key))
       e.append(cls.build_object(value))
     return e

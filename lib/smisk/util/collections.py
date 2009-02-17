@@ -107,7 +107,7 @@ def merge_dict(a, b, merge_lists=True):
   and non-list or dict key with the value from collection b. In other words,
   collection b takes precedence.
   '''
-  for bk,bv in b.iteritems():
+  for bk,bv in b.items():
     if a.has_key(bk) and hasattr(bv, 'has_key') and hasattr(a[bk], 'has_key'):
       merge_dict(a[bk], bv, merge_lists)
     elif merge_lists and hasattr(bv, 'extend') and hasattr(a.get(bk), 'extend'):
@@ -130,7 +130,7 @@ def merged_dict(a, b, merge_lists=True):
   '''Like merge_dict but does not modify *a*
   '''
   a = a.copy()
-  for bk,bv in b.iteritems():
+  for bk,bv in b.items():
     if a.has_key(bk) and hasattr(bv, 'has_key') and hasattr(a[bk], 'has_key'):
       a[bk] = merged_dict(a[bk], bv, merge_lists)
     elif merge_lists and hasattr(bv, 'extend') and hasattr(a.get(bk), 'extend'):

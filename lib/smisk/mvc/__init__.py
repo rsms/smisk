@@ -469,8 +469,8 @@ class Application(smisk.core.Application):
     log.debug('parsing request')
     
     # Set params to the query string
-    params = self.request.get
-    for k,v in params.iteritems():
+    params = {}
+    for k,v in self.request.get.items():
       if isinstance(v, str):
         v = v.decode('utf-8', self.unicode_errors)
       params[k.decode('utf-8', self.unicode_errors)] = v

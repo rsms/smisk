@@ -42,7 +42,7 @@ try:
   Entity.field_names = classmethod(Entity_field_names)
   
   def Entity__iter__(self):
-    return self.to_dict().iteritems()
+    return self.to_dict().items()
   Entity.__iter__ = Entity__iter__
   
   
@@ -54,7 +54,7 @@ try:
       col_prop_names = [p.key for p in self.c]
       data = dict([(name, getattr(self, name))
                    for name in col_prop_names if name not in exclude])
-      for rname, rdeep in deep.iteritems():
+      for rname, rdeep in deep.items():
         # This code is borrowed from Elixir 0.7 and fairly untested with <=0.5
         dbdata = getattr(self, rname)
         #FIXME: use attribute names (ie coltoprop) instead of column names
@@ -146,7 +146,7 @@ try:
     
     # Demux configuration
     elixir_opts = {}
-    for k,v in conf.iteritems():
+    for k,v in conf.items():
       if k.startswith('elixir.'):
         elixir_opts[k[7:]] = v
       elif k != 'url':
@@ -157,7 +157,7 @@ try:
       log.info('applying Elixir default options %r', elixir_opts)
       # We apply by iteration since options_defaults is not 
       # guaranteed to be a real dict.
-      for k,v in elixir_opts.iteritems():
+      for k,v in elixir_opts.items():
         options_defaults[k] = v
     
     # Mask out password, since we're logging this

@@ -1,5 +1,5 @@
 # encoding: utf-8
-'''XML infoset-based generic XML serializer.
+'''XML infoset generic serializer.
 
 See: http://msdn.microsoft.com/en-us/library/bb924435.aspx
 '''

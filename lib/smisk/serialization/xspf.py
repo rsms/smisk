@@ -125,7 +125,7 @@ class XSPFSerializer(XMLSerializer):
   @classmethod
   def build_document(cls, obj):
     root = Element(cls.xml_root_name, **cls.xml_root_attrs)
-    for k,v in obj.iteritems():
+    for k,v in obj.items():
       if k == 'trackList':
         root.append(cls.build_trackList(v))
       else:
@@ -147,7 +147,7 @@ class XSPFSerializer(XMLSerializer):
   @classmethod
   def build_track(cls, track):
     e = Element('track')
-    for k,v in track.iteritems():
+    for k,v in track.items():
       if not isinstance(v, basestring):
         v = str(v)
       e.append(cls.xml_mktext(k, v))

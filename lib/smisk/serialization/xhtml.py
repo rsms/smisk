@@ -76,7 +76,7 @@ class XHTMLSerializer(Serializer):
   @classmethod
   def serialize_error(cls, status, params, charset):
     xp = {'charset':charset}
-    for k,v in params.iteritems():
+    for k,v in params.items():
       if k == 'traceback':
         if v and status.is_error:
           v = u'<pre class="traceback">%s</pre>' % xml_escape(''.join(v))

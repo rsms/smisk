@@ -56,7 +56,7 @@ class PHPSerialSerializer(Serializer):
       f.write('}')
     elif isinstance(obj, DictType):
       f.write('a:%i:{' % len(obj))
-      for k,v in obj.iteritems():
+      for k,v in obj.items():
         cls.encode_key(k, f)
         cls.encode_object(v, f)
       f.write('}')
