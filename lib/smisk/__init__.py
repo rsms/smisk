@@ -18,4 +18,6 @@ __all__ = ['__version__', '__author__', '__license__', '__copyright__','__build_
 # which is later picked up by smisk.util.type. Real ugly, yes.
 # During the next minor version bumb (v1.2) we will probably rename
 # the smisk.util.collections module thus solving this problem.
-from collections import MutableMapping as _MutableMapping
+import sys
+if sys.version_info[0:2] > (2, 5):
+  from collections import MutableMapping as _MutableMapping
