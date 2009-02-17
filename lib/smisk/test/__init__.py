@@ -39,10 +39,7 @@ def load_suites(module_names):
   return suites
 
 def suite():
-  # for some reeeeally weird reason, the live test must be run before mvc.*
   suites = load_suites('''
-    smisk.test.live.negotiate_charset
-    
     smisk.test.config
     smisk.test.core.url
     smisk.test.core.xml
