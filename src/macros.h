@@ -90,16 +90,17 @@ typedef uint8_t byte;
   #define PyBytes_GET_SIZE            PyString_GET_SIZE
   #define PyBytes_AS_STRING           PyString_AS_STRING
   #define PyBytes_AsString            PyString_AsString
-  #define PyBytes_InternFromString    PyString_InternFromString
   #define PyBytes_FromFormat          PyString_FromFormat
   #define PyBytes_Size                PyString_Size
   #define PyBytes_ConcatAndDel        PyString_ConcatAndDel
   #define PyBytes_Concat              PyString_Concat
-  #define PyBytes_InternInPlace       PyString_InternInPlace
   #define _PyBytes_Resize             _PyString_Resize
-#elif (PY_VERSION_HEX < 0x03000000)
-  /* Python 2.6.1 is missing this macro. http://bugs.python.org/msg82238 */
+#endif
+#if (PY_VERSION_HEX < 0x03000000)
+  /* Python 2.6.1 is missing these macros. http://bugs.python.org/msg82238 */
+  /* 2to3: bytes can no longer be interned in Python 3 */
   #define PyBytes_InternFromString    PyString_InternFromString
+  #define PyBytes_InternInPlace       PyString_InternInPlace
 #endif
 #if (PY_VERSION_HEX >= 0x03000000)
   #define NUMBER_Check    PyLong_Check
