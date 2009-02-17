@@ -547,25 +547,7 @@ void smisk_URL_dealloc(smisk_URL* self) {
 
 
 PyDoc_STRVAR(smisk_URL_encode_DOC,
-  "Encode any unsafe or reserved characters in a given string for "
-    "use in URI and URL contexts.\n"
-  "\n"
-  "The difference between encode and escape is that this function "
-    "encodes characters like / and : which are considered safe for "
-    "rendering url's, but not for using as a component in path, query "
-    "or the fragment.\n"
-  "\n"
-  "In other words: Use encode() for path, query and fragment "
-    "components. Use escape() on whole URLs for safe rendering in "
-    "other contexts.\n"
-  "\n"
-  "Characters being escaped: $&+,/;=?<>\"#%{}|\\^~[]`@:\n"
-  "Also low and high characters (< 33 || > 126) is encoded.\n"
-  "\n"
-  ":param  str:\n"
-  ":type   str: string\n"
-  ":rtype: string\n"
-  ":raises TypeError: if str is not a string");
+  "Encode any unsafe or reserved characters ( $&+,/;=?<>\"#%{}|\\^~[]`@:) and (< 33 || > 126)");
 PyObject *smisk_URL_encode(PyObject *self, PyObject *str) {
   log_trace("ENTER");
   return encode_or_escape(self, str, urlchr_reserved|urlchr_unsafe);
@@ -573,40 +555,16 @@ PyObject *smisk_URL_encode(PyObject *self, PyObject *str) {
 
 
 PyDoc_STRVAR(smisk_URL_escape_DOC,
-  "Escape unsafe characters ( <>\"#%{}|\\^~[]`@:\\033) in a given "
-    "string for use in URI and URL contexts.\n"
-  "\n"
-  "See documentation of `encode()` to find out what the difference between "
-    "escape() and encode() is.\n"
-  "\n"
-  ":param  str:\n"
-  ":type   str: string\n"
-  ":rtype: string\n"
-  ":raises TypeError: if str is not a string");
+  "Escape unsafe characters ( <>\"#%{}|\\^~[]`@:\\033)");
 PyObject *smisk_URL_escape(PyObject *self, PyObject *str) {
   log_trace("ENTER");
   return encode_or_escape(self, str, urlchr_unsafe);
 }
 
 
-PyDoc_STRVAR(smisk_URL_unescape_DOC,
-  "Alias of `decode()`.\n"
-  "\n"
-  ":param  str:\n"
-  ":type   str: string\n"
-  ":rtype: string\n"
-  ":raises TypeError: if str is not a string");
-
 PyDoc_STRVAR(smisk_URL_decode_DOC,
-  "Restore data previously encoded by `encode()` or `escape()`.\n"
-  "\n"
-  "Done by transforming the sequences \"%HH\" to the character "
-  "represented by the hexadecimal digits HH.\n"
-  "\n"
-  ":param  str:\n"
-  ":type   str: string\n"
-  ":rtype: string\n"
-  ":raises TypeError: if str is not a string");
+  "Restore data previously encoded by encode() or escape()");
+PyDoc_STRVAR(smisk_URL_unescape_DOC, "Alias of decode()");
 PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
   log_trace("ENTER");
   char *orgstr, *newstr;
@@ -683,27 +641,29 @@ PyObject *smisk_URL_decode(PyObject *self, PyObject *str) {
 
 
 PyDoc_STRVAR(smisk_URL_decompose_query_DOC,
-  "Parses a query string into a dictionary.\n"
-  "\n"
-  ":param  string:\n"
-  ":type   string: str\n"
-  ":param  charset: 'utf-8' by default. None to disable.\n"
-  ":type   charset: str\n"
-  ":rtype: string (str or unicode)\n"
-  ":raises TypeError: if str is not a string\n"
-  ":see:   `Request.get`\n"
-  ":see:   `Request.post`");
+  "Parses a query string into a dictionary");
 PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   
-  PyObject *string = NULL;
-  const char *charset = NULL;
+  PyObject *string = NULL, *_charset = NULL;
+  const char *charset = "utf-8";
   static char *kwlist[] = { "string", "charset", NULL };
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|s", kwlist, &string, &charset))
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", kwlist, &string, &_charset))
     return NULL;
   
   char *s;
   PyObject *d;
+  
+  if (_charset != NULL) {
+    if (PyBytes_Check(_charset)) {
+      charset = PyBytes_AsString(_charset);
+      if (charset == NULL)
+        return NULL;
+    }
+    else {
+      charset = NULL;
+    }
+  }
   
   if (!PyBytes_Check(string)) {
     string = PyObject_Str(string);
@@ -736,50 +696,8 @@ PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *args, PyObject 
 }
 
 
-PyDoc_STRVAR(smisk_URL_to_str_DOC,
-  "Alias of `to_s()`.\n"
-  "\n"
-  ":param  scheme:\n"
-  ":param  user:\n"
-  ":param  password:\n"
-  ":param  host:\n"
-  ":param  port:\n"
-  ":param  path:\n"
-  ":param  query:\n"
-  ":param  fragment:\n"
-  ":type   scheme:    bool\n"
-  ":type   user:      bool\n"
-  ":type   password:  bool\n"
-  ":type   host:      bool\n"
-  ":type   port:      bool\n"
-  ":type   path:      bool\n"
-  ":type   query:     bool\n"
-  ":type   fragment:  bool\n"
-  ":rtype: string");
-PyDoc_STRVAR(smisk_URL_to_s_DOC,
-  "String representation.\n"
-  "\n"
-  "By passing ``False`` for any of the arguments, you can omit certain parts from being included in the string produced. This can come in handy when for example you want to sanitize away password or maybe not include any path, query or fragment.\n"
-  "\n"
-  ":param  scheme:\n"
-  ":param  user:\n"
-  ":param  password:\n"
-  ":param  host:\n"
-  ":param  port:\n"
-  ":param  port80:\n"
-  ":param  path:\n"
-  ":param  query:\n"
-  ":param  fragment:\n"
-  ":type   scheme:    bool\n"
-  ":type   user:      bool\n"
-  ":type   password:  bool\n"
-  ":type   host:      bool\n"
-  ":type   port:      bool\n"
-  ":type   port80:    bool\n"
-  ":type   path:      bool\n"
-  ":type   query:     bool\n"
-  ":type   fragment:  bool\n"
-  ":rtype: string");
+PyDoc_STRVAR(smisk_URL_to_s_DOC, "String representation");
+PyDoc_STRVAR(smisk_URL_to_str_DOC, "Alias of to_s()");
 PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   log_trace("ENTER");
   PyObject *scheme, *user, *password, *host, *port, *port80, *path, *query, *fragment;
