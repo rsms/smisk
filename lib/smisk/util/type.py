@@ -11,9 +11,8 @@ if sys.version_info[0:2] <= (2, 5):
     # DictMixin is new in Python 2.3
     class DictMixin: pass
   MutableMapping = DictMixin
-else :
-  import collections
-  MutableMapping = collections.MutableMapping
+else:
+  from smisk import _MutableMapping as MutableMapping
 
 
 class Symbol:
