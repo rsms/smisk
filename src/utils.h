@@ -91,7 +91,7 @@ typedef int probably_call_cb(void *arg1);
  *
  * @param probability float Likeliness of cb being called. A value between 0 and 1.
  * @param cb                Function to call.
- * @param cb_arg            Arbirtrary argument to be passed on to cb when called.
+ * @param cb_arg            Arbitrary argument to be passed on to cb when called.
  * @returns int             -1 on error (if so, a Python Error have been set) or 0 on
  *                          success.
  */
