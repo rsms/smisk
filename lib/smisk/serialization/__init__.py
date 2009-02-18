@@ -16,63 +16,33 @@ __all__ = [
   'SerializationError', # SerializationError
   'UnserializationError', # UnserializationError
   'Serializer', # BaseCodec
+  'Data'
 ]
 
-class data(object):
+try:
+  import plistlib
+except ImportError:
+  import plistlib_ as plistlib
+plistlib.Data.encode = plistlib.Data.asBase64
+plistlib.Data.decode = plistlib.Data.fromBase64
+
+class data(plistlib.Data):
   '''Represents arbitrary bytes.
   '''
-  bytes = None
-  ''':type: buffer
-  '''
-  
   def __init__(self, source):
-    '''Wrap source as data.
-    
-    :Parameters:
-      source : object
-        String or file object. If this is a file object, it will
-        be closed automatically.
-    '''
     if hasattr(source, 'read'):
-      f = source
-      try:
-        source = source.read()
-      finally:
-        f.close()
-    self.bytes = buffer(source)
+      self.data = source.read()
+    else:
+      self.data = str(source)
   
-  def encode(self):
-    '''Return a base-64 encoded representation of this data.
-    
-    :rtype: string
-    '''
-    return base64.b64encode(self.bytes)
-  
-  @classmethod
-  def decode(cls, string):
-    '''Decode data which is a base-64 encoded string.
-    
-    :Parameters:
-      string : string
-        Base-64 encoded data
-    :rtype: data
-    '''
-    return cls(base64.decodestring(string))
-  
-  def __cmp__(self, other):
-    if isinstance(other, self.__class__):
-      other = other.bytes
-    return cmp(self.bytes, other)
+  encode = plistlib.Data.asBase64
+  decode = plistlib.Data.fromBase64
   
   def __len__(self):
-    return len(self.bytes)
-  
-  def __repr__(self):
-    return '<read-only %s.%s, %d bytes at 0x%x>' %\
-      (self.__class__.__module__, self.__class__.__name__, len(self.bytes), id(self))
+    return len(self.data)
   
   def __str__(self):
-    return self.bytes.__str__()
+    return self.data.__str__()
   
 
 class Registry(object):

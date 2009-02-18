@@ -5,21 +5,22 @@ import logging
 from smisk.serialization import serializers, data, Serializer, SerializationError, UnserializationError
 from smisk.core import Application
 
-try:
-  from xml.etree import ElementTree
-  Element = ElementTree.Element
+try: import xml.etree.cElementTree as ET
 except ImportError:
-  # xml.etree only available in Python >=2.5
-  ElementTree = None
-  Element = None
+  try: import xml.etree.ElementTree as ET
+  except ImportError:
+    try: import cElementTree as ET
+    except ImportError:
+      try: import elementtree.ElementTree as ET
+      except ImportError:
+        try: import lxml.etree as ET
+        except ImportError:
+          ET = None
 
 log = logging.getLogger(__name__)
 
-__all__ = [
-  'serializers',
-  'data', 'XMLSerializer', 'XMLSerializationError', 'XMLUnserializationError',
-  'ElementTree', 'Element'
-]
+__all__ = ['ET', 'serializers', 'data',
+  'XMLSerializer', 'XMLSerializationError', 'XMLUnserializationError']
 
 class XMLSerializationError(SerializationError):
   pass
@@ -111,9 +112,9 @@ class XMLSerializer(Serializer):
       return cls.build_object(obj)
     else:
       if cls.xml_default_ns is not None:
-        root = Element(cls.xml_root_name, xmlns=cls.xml_default_ns, **cls.xml_root_attrs)
+        root = ET.Element(cls.xml_root_name, xmlns=cls.xml_default_ns, **cls.xml_root_attrs)
       else:
-        root = Element(cls.xml_root_name, **cls.xml_root_attrs)
+        root = ET.Element(cls.xml_root_name, **cls.xml_root_attrs)
       if obj is not None:
         root.append(cls.build_object(obj))
       return root
@@ -127,13 +128,13 @@ class XMLSerializer(Serializer):
       string = ''
     if cls.xml_doctype:
       string += cls.xml_doctype
-    string += ElementTree.tostring(doc, charset).encode(charset, cls.unicode_errors)
+    string += ET.tostring(doc, charset).encode(charset, cls.unicode_errors)
     return (charset, string)
   
   @classmethod
   def unserialize(cls, file, length=-1, charset=None):
     # return (list args, dict params)
-    st = cls.parse_document(ElementTree.fromstring(file.read(length)))
+    st = cls.parse_document(ET.fromstring(file.read(length)))
     if isinstance(st, dict):
       return (None, st)
     elif isinstance(st, list):
@@ -170,7 +171,7 @@ class XMLSerializer(Serializer):
         Text value
     :rtype: xml.etree.Element
     '''
-    e = Element(name, **attributes)
+    e = ET.Element(name, **attributes)
     e.text = text
     return e
   

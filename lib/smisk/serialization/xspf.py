@@ -8,10 +8,6 @@ from smisk.serialization.xmlbase import *
 from datetime import datetime
 from smisk.util.DateTime import DateTime
 from types import *
-try:
-  from xml.etree.ElementTree import QName
-except ImportError:
-  pass
 
 __all__ = [
   'XSPFSerializationError',
@@ -124,7 +120,7 @@ class XSPFSerializer(XMLSerializer):
   
   @classmethod
   def build_document(cls, obj):
-    root = Element(cls.xml_root_name, **cls.xml_root_attrs)
+    root = ET.Element(cls.xml_root_name, **cls.xml_root_attrs)
     for k,v in obj.items():
       if k == 'trackList':
         root.append(cls.build_trackList(v))
@@ -138,7 +134,7 @@ class XSPFSerializer(XMLSerializer):
   
   @classmethod
   def build_trackList(cls, iterable):
-    e = Element('trackList')
+    e = ET.Element('trackList')
     if iterable:
       for track in iterable:
         e.append(cls.build_track(track))
@@ -146,7 +142,7 @@ class XSPFSerializer(XMLSerializer):
   
   @classmethod
   def build_track(cls, track):
-    e = Element('track')
+    e = ET.Element('track')
     for k,v in track.items():
       if not isinstance(v, basestring):
         v = str(v)
@@ -172,7 +168,7 @@ class XSPFSerializer(XMLSerializer):
   
 
 # Only register if xml.etree is available
-if ElementTree is not None:
+if ET is not None:
   serializers.register(XSPFSerializer)
 
 if __name__ == '__main__':

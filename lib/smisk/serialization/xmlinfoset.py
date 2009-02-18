@@ -7,8 +7,21 @@ from smisk.serialization.xmlbase import *
 from datetime import datetime
 from smisk.util.DateTime import DateTime
 from smisk.util.type import *
+from smisk.inflection import inflection
+try:
+  from elixir import Entity
+except ImportError:
+  class Undef(object):
+    pass
+  Entity = Undef()
 
 __all__ = ['XMLInfosetSerializer']
+
+class XMLInfosetSerializationError(XMLSerializationError):
+  pass
+
+class XMLInfosetUnserializationError(XMLUnserializationError):
+  pass
 
 class XMLInfosetSerializer(XMLSerializer):
   '''Generic XML infoset
@@ -22,13 +35,10 @@ class XMLInfosetSerializer(XMLSerializer):
   
   @classmethod
   def build_object(cls, parent, name, value):
-    e = Element(name)
+    e = ET.Element(name)
     if isinstance(value, datetime):
       e.set('type', u'date')
       e.text = DateTime(value).as_utc().strftime('%Y-%m-%dT%H:%M:%SZ')
-    elif isinstance(value, StringTypes):
-      e.set('type', u'string')
-      e.text = value
     elif isinstance(value, data):
       e.set('type', u'data')
       e.text = value.encode()
@@ -41,27 +51,64 @@ class XMLInfosetSerializer(XMLSerializer):
       e.set('type', u'object')
       for k in value:
         cls.build_object(e, k, value[k])
+    elif isinstance(value, Entity):
+      e.set('type', u'object')
+      value = value.to_dict()
+      for k in value:
+        cls.build_object(e, k, value[k])
     elif isinstance(value, (list, tuple)):
       e.set('type', u'array')
+      item_tag = inflection.singularize(name)
       for v in value:
-        if isinstance(v, (int, float, long)):
-          v = unicode(v)
-        cls.build_object(e, u'item', v)
+        cls.build_object(e, item_tag, v)
     else:
       e.set('type', u'string')
       e.text = unicode(value)
     parent.append(e)
   
   @classmethod
+  def parse_object(cls, elem):
+    typ = elem.get('type')
+    if not typ:
+      raise XMLInfosetUnserializationError('invalid infoset document -- '\
+        'missing type attribute on node %r', elem)
+    
+    if typ == 'date':
+      return DateTime(DateTime.strptime(elem.text, '%Y-%m-%dT%H:%M:%SZ'))
+    elif typ == 'data':
+      return data.decode(elem.text)
+    elif typ == 'number':
+      v = elem.text
+      if '.' in v:
+        return float(v)
+      return int(v)
+    elif typ == 'object':
+      v = {}
+      for cn in elem.getchildren():
+        v[cn.tag] = cls.parse_object(cn)
+      return v
+    elif typ == 'array':
+      v = []
+      for cn in elem.getchildren():
+        v.append(cls.parse_object(cn))
+      return v
+    elif typ == 'string':
+      return elem.text
+  
+  @classmethod
   def build_document(cls, d):
-    root = Element(cls.xml_root_name, type=u'object')
+    root = ET.Element(cls.xml_root_name, type=u'object')
     for k in d:
       cls.build_object(root, k, d[k])
     return root
   
+  @classmethod
+  def parse_document(cls, elem):
+    return cls.parse_object(elem)
+  
 
 # Only register if xml.etree is available
-if ElementTree is not None:
+if ET is not None:
   serializers.register(XMLInfosetSerializer)
 
 if __name__ == '__main__':
@@ -116,5 +163,5 @@ if __name__ == '__main__':
     )
   }, 'utf-8')
   print xmlstr
-  #from StringIO import StringIO
-  #print repr(XMLInfosetSerializer.unserialize(StringIO(xmlstr)))
+  from StringIO import StringIO
+  print repr(XMLInfosetSerializer.unserialize(StringIO(xmlstr)))

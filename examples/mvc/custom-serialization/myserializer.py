@@ -5,6 +5,12 @@ from smisk.serialization.xmlbase import *
 from datetime import datetime
 from smisk.util.DateTime import DateTime
 from smisk.util.type import *
+try:
+  from elixir import Entity
+except ImportError:
+  class Undef(object):
+    pass
+  Entity = Undef()
 
 __all__ = ['GenericXMLSerializer']
 
@@ -38,14 +44,20 @@ class GenericXMLSerializer(XMLSerializer):
     elif isinstance(value, DictType):
       for k in value:
         cls.build_object(e, k, value[k], nums_as_attrs)
+    elif isinstance(value, Entity):
+      value = value.to_dict()
+      for k in value:
+        cls.build_object(e, k, value[k], nums_as_attrs)
     elif isinstance(value, (list, tuple)):
       #item_name = inflection.singularize(name)
       for v in value:
         if isinstance(v, (int, float, long)):
           v = unicode(v)
+        elif isinstance(v, bool):
+          v = unicode(v).lower()
         cls.build_object(parent, name, v, nums_as_attrs)
       return
-    else:
+    elif value is not None:
       e.text = unicode(value)
     parent.append(e)
   
