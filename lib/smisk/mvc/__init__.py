@@ -473,7 +473,7 @@ class Application(smisk.core.Application):
     for k,v in self.request.get.items():
       if isinstance(v, str):
         v = v.decode('utf-8', self.unicode_errors)
-      params[k.decode('utf-8', self.unicode_errors)] = v
+      params[k] = v
     
     # Look at Accept-Charset header and set self.response.charset accordingly
     accept_charset = self.request.env.get('HTTP_ACCEPT_CHARSET', False)
