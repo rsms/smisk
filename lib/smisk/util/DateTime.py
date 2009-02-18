@@ -76,7 +76,11 @@ class DateTime(datetime):
     '''
     if self.tzinfo is UTCTimeZone():
       return self
-    dt = (self - self.utcoffset()).replace(tzinfo=UTCTimeZone())
+    offset = self.utcoffset()
+    if offset is None:
+      dt = self.replace(tzinfo=UTCTimeZone())
+    else:
+      dt = (self - offset).replace(tzinfo=UTCTimeZone())
     return DateTime(dt)
   
   @classmethod
