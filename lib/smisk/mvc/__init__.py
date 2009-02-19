@@ -59,6 +59,7 @@ import smisk.serialization.plain_text
 import smisk.serialization.yaml_serial
 import smisk.serialization.xhtml
 import smisk.serialization.xmlrpc
+import smisk.serialization.plist
 
 Controller = control.Controller
 try:
@@ -660,13 +661,13 @@ class Application(smisk.core.Application):
         if _debug: log.debug('clearing model session')
         model.session.clear()
       rsp = self._call_leaf(req_args, req_params)
-      model.commit_if_needed()
+      model.session.registry().commit()
       return rsp
     except Exception, e:
       error = not (isinstance(e, http.HTTPExc) and not e.status.is_error)
       if not error:
         try:
-          model.commit_if_needed()
+          model.session.registry().commit()
         except Exception, e:
           error = True
       
