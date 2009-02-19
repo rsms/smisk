@@ -656,7 +656,7 @@ setup(
   long_description = (
     "\n"+read('README.rst')
     + "\n"
-    + read('CHANGELOG')
+    + read('CHANGELOG.rst')
     + "\n"
     'License\n'
     '=======\n'
