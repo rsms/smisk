@@ -510,11 +510,9 @@ class Application(smisk.core.Application):
     
     # Parse body if POST request
     if self.request.method in ('POST', 'PUT'):
-      
       path_ext_serializer = self._serializer_for_request_path_ext()
-      if path_ext_serializer is None:
-        content_type = self.request.env.get('CONTENT_TYPE', '').lower()
-      else:
+      content_type = self.request.env.get('CONTENT_TYPE', '').lower()
+      if path_ext_serializer is not None and not content_type:
         content_type = path_ext_serializer.media_types[0]
       
       if content_type == 'application/x-www-form-urlencoded' or len(content_type) == 0:
@@ -524,11 +522,11 @@ class Application(smisk.core.Application):
         # Multiparts are parsed by smisk.core, so let's try to
         # decode the body only if it's of another type.
         try:
-          if path_ext_serializer is not None:
-            self.request.serializer = path_ext_serializer
-          else:
+          if content_type:
             self.request.serializer = serializers.media_types[content_type]
-          if not self.request.serializer.can_unserialize:
+          elif path_ext_serializer is not None:
+            self.request.serializer = path_ext_serializer
+          if not self.request.serializer or not self.request.serializer.can_unserialize:
             # If we can not decode the payload, raise a KeyError in order to
             # generate a UnsupportedMediaType response (see further down...)
             raise KeyError()
@@ -776,8 +774,13 @@ class Application(smisk.core.Application):
       log.info('serving %s for client %s', self.request.url, 
         self.request.env.get('REMOTE_ADDR','?'))
       if log.level <= logging.DEBUG:
-        reqh = '\n'.join(['  %s: %s' % (k[5:6]+k[6:].lower().replace('_','-'), v) \
-          for k,v in self.request.env.items() if k.startswith('HTTP_')])
+        reqh = []
+        for k,v in self.request.env.items():
+          if k.startswith('HTTP_'):
+            reqh.append((k[5:6]+k[6:].lower().replace('_','-'), v))
+          elif k.startswith('CONTENT_'):
+            reqh.append((k[8:9]+k[9:].lower().replace('_','-'), v))
+        reqh = '\n'.join(['  %s: %s' % kv for kv in reqh])
         log.debug('reconstructed request:\n  %s %s %s\n%s',
           self.request.method, 
           self.request.url.to_s(scheme=0,user=0,host=0,port=0),
