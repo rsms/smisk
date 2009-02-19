@@ -42,7 +42,7 @@ try:
   Entity.field_names = classmethod(Entity_field_names)
   
   def Entity__iter__(self):
-    return self.to_dict().items()
+    return self.to_dict().__iter__()
   Entity.__iter__ = Entity__iter__
   
   
@@ -224,7 +224,7 @@ def _perform_if_dirty(sess, call_if_dirty, logprefix, check_modified=False):
       # remove session in order to avoid keeping open sessions between requests
       sess.transaction = None
 
-def commit_if_needed(check_modified=False):
+def commit_if_needed(check_modified=True):
   '''
   session.registry() => a orm.session.Sess, subclass of orm.session.Session
   session.commit() == session.registry().commit()
