@@ -248,7 +248,7 @@ class Serializer(object):
   :type: string
   '''
   
-  unicode_errors = 'replace'
+  unicode_errors = 'strict'
   '''How to handle unicode conversions.
   
   Possible values: ``strict, ignore, replace, xmlcharrefreplace, backslashreplace``
