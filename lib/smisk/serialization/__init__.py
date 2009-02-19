@@ -18,10 +18,7 @@ __all__ = [
   'Serializer' # BaseCodec
 ]
 
-try:
-  import plistlib
-except ImportError:
-  import plistlib_ as plistlib
+import plistlib_ as plistlib
 plistlib.Data.encode = plistlib.Data.asBase64
 plistlib.Data.decode = plistlib.Data.fromBase64
 

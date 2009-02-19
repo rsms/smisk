@@ -4,12 +4,9 @@
 from smisk.serialization.xmlbase import *
 from datetime import datetime
 from types import *
-try:
-  import plistlib
-except ImportError:
-  import smisk.serialization.plistlib_ as plistlib
+import smisk.serialization.plistlib_ as plistlib
 
-__all__ = ['XMLPlistSerializer', 'plistlib']
+__all__ = ['XMLPlistSerializer']
 
 class XMLPlistSerializer(XMLSerializer):
   '''XML Property List serializer
