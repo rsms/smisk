@@ -1,0 +1,25 @@
+<%!
+from smisk.serialization import serializers
+%><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=${response.charset}"/>
+  	<title>Kittens: ${u'.'.join(['root'] + app.destination.path)|h}</title>
+  	<style type="text/css">
+  	  body {font-family:sans-serif;}
+  	  ul,ol {margin-bottom:1em}
+  	</style>
+  </head>
+  <body>
+    <h1>${u'.'.join(['root'] + app.destination.path)|h}</h1>
+    ${self.body()}
+    <hr/>
+    <address>
+      Active leaf: ${app.destination.canonical_leaf|h}.
+      Variants:
+      % for serializer in serializers:
+      <a rel="alternate" title="This document as a ${serializer.media_types[0]} variant" href="${request.cn_url.to_s(path=request.cn_url.path+'.'+serializer.extensions[0])}">${serializer.name|h}</a>,
+      % endfor
+    </address>
+  </body>
+</html>

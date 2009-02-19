@@ -1,0 +1,23 @@
+<%inherit file="base.html"/>
+<a href="/">« Back to the list of kittens</a>
+<hr/>
+<h2>Reading kitten ${kitten.name|h}</h2>
+<p style="color:${kitten.color|h};">The kittens color is ${kitten.color|h}</p>
+<hr/>
+<h3>Update</h3>
+<form action="/update" mathod="post">
+  <input type="hidden" name="original_name" value="${kitten.name|h}" />
+  % for attr in kitten:
+  <p>
+    ${attr|h}:<br/>
+    <input type="text" name="${attr|h}" value="${getattr(kitten, attr)|h}" />
+  </p>
+  % endfor
+  <p>
+    <input type="submit" value="Save changes" />
+  </p>
+</form>
+<form action="/delete" method="post">
+  <input type="hidden" name="name" value="${kitten.name|h}" />
+  <input type="submit" value="Kill the poor kitten" />
+</form>

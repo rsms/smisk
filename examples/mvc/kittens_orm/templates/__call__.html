@@ -1,0 +1,22 @@
+<%! from app import Kitten
+%><%inherit file="base.html"/>
+<h2>See a cute kitten get born</h2>
+<form action="/create" mathod="post">
+  <p>
+    Name: <input type="text" name="name" value="" /><br/>
+    Year: <input type="text" name="year_born" value="2007" /><br/>
+    Color: <input type="text" name="color" value="orange" /><br/>
+  </p>
+  <p>
+    <input type="submit" value="Create" />
+  </p>
+</form>
+<hr/>
+<h2>Existing kittens</h2>
+<ul>
+  % for kitten in kittens:
+  <li>
+    <a href="/read?name=${kitten.name|h}">${kitten.name|h}</a>
+  </li>
+  % endfor
+</ul>
