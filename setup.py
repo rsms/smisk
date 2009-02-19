@@ -654,7 +654,7 @@ setup(
   license = license,
   description = "High-performance web service framework",
   long_description = (
-    "\n"+read('README')
+    "\n"+read('README.rst')
     + "\n"
     + read('CHANGELOG')
     + "\n"
