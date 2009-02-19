@@ -528,6 +528,10 @@ class Application(smisk.core.Application):
             self.request.serializer = path_ext_serializer
           else:
             self.request.serializer = serializers.media_types[content_type]
+          if not self.request.serializer.can_unserialize:
+            # If we can not decode the payload, raise a KeyError in order to
+            # generate a UnsupportedMediaType response (see further down...)
+            raise KeyError()
           log.debug('decoding request payload using %s', self.request.serializer)
           content_length = int(self.request.env.get('CONTENT_LENGTH', -1))
           (eargs, eparams) = self.request.serializer.unserialize(self.request.input, content_length)

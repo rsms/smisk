@@ -9,6 +9,8 @@ class PythonPySerializer(Serializer):
   name = 'Python repr'
   extensions = ('py',)
   media_types = ('text/x-python',)
+  can_serialize = True
+  can_unserialize = True
   
   @classmethod
   def serialize(cls, params, charset):

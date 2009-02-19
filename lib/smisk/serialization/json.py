@@ -29,6 +29,8 @@ class JSONSerializer(Serializer):
   name = 'JSON'
   extensions = ('json',)
   media_types = ('application/json',)
+  can_serialize = True
+  can_unserialize = True
   
   @classmethod
   def serialize(cls, params, charset):

@@ -58,6 +58,7 @@ class PlainTextSerializer(Serializer):
   extensions = ('txt',)
   media_types = ('text/plain',)
   charset = 'utf-8'
+  can_serialize = True
   
   if yaml:
     # If we have YAML-capabilities we use YAML for plain text output

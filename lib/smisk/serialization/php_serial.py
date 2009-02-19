@@ -16,6 +16,7 @@ class PHPSerialSerializer(Serializer):
   name = 'PHP serial'
   extensions = ('phpser',)
   media_types = ('application/vnd.php.serialized', 'application/x-php-serialized')
+  can_serialize = True
   
   @classmethod
   def encode_key(cls, obj, f):

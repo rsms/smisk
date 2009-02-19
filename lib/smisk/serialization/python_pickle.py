@@ -24,6 +24,8 @@ class PythonPickleSerializer(Serializer):
   name = 'Python pickle'
   extensions = ('pickle',)
   media_types = ('application/x-python-pickle', 'application/x-pickle')
+  can_serialize = True
+  can_unserialize = True
   
   @classmethod
   def serialize(cls, params, charset=None):

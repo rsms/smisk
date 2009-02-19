@@ -27,6 +27,8 @@ class YAMLSerializer(Serializer):
   media_types = ('application/x-yaml', 'text/yaml', 'text/x-yaml')
   charset = 'utf-8'
   supported_charsets = ('utf-8', 'utf-16-be', 'utf-16-le', None) # None == unicode
+  can_serialize = True
+  can_unserialize = True
   
   @classmethod
   def serialize(cls, params, charset=None):

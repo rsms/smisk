@@ -47,6 +47,7 @@ class XHTMLSerializer(Serializer):
   extensions = ('html',)
   media_types = ('text/html', 'application/xhtml+xml')
   charset = 'utf-8'
+  can_serialize = True
   
   @classmethod
   def serialize(cls, params, charset):

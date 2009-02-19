@@ -15,8 +15,7 @@ __all__ = [
   'Registry', # CodecRegistry
   'SerializationError', # SerializationError
   'UnserializationError', # UnserializationError
-  'Serializer', # BaseCodec
-  'Data'
+  'Serializer' # BaseCodec
 ]
 
 try:
@@ -267,6 +266,18 @@ class Serializer(object):
   :type: bool
   '''
   
+  can_serialize = False
+  '''Declares where there or not this serializer can write/encode/serialize data.
+  
+  :type: bool
+  '''
+  
+  can_unserialize = False
+  '''Declares where there or not this serializer can read/decode/unserialize data.
+  
+  :type: bool
+  '''
+  
   @classmethod
   def serialize(cls, params, charset):
     '''
@@ -331,6 +342,11 @@ class Serializer(object):
       else:
         response.headers.append('Content-Type: %s' % cls.media_types[0])
   
+  _DIR_RW = ['read','write']
+  _DIR_R = ['read']
+  _DIR_W = ['write']
+  _DIR_ = []
+  
   @classmethod
   def directions(cls):
     '''List of possible directions.
@@ -338,29 +354,13 @@ class Serializer(object):
     :Returns:
       ``["read", "write"]``, ``["read"]``, ``["write"]`` or ``[]``
     :rtype: list'''
-    try:
-      return cls._directions
-    except AttributeError:
-      cls._directions = []
-      # test decode
-      try:
-        cls.unserialize(StringIO(''), 0)
-        # This serializer can read requests
-        cls._directions.append('read')
-      except NotImplementedError, e:
-        # This serializer is not able to read requests
-        pass
-      except:
-        # If another error than NotImplementedError is raised, we
-        # assume this serializer handles reading.
-        cls._directions.append('read')
-      # test encode
-      try:
-        if cls.serialize({'a':1}, 'utf-8') is not None:
-          cls._directions.append('write')
-      except NotImplementedError:
-        pass
-      return cls._directions
+    if cls.can_serialize and cls.can_unserialize:
+      return cls._DIR_RW
+    elif cls.can_serialize:
+      return cls._DIR_W
+    elif cls.can_unserialize:
+      return cls._DIR_R
+    return cls._DIR_
   
   @classmethod
   def did_register(cls, registry):

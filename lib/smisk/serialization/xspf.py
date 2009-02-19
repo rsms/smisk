@@ -26,7 +26,9 @@ class XSPFSerializer(XMLSerializer):
   name = 'XSPF'
   extensions = ('xspf',)
   media_types = ('application/xspf+xml',)
-  charset = 'utf-8'  
+  charset = 'utf-8'
+  can_serialize = True
+  can_unserialize = True
   
   xml_default_ns = 'http://xspf.org/ns/0/'
   xml_root_name = 'playlist'

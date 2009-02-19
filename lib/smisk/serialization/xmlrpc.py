@@ -16,6 +16,8 @@ class XMLRPCSerializer(Serializer):
   media_types = ('application/rpc+xml', 'application/xml-rpc+xml')
   charset = 'utf-8'
   handles_empty_response = True
+  can_serialize = True
+  can_unserialize = True
   
   respect_method_name = True
   '''Enable translating <methodName> tag into request path

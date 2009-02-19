@@ -18,6 +18,8 @@ class XMLPlistSerializer(XMLSerializer):
   extensions = ('plist',)
   media_types = ('application/plist+xml',)
   charset = 'utf-8'
+  can_serialize = True
+  can_unserialize = True
   
   @classmethod
   def serialize(cls, params, charset):
