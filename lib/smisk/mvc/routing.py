@@ -194,8 +194,6 @@ class RegExpFilter(Filter):
       raise ValueError('first argument "pattern" must be a Regex object or a string, not %s'\
         % type(pattern).__name__)
     else:
-      if not isinstance(pattern, unicode):
-        pattern = unicode(pattern)
       self.pattern = re.compile(pattern, regexp_flags)
     
     if not isinstance(destination_path, (basestring, URL)):
@@ -227,9 +225,9 @@ class RegExpFilter(Filter):
       return None2
     
     if self.match_on_full_url:
-      m = self.pattern.match(url)
+      m = self.pattern.match(unicode(url))
     else:
-      m = self.pattern.match(url.path)
+      m = self.pattern.match(unicode(url.path))
     
     if m is not None:
       if self.params:
