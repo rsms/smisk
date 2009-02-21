@@ -14,6 +14,11 @@ Different request methods do different things:
 * DELETE requests removes entries
 * OPTIONS requests gives API reflection
 
+If you start the application and access it trough a web browser, there is an
+ajax interface for manipulating the key-value store, passing data as JSON.
+Parts of the javascript code within templates/__call__.html are universal and
+can be used to interface with any Smisk service which have JSON capabilities.
+
 Example
 -------
 

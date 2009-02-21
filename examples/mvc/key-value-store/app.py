@@ -11,24 +11,27 @@ class root(Controller):
     # on startup, thus providing a persistent set of data.
     self.entries = shared_dict(persistent=config.get('persistent'))
   
-  @expose(methods='GET')
   def __call__(self):
-    '''List available entries.
+    pass
+  
+  @expose(methods='GET')
+  def entry(self):
+    '''List available keys.
     '''
-    return {'entries': self.entries}
+    return {'keys': self.entries.keys()}
   
   @expose(methods=('POST', 'PUT'))
   def set(self, key, value):
     '''Create or modify an entry.
     '''
-    self.entries[key] = value
+    self.entries[key.encode('utf-8')] = value
   
   @expose(methods='GET')
   def get(self, key):
     '''Get value for key.
     '''
     try:
-      return {'value': self.entries[key]}
+      return {'value': self.entries[key.encode('utf-8')]}
     except KeyError:
       raise http.NotFound('no value associated with key %r' % key)
   
@@ -36,9 +39,10 @@ class root(Controller):
   def delete(self, key):
     '''Remove entry.
     '''
-    if key not in self.entries:
-      raise http.NotFound('no such entry %r' % key)
-    del self.entries[key]
+    utf8_key = key.encode('utf-8')
+    if utf8_key not in self.entries:
+      raise http.NotFound(u'no such entry %r' % key)
+    del self.entries[utf8_key]
   
 
 if __name__ == '__main__':
