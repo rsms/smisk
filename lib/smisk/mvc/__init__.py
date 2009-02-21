@@ -55,11 +55,12 @@ from smisk.mvc.helpers import *
 
 # load basic serializers
 import smisk.serialization.json
+import smisk.serialization.php_serial
 import smisk.serialization.plain_text
-import smisk.serialization.yaml_serial
+import smisk.serialization.plist
 import smisk.serialization.xhtml
 import smisk.serialization.xmlrpc
-import smisk.serialization.plist
+import smisk.serialization.yaml_serial
 
 Controller = control.Controller
 try:
@@ -629,15 +630,11 @@ class Application(smisk.core.Application):
     '''
     # Add Content-Location response header if data encoding was deduced through
     # TCN or requested with a non-standard URI. (i.e. "/hello" instead of "/hello/")
-    canonical_uri = self.destination.uri
-    if self.response.serializer and (\
-          not self.response.format \
-        or \
-          (canonical_uri and canonical_uri != self.request.url.path)\
-        ):
-      if canonical_uri:
-        self.response.headers.append('Content-Location: %s.%s' % \
-          (canonical_uri, self.response.serializer.extensions[0]))
+    if self.response.serializer and not self.response.format:
+      if self.destination.uri:
+        path = URL.escape(self.request.cn_url.path) + '.' + self.response.serializer.extensions[0]
+        self.response.headers.append('Content-Location: ' + \
+          self.request.cn_url.to_s(scheme=0,user=0,host=0,port=0,path=path))
       # Always add the vary header, because we do (T)CN
       self.response.headers.append('Vary: Accept-Charset, Accept')
     else:
@@ -814,7 +811,7 @@ class Application(smisk.core.Application):
     # The "/*" is an extension from Smisk. Most host servers respond to "*" themselves,
     # without asking Smisk.
     if self.request.method == 'OPTIONS' and \
-    (self.request.env.get('SCRIPT_NAME') == '*' or self.request.cn_url.path == '/*'):
+        (self.request.env.get('SCRIPT_NAME') == '*' or self.request.cn_url.path == '/*'):
       return self.service_server_OPTIONS(req_args, req_params)
     
     # Resolve route to destination
