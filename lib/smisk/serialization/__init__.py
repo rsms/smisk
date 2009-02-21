@@ -85,12 +85,10 @@ class Registry(object):
     self.serializers.append(serializer)
     # Register Media types
     for t in serializer.media_types:
-      t = intern(t.lower())
-      self.media_types[t] = serializer
+      self.media_types[intern(t.lower())] = serializer
     # Register extensions/formats
     for ext in serializer.extensions:
-      ext = intern(ext.lower())
-      self.extensions[ext] = serializer
+      self.extensions[intern(ext.lower())] = serializer
     # Set first_in
     if self.first_in is None:
       self.first_in = serializer
