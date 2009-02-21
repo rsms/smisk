@@ -7,6 +7,7 @@ import smisk.serialization.json, \
        smisk.serialization.python_pickle, \
        smisk.serialization.python_py, \
        smisk.serialization.xhtml, \
+       smisk.serialization.xmlgeneric, \
        smisk.serialization.xmlrpc, \
        smisk.serialization.xspf, \
        smisk.serialization.yaml_serial
