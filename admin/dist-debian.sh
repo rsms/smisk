@@ -77,8 +77,10 @@ export SMISK_BUILD_ID="${SMISK_BUILD_ID}:debian:${DEB_REVISION}"
 for PV in  2.4  2.5  2.6  2.7 ; do
   if (which python$PV>/dev/null); then
     echo "$0:" "Building and testing working copy Smisk with Python $PV"
+    PLIBDIR="$(echo $(pwd)/build/lib.*-$PV)"
+    rm -rf "$PLIBDIR"
     python$PV setup.py build -f > /dev/null
-    PYTHONPATH=$(echo $(pwd)/build/lib.*-$PV) python$PV -c 'import smisk.test as t;t.test()' > /dev/null || exit 1
+    PYTHONPATH="$PLIBDIR" python$PV -c 'import smisk.test as t;t.test()' > /dev/null || exit 1
   fi
 done
 
