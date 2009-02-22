@@ -18,7 +18,7 @@ __all__ = [
   'Serializer' # BaseCodec
 ]
 
-import smisk.serialization.plistlib_ as plistlib_
+import plistlib_
 plistlib_.Data.encode = plistlib_.Data.asBase64
 plistlib_.Data.decode = plistlib_.Data.fromBase64
 
