@@ -37,7 +37,7 @@ typedef uint8_t byte;
   typedef int Py_ssize_t;
   #define PY_SSIZE_FMT "%d"
 #else
-  #define PY_SSIZE_FMT "%ld"
+  #define PY_SSIZE_FMT "%zd"
 #endif
 
 /* If current Python does not include T_LONGLONG, we need to 
