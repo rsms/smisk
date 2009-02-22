@@ -34,7 +34,10 @@ THE SOFTWARE.
 /* Types */
 typedef uint8_t byte;
 #if (PY_VERSION_HEX < 0x02050000)
-  typedef ssize_t Py_ssize_t;
+  typedef int Py_ssize_t;
+  #define PY_SSIZE_FMT "%d"
+#else
+  #define PY_SSIZE_FMT "%ld"
 #endif
 
 /* If current Python does not include T_LONGLONG, we need to 
@@ -188,11 +191,11 @@ typedef uint8_t byte;
   #define assert_refcount(o, count_test) \
     do { \
       if (!((o)->ob_refcnt count_test)){ \
-        log_debug("assert_refcount(%ld, %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test);\
+        log_debug("assert_refcount(" PY_SSIZE_FMT ", %s)", (Py_ssize_t)(o)->ob_refcnt, #count_test);\
       }\
       assert((o)->ob_refcnt count_test); \
     } while (0)
-  #define DUMP_REFCOUNT(o) log_debug("*** %s: %ld", #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
+  #define DUMP_REFCOUNT(o) log_debug("*** %s: " PY_SSIZE_FMT, #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
   #define DUMP_REPR(o) \
     do { PyObject *repr = PyObject_Repr((PyObject *)(o));\
       if (repr) {\
