@@ -100,6 +100,44 @@ Configuration parameters
   :type: bool
 
 
+
+Leaf filters
+-------------------------------------------------
+
+A *leaf filter* is basically code that is run prior to and after calling a leaf on the controller tree, allowing manipulation of input, output and the states of things.
+
+Let's have a look at an example filter which gives the ability to say "this leaf requires a logged in user"::
+  
+  from smisk.mvc.decorators import leaf_filter
+  
+  @leaf_filter
+  def require_login(leaf, *va, **kw):
+    if not request.session or not request.session.get('userid'):
+      redirect_to(root.login)
+    return leaf(*va, **kw)
+
+This filter requires a valid session and the key ``userid`` to be set in the session (in this case things are simplified for educational reasons --- in reality we would probably check the type of the session object also).
+
+And here is how you would use the filter above::
+
+  class root(Controller):
+    @require_login
+    def protected(self):
+      return {'secret launch codes': [u'abc', 123]}
+    
+    def login(self):
+      pass # (actual auth code here)
+  
+  # curl localhost:8080/protected
+  # 302 Found -> http://localhost:8080/login
+
+Note that the :samp:`from smisk.mvc.decorators import leaf_filter` is not needed if you are importing everything from :mod:`smisk.mvc` since ``leaf_filter`` is also exported from :mod:`smisk.mvc`.
+
+For more information and examples see :mod:`smisk.mvc.filters` and 
+:func:`smisk.mvc.decorators.leaf_filter`.
+
+
+
 Functions
 -------------------------------------------------
 
