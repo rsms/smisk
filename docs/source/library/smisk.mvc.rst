@@ -318,9 +318,9 @@ Classes
           self.leaf_filters.append(ensure_page_title)
           return Application.application_will_start(self)
     
-      :type: ``list``
-      
-      .. versionadded:: 1.1.3
+    :type: ``list``
+    
+    .. versionadded:: 1.1.3
   
   
   
