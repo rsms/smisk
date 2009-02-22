@@ -153,12 +153,12 @@ if __name__ == '__main__':
       items = ["A", "B", 12, 32.1, [1, 2, 3, None]],
       float = 0.1,
       integer = 728,
-      dict = dict(
-        str = "<hello & hi there!>",
-        unicode = u'M\xe4ssig, Ma\xdf',
-        true_value = True,
-        false_value = False,
-      ),
+      dict = {
+        "str": "<hello & hi there!>",
+        "unicode": u'M\xe4ssig, Ma\xdf',
+        "true value": True,
+        "false value": False,
+      },
       data = data("<binary gunk>"),
       more_data = data("<lots of binary gunk>" * 10),
       date = datetime.now(),
