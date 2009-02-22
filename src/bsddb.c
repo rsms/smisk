@@ -1394,7 +1394,7 @@ _db_associateCallback(DB* db, const DBT* priKey, const DBT* priData,
             Py_ssize_t size;
 
             CLEAR_DBT(*secKey);
-            PyBytes_AsStringAndSize(result, &data, &size);
+            PyBytes_AsStringAndSize(result, &data, (Py_ssize_t *)&size);
             secKey->flags = DB_DBT_APPMALLOC;   /* DB will free */
             secKey->data = malloc(size);        /* TODO, check this */
 	    if (secKey->data) {
