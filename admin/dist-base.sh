@@ -26,14 +26,7 @@ ensure_clean_working_revision() {
   ST="$(git status 2> /dev/null | tail -n1)"
   if [[ "$ST" != "nothing to commit (working directory clean)" ]] \
   && [[ "$ST" != 'nothing added to commit but untracked files present (use "git add" to track)' ]]; then
-    MSG="Work tree $RREV is not clean. You need to commit or revert modifications first."
-    if [ "$DRY_RUN" != "" ] && [ $DRY_RUN -eq 1 ]; then
-      echo "$0: Warning: $MSG"
-      echo "$0: Notice: In a non-dry run the above warning would be an error and exit 1"
-    else
-      echo "$0: Error: $MSG"
-      exit 1
-    fi
+    echo "$0: Warning: Work tree $RREV is not clean. You should commit or revert modifications." >&2
   fi
 }
 
