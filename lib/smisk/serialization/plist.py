@@ -37,20 +37,21 @@ class XMLPlistSerializer(XMLSerializer):
 serializers.register(XMLPlistSerializer)
 
 if __name__ == '__main__':
-  charset, xmlstr = XMLPlistSerializer.serialize({
-    'message': 'Hello worlds',
-    'internets': [
-      'interesting',
-      'lolz',
-      42.0,
-      {
-        'tubes': [1,3,16,18,24],
-        'persons': True,
-        'image': data("You bastard! These are pure, innocent bytes you're dealing with.")
-      }
-    ],
-    'today': datetime.now()
-  }, None)
+  charset, xmlstr = XMLPlistSerializer.serialize(dict(
+      string = "Doodah",
+      items = ["A", "B", 12, 32.1, [1, 2, 3]],
+      float = 0.1,
+      integer = 728,
+      dict = {
+        "str": "<hello & hi there!>",
+        "unicode": u'M\xe4ssig, Ma\xdf',
+        "true value": True,
+        "false value": False,
+      },
+      data = data("<binary gunk>"),
+      more_data = data("<lots of binary gunk>" * 10),
+      date = datetime.now(),
+    ), None)
   print xmlstr
   from StringIO import StringIO
   print repr(XMLPlistSerializer.unserialize(StringIO(xmlstr)))
