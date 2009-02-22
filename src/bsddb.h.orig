@@ -267,9 +267,6 @@ typedef struct {
 #define DBSequenceObject_Check(v)  ((v)->ob_type == bsddb_api->dbsequence_type)
 #endif
 
-/* Module initializer */
-PyObject *smisk_bsddb_register(PyObject *parent);
-
 #endif /* COMPILING_BSDDB_C */
 
 

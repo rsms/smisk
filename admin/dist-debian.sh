@@ -37,7 +37,7 @@ fi
 
 # Ensure we're on Debian and has package builder
 if [ $(uname -s) != "Linux" ] || [ ! -x /usr/bin/dpkg-buildpackage ]; then
-  echo 'This is not a debian system or dpkg-buildpackage is not available.' >&2
+  echo "$0:" 'This is not a debian system or dpkg-buildpackage is not available.' >&2
   exit 1
 fi
 
@@ -53,8 +53,8 @@ DEB_BRANCH=$(head -n 1 debian/changelog | cut -d ' ' -f 3 | sed 's/;//')
 ensure_clean_working_revision
 
 if [ "$PREV_UPSTREAM_VER" != "$UPSTREAM_VER" ]; then
-  echo "Error: Changelog out of date" >&2
-  echo "Run dch -v $UPSTREAM_VER-"$(expr $DEB_REVISION + 1)" and write a new changelog entry."
+  echo "$0:" "Error: Changelog out of date" >&2
+  echo "$0:" "Run dch -v $UPSTREAM_VER-"$(expr $DEB_REVISION + 1)" and write a new changelog entry."
   exit 1
 fi
 
@@ -63,18 +63,21 @@ CLEAN_COPY_DIR=
 ORG_DIR=$(pwd)
 SMISK_BUILD_ID=$(python setup.py --print-build-id)
 if [ -d .git ]; then
-  echo 'Creating a temporary, clean clone of the repository'
   CLEAN_COPY_DIR=$(mktemp -d -t dist-debian.XXXXXXXXXX)
+  echo "$0:" "Creating a temporary, clean clone of the repository in $CLEAN_COPY_DIR"
   trap "rm -rf $CLEAN_COPY_DIR; exit $?" INT TERM EXIT
   CLEAN_COPY_DIR=${CLEAN_COPY_DIR}/${DEB_PACKAGE_NAME}-${UPSTREAM_VER}
-  git clone --local --quiet "${ORG_DIR}" ${CLEAN_COPY_DIR}
+  cp -Rpf "${ORG_DIR}" ${CLEAN_COPY_DIR}
   cd ${CLEAN_COPY_DIR}
   rm -rf .git*
 fi
 export SMISK_BUILD_ID="${SMISK_BUILD_ID}:debian:${DEB_REVISION}"
 
+# Test working copy
+. admin/test-working-copy
+
 # Build
-echo 'Running dpkg-buildpackage -rfakeroot'
+echo "$0:" "Running dpkg-buildpackage -rfakeroot ${args}"
 dpkg-buildpackage -rfakeroot ${args} || exit 1
 
 # Move files to a better location
@@ -84,9 +87,9 @@ mv -v ../${DEB_PACKAGE_NAME}_${UPSTREAM_VER}-${DEB_REVISION}* "${ORG_DIR}/dist/d
 
 # Upload
 if [ $RUN_DUPLOAD -eq 1 ]; then
-  echo "Running dupload -t hunch dist/debian"
+  echo "$0:" "Running dupload -t hunch dist/debian"
   dupload -t hunch "${ORG_DIR}/dist/debian"
 else
-  echo "Upload disabled -- to manually upload the build package(s), run:"
+  echo "$0:" "Upload disabled -- to manually upload the build package(s), run:"
   echo "dupload -t hunch '${ORG_DIR}/dist/debian'"
 fi

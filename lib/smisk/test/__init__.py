@@ -52,8 +52,8 @@ def suite():
   ''')
   return unittest.TestSuite(suites)
 
-def test():
-  runner = unittest.TextTestRunner()
+def test(*va, **kw):
+  runner = unittest.TextTestRunner(*va, **kw)
   return runner.run(suite())
 
 if __name__ == "__main__":

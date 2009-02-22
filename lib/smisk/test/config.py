@@ -147,9 +147,10 @@ class ConfigTests(TestCase):
 #logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
 def suite():
-  return unittest.TestSuite([
-    unittest.makeSuite(ConfigTests),
-  ])
+  suites = []
+  if os.path.isdir(FILESDIR):
+    suites = [unittest.makeSuite(ConfigTests)]
+  return unittest.TestSuite(suites)
 
 def test():
   runner = unittest.TextTestRunner()
