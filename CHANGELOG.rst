@@ -1,6 +1,49 @@
 Changes
 =======
 
+1.1.3
+-----
+
+* Fixed a bug with parameter keys not being normalized to unicode.
+
+* Reworked Elixir/SQLAlchemy handling of sessions during HTTP transactions.
+
+* Only a subset of the built-in serializers are loaded by default, rather than
+  all. There's a new module called smisk.serialization.all which can be
+  imported in order to load all built-in serializers.
+
+* Serializers now need to excplicitly specify their read/write capabilities
+  using two boolean attributes: can_serialize and can_unserialize.
+  BaseSerializer defines both of these as False.
+
+* plist serializer reworked to use plistlib, which has been modified to support
+  serialization of Elixir Entities (database objects).
+
+* New generic XML serializer smisk.serialization.xmlgeneric (not loaded by 
+  default).
+
+* smisk.mvc.Request instances have a new attribute called cn_url. The value is
+  a smisk.core.URL instance which is guaranteed *not* to include any filename
+  extension. cn_url is a copy of Request.url if the request was made without
+  the canonical path (i.e. not including filename extension. "/foo/bar" instead
+  of "/foo/bar.json"). Otherwise cn_url is a modified copy of url. This is
+  useful for building paths based on the request path wihout having to know if
+  there's a filename extension involved or not.
+
+* Leaf filters can now be created as pythonic decorators using the aiding
+  decorator leaf_filter, found in smisk.mvc.decorators. See
+  http://python-smisk.org/docs/1.1.3/library/smisk.mvc.html#leaf-filters
+  for more information.
+
+* The previously built-in crash reporter is no longer built by default. Can be
+  enabled by defining the macro SMISK_ENABLE_CRASH_REPORTING 1 (more info in 
+  src/config.h).
+
+* Major documentation update.
+
+* Various minor fixes.
+
+
 1.1.2
 -----
 
