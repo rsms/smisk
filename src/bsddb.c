@@ -109,31 +109,6 @@ static char *rcs_id = "$Id: _bsddb.c 665 2009-02-04 18:39:51Z jcea $";
 /* --------------------------------------------------------------------- */
 /* Various macro definitions */
 
-#if (PY_VERSION_HEX < 0x02050000)
-typedef int Py_ssize_t;
-#endif
-
-#if (PY_VERSION_HEX < 0x02060000)  /* really: before python trunk r63675 */
-/* This code now uses PyBytes* API function names instead of PyString*.
- * These #defines map to their equivalent on earlier python versions.    */
-#define PyBytes_FromStringAndSize PyString_FromStringAndSize
-#define PyBytes_FromString PyString_FromString
-#define PyBytes_AsStringAndSize PyString_AsStringAndSize
-#define PyBytes_Check PyString_Check
-#define PyBytes_GET_SIZE PyString_GET_SIZE
-#define PyBytes_AS_STRING PyString_AS_STRING
-#endif
-
-#if (PY_VERSION_HEX >= 0x03000000)
-#define NUMBER_Check    PyLong_Check
-#define NUMBER_AsLong   PyLong_AsLong
-#define NUMBER_FromLong PyLong_FromLong
-#else
-#define NUMBER_Check    PyInt_Check
-#define NUMBER_AsLong   PyInt_AsLong
-#define NUMBER_FromLong PyInt_FromLong
-#endif
-
 #ifdef WITH_THREAD
 
 /* These are for when calling Python --> C */

@@ -1,5 +1,5 @@
---- src/bsddb.c.orig	2009-02-22 22:03:41.000000000 +0100
-+++ src/bsddb.c	2009-02-22 22:01:29.000000000 +0100
+--- src/bsddb.c.orig	2009-02-22 22:09:52.000000000 +0100
++++ src/bsddb.c	2009-02-22 22:09:28.000000000 +0100
 @@ -78,7 +78,7 @@
  /* --------------------------------------------------------------------- */
  
@@ -25,7 +25,39 @@
  #include <stddef.h>   /* for offsetof() */
  #include <Python.h>
  
-@@ -7408,8 +7417,8 @@
+@@ -100,31 +109,6 @@
+ /* --------------------------------------------------------------------- */
+ /* Various macro definitions */
+ 
+-#if (PY_VERSION_HEX < 0x02050000)
+-typedef int Py_ssize_t;
+-#endif
+-
+-#if (PY_VERSION_HEX < 0x02060000)  /* really: before python trunk r63675 */
+-/* This code now uses PyBytes* API function names instead of PyString*.
+- * These #defines map to their equivalent on earlier python versions.    */
+-#define PyBytes_FromStringAndSize PyString_FromStringAndSize
+-#define PyBytes_FromString PyString_FromString
+-#define PyBytes_AsStringAndSize PyString_AsStringAndSize
+-#define PyBytes_Check PyString_Check
+-#define PyBytes_GET_SIZE PyString_GET_SIZE
+-#define PyBytes_AS_STRING PyString_AS_STRING
+-#endif
+-
+-#if (PY_VERSION_HEX >= 0x03000000)
+-#define NUMBER_Check    PyLong_Check
+-#define NUMBER_AsLong   PyLong_AsLong
+-#define NUMBER_FromLong PyLong_FromLong
+-#else
+-#define NUMBER_Check    PyInt_Check
+-#define NUMBER_AsLong   PyInt_AsLong
+-#define NUMBER_FromLong PyInt_FromLong
+-#endif
+-
+ #ifdef WITH_THREAD
+ 
+ /* These are for when calling Python --> C */
+@@ -7408,8 +7392,8 @@
   */
  #define ADD_INT(dict, NAME)         _addIntToDict(dict, #NAME, NAME)
  
@@ -36,7 +68,7 @@
  
  #if (PY_VERSION_HEX >= 0x03000000)
  static struct PyModuleDef bsddbmodule = {
-@@ -7427,12 +7436,10 @@
+@@ -7427,12 +7411,10 @@
  #endif
  
  
@@ -52,7 +84,7 @@
      PyObject* m;
      PyObject* d;
      PyObject* py_api;
-@@ -7461,11 +7468,7 @@
+@@ -7461,11 +7443,7 @@
          || (PyType_Ready(&DBSequence_Type) < 0)
  #endif
          ) {
@@ -64,7 +96,7 @@
      }
  
  #if defined(WITH_THREAD) && !defined(MYDB_USE_GILSTATE)
-@@ -7479,13 +7482,8 @@
+@@ -7479,13 +7457,8 @@
  #else
      m=PyModule_Create(&bsddbmodule);
  #endif
@@ -79,7 +111,7 @@
  
      /* Add some symbolic constants to the module */
      d = PyModule_GetDict(m);
-@@ -7910,11 +7908,7 @@
+@@ -7910,11 +7883,7 @@
  
      /* The exception name must be correct for pickled exception *
       * objects to unpickle properly.                            */
@@ -92,7 +124,7 @@
  
      /* All the rest of the exceptions derive only from DBError */
  #define MAKE_EX(name)   name = PyErr_NewException(PYBSDDB_EXCEPTION_BASE #name, DBError, NULL); \
-@@ -8013,31 +8007,16 @@
+@@ -8013,31 +7982,16 @@
      /* Check for errors */
      if (PyErr_Occurred()) {
          PyErr_Print();
