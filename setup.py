@@ -680,6 +680,7 @@ setup(
     'smisk.serialization',
     'smisk.util',
     'smisk.test',
+    'smisk.test.config_support',
     'smisk.test.core',
     'smisk.test.live',
     'smisk.test.mvc',
