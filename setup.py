@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # encoding: utf-8
-import os
-os.putenv('MACOSX_DEPLOYMENT_TARGET', '10.5')
 try:
   from setuptools import setup
 except ImportError:
@@ -9,7 +7,7 @@ except ImportError:
   use_setuptools()
   from setuptools import setup
 
-import sys, time, platform, re, subprocess
+import sys, os, time, platform, re, subprocess
 
 from setuptools import Extension as _Extension, Distribution, Command
 from pkg_resources import parse_version

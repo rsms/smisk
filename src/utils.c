@@ -30,8 +30,8 @@ THE SOFTWARE.
 #include <fcgiapp.h>
 #include <marshal.h> /* for smisk_object_hash */
 
-#include "utils.h"
 #include "__init__.h"
+#include "utils.h"
 #include "URL.h"
 
 
