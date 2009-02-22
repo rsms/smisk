@@ -1,0 +1,135 @@
+--- src/bsddb.c.orig	2009-02-22 22:03:41.000000000 +0100
++++ src/bsddb.c	2009-02-22 22:01:29.000000000 +0100
+@@ -78,7 +78,7 @@
+ /* --------------------------------------------------------------------- */
+ 
+ /*
+- * Portions of this module, associated unit tests and build scripts are the
++ * Portions of this module are the
+  * result of a contract with The Written Word (http://thewrittenword.com/)
+  * Many thanks go out to them for causing me to raise the bar on quality and
+  * functionality, resulting in a better bsddb3 package for all of us to use.
+@@ -88,6 +88,15 @@
+ 
+ /* --------------------------------------------------------------------- */
+ 
++/*
++ * Modified by Rasmus Andersson for the Smisk project. (2009-01-13)
++ */
++
++#undef MOD_IDENT
++#define MOD_IDENT "smisk.core.bsddb"
++
++/* --------------------------------------------------------------------- */
++
+ #include <stddef.h>   /* for offsetof() */
+ #include <Python.h>
+ 
+@@ -7408,8 +7417,8 @@
+  */
+ #define ADD_INT(dict, NAME)         _addIntToDict(dict, #NAME, NAME)
+ 
+-#define MODULE_NAME_MAX_LEN     11
+-static char _bsddbModuleName[MODULE_NAME_MAX_LEN+1] = "_bsddb";
++#define MODULE_NAME_MAX_LEN     16
++static char _bsddbModuleName[MODULE_NAME_MAX_LEN+1] = "smisk.core.bsddb";
+ 
+ #if (PY_VERSION_HEX >= 0x03000000)
+ static struct PyModuleDef bsddbmodule = {
+@@ -7427,12 +7436,10 @@
+ #endif
+ 
+ 
+-#if (PY_VERSION_HEX < 0x03000000)
+-DL_EXPORT(void) init_bsddb(void)
+-#else
+-PyMODINIT_FUNC  PyInit__bsddb(void)    /* Note the two underscores */
+-#endif
++PyObject *smisk_bsddb_register(PyObject *parent)
+ {
++    log_trace("ENTER");
++    
+     PyObject* m;
+     PyObject* d;
+     PyObject* py_api;
+@@ -7461,11 +7468,7 @@
+         || (PyType_Ready(&DBSequence_Type) < 0)
+ #endif
+         ) {
+-#if (PY_VERSION_HEX < 0x03000000)
+-        return;
+-#else
+         return NULL;
+-#endif
+     }
+ 
+ #if defined(WITH_THREAD) && !defined(MYDB_USE_GILSTATE)
+@@ -7479,13 +7482,8 @@
+ #else
+     m=PyModule_Create(&bsddbmodule);
+ #endif
+-    if (m == NULL) {
+-#if (PY_VERSION_HEX < 0x03000000)
+-        return;
+-#else
++    if (m == NULL)
+     	return NULL;
+-#endif
+-    }
+ 
+     /* Add some symbolic constants to the module */
+     d = PyModule_GetDict(m);
+@@ -7910,11 +7908,7 @@
+ 
+     /* The exception name must be correct for pickled exception *
+      * objects to unpickle properly.                            */
+-#ifdef PYBSDDB_STANDALONE  /* different value needed for standalone pybsddb */
+-#define PYBSDDB_EXCEPTION_BASE  "bsddb3.db."
+-#else
+-#define PYBSDDB_EXCEPTION_BASE  "bsddb.db."
+-#endif
++#define PYBSDDB_EXCEPTION_BASE  "smisk.core.bsddb."
+ 
+     /* All the rest of the exceptions derive only from DBError */
+ #define MAKE_EX(name)   name = PyErr_NewException(PYBSDDB_EXCEPTION_BASE #name, DBError, NULL); \
+@@ -8013,31 +8007,16 @@
+     /* Check for errors */
+     if (PyErr_Occurred()) {
+         PyErr_Print();
+-        Py_FatalError("can't initialize module _bsddb/_pybsddb");
++        Py_FatalError("can't initialize module smisk.core.bsddb");
+         Py_DECREF(m);
+-        m = NULL;
++        return NULL;
+     }
+-#if (PY_VERSION_HEX < 0x03000000)
+-    return;
+-#else
+-    return m;
+-#endif
+-}
+ 
+-/* allow this module to be named _pybsddb so that it can be installed
+- * and imported on top of python >= 2.3 that includes its own older
+- * copy of the library named _bsddb without importing the old version. */
+-#if (PY_VERSION_HEX < 0x03000000)
+-DL_EXPORT(void) init_pybsddb(void)
+-#else
+-PyMODINIT_FUNC PyInit__pybsddb(void)  /* Note the two underscores */
+-#endif
+-{
+-    strncpy(_bsddbModuleName, "_pybsddb", MODULE_NAME_MAX_LEN);
+-#if (PY_VERSION_HEX < 0x03000000)
+-    init_bsddb();
+-#else
+-    return PyInit__bsddb();   /* Note the two underscores */
+-#endif
+-}
++    /* Append module to parent */
++    if (PyModule_AddObject(parent, "bsddb", m) != 0) {
++        Py_DECREF(m);
++        return NULL;
++    }
+ 
++    return m;
++}

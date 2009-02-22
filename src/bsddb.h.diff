@@ -1,0 +1,12 @@
+--- src/bsddb.h.orig	2009-02-22 22:04:09.000000000 +0100
++++ src/bsddb.h	2009-02-22 21:36:35.000000000 +0100
+@@ -267,6 +267,9 @@
+ #define DBSequenceObject_Check(v)  ((v)->ob_type == bsddb_api->dbsequence_type)
+ #endif
+ 
++/* Module initializer */
++PyObject *smisk_bsddb_register(PyObject *parent);
++
+ #endif /* COMPILING_BSDDB_C */
+ 
+ 
