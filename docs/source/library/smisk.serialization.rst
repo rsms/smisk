@@ -25,17 +25,27 @@ Classes
   
   Represent arbitrary bytes.
   
+  .. attribute:: data
+    
+    Actual storage of the bytes.
+    
+    :type: str
+  
+  
   .. method:: __init__(source):
     
     *source* can be a ``str`` or a file-like object with a ``read`` method returning ``str``.
+  
   
   .. method:: encode() -> str
   
     Instance method to encode data into a printable, base-64 encoded, string.
   
+  
   .. method:: decode(string)
     
     Class method for creating a ``data`` object from a base-64 encoded string.
+
 
 
 
@@ -57,32 +67,36 @@ Classes
     <class Serializer2 ...
   
   
-  .. attribute:: first_in = None
+  .. attribute:: first_in
   
-  First registered serializer.
+    First registered serializer.
   
-  :type: :class:`Serializer`
-  
-  
-  .. attribute:: media_types = {}
-  
-  Media type-to-Serializer map.
-  
-  :type: dict
+    :type: :class:`Serializer`
+    :value: None
   
   
-  .. attribute:: extensions = {}
+  .. attribute:: media_types
   
-  Filename extension-to-Serializer map.
+    Media type-to-Serializer map.
   
-  :type: dict
+    :type: dict
+    :value: {}
   
   
-  .. attribute:: serializers = []
+  .. attribute:: extensions
   
-  List of available serializers.
+    Filename extension-to-Serializer map.
   
-  :type: list
+    :type: dict
+    :value: {}
+  
+  
+  .. attribute:: serializers
+  
+    List of available serializers.
+  
+    :type: list
+    :value: []
   
   
   .. attribute:: readers
@@ -146,14 +160,15 @@ Classes
   All members described here are class members (serializers are never instantiated).
   
   
-  .. attribute:: name = "Untitled serializer"
+  .. attribute:: name
   
     A human readable short and descriptive name of the serializer.
   
-    :type: string
+    :type: str
+    :value: "Untitled serializer"
   
   
-  .. attribute:: extensions = tuple()
+  .. attribute:: extensions
   
     Filename extensions this serializer can handle.
   
@@ -161,9 +176,10 @@ Classes
     The first item will be used as the primary extension.
   
     :type: collection
+    :value: tuple()
   
   
-  .. attribute:: media_types = tuple()
+  .. attribute:: media_types
   
     Media types this serializer can handle.
   
@@ -171,27 +187,30 @@ Classes
     The first item will be used as the primary media type.
   
     :type: collection
+    :value: tuple()
   
   
-  .. attribute:: charset = None
+  .. attribute:: charset
   
     Preferred character encoding.
     
     If the value is ``None`` the serializer is considered "binary".
     
-    :type: string
+    :type: str
+    :value: None
   
   
-  .. attribute:: unicode_errors = "strict"
+  .. attribute:: unicode_errors
   
-  How to handle unicode conversions.
+    How to handle unicode conversions.
   
-  Possible values: ``"strict", "ignore", "replace", "xmlcharrefreplace", "backslashreplace"``
+    Possible values: ``"strict", "ignore", "replace", "xmlcharrefreplace", "backslashreplace"``
   
-  :type: string
+    :type: str
+    :value: "strict"
   
   
-  .. attribute:: handles_empty_response = False
+  .. attribute:: handles_empty_response
     
     If enabled, :meth:`serialize()` will be called even when leafs
     does not generate a response body. (i.e. ``params=None`` passed to :meth:`serialize()`)
@@ -200,24 +219,27 @@ Classes
     instance) in which case this feature come in handy.
   
     :type: bool
+    :value: False
   
   
-  .. attribute:: can_serialize = False
+  .. attribute:: can_serialize
   
     Declares where there or not this serializer can write/encode/serialize data.
   
     .. versionadded:: 1.1.3
     
     :type: bool
+    :value: False
   
   
-  .. attribute:: can_unserialize = False
+  .. attribute:: can_unserialize
     
     Declares where there or not this serializer can read/decode/unserialize data.
     
     .. versionadded:: 1.1.3
     
     :type: bool
+    :value: False
   
   
   
