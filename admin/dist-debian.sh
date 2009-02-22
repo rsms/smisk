@@ -63,8 +63,8 @@ CLEAN_COPY_DIR=
 ORG_DIR=$(pwd)
 SMISK_BUILD_ID=$(python setup.py --print-build-id)
 if [ -d .git ]; then
-  echo 'Creating a temporary, clean clone of the repository'
   CLEAN_COPY_DIR=$(mktemp -d -t dist-debian.XXXXXXXXXX)
+  echo "Creating a temporary, clean clone of the repository in $CLEAN_COPY_DIR"
   trap "rm -rf $CLEAN_COPY_DIR; exit $?" INT TERM EXIT
   CLEAN_COPY_DIR=${CLEAN_COPY_DIR}/${DEB_PACKAGE_NAME}-${UPSTREAM_VER}
   git clone --local --quiet "${ORG_DIR}" ${CLEAN_COPY_DIR}
