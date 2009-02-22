@@ -160,7 +160,7 @@ PyObject *smisk_Stream_readline(smisk_Stream* self, PyObject *args) {
   
   // Resize string (Almost all cases need this so no check before)
   if (_PyBytes_Resize(&str, length) == -1) {
-    log_error("_PyBytes_Resize(%p, " PY_SSIZE_FMT ") == -1", str, length);
+    log_error("_PyBytes_Resize(%p, %ld) == -1", str, (long)length);
     return NULL;
   }
   
@@ -275,7 +275,7 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
   }
   // Read all
   else {
-    Py_ssize_t bufchunksize, bufsize, buflength;
+    ssize_t bufchunksize, bufsize, buflength;
     char *strdat;
     
     // init vars
@@ -307,7 +307,7 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
         bufsize *= 2;
         if (_PyBytes_Resize(&str, bufsize) == -1) {
           EXTERN_OP_END;
-          log_error("_PyBytes_Resize(%p, " PY_SSIZE_FMT ") == -1", str, bufsize);
+          log_error("_PyBytes_Resize(%p, %ld) == -1", str, (long)bufsize);
           return NULL;
         }
       }
@@ -317,7 +317,7 @@ PyObject *smisk_Stream_read(smisk_Stream* self, PyObject *args) {
     
     // Size down the string to the correct length
     if (_PyBytes_Resize(&str, buflength) == -1) {
-      log_debug("_PyBytes_Resize(%p, " PY_SSIZE_FMT ") == -1", str, buflength);
+      log_debug("_PyBytes_Resize(%p, %ld) == -1", str, buflength);
       return NULL;
     }
   }

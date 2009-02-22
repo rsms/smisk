@@ -1,21 +1,19 @@
 include LICENSE
 include README.rst
 include CHANGELOG.rst
-include MANIFEST.in
-include setup.py
-include setup.cfg
+include MANIFEST.in.sdist
 include setup_bsddb.py
 include ez_setup.py
-include lib/smisk/test/config-support/*.conf
 
 graft docs/source
-graft docs/etc
+graft debug
 graft examples
 graft src
 graft tests
-graft admin
-graft debug
 
+prune doc/api
+
+exclude examples/*/*.log
 exclude examples/*/*.sock
 exclude examples/*/*.crash
 

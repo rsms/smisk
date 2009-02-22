@@ -349,7 +349,7 @@ Debugging
   
   .. code-block:: c
   
-    log_debug(" *** %s: " PY_SSIZE_FMT, #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
+    log_debug(" *** %s: %ld", #o, (o) ? (Py_ssize_t)(o)->ob_refcnt : 0)
 
 
 .. cmacro:: DUMP_REPR(PyObject *object)

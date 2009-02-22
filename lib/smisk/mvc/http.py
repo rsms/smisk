@@ -17,7 +17,7 @@ class HTTPExc(Exception):
   '''Wraps a HTTP status.
   '''
   def __init__(self, status, *args, **kwargs):
-    Exception.__init__(self)
+    super(HTTPExc, self).__init__()
     self.status = status
     self.args = args
     self.kwargs = kwargs

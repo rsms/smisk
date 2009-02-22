@@ -105,7 +105,7 @@
 #error "eek! DBVER can't handle minor versions > 9"
 #endif
 
-#define PY_BSDDB_VERSION "4.7.5"
+#define PY_BSDDB_VERSION "4.7.3"
 
 /* Python object definitions */
 
@@ -267,7 +267,7 @@ typedef struct {
 #define DBSequenceObject_Check(v)  ((v)->ob_type == bsddb_api->dbsequence_type)
 #endif
 
-/* Module initializer */
+// Module initializer
 PyObject *smisk_bsddb_register(PyObject *parent);
 
 #endif /* COMPILING_BSDDB_C */

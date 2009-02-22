@@ -593,12 +593,12 @@ PyObject *smisk_Application_error(smisk_Application *self, PyObject *args) {
       rc = FCGX_FPrintF(self->response->out->stream,
         "Status: 500 Internal Server Error\r\n"
         "Content-Type: text/html; charset=utf-8\r\n"
-        "Content-Length: %lu\r\n"
+        "Content-Length: %ld\r\n"
         "Cache-Control: no-cache\r\n"
          "\r\n"
          "%s%s%s\r\n",
         // we know this is a normal string, thus no unicode support
-        strlen(header)+((size_t)PyBytes_GET_SIZE(msg))+strlen(footer)+2UL,
+        strlen(header)+PyBytes_GET_SIZE(msg)+strlen(footer)+2,
         header,
         PyBytes_AS_STRING(msg), 
         footer);

@@ -102,7 +102,7 @@ ur'unicode_internal': {ur'description':ur'Return the internal representation of 
 '''
 
 import codecs
-for k in charsets.keys():
+for k in charsets:
   try:
     codecs.lookup(k)
   except LookupError:
