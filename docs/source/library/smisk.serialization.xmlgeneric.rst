@@ -10,7 +10,7 @@ The format is inspired by :mod:`~smisk.serialization.plist` and
 http://msdn.microsoft.com/en-us/library/bb924435.aspx
 
 
-Sample data
+Example
 ---------------------------------------
 
 .. code-block:: javascript
@@ -109,6 +109,16 @@ Classes
   .. method:: parse_object(elem)
     
     Unserialize an object.
+  
+  
+  .. method:: serialize(params, charset):
+    
+    See :meth:`smisk.serialization.Serializer.serialize()` for more information.
+  
+  
+  .. method:: unserialize(file, length=-1, charset=None):
+    
+    See :meth:`smisk.serialization.Serializer.unserialize()` for more information.
 
 
 
