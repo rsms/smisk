@@ -1,6 +1,12 @@
 #!/bin/bash
 # Test working copy
-for PV in  2.4  2.5  2.6  2.7 ; do
+VERSIONS='2.4  2.5  2.6  2.7'
+if [ "$(python2.4 -c 'import platform as p;print p.platform()')" == "Darwin-9.6.0-i386-32bit" ] \
+&& (which python2.4|grep /opt/local/bin>/dev/null); then
+  # There is a bug in ports python2.4 os x i386 which tries to compile the same file twice.
+  VERSIONS='2.5  2.6  2.7'
+fi
+for PV in $VERSIONS; do
   if (which python$PV>/dev/null); then
     echo "$0:" "Building and testing working copy Smisk with Python $PV"
     rm -rf build/lib.*
