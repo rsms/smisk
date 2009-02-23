@@ -610,12 +610,10 @@ class clean(_clean):
 from setuptools.command.sdist import sdist as _sdist
 class sdist(_sdist):
   def run(self):
-    # MANIFEST.in.sdist used as MANIFEST.in (only for sdist)
-    copy_file('MANIFEST.in.sdist', 'MANIFEST.in')
     try:
       _sdist.run(self)
     finally:
-      for path in ['MANIFEST.in', 'MANIFEST']:
+      for path in ['MANIFEST']:
         rm_file(path)
   
 
