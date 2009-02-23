@@ -181,11 +181,11 @@ def core_build_id():
         if _core_build_id[-1] == '+':
           dirty_extra = '%x' % int(time.time())
         _core_build_id = 'urn:rcsid:%s%s' % (_core_build_id, dirty_extra)
-        if 'SMISK_BUILD_ID_SUFFIX' in os.environ:
-          _core_build_id += os.environ['SMISK_BUILD_ID_SUFFIX']
       if not _core_build_id:
         # Not under revision control
         _core_build_id = time.strftime('urn:utcts:%Y%m%d%H%M%S', time.gmtime())
+      if 'SMISK_BUILD_ID_SUFFIX' in os.environ:
+        _core_build_id += os.environ['SMISK_BUILD_ID_SUFFIX']
   return _core_build_id
 
 if '--print-build-id' in sys.argv:
