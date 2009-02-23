@@ -18,3 +18,6 @@ dupload -t hunch dist/debian
 
 # MacPorts (Need to be done after source has been distributed)
 # todo
+
+# Push tags and possible changes to the master repository
+git push --tags
