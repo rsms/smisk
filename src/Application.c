@@ -395,8 +395,9 @@ PyObject *smisk_Application_run(smisk_Application *self) {
   }
   
   // Notify ourselves we have stopped accepting requests
-  if (PyObject_CallMethod((PyObject *)self, "application_did_stop", NULL) == NULL)
-    return NULL;
+  if ( (ret = PyObject_CallMethod((PyObject *)self, "application_did_stop", NULL)) != NULL) {
+    Py_DECREF(ret);
+  }
   
   request.keepConnection = 0; // make sure streams are closed.
   EXTERN_OP(FCGX_Finish_r(&request));
