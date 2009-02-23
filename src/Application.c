@@ -302,8 +302,13 @@ PyObject *smisk_Application_run(smisk_Application *self) {
     return NULL;
   
   // Notify ourselves we are about to start accepting requests
-  if (PyObject_CallMethod((PyObject *)self, "application_will_start", NULL) == NULL)
+  if ( (ret = PyObject_CallMethod((PyObject *)self, "application_will_start", NULL)) == NULL ) {
     return NULL;
+  }
+  else {
+    Py_DECREF(ret);
+    ret = Py_None;
+  }
   
   // Enter accept loop
   rc = 0;
@@ -330,7 +335,9 @@ PyObject *smisk_Application_run(smisk_Application *self) {
     self->request->envp           = request.envp;
     
     // Service request
-    if (PyObject_CallMethod((PyObject *)self, "service", NULL) != NULL) {
+    if ( (ret = PyObject_CallMethod((PyObject *)self, "service", NULL)) != NULL) {
+      Py_DECREF(ret);
+      ret = Py_None;
       // Finish response
       smisk_Response_finish(self->response);
       // We do not catch errors here because we PyErr_Occurred later
@@ -397,6 +404,7 @@ PyObject *smisk_Application_run(smisk_Application *self) {
   // Notify ourselves we have stopped accepting requests
   if ( (ret = PyObject_CallMethod((PyObject *)self, "application_did_stop", NULL)) != NULL) {
     Py_DECREF(ret);
+    ret = Py_None;
   }
   
   request.keepConnection = 0; // make sure streams are closed.

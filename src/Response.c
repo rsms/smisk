@@ -51,8 +51,10 @@ typedef struct FCGX_Stream_Data {
 
 static int _begin_if_needed(void *_self) {
   smisk_Response *self = (smisk_Response *)_self;
-  if ( (self->has_begun == Py_False) && (PyObject_CallMethod((PyObject *)self, "begin", NULL) == NULL) )
+  PyObject *ro = NULL;
+  if ( (self->has_begun == Py_False) && ( (ro = PyObject_CallMethod((PyObject *)self, "begin", NULL)) == NULL ) )
     return -1;
+  Py_DECREF(ro);
   return 0;
 }
 

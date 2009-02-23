@@ -218,6 +218,7 @@ static int _cleanup_session(smisk_Request* self) {
   log_trace("ENTER");
   // Write modified session
   if (self->session_id) {
+    PyObject *ro = NULL;
     long h = 0;
     
     log_debug("_cleanup_session: self->session_id = %s", self->session_id ? PyBytes_AsString(self->session_id) : "NULL");
@@ -240,17 +241,18 @@ static int _cleanup_session(smisk_Request* self) {
       // Session data was changed. Write it.
       DUMP_REFCOUNT(self->session);
       DUMP_REFCOUNT(self->session_id);
-      if (PyObject_CallMethod(smisk_Application_current->sessions, "write", "OO", 
-        self->session_id, self->session) == NULL)
-      {
+      ro = PyObject_CallMethod(smisk_Application_current->sessions, "write", "OO", self->session_id, self->session);
+      if (ro == NULL) {
         log_debug("sessions.write() returned NULL");
         return -1;
       }
+      Py_DECREF(ro);
     }
     else if (self->initial_session_hash == h) {
       // Session data was unchanged. Give the session store the opportunity to refresh this sessions' TTL:
-      if (PyObject_CallMethod(smisk_Application_current->sessions, "refresh", "O", self->session_id) == NULL)
+      if ( (ro = PyObject_CallMethod(smisk_Application_current->sessions, "refresh", "O", self->session_id)) == NULL )
         return -1;
+      Py_DECREF(ro);
     }
     
   }
@@ -778,6 +780,7 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
 
 static int smisk_Request_set_session_id(smisk_Request* self, PyObject *session_id) {
   log_trace("ENTER");
+  PyObject *ro = NULL;
   
   if (smisk_Application_current->response->has_begun == Py_True) {
     PyErr_SetString(PyExc_EnvironmentError,
@@ -790,8 +793,9 @@ static int smisk_Request_set_session_id(smisk_Request* self, PyObject *session_i
   );
   
   // Delete old session data (a copy of it is still in this apps memory)
-  if (PyObject_CallMethod(smisk_Application_current->sessions, "destroy", "O", self->session_id) == NULL)
+  if ( (ro = PyObject_CallMethod(smisk_Application_current->sessions, "destroy", "O", self->session_id)) == NULL )
     return -1;
+  Py_DECREF(ro);
   
   REPLACE_OBJ(self->session_id, session_id, PyObject);
   self->initial_session_hash = 0; // Causes "sessions.write()" and "Set-Cookie: SID="
@@ -813,8 +817,9 @@ static PyObject *smisk_Request_get_session(smisk_Request* self) {
 
 
 static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
-  log_trace("ENTER val=%p", val);
-  IFDEBUG(DUMP_REPR(val));
+  log_trace("ENTER val=%p", val); IFDEBUG(DUMP_REPR(val));
+  
+  PyObject *ro = NULL;
   
   ENSURE_BY_GETTER(self->session_id, smisk_Request_get_session_id(self),
     return -1;
@@ -827,8 +832,9 @@ static int smisk_Request_set_session(smisk_Request* self, PyObject *val) {
       assert(smisk_Application_current);
       assert(smisk_Application_current->sessions);
       
-      if (PyObject_CallMethod(smisk_Application_current->sessions, "destroy", "O", self->session_id) == NULL)
+      if ( (ro = PyObject_CallMethod(smisk_Application_current->sessions, "destroy", "O", self->session_id)) == NULL )
         return -1;
+      Py_DECREF(ro);
       
       self->initial_session_hash = 0;
       REPLACE_OBJ(self->session, Py_None, PyObject);
