@@ -738,12 +738,14 @@ static PyObject *smisk_Request_get_session_id(smisk_Request* self) {
             return NULL;
           }
         }
+        #if SMISK_DEBUG
         else {
           // Valid SID
           log_debug("Valid SID provided by request");
           // No need to Py_INCREF here since we already have a reference we
           // can give to the caller.
         }
+        #endif
       }
     }
     
