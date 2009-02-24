@@ -92,6 +92,8 @@ def shared_dict(filename=None, homedir=None, name=None, mode=0600, dbenv=None,
       pass
   
   if not os.path.isdir(homedir):
+    if os.path.exists(homedir):
+      os.remove(homedir)
     os.mkdir(homedir)
   
   if not dbenv:
