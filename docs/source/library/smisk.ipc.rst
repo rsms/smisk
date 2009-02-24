@@ -19,6 +19,10 @@ Functions
   
   There are other implementations available, which all provide the same interface, making future backend swap a simple drop-in operation.
   
+  .. note::
+    
+    By default, the shared dict is backed by bsddb and thus will create a temporary database which is then mapped onto shared memory. When any one Smisk process in an application exit, the database will be *removed*, leaving any living processes without the disk backing. In production, it is recommended you explicitly specify the path for the Berkely DB files by passing the filename or homedir argument to :func:`~smisk.ipc.bsddb.shared_dict()`. You should also pass persisten=True to avoid the files getting deleted.
+  
   Example of use in Smisk applications::
     
     from smisk.core import Application, main
