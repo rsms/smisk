@@ -54,7 +54,7 @@ static int _begin_if_needed(void *_self) {
   PyObject *ro = NULL;
   if ( (self->has_begun == Py_False) && ( (ro = PyObject_CallMethod((PyObject *)self, "begin", NULL)) == NULL ) )
     return -1;
-  Py_DECREF(ro);
+  Py_XDECREF(ro);
   return 0;
 }
 
