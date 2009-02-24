@@ -30,6 +30,11 @@ parts=parts.join(",");return is_list?'['+parts+']':'{'+parts+'}';}
         alert('jsonp_callback '+payload);
       }
       
+      var PUT_COMPAT = 'PUT';
+      /* Firefox does not support PUT, so we use POST which in this application is handled the same way */
+      if (window.navigator.userAgent.indexOf('Firefox') != -1)
+        PUT_COMPAT = 'POST';
+      
       /* Universal interface interacting with a Smisk service */
       var service = {
         /* The URL of the service */
@@ -136,7 +141,7 @@ parts=parts.join(",");return is_list?'['+parts+']':'{'+parts+'}';}
         },
         
         set: function(key, value) {
-          kvs.call('PUT', 'entry/'+key, {value:value}, function(req, success, rsp){
+          kvs.call(PUT_COMPAT, 'entry/'+key, {value:value}, function(req, success, rsp){
             E('special_response').innerHTML = '';
           });
         },
@@ -181,7 +186,7 @@ parts=parts.join(",");return is_list?'['+parts+']':'{'+parts+'}';}
     <div class="action">
       <h2>Set a key</h2>
       <form onsubmit="kvs.set(E('set_key').value, E('set_value').value);return false;">
-        <tt>PUT /entry/</tt><input type="text" value="my key" id="set_key" /><br/>
+        <tt><script type="text/javascript">document.write(PUT_COMPAT);</script> /entry/</tt><input type="text" value="my key" id="set_key" /><br/>
         <textarea id="set_value">Hello world</textarea><br/>
         <input type="submit" value="Send request" />
       </form>
