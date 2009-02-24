@@ -15,13 +15,16 @@ try:
               EncodeError
 except ImportError:
   try:
-    from minjson import \
-               write as json_encode,\
-                read as json_decode,\
-       ReadException as DecodeError,\
-      WriteException as EncodeError
+    from json import dumps as json_encode, loads as json_decode
   except ImportError:
-    json_encode = None
+    try:
+      from minjson import \
+                 write as json_encode,\
+                  read as json_decode,\
+         ReadException as DecodeError,\
+        WriteException as EncodeError
+    except ImportError:
+      json_encode = None
 
 class JSONSerializer(Serializer):
   '''JavaScript Object Notation
@@ -29,15 +32,13 @@ class JSONSerializer(Serializer):
   name = 'JSON'
   extensions = ('json',)
   media_types = ('application/json',)
+  charset = 'utf-8'
   can_serialize = True
   can_unserialize = True
   
   @classmethod
   def serialize(cls, params, charset):
-    # For compatibility with Smisk <1.1.2
-    if request and 'callback' in request.get:
-      return JSONPSerializer.serialize(params, charset)
-    return (None, json_encode(params))
+    return (cls.charset, json_encode(params))
   
   @classmethod
   def serialize_error(cls, status, params, charset):
@@ -46,7 +47,9 @@ class JSONSerializer(Serializer):
   @classmethod
   def unserialize(cls, file, length=-1, charset=None):
     # return (list args, dict params)
-    st = json_decode(file.read(length))
+    if not charset:
+      charset = cls.charset
+    st = json_decode(file.read(length).decode(charset))
     if isinstance(st, dict):
       return (None, st)
     elif isinstance(st, list):
@@ -69,8 +72,8 @@ class JSONPSerializer(JSONSerializer):
     callback = u'jsonp_callback'
     if request:
       callback = request.get.get('callback', callback)
-    s = '%s(%s);' % (callback.encode('utf-8'), json_encode(params))
-    return (charset, s)
+    s = '%s(%s);' % (callback.encode(cls.charset), json_encode(params))
+    return (cls.charset, s)
   
 
 # Don't register if we did not find a json implementation
