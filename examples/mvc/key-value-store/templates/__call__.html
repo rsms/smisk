@@ -115,7 +115,7 @@
             kvs.setStatus('Request processed in '+msdelay+' ms');
           }
           t = service.call(method, leaf, params, rsp_handler, username, password);
-          var s = method+' /'+leaf+' HTTP/1.1\n'
+          var s = method+' /'+encodeURI(leaf)+' HTTP/1.1\n'
             + 'Host: ' + document.location.host + '\n';
           for (var k in t.headers) {
             if (k != 'toJSONString' && k != 'parseJSON')
