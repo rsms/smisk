@@ -514,6 +514,15 @@ class Application(smisk.core.Application):
     if self.request.method in ('POST', 'PUT'):
       path_ext_serializer = self._serializer_for_request_path_ext()
       content_type = self.request.env.get('CONTENT_TYPE', '').lower()
+      content_charset = None
+      
+      p = content_type.find(';')
+      if p != -1:
+        for k,v in [kv.split('=') for kv in content_type[p+1:].strip().split(';')]:
+          if k == 'charset':
+            content_charset = v
+        content_type = content_type[:p]
+      
       if path_ext_serializer is not None and not content_type:
         content_type = path_ext_serializer.media_types[0]
       
@@ -534,7 +543,7 @@ class Application(smisk.core.Application):
             raise KeyError()
           log.debug('decoding request payload using %s', self.request.serializer)
           content_length = int(self.request.env.get('CONTENT_LENGTH', -1))
-          (eargs, eparams) = self.request.serializer.unserialize(self.request.input, content_length)
+          (eargs, eparams) = self.request.serializer.unserialize(self.request.input, content_length, content_charset)
           if eargs is not None:
             args.extend(eargs)
           if eparams is not None:
