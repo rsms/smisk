@@ -14,7 +14,7 @@ class PHPSerialSerializationError(SerializationError):
 class PHPSerialSerializer(Serializer):
   '''PHP serial serializer.'''
   name = 'PHP serial'
-  extensions = ('phpser',)
+  extensions = ('sphp', 'phpser')
   media_types = ('application/vnd.php.serialized', 'application/x-php-serialized')
   can_serialize = True
   
