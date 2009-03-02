@@ -18,7 +18,8 @@ def shared_dict(name=None, nodes=['127.0.0.1:11211'], memcached_debug=0):
   '''
   if name is None:
     name = app_shared_key()
-  dicts_ck = name + object_hash(nodes)
+  name = str(name)
+  dicts_ck = name + str(object_hash(nodes))
   try:
     return _dicts[dicts_ck]
   except KeyError:
@@ -32,9 +33,10 @@ def shared_dict(name=None, nodes=['127.0.0.1:11211'], memcached_debug=0):
 class MCDict(dict, MutableMapping):
   def __init__(self, client, key_prefix=None):
     self.client = client
-    self.key_prefix = key_prefix
+    self.key_prefix = str(key_prefix)
   
   def __getitem__(self, key):
+    key = str(key)
     if self.key_prefix:
       key = self.key_prefix + key
     obj = self.client.get(key)
@@ -43,6 +45,7 @@ class MCDict(dict, MutableMapping):
     return obj
   
   def __contains__(self, key):
+    key = str(key)
     if self.key_prefix:
       key = self.key_prefix + key
     if self.client.get(key):
@@ -50,11 +53,13 @@ class MCDict(dict, MutableMapping):
     return False
   
   def __setitem__(self, key, value):
+    key = str(key)
     if self.key_prefix:
       key = self.key_prefix + key
     self.client.set(key, value)
   
   def __delitem__(self, key):
+    key = str(key)
     if self.key_prefix:
       key = self.key_prefix + key
     self.client.delete(key)
