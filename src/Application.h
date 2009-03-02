@@ -46,12 +46,12 @@ typedef struct {
 } smisk_Application;
 
 // Current instance (NULL if none)
-smisk_Application *smisk_Application_current;
+extern smisk_Application *smisk_Application_current;
 
 #define SMISK_APP_CHARSET PyBytes_AS_STRING(smisk_Application_current->charset)
 
 // class Application (the Application type object)
-PyTypeObject smisk_ApplicationType;
+extern PyTypeObject smisk_ApplicationType;
 
 // Set error if smisk_Application_current is NULL and return -1. Returns 0 when app is available.
 int smisk_require_app (void);

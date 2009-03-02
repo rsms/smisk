@@ -27,7 +27,7 @@ void  smisk_xml_encode_p (const char *raw, size_t rawlen, char *dest); // the ac
 char *smisk_xml_encode (const char *s, size_t len); // returns a newly allocated string
 
 // module smisk.xml (the smisk.xml module object)
-PyObject *smisk_xml;
+extern PyObject *smisk_xml;
 
 // Type setup
 PyObject *smisk_xml_register (PyObject *parent);

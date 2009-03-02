@@ -31,7 +31,7 @@ typedef struct {
   float gc_probability;
 } smisk_FileSessionStore;
 
-PyTypeObject smisk_FileSessionStoreType;
+extern PyTypeObject smisk_FileSessionStoreType;
 
 int smisk_FileSessionStore_register_types (PyObject *module);
 

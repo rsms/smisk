@@ -23,20 +23,20 @@ THE SOFTWARE.
 #define SMISK_MODULE_H
 
 // fcgi socket fd
-int smisk_listensock_fileno;
-PyObject *os_module; // private
-PyThreadState *smisk_py_thstate; // private
+extern int smisk_listensock_fileno;
+extern PyObject *os_module; // private
+extern PyThreadState *smisk_py_thstate; // private
 
 // The smisk.core module
-PyObject *smisk_core_module;
+extern PyObject *smisk_core_module;
 
 // static objects at module-level
-PyObject *smisk_InvalidSessionError; // extends PyExc_ValueError
+extern PyObject *smisk_InvalidSessionError; // extends PyExc_ValueError
 
 // String constants
-PyObject *kString_http;
-PyObject *kString_https;
-PyObject *kString_utf_8;
+extern PyObject *kString_http;
+extern PyObject *kString_https;
+extern PyObject *kString_utf_8;
 
 // Functions
 PyObject *smisk_bind (PyObject *self, PyObject *args);

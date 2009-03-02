@@ -38,7 +38,7 @@ typedef struct {
 } smisk_URL;
 
 // class URL (the URL type object)
-PyTypeObject smisk_URLType;
+extern PyTypeObject smisk_URLType;
 
 #define smisk_URL_CheckExact(op) (Py_TYPE(op) == &smisk_URLType)
 #define smisk_URL_Check(op) \
