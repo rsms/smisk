@@ -21,7 +21,7 @@ def shared_dict(filename=None, homedir=None, name=None, mode=0600, dbenv=None,
     if homedir is None:
       is_tempdir = True
       homedir = os.path.join(gettempdir(), '%s.ipc' % name)
-    filename = os.path.join(homedir, name)
+    filename = os.path.abspath(os.path.join(homedir, name))
   
   try:
     return _dicts[filename]
@@ -41,12 +41,10 @@ def shared_dict(filename=None, homedir=None, name=None, mode=0600, dbenv=None,
     os.mkdir(homedir)
   
   if not dbenv:
-    dbenv = db.DBEnv(0)
-    dbenv.open(homedir, db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_CDB, 0)
+    dbenv = db.DBEnv()
+    dbenv.open(homedir, db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_CDB)
   
   d = DBDict(dbenv, sync=persistent)
-  if not os.path.exists(filename):
-    open(filename,'w').close()
   d.open(filename, name, type, flags, mode)
   _dicts[filename] = d
   
