@@ -1,6 +1,13 @@
 Changes
 =======
 
+1.1.4
+-----
+
+* Removed the bsddb module -- the smisk.ipc.bsddb module still exist, but
+  required an external bsddb module to be installed.
+
+
 1.1.3
 -----
 
