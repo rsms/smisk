@@ -45,6 +45,8 @@ def shared_dict(filename=None, homedir=None, name=None, mode=0600, dbenv=None,
     dbenv.open(homedir, db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_CDB, 0)
   
   d = DBDict(dbenv, sync=persistent)
+  if not os.path.exists(filename):
+    open(filename,'w').close()
   d.open(filename, name, type, flags, mode)
   _dicts[filename] = d
   
