@@ -76,8 +76,7 @@ sources = [
   'src/SessionStore.c',
   'src/FileSessionStore.c',
 
-    'src/xml/__init__.c',
-    'src/bsddb.c']
+    'src/xml/__init__.c']
 
 
 classifiers = [
@@ -234,10 +233,6 @@ class build_ext(_build_ext):
   def finalize_options(self):
     _build_ext.finalize_options(self)
     
-    # Process BSDDB module build
-    import setup_bsddb
-    self.bsddb = setup_bsddb
-    
     self.include_dirs.extend([
       '/usr/include',
       '/usr/local/include',
@@ -249,10 +244,7 @@ class build_ext(_build_ext):
       '/usr/lib',
       '/usr/local/lib'])
     
-    self.include_dirs.append(self.bsddb.incdir)
-    self.library_dirs.append(self.bsddb.libdir)
-    
-    self.libraries.extend(['fcgi', self.bsddb.dblib])
+    self.libraries.append('fcgi')
     self.define = [
       ('SMISK_VERSION', '"%s"' % version),
       ('SMISK_BUILD_ID', '"%s"' % core_build_id()),

@@ -2,7 +2,7 @@
 # encoding: utf-8
 import sys, os, time, random
 from smisk.util.benchmark import benchmark
-import smisk.ipc
+import smisk.ipc.bsddb
 
 def main():
   from optparse import OptionParser
@@ -40,7 +40,7 @@ def main():
     options.read = True
     options.write = True
   
-  store = smisk.ipc.shared_dict()
+  store = smisk.ipc.bsddb.shared_dict()
   idle_sec = float(options.idle) / 1000.0
   
   if options.sync_time:

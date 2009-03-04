@@ -1,7 +1,7 @@
 RESTful key-value store
 =======================
 
-Backed by smisk.ipc.shared_dict.
+Backed by smisk.ipc.bsddb.shared_dict.
 Speaks JSON.
 
 There is also a much more feature-rich and production-like application doing the

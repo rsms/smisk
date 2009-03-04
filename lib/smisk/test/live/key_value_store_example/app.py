@@ -2,7 +2,7 @@
 # encoding: utf-8
 from smisk.mvc import *
 from smisk.mvc.model import *
-from smisk.ipc import shared_dict
+from smisk.ipc.bsddb import shared_dict
 from smisk.config import config
 
 class root(Controller):

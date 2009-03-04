@@ -975,5 +975,4 @@ Modules
 .. toctree::
   :maxdepth: 1
   
-  smisk.core.bsddb
   smisk.core.xml

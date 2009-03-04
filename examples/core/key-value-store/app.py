@@ -2,7 +2,7 @@
 # encoding: utf-8
 import os
 from smisk.core import Application
-from smisk.ipc import shared_dict
+from smisk.ipc.bsddb import shared_dict
 from smisk.serialization.json import json_encode, json_decode
 
 class KeyValueStore(Application):

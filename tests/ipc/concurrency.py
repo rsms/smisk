@@ -7,7 +7,7 @@
 # 
 
 import sys, os, time, random
-import smisk.ipc
+import smisk.ipc.bsddb
 
 def main():
   from optparse import OptionParser
@@ -34,7 +34,7 @@ def main():
   if not options.read and not options.write:
     options.read = True
   
-  store = smisk.ipc.shared_dict()
+  store = smisk.ipc.bsddb.shared_dict()
   idle_sec = float(options.idle) / 1000.0
   
   if options.detect_concurrance:
