@@ -64,6 +64,10 @@ class DBDict(dbshelve.DBShelf):
     self.close()
     dbshelve.DBShelf.__del__(self)
   
+  def open(self, *args, **kwargs):
+    self.db.open(*args, **kwargs)
+    self._closed = False
+  
   def close(self, *args, **kwargs):
     try:
       if self.sync:
