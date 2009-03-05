@@ -4,8 +4,33 @@ Changes
 1.1.4
 -----
 
+* Fixed serious integer overflow bugs in smisk.core where return values from
+  PyObject_CallMethod was never decrefed, leading to incorrect number of 
+  decrefs later on thus causing seemingly random segfaults. Thanks to Ludde.
+
 * Removed the bsddb module -- the smisk.ipc.bsddb module still exist, but
   required an external bsddb module to be installed.
+
+* Fixed a bug in smisk.ipc.memcached where creation of dict cash key tried to
+  concatenate a str and int.
+
+* Fixed a bug in smisk.mvc request parsing code where a text payload with an
+  explicit character encoding was not properly handled.
+
+* The smisk.serialization.json module now uses the standard library
+  (Python >=2.6) json module when cjson is not available.
+
+* The smisk.serialization.json serializer explicitly specifies the character
+  encoding (which always is UTF-8)
+
+* The smisk.serialization.php_serial serializer now uses "sphp" as the primary
+  filename extension. (updated to align with evolving standards)
+
+* Fixed some issues with storage defined in both header file and source file,
+  leading to problems with compilation of Python 2.4 version of smisk.core.
+
+* Higher performance codec in smisk.core.xml now also supporting
+  decoding/unescaping.
 
 
 1.1.3
