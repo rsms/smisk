@@ -22,15 +22,18 @@ THE SOFTWARE.
 #ifndef SMISK_XML_H
 #define SMISK_XML_H
 
-// C API only
-void  smisk_xml_encode_p (const char *raw, size_t rawlen, char *dest); // the actual encoder
-char *smisk_xml_encode (const char *s, size_t len); // returns a newly allocated string
+// C API
+size_t smisk_xml_encode_len(const char *s, size_t len);
+char *smisk_xml_encode_sub(const char *src, size_t srclen, char *dst);
+char *smisk_xml_encode(const char *s, size_t len);
+char *smisk_xml_decode_sub(const char *src, size_t srclen, char *dst);
+char *smisk_xml_decode(const char *src, size_t len);
 
 // module smisk.xml (the smisk.xml module object)
 extern PyObject *smisk_xml;
 
 // Type setup
-PyObject *smisk_xml_register (PyObject *parent);
+PyObject *smisk_xml_register(PyObject *parent);
 
 
 #endif

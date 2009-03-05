@@ -123,4 +123,7 @@ int smisk_str_recode( PyObject **str, const char *src_charset, const char *dst_c
  */
 int smisk_str_to_unicode( PyObject **str, const char *charset, const char *errors );
 
+/* strdup without null check */
+char *smisk_strndup(const char *src, size_t len);
+
 #endif

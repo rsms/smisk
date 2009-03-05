@@ -499,3 +499,11 @@ int smisk_str_to_unicode( PyObject **str, const char *charset, const char *error
   
   return 0;
 }
+
+char *smisk_strndup(const char *src, size_t len) {
+  char *dst = (char *)malloc(sizeof(char)*len);
+  char *ret = (char *)memcpy(dst, src, len);
+  if (ret == NULL)
+    free(dst);
+  return ret;
+}
