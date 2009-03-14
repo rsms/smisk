@@ -33,6 +33,8 @@ git push --tags
 
 # Update the smisk website http://python-smisk.org/
 # Update version in app.py
+hg ci -m 'New release'
+hg push
 
 # Bump the version number
 # Update lib/smisk/release.py
