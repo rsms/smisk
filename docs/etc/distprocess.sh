@@ -1,5 +1,8 @@
 # The distribution process
 
+# Make sure there is no version tag in setup.cfg
+grep 'tag_build' setup.cfg
+
 # Tag the node
 git tag -s v1.2.3
 
