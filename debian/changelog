@@ -1,3 +1,9 @@
+python-smisk (1.1.4-1) stable testing unstable; urgency=low
+
+  * Upstream release 1.1.4
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Sat,  14 Mar 2009 14:30:00 +0100
+
 python-smisk (1.1.3-1) stable testing unstable; urgency=low
 
   * Upstream release 1.1.3
