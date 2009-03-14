@@ -4,7 +4,7 @@
 grep 'tag_build' setup.cfg
 
 # Tag the node
-git tag -s v1.2.3
+git tag -u rasmus@flajm.com v1.2.3
 
 # Debian
 # On each Debian build machine:
