@@ -29,7 +29,7 @@ dupload -t hunch dist/debian
 ./admin/docsdist.sh
 
 # Push tags and possible changes to the master repository
-git push --tags
+git push --tags origin master
 
 # Update the smisk website http://python-smisk.org/
 # Update version in app.py
