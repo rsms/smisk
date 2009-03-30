@@ -1,6 +1,12 @@
 Changes
 =======
 
+1.1.5
+-----
+
+* Fixed a bug with Python 2.5 where PyEval_InitThreads had to be called (even
+  though the documentation suggests otherwise)
+
 1.1.4
 -----
 

@@ -1,3 +1,10 @@
+python-smisk (1.1.5-1) stable testing unstable; urgency=low
+
+  * Fixed a bug with Python 2.5 where PyEval_InitThreads had to be called
+    (even though the documentation suggests otherwise)
+
+ -- Rasmus Andersson <rasmus@flajm.com>  Sat,  30 Mar 2009 23:00:00 +0100
+
 python-smisk (1.1.4-2) stable testing unstable; urgency=low
 
   * Fixed incorrect version tag
