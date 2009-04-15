@@ -710,6 +710,7 @@ PyObject *smisk_URL_to_s(smisk_URL* self, PyObject *args, PyObject *kwargs) {
   // DRY -- otherwise kittens will be wasted.
   #define ENABLED(x) ( self->x != Py_None && (x == NULL || x == Py_True || x == one) )
   #define SENABLED(x) ( (x != NULL) && PyBytes_Check(x) && (PyBytes_Size(x) > 0) )
+  // todo: accept unicode arguments, not only bytes
   
   PyObject *s = PyBytes_FromStringAndSize("", 0);
   
