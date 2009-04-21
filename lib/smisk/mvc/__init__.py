@@ -340,11 +340,15 @@ class Application(smisk.core.Application):
       p = filename.rfind('.')
       if p != -1:
         self.response.format = filename[p+1:].lower()
-        self.request.cn_url = URL(self.request.url) # copy
-        self.request.cn_url.path = self.request.cn_url.path[:-len(self.response.format)-1]
-        if log.level <= logging.DEBUG:
-          log.debug('response format %r deduced from request filename extension', 
-            self.response.format)
+        if self.response.format in serializers.extensions:
+          self.request.cn_url = URL(self.request.url) # copy
+          self.request.cn_url.path = self.request.cn_url.path[:-len(self.response.format)-1]
+          if log.level <= logging.DEBUG:
+            log.debug('response format %r deduced from request filename extension', 
+              self.response.format)
+        else:
+          # probably something like im.soo.leet.i.use.dots and not a filename extension
+          self.response.format = None
     if self.response.format is not None:
       try:
         return serializers.extensions[self.response.format]
