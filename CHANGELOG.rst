@@ -1,6 +1,16 @@
 Changes
 =======
 
+1.1.6
+-----
+
+* Handle requests with filename extensions which are actually not filename
+  extensions but rather format-less but leet.haxxor kinda dot notation of the
+  regular path component.
+
+* Fixed 304 Not Modified response status not to set Location header nor include
+  a message-body.
+
 1.1.5
 -----
 
