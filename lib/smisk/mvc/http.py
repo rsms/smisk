@@ -176,7 +176,7 @@ MultipleChoices              = Status300(300, "Multiple Choices", uses_template=
 MovedPermanently             = Status3xx(301, "Moved Permanently")
 Found                        = Status3xx(302, "Found")
 SeeOther                     = Status3xx(303, "See Other")
-NotModified                  = Status3xx(304, "Not Modified")
+NotModified                  = Status(304, "Not Modified", False)
 UseProxy                     = Status3xx(305, "Use Proxy")
 TemporaryRedirect            = Status3xx(307, "Temporary Redirect")
 
