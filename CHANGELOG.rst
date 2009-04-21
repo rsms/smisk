@@ -106,15 +106,15 @@ Changes
 * The key-value store example application now uses the shared dictionary
   provided by smisk.ipc.
 
-* smisk.core.Request have two soft limits – max_multipart_size and 
-  max_formdata_size – for limiting automatically handled input data size. These
+* smisk.core.Request have two soft limits -- max_multipart_size and 
+  max_formdata_size -- for limiting automatically handled input data size. These
   soft limits can also be used to disable the automated parsing of Smisk.
 
-* smisk.util.cache has a new function – app_shared_key – returning a byte
+* smisk.util.cache has a new function -- app_shared_key -- returning a byte
   string which can be used to uniqely identify the application. The key is
   based on the entry file (the python file in which __name__ == "__main__").
 
-* smisk.util.type exposes MutableMapping – in Python >=2.6 this is 
+* smisk.util.type exposes MutableMapping -- in Python >=2.6 this is 
   collections.MutableMapping, in Python >=2.3 it is UserDict.DictMixin.
 
 * Serializers no longer emit warning.warn-messages when no suiting
@@ -171,7 +171,7 @@ Changes
 1.1.0
 -----
 
-* MVC module – smisk.mvc.
+* MVC module -- smisk.mvc.
 
 * Better unicode support.
 
@@ -183,7 +183,7 @@ Changes
 1.0.1
 -----
 
-* Full WSGI support – passes the wsgiref validation tests.
+* Full WSGI support -- passes the wsgiref validation tests.
 
 * Iterable request makes reading input data simple.
 
