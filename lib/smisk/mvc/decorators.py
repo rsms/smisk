@@ -2,7 +2,6 @@
 '''Controller tree function decorators.
 '''
 import types
-import smisk.mvc.filters
 
 __all__ = ['expose', 'hide', 'leaf_filter']
 
@@ -62,7 +61,6 @@ def hide(func=None):
   def entangle(func):
     func.hidden = True
     return func
-  
   if isinstance(func, (types.FunctionType, types.MethodType)):
     return entangle(func)
   return entangle
