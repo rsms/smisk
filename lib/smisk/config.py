@@ -270,7 +270,6 @@ class Configuration(dict):
       self._include_depth -= 1
   
   def _post_process(self):
-    log.debug('post processing: applying filters')
     if self.logging_key:
       log.debug('post processing: looking for logging key %r', self.logging_key)
       self._configure_logging()
