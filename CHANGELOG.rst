@@ -11,6 +11,12 @@ Changes
 * Fixed 304 Not Modified response status not to set Location header nor include
   a message-body.
 
+* smisk.util.main.daemonize() does no longer call exit hooks while detaching
+  (calling os._exit instead of sys.exit in dead forks).
+
+* Fixed bug in smisk.util.main.control_process_runloop() where signals where
+  not correctly forwarded to children.
+
 1.1.5
 -----
 
