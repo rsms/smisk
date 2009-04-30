@@ -262,7 +262,7 @@ def daemonize(chdir='/', umask=None, stdin='/dev/null', stdout='/dev/null', stde
   try:
     pid = os.fork()
     if pid > 0:
-      sys.exit(0) # Exit first parent.
+      os._exit(0) # Exit parent without calling cleanup handlers, flushing stdio buffers, etc.
   except OSError, e:
     log.critical('daemonize(): fork #1 failed: (%d) %s', e.errno, e.strerror)
     sys.exit(1)
@@ -282,7 +282,7 @@ def daemonize(chdir='/', umask=None, stdin='/dev/null', stdout='/dev/null', stde
   try:
     pid = os.fork()
     if pid > 0:
-      sys.exit(0) # Exit second parent.
+      os._exit(0) # Exit second parent.
   except OSError, e:
     log.critical('daemonize(): fork #2 failed: (%d) %s', e.errno, e.strerror)
     sys.exit(1)
@@ -324,38 +324,28 @@ def wait_for_child_processes(options=0):
 
 
 def control_process_runloop(pids, signals=(signal.SIGINT, signal.SIGQUIT, signal.SIGTERM), cleanup=None):
-  parent_sighandlers = {}
-  
-  def ctrl_proc_finalize(signalnum, frame):
-    try:
-      log.info('waiting for workers to exit cleanly')
-      wait_for_child_processes()
-    except KeyboardInterrupt:
-      log.info('force-killing workers (SIGKILL)')
-      for pid in pids:
-        try:
-          os.kill(pid, signal.SIGKILL)
-        except OSError, e:
-          # 3: No such process
-          if e.errno != 3:
-            raise
-    # Run cleanup function
-    if callable(cleanup):
+  def signal_children(signum):
+    for pid in pids:
       try:
-        cleanup()
+        os.kill(pid, signum)
+      except OSError, e:
+        # 3: No such process
+        if e.errno != 3:
+          raise
+  
+  def ctrl_proc_finalize(signum, frame):
+    try:
+      signal_children(signum)
+      wait_for_child_processes()
+    except:
+      signal_children(signal.SIGKILL)
+    if cleanup and callable(cleanup):
+      try:
+        cleanup(signum, frame)
       except:
         log.error('cleanup function failed:', exc_info=1)
-    # Call parent
-    if signalnum in parent_sighandlers:
-      parent_handler = parent_sighandlers[signalnum]
-      if callable(parent_handler):
-        log.debug('triggering parent signal handler %r', parent_handler)
-        parent_handler(signalnum, frame)
   
-  for signalnum in signals:
-    parent_sighandlers[signalnum] = signal.signal(signalnum, ctrl_proc_finalize)
+  for signum in signals:
+    signal.signal(signum, ctrl_proc_finalize)
   
-  try:
-    wait_for_child_processes()
-  except KeyboardInterrupt:
-    pass
+  wait_for_child_processes()
