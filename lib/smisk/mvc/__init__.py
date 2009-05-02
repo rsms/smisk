@@ -743,7 +743,7 @@ class Application(smisk.core.Application):
       return rsp
     
     # Make sure rsp is a dict
-    assert isinstance(rsp, dict), 'controller leafs must return a dict, a string or None'
+    assert isinstance(rsp, dict), 'controller leafs must return a dict, str, unicode or None'
     
     # Use template as serializer, if available
     if self.template:
