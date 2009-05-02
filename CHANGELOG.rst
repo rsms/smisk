@@ -40,6 +40,11 @@ Changes
   acceptable charsets. The method "accepts_charset" which return True if the 
   first argument is acceptable according to the "charsets" list.
 
+* MVC applications retain the content type used to find a valid serializer or
+  template and uses that content type in the response, if appropriate. Previous
+  behaviour was to send responses with the (per serializer or template)
+  canonical content type.
+
 1.1.5
 -----
 
