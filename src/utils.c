@@ -461,9 +461,10 @@ long smisk_object_hash(PyObject *obj) {
 
 
 int smisk_str_recode( PyObject **str,
-                             const char *src_charset,
-                             const char *dst_charset,
-                             const char *errors ) {
+                      const char *src_charset,
+                      const char *dst_charset,
+                      const char *errors )
+{
   // Does not modify recount on str
   PyObject *u, *s, *orig_str;
   
@@ -491,8 +492,14 @@ int smisk_str_to_unicode( PyObject **str, const char *charset, const char *error
   PyObject *u, *orig_str;
   
   u = PyUnicode_FromEncodedObject(*str, charset, errors);
-  if (!u)
-    return -1;
+  if (u == NULL) {
+    PyErr_Clear();
+    log_debug("failed to decode text data using primary charset '%s' -- "
+              "trying fallback charset '%s'", charset, SMISK_FALLBACK_CHARSET);
+    u = PyUnicode_FromEncodedObject(*str, SMISK_FALLBACK_CHARSET, errors);
+    if (u == NULL)
+      return -1;
+  }
   orig_str = *str;
   *str = u;
   Py_DECREF(orig_str);

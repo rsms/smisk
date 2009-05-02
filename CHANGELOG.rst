@@ -17,6 +17,11 @@ Changes
 * Fixed bug in smisk.util.main.control_process_runloop() where signals where
   not correctly forwarded to children.
 
+* When core fail to decode text data from user input (form data and query 
+  string) it will try to decode the text data using a fallback charset, defined
+  by SMISK_FALLBACK_CHARSET in config.h, which is set to "ISO-8859-1" in
+  accordance with HTTP 1.1 (RFC 2616), sect. 19.3 "Tolerant Applications".
+
 1.1.5
 -----
 
