@@ -1061,7 +1061,6 @@ class Application(smisk.core.Application):
         if self.response.serializer:
           self.response.serializer.add_content_type_header(self.response, self.response.charset)
         self.response.replace_header('Content-Length: %d' % len(rsp))
-      self.response.replace_header('Cache-Control: no-cache') # todo
     
     # Send response
     if log.level <= logging.DEBUG:

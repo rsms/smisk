@@ -90,7 +90,7 @@ class Status3xx(Status):
     rsp = Status.service(self, app)
     url = normalize_url(url)
     url = url.to_s(port=url.port not in (80,443), fragment=0, user=0, password=0)
-    app.response.headers.append('Location: ' + url)
+    app.response.replace_header('Location: ' + url)
     rsp['description'] = 'The resource has moved to %s' % url
     return rsp
   
@@ -99,7 +99,7 @@ class Status300(Status):
   '''Represents HTTP status 300, related to Content Negotiation.
   '''
   
-  HTML_CHARSET = 'iso-8859-1'
+  charset = 'iso-8859-1'
   '''Latin-1 is defined as the default fallback for HTTP 1.1 responses,
   thus maximizing compatibility.
   
@@ -142,10 +142,10 @@ class Status300(Status):
       html.append('<li><a href="%s">%s (%s)</a></li>' % \
         (xmlesc(alt_path), xmlesc(serializer.name), xmlesc(serializer.media_types[0])))
     
-    app.response.headers.append('TCN: list')
-    app.response.headers.append('Alternates: '+','.join(header))
-    app.response.headers.append('Content-Type: text/html; charset=%s' % self.HTML_CHARSET)
-    return (self.HTML_TEMPLATE % u'\n'.join(html)).encode(self.HTML_CHARSET, app.unicode_errors)
+    app.response.replace_header('TCN: list')
+    app.response.replace_header('Alternates: '+','.join(header))
+    app.response.replace_header('Content-Type: text/html; charset=%s' % self.charset)
+    return (self.HTML_TEMPLATE % u'\n'.join(html)).encode(self.charset, 'replace')
   
 
 class Status404(Status):
