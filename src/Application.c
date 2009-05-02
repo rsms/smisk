@@ -216,6 +216,7 @@ PyObject * smisk_Application_new(PyTypeObject *type, PyObject *args, PyObject *k
   
     // Default values
     self->show_traceback = Py_True; Py_INCREF(Py_True);
+    self->tolerant = Py_True; Py_INCREF(Py_True);
     self->forks = 0;
     self->charset = kString_utf_8; Py_INCREF(kString_utf_8);
     self->fork_pids = NULL;
@@ -251,6 +252,7 @@ void smisk_Application_dealloc(smisk_Application *self) {
   Py_DECREF(self->response);
   Py_XDECREF(self->sessions);
   Py_DECREF(self->show_traceback);
+  Py_DECREF(self->tolerant);
   Py_DECREF(self->charset);
   
   if (self->fork_pids)
@@ -693,7 +695,7 @@ PyObject *smisk_Application_get_sessions(smisk_Application* self) {
 }
 
 
-static int smisk_Application_set_sessions(smisk_Application* self, PyObject *sessions) {
+static int _set_sessions(smisk_Application* self, PyObject *sessions) {
   log_trace("ENTER  sessions=%p", sessions);
   REPLACE_OBJ(self->sessions, sessions, PyObject);
   return self->sessions ? 0 : -1;
@@ -701,14 +703,14 @@ static int smisk_Application_set_sessions(smisk_Application* self, PyObject *ses
 
 
 
-PyObject *smisk_Application_get_charset(smisk_Application* self) {
+static PyObject *_get_charset(smisk_Application* self) {
   log_trace("ENTER");
   Py_INCREF(self->charset); // callers reference
   return self->charset;
 }
 
 
-static int smisk_Application_set_charset(smisk_Application* self, PyObject *charset) {
+static int _set_charset(smisk_Application* self, PyObject *charset) {
   log_trace("ENTER");
   PyObject* old = self->charset;
   self->charset = PyObject_Str(charset);
@@ -722,6 +724,37 @@ static int smisk_Application_set_charset(smisk_Application* self, PyObject *char
   
   // Note: We can not remove lazy POST because the original data is
   //       no longer available after initial parsing.
+  
+  return 0;
+}
+
+
+static PyObject *_get_tolerant(smisk_Application* self) {
+  log_trace("ENTER");
+  Py_INCREF(self->tolerant); // callers reference
+  return self->tolerant;
+}
+
+
+static int _set_tolerant(smisk_Application* self, PyObject *tolerant) {
+  log_trace("ENTER");
+  PyObject* old = self->tolerant;
+  
+  if (PyBool_Check(tolerant)) {
+    self->tolerant = tolerant;
+    Py_INCREF(self->tolerant);
+  }
+  else if (NUMBER_Check(tolerant)) {
+    self->tolerant = PyBool_FromLong(NUMBER_AsLong(tolerant));
+    if (self->tolerant == NULL)
+      return -1;
+  }
+  else {
+    PyErr_SetString(PyExc_TypeError, "tolerant must be a boolean");
+    return -1;
+  }
+  
+  Py_XDECREF(old);
   
   return 0;
 }
@@ -751,55 +784,21 @@ static PyMethodDef smisk_Application_methods[] = {
 
 // Properties
 static PyGetSetDef smisk_Application_getset[] = {
-  {"sessions",
-    (getter)smisk_Application_get_sessions,
-    (setter)smisk_Application_set_sessions,
-    ":type: `smisk.session.Store`", NULL},
-  
-  {"charset",
-    (getter)smisk_Application_get_charset,
-    (setter)smisk_Application_set_charset,
-    "Sets the character encoding used for GET/POST accesses. If the GET or POST "
-    "dictionary has already been created, it is removed and recreated on the "
-    "next access (so that it is decoded correctly). "
-    "Defaults to 'utf-8'", NULL},
-  
+  {"sessions", (getter)smisk_Application_get_sessions, (setter)_set_sessions, ":type: smisk.session.Store", NULL},
+  {"charset", (getter)_get_charset, (setter)_set_charset, ":type: string", NULL},
+  {"tolerant", (getter)_get_tolerant, (setter)_set_tolerant, ":type: bool", NULL},
   {NULL, NULL, NULL, NULL, NULL}
 };
 
 // Members
 static struct PyMemberDef smisk_Application_members[] = {
-  {"request_class",  T_OBJECT_EX, offsetof(smisk_Application, request_class), 0,
-    ":type: Type\n\n"
-    "Must be set before calling `run()`"},
-  
-  {"response_class", T_OBJECT_EX, offsetof(smisk_Application, response_class), 0,
-    ":type: Type\n\n"
-    "Must be set before calling `run()`"},
-  
-  {"sessions_class",  T_OBJECT_EX, offsetof(smisk_Application, sessions_class), 0,
-    ":type: Type\n\n"
-    "Must be set before first access to `sessions`"},
-  
-  {"request",  T_OBJECT_EX, offsetof(smisk_Application, request),  RO,
-    ":type: `Request`"},
-  
-  {"response", T_OBJECT_EX, offsetof(smisk_Application, response), RO,
-    ":type: `Response`"},
-  
-  {"show_traceback", T_OBJECT_EX, offsetof(smisk_Application, show_traceback), 0,
-    ":type: bool\n\n"
-    "Defaults to True."},
-  
-  {"forks", T_INT, offsetof(smisk_Application, forks), 0,
-    ":type: int\n\n"
-    "Number of child processes to fork off into.\n"
-    "\n"
-    "*Note:* Forking is experimental and needs testing.\n"
-    "\n"
-    "This must be set before calling `run()`, as it's in `run()` where the "
-    "forking goes down. Defaults to 0 (disabled)."},
-  
+  {"request_class", T_OBJECT_EX, offsetof(smisk_Application, request_class), 0, ":type: Type"},
+  {"response_class", T_OBJECT_EX, offsetof(smisk_Application, response_class), 0, ":type: Type"},
+  {"sessions_class", T_OBJECT_EX, offsetof(smisk_Application, sessions_class), 0, ":type: Type"},
+  {"request", T_OBJECT_EX, offsetof(smisk_Application, request),  RO, ":type: Request"},
+  {"response", T_OBJECT_EX, offsetof(smisk_Application, response), RO, ":type: Response"},
+  {"show_traceback", T_OBJECT_EX, offsetof(smisk_Application, show_traceback), 0, ":type: bool"},
+  {"forks", T_INT, offsetof(smisk_Application, forks), 0, ":type: int"},
   {NULL, 0, 0, 0, NULL}
 };
 

@@ -22,6 +22,24 @@ Changes
   by SMISK_FALLBACK_CHARSET in config.h, which is set to "ISO-8859-1" in
   accordance with HTTP 1.1 (RFC 2616), sect. 19.3 "Tolerant Applications".
 
+* MVC applications respond with "400 Bad Request" when user input text can not
+  be decoded using app.charset (or iso-8859-1 if app.tolerant is True).
+
+* core.Application has a new boolean property "tolerant". When True (default)
+  user input will be processed in a tolerant manner. I.e. if a query string
+  encoded in iso-8859-1 is sent to an application with app.charset of utf-8,
+  the query string will still be decoded using the HTTP 1.1 (RFC 2616) fallback
+  encoding iso-8859-1, which is able do decode any byte. If tolerant where 
+  False, a UnicodeDecodeError would be raised.
+
+* Static method core.URL.decompose_query() accepts a new boolean argument 
+  "tolerant" which if True, charset argument is set and can not be used to 
+  decode the first argument, causes decoding using the iso-8859-1 charset.
+
+* mvc.Response have two new members: The property "charsets" which is a list of
+  acceptable charsets. The method "accepts_charset" which return True if the 
+  first argument is acceptable according to the "charsets" list.
+
 1.1.5
 -----
 

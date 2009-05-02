@@ -40,6 +40,7 @@ typedef struct {
   int            forks; // int
   
   PyObject       *charset; // str
+  PyObject       *tolerant; // bool
   
   // Public C
   pid_t          *fork_pids;
@@ -48,7 +49,8 @@ typedef struct {
 // Current instance (NULL if none)
 extern smisk_Application *smisk_Application_current;
 
-#define SMISK_APP_CHARSET PyBytes_AS_STRING(smisk_Application_current->charset)
+#define SMISK_APP_CHARSET   PyBytes_AS_STRING(smisk_Application_current->charset)
+#define SMISK_APP_TOLERANT  ((smisk_Application_current->tolerant == Py_True) ? 1 : 0)
 
 // class Application (the Application type object)
 extern PyTypeObject smisk_ApplicationType;

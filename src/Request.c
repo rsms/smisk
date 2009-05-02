@@ -125,7 +125,8 @@ static int _parse_request_body(smisk_Request* self) {
       {
         return smisk_multipart_parse_stream(self->input->stream, content_length, 
                                             self->post, self->files, SMISK_APP_CHARSET,
-                                            self->max_multipart_size);
+                                            self->max_multipart_size,
+                                            SMISK_APP_TOLERANT);
       }
       else if (self->max_multipart_size > 0) {
         /* if the limit is 0, we do not want to raise an exception since
@@ -145,7 +146,7 @@ static int _parse_request_body(smisk_Request* self) {
         char *s = _read_form_data(self->input->stream, content_length, self->max_formdata_size);
         if (s == NULL)
           return -1;
-        int parse_status = smisk_parse_input_data(s, "&", 0, self->post, SMISK_APP_CHARSET);
+        int parse_status = smisk_parse_input_data(s, "&", 0, self->post, SMISK_APP_CHARSET, SMISK_APP_TOLERANT);
         free(s);
         if (parse_status != 0)
           return -1;
@@ -610,7 +611,7 @@ PyObject *smisk_Request_get_get(smisk_Request* self) {
       assert_refcount(self->get, > 0);
       
       if (smisk_parse_input_data(PyBytes_AsString(self->url->query), "&", 0, 
-                                 self->get, SMISK_APP_CHARSET) != 0)
+                                 self->get, SMISK_APP_CHARSET, SMISK_APP_TOLERANT) != 0)
       {
         Py_DECREF(self->get);
         self->get = NULL;
@@ -660,7 +661,7 @@ PyObject *smisk_Request_get_cookies(smisk_Request* self) {
     
     if ((http_cookie = FCGX_GetParam("HTTP_COOKIE", self->envp))) {
       log_debug("Parsing cookies");
-      if (smisk_parse_input_data(http_cookie, ";", 1, self->cookies, SMISK_APP_CHARSET) != 0) {
+      if (smisk_parse_input_data(http_cookie, ";", 1, self->cookies, SMISK_APP_CHARSET, SMISK_APP_TOLERANT) != 0) {
         Py_DECREF(self->cookies);
         self->cookies = NULL;
         return NULL;

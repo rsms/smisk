@@ -63,6 +63,7 @@ typedef struct {
   PyObject *files;
   int eof;
   const char *charset; /* if not NULL, used for decoding part names and form data */
+  int try_fallback_cs; /* if not 0, decode text data using SMISK_FALLBACK_CHARSET if charset fails */
   long long bytes_read; /* total number of bytes read */
   long long size_limit; /* max number of bytes we are permitted to read in total */
 } multipart_ctx_t;
@@ -78,6 +79,8 @@ void smisk_multipart_ctx_reset(multipart_ctx_t *ctx) {
   ctx->filename[0] = 0;
   ctx->content_type[0] = 0;
   ctx->part_name[0] = 0;
+  ctx->charset = NULL;
+  ctx->try_fallback_cs = 0;
   ctx->bytes_read = 0LL;
   ctx->size_limit = 0LL;
 }
@@ -91,7 +94,6 @@ int smisk_multipart_ctx_init(multipart_ctx_t *ctx) {
   if ((ctx->filename = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
   if ((ctx->content_type = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
   if ((ctx->part_name = (char *)malloc(FILENAME_MAX+1)) == NULL) return -1;
-  ctx->charset = NULL;
   smisk_multipart_ctx_reset(ctx);
   return 0;
 }
@@ -315,7 +317,7 @@ int smisk_multipart_parse_form_data(multipart_ctx_t *ctx) {
     PyObject *py_val = PyBytes_FromString(ctx->buf.ptr);
     
     // Decode value if needed
-    if (ctx->charset && (smisk_str_to_unicode(&py_val, ctx->charset, "strict") == -1)) {
+    if (ctx->charset && (smisk_str_to_unicode(&py_val, ctx->charset, "strict", ctx->try_fallback_cs) == -1)) {
       Py_DECREF(py_key);
       Py_DECREF(py_val);
       return -1;
@@ -449,7 +451,8 @@ int smisk_multipart_parse_stream (FCGX_Stream *stream,
                                   PyObject *post, 
                                   PyObject *files,
                                   const char *charset,
-                                  long long size_limit)
+                                  long long size_limit,
+                                  int try_fallback_cs)
 {
   //multipart_ctx_t ctx;
   int status = 0, bytes_read;
@@ -480,6 +483,7 @@ int smisk_multipart_parse_stream (FCGX_Stream *stream,
   __ctx.files = files;
   __ctx.charset = charset;
   __ctx.size_limit = size_limit;
+  __ctx.try_fallback_cs = try_fallback_cs;
   
   // find boundary
   if ((bytes_read = smisk_stream_readline(__ctx.boundary, SMISK_STREAM_READLINE_LENGTH, __ctx.stream))) {

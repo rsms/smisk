@@ -191,7 +191,7 @@ MethodNotFound               = Status404(404, "Not Found")
 TemplateNotFound             = Status404(404, "Not Found")
 
 MethodNotAllowed             = Status(405, "Method Not Allowed", False)
-NotAcceptable                = Status(406, "Not Acceptable", False)
+NotAcceptable                = Status(406, "Not Acceptable")
 ProxyAuthenticationRequired  = Status(407, "Proxy Authentication Required", False)
 RequestTimeout               = Status(408, "Request Time-out", False)
 Conflict                     = Status(409, "Conflict", False)

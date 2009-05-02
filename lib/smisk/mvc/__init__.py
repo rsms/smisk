@@ -115,6 +115,19 @@ class Response(smisk.core.Response):
   :Deprecated: use Application.charset instead
   '''
   
+  charsets = []
+  '''Accept-charset qvalue header (list of tuples (string ct, int qual)) or empty list.
+  '''
+  
+  def accepts_charset(self, cs):
+    if not self.charsets:
+      return True
+    for t in self.charsets:
+      if t[0] == cs:
+        return True
+    return False
+  
+  
   def adjust_status(self, has_content):
     '''Make sure 204 No Content is set for responses without content.
     '''
@@ -472,24 +485,18 @@ class Application(smisk.core.Application):
     :rtype:   tuple
     '''
     args = []
-    log.debug('parsing request')
-    
-    # Set params to the query string
     params = {}
-    for k,v in self.request.get.items():
-      if isinstance(v, str):
-        v = v.decode('utf-8', self.unicode_errors)
-      params[k] = v
+    log.debug('parsing request')
     
     # Look at Accept-Charset header and set self.response.charset accordingly
     accept_charset = self.request.env.get('HTTP_ACCEPT_CHARSET', False)
     if accept_charset:
-      cqs, highqs, partials, accept_any = parse_qvalue_header(accept_charset.lower(),
-                                            '*', None, self.response.charset)
-      # If the charset we have already set is not in highq, use the first usable encoding
-      if cqs is not True:
+      self.response.charsets, highqs, partials, accept_any = parse_qvalue_header(accept_charset.lower())
+      if accept_any:
+        self.response.charsets = []
+      else:
         alt_cs = None
-        for cq in cqs:
+        for cq in self.response.charsets:
           c = cq[0]
           try:
             char_codecs.lookup(c)
@@ -497,7 +504,7 @@ class Application(smisk.core.Application):
             break
           except LookupError:
             pass
-        
+      
         if alt_cs is not None:
           self.response.charset = alt_cs
         else:
@@ -509,10 +516,28 @@ class Application(smisk.core.Application):
             accept_charset)
           if config.get('smisk.mvc.strict_tcn', True):
             raise http.NotAcceptable()
-        
+      
         if log.level <= logging.DEBUG:
           log.debug('using alternate response character encoding: %r (requested by client)',
             self.response.charset)
+    
+    # Handle params
+    try:
+      if self.charset:
+        # trigger build-up and thus decoding of text data
+        self.request.post
+        self.request.cookies
+        params.update(self.request.get)
+      else:
+        for k,v in self.request.get.items():
+          if isinstance(v, str):
+            v = v.decode('latin_1', self.unicode_errors)
+          params[k] = v
+    except UnicodeDecodeError:
+      # We do not speak about latin-1 in this message since in the case of URL-escaped 
+      # bytes we can never fail to decode bytes as latin-1.
+      raise http.BadRequest('Unable to decode text data. '\
+        'Please encode text using the %s character set.' % self.charset)
     
     # Parse body if POST request
     if self.request.method in ('POST', 'PUT'):
@@ -805,6 +830,7 @@ class Application(smisk.core.Application):
     self.response.format = None
     self.response.serializer = None
     self.response.charset = self.charset
+    self.response.charsets = []
     self.destination = None
     self.template = None
     
@@ -854,6 +880,11 @@ class Application(smisk.core.Application):
     
     # Encode response
     rsp = self.encode_response(rsp)
+    
+    # Check if client accepts charset
+    if self.response.charset and not self.response.accepts_charset(self.response.charset):
+      raise http.NotAcceptable('Unable to encode response text using charset(s) ' +\
+        ', '.join(['%s; q=%.2f' % (t[0], float(t[1])/100.0) for t in self.response.charsets]))
     
     # Return a response to the client and thus completing the transaction.
     self.send_response(rsp)
@@ -1030,7 +1061,7 @@ class Application(smisk.core.Application):
         if self.response.serializer:
           self.response.serializer.add_content_type_header(self.response, self.response.charset)
         self.response.replace_header('Content-Length: %d' % len(rsp))
-      self.response.replace_header('Cache-Control: no-cache')
+      self.response.replace_header('Cache-Control: no-cache') # todo
     
     # Send response
     if log.level <= logging.DEBUG:

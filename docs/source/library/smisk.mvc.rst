@@ -514,7 +514,7 @@ Classes
       
         #. Otherwise, if no template is used, serialize the *response
            object* using the previously deduced response serializer.
-   
+     
      #. Complete (or commit) the current HTTP transaction by sending
         the response by calling *send_response()*.
       
@@ -664,6 +664,18 @@ Classes
     :type: string
 
 
+  .. attribute:: charsets
+  
+    A list of acceptable charsets.
+    
+    The list have the form returned by :func:`~smisk.util.string.parse_qvalue_header()`
+    (first item in the returned tuple) or is an empty list if any charset is acceptable.
+
+    .. versionadded:: 1.1.6
+  
+    :type: list
+
+
   .. method:: send_file(path)
     
     Send a file to the client by using the host server sendfile-header
@@ -680,8 +692,7 @@ Classes
     :type   path: string
     
     :raises EnvironmentError: If smisk does not know how to perform *sendfile*
-                              through the current host server.
-    :raises EnvironmentError: If response has already started.
+                              through the current host server or if response has already started.
     :raises IOError:
   
   
@@ -721,6 +732,13 @@ Classes
     >>> response.replace_header('Content-type: text/plain')
     >>> response.headers
     ['X-Name: Fuffens', 'Content-type: text/plain']
+  
+  
+  .. method:: accepts_charset(charset)
+
+    .. versionadded:: 1.1.6
+    
+    Return True if *charset* is acceptable according to the :attr:`charsets` list.
 
 
 
