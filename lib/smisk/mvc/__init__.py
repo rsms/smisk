@@ -131,12 +131,13 @@ class Response(smisk.core.Response):
   def adjust_status(self, has_content):
     '''Make sure 204 No Content is set for responses without content.
     '''
+    if has_content:
+      return
     p = self.find_header('Status:')
-    if p != -1:
-      if not has_content  and  self.headers[p][7:].strip().startswith('200'):
-        self.headers[p] = 'Status: 204 No Content'
-        self.remove_header('content-length:')
-    elif not has_content:
+    if p != -1 and self.headers[p][7:].lstrip().startswith('20'):
+      self.headers[p] = 'Status: 204 No Content'
+      self.remove_header('content-length:')
+    else:
       self.headers.append('Status: 204 No Content')
       self.remove_header('content-length:')
   
@@ -160,8 +161,11 @@ class Response(smisk.core.Response):
     '''Replace any instances of the same header type with *header*.
     '''
     name = header[:header.index(':')+1]
-    self.remove_header(name)
-    self.headers.append(header)
+    p = self.find_header(name)
+    if p == -1:
+      self.headers.append(header)
+    else:
+      self.headers[p] = header
   
   
   def send_file(self, path):
@@ -422,12 +426,14 @@ class Application(smisk.core.Application):
         log.debug('client accepts: %r', accept_types)
       
       # Parse the qvalue header
-      tqs, highqs, partials, accept_any = parse_qvalue_header(accept_types, '*/*', '/*')
+      tqs, highqs, partials, accept_any = parse_qvalue_header(accept_types)
       
       # If the default serializer exists in the highest quality accept types, return it
       if Response.serializer is not None:
         for t in Response.serializer.media_types:
           if t in highqs:
+            if '*' not in t and self.response.find_header('Content-Type:') == -1:
+              self.response.headers.append('Content-Type: '+t)
             return Response.serializer
       
       # Find a serializer matching any accept type, ordered by qvalue
@@ -435,6 +441,8 @@ class Application(smisk.core.Application):
       for tq in tqs:
         t = tq[0]
         if t in available_types:
+          if '*' not in t and self.response.find_header('Content-Type:') == -1:
+            self.response.headers.append('Content-Type: '+t)
           return serializers.media_types[t]
       
       # Accepts */* which is far more common than accepting partials, so we test this here

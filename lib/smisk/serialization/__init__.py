@@ -254,8 +254,12 @@ class Serializer(object):
   
   @classmethod
   def add_content_type_header(cls, response, charset):
-    if response.find_header('Content-Type:') == -1:
-      if charset is not None:
+    p = response.find_header('Content-Type:')
+    if p != -1:
+      if charset and 'charset=' not in response.headers[p]:
+        response.headers[p] = response.headers[p] + '; charset=' + charset
+    else:
+      if charset:
         response.headers.append('Content-Type: %s; charset=%s' % (cls.media_types[0], charset))
       else:
         response.headers.append('Content-Type: %s' % cls.media_types[0])
