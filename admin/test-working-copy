@@ -11,6 +11,8 @@ for PV in $VERSIONS; do
     echo "$0:" "Building and testing working copy Smisk with Python $PV"
     rm -rf build/lib.*
     python$PV setup.py build -f > /dev/null || exit 1
-    PYTHONPATH="$(echo $(pwd)/build/lib.*-$PV)" python$PV -c 'import smisk.test as t;t.test(verbosity=0)' || exit 1
+    PYTHONPATH="$(echo $(pwd)/build/lib.*-$PV)" python$PV -c \
+      'import sys,smisk.test as t;sys.exit([0,1][int(bool(len(t.test(verbosity=0).failures)))])'\
+      || exit 1
   fi
 done
