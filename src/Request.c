@@ -544,23 +544,24 @@ PyObject *smisk_Request_get_url(smisk_Request* self) {
     }
     
     // Host & port
-    s = FCGX_GetParam("SERVER_NAME", self->envp);
-    old = self->url->host;
-    if ((p = strchr(s, ':'))) {
-      self->url->host = PyBytes_FromStringAndSize(s, p-s);
-      self->url->port = atoi(p+1);
+    if ((s = FCGX_GetParam("SERVER_NAME", self->envp))) {
+      old = self->url->host;
+      if (s && (p = strchr(s, ':'))) {
+        self->url->host = PyBytes_FromStringAndSize(s, p-s);
+        self->url->port = atoi(p+1);
+      }
+      else if ((s2 = FCGX_GetParam("SERVER_PORT", self->envp))) {
+        self->url->host = PyBytes_FromString(s);
+        self->url->port = atoi(s2);
+      }
+      else {
+        self->url->host = PyBytes_FromString(s);
+      }
+      if (self->url->host == NULL)
+        return NULL;
+      PyBytes_InternInPlace(&self->url->host);
+      Py_CLEAR(old);
     }
-    else if ((s2 = FCGX_GetParam("SERVER_PORT", self->envp))) {
-      self->url->host = PyBytes_FromString(s);
-      self->url->port = atoi(s2);
-    }
-    else {
-      self->url->host = PyBytes_FromString(s);
-    }
-    if (self->url->host == NULL)
-      return NULL;
-    PyBytes_InternInPlace(&self->url->host);
-    Py_CLEAR(old);
     
     // Path
     if ((s = FCGX_GetParam("SCRIPT_NAME", self->envp))) {
