@@ -136,7 +136,7 @@ Utilities
   values.
 
 
-.. cfunction:: int smisk_parse_input_data (char *s, const char *separator, int is_cookie_data, PyObject *dict)
+.. cfunction:: int smisk_parse_input_data (char *s, const char *separator, int is_cookie_data, PyObject *dict, const char *charset, int try_fallback_cs)
   
   Parse input data (query string, post url-encoded, cookie, etc).
   

@@ -51,4 +51,8 @@ THE SOFTWARE.
 // How to encode strs used for dict keys
 #define SMISK_KEY_CHARSET "utf-8"
 
+// Fallback encoding, applied when decoding with app charset fails. Should be
+// "latin_1" as HTTP 1.1 defines Latin-1 as the default fallback charset.
+#define SMISK_FALLBACK_CHARSET "latin_1"
+
 #endif

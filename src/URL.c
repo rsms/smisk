@@ -645,8 +645,9 @@ PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *args, PyObject 
   
   PyObject *string = NULL, *_charset = NULL;
   const char *charset = "utf-8";
-  static char *kwlist[] = { "string", "charset", NULL };
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O", kwlist, &string, &_charset))
+  int tolerant = 1;
+  static char *kwlist[] = { "string", "charset", "tolerant", NULL };
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|Oi", kwlist, &string, &_charset, &tolerant))
     return NULL;
   
   char *s;
@@ -682,7 +683,8 @@ PyObject *smisk_URL_decompose_query(PyObject *nothing, PyObject *args, PyObject 
     return NULL;
   }
   
-  if (smisk_parse_input_data(s, "&", 0, d, charset) != 0) {
+  
+  if (smisk_parse_input_data(s, "&", 0, d, charset, tolerant) != 0) {
     Py_DECREF(string);
     Py_DECREF(d);
     return NULL;

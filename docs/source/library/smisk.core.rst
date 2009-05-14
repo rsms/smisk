@@ -293,6 +293,24 @@ Classes
     If True, traceback information is included with error responses. Note that
     traceback information is always included in logs. Defaults to True.
 
+  .. attribute:: charset
+  
+    Default character set used to decode and encode text data. Defaults to "utf-8".
+
+    .. versionadded:: 1.1.1
+
+  .. attribute:: tolerant
+  
+    Boolean value controlling tolerance of input data handling.
+    
+    When True (default) user input will be processed in a tolerant manner. I.e.
+    if a query string encoded in iso-8859-1 is sent to an application with :attr:`charset` 
+    set to utf-8, the query string will still be decoded using the HTTP 1.1 (RFC 2616)
+    fallback encoding iso-8859-1. If tolerant where False, a UnicodeDecodeError would be 
+    raised.
+
+    .. versionadded:: 1.1.6
+
 
   .. method:: application_did_stop()
 
@@ -949,11 +967,17 @@ Classes
       >>> print URL.decompose_query('name=Jack%20%C3%B6l&age=53')
       {'age': u'53', 'name': u'Jack \xc3\xb6l'}
       
-    
+    :param  string:
+    :type   string: str
     :param  charset:
       Character encoding of *s* used to create unicode values and normalized str keys.
       If *charset* is ``None``, a `str` (bytes) is returned instead of a `unicode`.
     :type   charset: str
+    :param  tolerant:
+      If True, charset argument is set and can not be used to decode the first argument, 
+      causes decoding using the iso-8859-1 charset. If False a UnicodeDecodeError will be 
+      raised if *string* can not be decoded using *charset*.
+    :type   tolerant: bool
 
 
 

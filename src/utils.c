@@ -145,7 +145,8 @@ int smisk_parse_input_data( char *s,
                             const char *separator,
                             int is_cookie_data, 
                             PyObject *dict,
-                            const char *charset )
+                            const char *charset,
+                            int try_fallback_cs )
 {
   char *scpy, *key, *val, *strtok_ctx = NULL;
   PyObject *py_key, *py_val;
@@ -190,7 +191,7 @@ int smisk_parse_input_data( char *s,
         break;
       }
       
-      if (charset && (smisk_str_to_unicode(&py_val, charset, "strict") == -1)) {
+      if (charset && (smisk_str_to_unicode(&py_val, charset, "strict", try_fallback_cs) == -1)) {
         Py_DECREF(py_val);
         status = -1;
         break;
@@ -461,9 +462,10 @@ long smisk_object_hash(PyObject *obj) {
 
 
 int smisk_str_recode( PyObject **str,
-                             const char *src_charset,
-                             const char *dst_charset,
-                             const char *errors ) {
+                      const char *src_charset,
+                      const char *dst_charset,
+                      const char *errors )
+{
   // Does not modify recount on str
   PyObject *u, *s, *orig_str;
   
@@ -486,13 +488,21 @@ int smisk_str_recode( PyObject **str,
 }
 
 
-int smisk_str_to_unicode( PyObject **str, const char *charset, const char *errors ) {
+int smisk_str_to_unicode( PyObject **str, const char *charset, const char *errors, int try_fallback ) {
   // Decrements str and returns new reference to new unicode object.
   PyObject *u, *orig_str;
   
   u = PyUnicode_FromEncodedObject(*str, charset, errors);
-  if (!u)
-    return -1;
+  if (u == NULL) {
+    if (try_fallback) {
+      PyErr_Clear();
+      log_debug("failed to decode text data using primary charset '%s' -- "
+                "trying fallback charset '%s'", charset, SMISK_FALLBACK_CHARSET);
+      u = PyUnicode_FromEncodedObject(*str, SMISK_FALLBACK_CHARSET, errors);
+    }
+    if (u == NULL)
+      return -1;
+  }
   orig_str = *str;
   *str = u;
   Py_DECREF(orig_str);

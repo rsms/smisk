@@ -30,6 +30,7 @@ int smisk_multipart_parse_stream (FCGX_Stream *stream,
                                   PyObject *post,
                                   PyObject *files,
                                   const char *charset,
-                                  long long size_limit);
+                                  long long size_limit,
+                                  int try_fallback_cs);
 
 #endif
