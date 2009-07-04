@@ -198,12 +198,12 @@ def main(wsgi_app, appdir=None, bind=None, forks=None, handle_errors=True, cli=T
   # Configure appdir
   setup_appdir(appdir)
   
+  # Create the application
+  application = Gateway(wsgi_app=wsgi_app)
+  
   # Forks
   if isinstance(forks, int) and forks > -1:
     application.forks = forks
-  
-  # Create the application
-  application = Gateway(wsgi_app=wsgi_app)
   
   # Runloop
   if handle_errors:
