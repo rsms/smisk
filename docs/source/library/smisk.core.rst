@@ -878,6 +878,8 @@ Classes
     
     "URI" in the form ``path ["?" query] ["#" fragment]``
     
+    .. versionadded:: 1.1.7
+    
     :type: string
   
   
