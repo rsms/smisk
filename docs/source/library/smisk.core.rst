@@ -874,6 +874,13 @@ Classes
     :type: string
   
   
+  .. attribute:: uri
+    
+    "URI" in the form ``path ["?" query] ["#" fragment]``
+    
+    :type: string
+  
+  
   
   .. method:: __init__(obj) -> URL
   
