@@ -44,7 +44,7 @@ def redirect_to(url, entity=None, status=http.Found, **params):
         pass
   
   # Append any params to url
-  if params:
+  if params and url:
     if not url.endswith('?'):
       if '?' in url:
         url = url + '&'
