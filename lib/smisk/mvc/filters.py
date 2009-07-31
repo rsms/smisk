@@ -5,6 +5,7 @@ import smisk.core
 import smisk.mvc.http as http
 from smisk.core import Application as App
 from smisk.mvc.decorators import leaf_filter, LeafFilter
+from smisk.mvc.helpers import redirect_to
 from time import time
 try:
 	from hashlib import md5
