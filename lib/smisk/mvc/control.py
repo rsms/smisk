@@ -244,6 +244,8 @@ def _get_template(node):
 def _path_to(node, resolve_template):
   if isinstance(node, (MethodType, FunctionType)):
     # Leaf is Method or Function.
+    from smisk.mvc.routing import _find_canonical_leaf
+    node = _find_canonical_leaf(node, node)
     # Function supported because methods might be wrapped in functions
     # which in those cases should have an im_class attribute.
     if getattr(node, 'im_class', None) is None \
