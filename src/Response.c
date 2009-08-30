@@ -221,18 +221,9 @@ PyObject *smisk_Response_begin(smisk_Response* self) {
   }
   
   // Add smisk to server tag
-  // xxx todo: make configurable. But how? Adding it to smisk.core module won't be
-  //           good since we have no way of accessing the value directly (if we put
-  //           it as a property of the module, we have to do expensive python lookups)
-  //           So maybe adding it to Application like Application.current? No, that
-  //           will cause the same problem as described earlier, since we have no way
-  //           of reading the value without the expensive lookup.
   char *server_software = FCGX_GetParam("SERVER_SOFTWARE", smisk_Application_current->request->envp);
-  if (server_software) {
+  if (server_software && strlen(server_software)) {
     FCGX_FPrintF(self->out->stream, "Server: %s smisk/%s\r\n", server_software, SMISK_VERSION);
-  }
-  else {
-    FCGX_FPrintF(self->out->stream, "Server: smisk/%s\r\n", SMISK_VERSION);
   }
   
   // Headers?
