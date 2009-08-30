@@ -6,6 +6,7 @@ import smisk.mvc.http as http
 from smisk.core import Application as App
 from smisk.mvc.decorators import leaf_filter, LeafFilter
 from smisk.mvc.helpers import redirect_to
+from smisk.mvc.model import sql
 from time import time
 try:
 	from hashlib import md5
@@ -254,4 +255,46 @@ class DigestAuthFilter(LeafFilter):
 		
 		# authorized -- delegate further down the filter chain
 		return self.respond_authorized(params['username'], *va, **kw)
+	
+
+class sortable_entities(LeafFilter):
+	'''Sort sets of Elixir entities
+	
+	Usage:
+	
+		@sortable_entities(UserAccount, 'users', 'created')
+		def users(self):
+			return {'users': UserAccount.query}
+	
+	'''
+	def __init__(self, entity, parameter, sortdefault, orderdefault='desc', kwprefix=''):
+		self.entity = entity
+		self.parameter = parameter
+		self.sortdefault = sortdefault
+		self.orderdefault = orderdefault
+		self.kwprefix = kwprefix
+	
+	def filter(self, leaf, *va, **kw):
+		rsp = leaf(*va, **kw)
+		if self.parameter in rsp:
+			q = rsp[self.parameter]
+		else:
+			q = self.entity.query
+		if not q:
+			return rsp
+		sort = kw.get(self.kwprefix+'sort', self.sortdefault)
+		order = kw.get(self.kwprefix+'order', self.orderdefault)
+		if sort:
+			sort_key = getattr(self.entity, sort)
+			if order == 'desc':
+				q = q.order_by(sql.desc(sort_key))
+			else:
+				q = q.order_by(sort_key)
+		rsp.update({
+			self.parameter: q.all(),
+			self.kwprefix+'sort': sort,
+			self.kwprefix+'order': order,
+			self.kwprefix+'inverse_order': ('desc','asc')[int(order=='desc')]
+		})
+		return rsp
 	
