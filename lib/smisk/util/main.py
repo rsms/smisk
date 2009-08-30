@@ -131,6 +131,26 @@ def main_cli_filter(appdir=None, bind=None, forks=None):
 	                  action="store_true",
 	                  default=False)
 	
+	parser.add_option("-H", "--http",
+	                  dest="http_",
+	                  help='Run this application through a built-in HTTP server. Shorthand for --http-port 8080.',
+	                  action="store_true",
+	                  default=False)
+	
+	parser.add_option("", "--http-port",
+	                  dest="http_port",
+	                  help='Run this application through a built-in HTTP server listening on port <port>.',
+	                  metavar="<port>",
+	                  type="int",
+	                  default=0)
+	
+	parser.add_option("", "--http-addr",
+	                  dest="http_addr",
+	                  help='Run this application through a built-in HTTP server bound to <host>.',
+	                  metavar="<host>",
+	                  type="string",
+	                  default='localhost')
+	
 	opts, args = parser.parse_args()
 	
 	# Make sure empty values are None
@@ -143,8 +163,11 @@ def main_cli_filter(appdir=None, bind=None, forks=None):
 	if not opts.forks:
 		opts.forks = None
 	
+	if opts.http_:
+		opts.http_port = 8080
+	
 	return opts.appdir, opts.bind, opts.forks, opts.spawn, opts.chdir, \
-	       opts.umask, opts.stdout, opts.stderr, opts.pidfile
+	       opts.umask, opts.stdout, opts.stderr, opts.pidfile, opts.http_port
 
 
 def handle_errors_wrapper(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs):
@@ -227,9 +250,10 @@ class Main(object):
 		If several servers are spawned a list of PIDs is returned, otherwise
 		whatever returned by application.run() is returned.
 		'''
-		stdout = stderr = None
+		stdout = stderr = http_addr = None
+		http_port = 0
 		if cli:
-			appdir, bind, forks, spawn, chdir, umask, stdout, stderr, pidfile \
+			appdir, bind, forks, spawn, chdir, umask, stdout, stderr, pidfile, http_port \
 			 = main_cli_filter(appdir=appdir, bind=bind, forks=forks)
 		
 		# Setup
@@ -247,6 +271,9 @@ class Main(object):
 			except:
 				pass
 		
+		# Run method kewyords
+		run_kwargs = dict(bind=bind, application=application, forks=forks, handle_errors=handle_errors)
+		
 		# Spawn?
 		if spawn:
 			def childfunc(childno, bindarg):
@@ -255,14 +282,66 @@ class Main(object):
 				if _chdir is None:
 					_chdir = '/'
 				daemonize(chdir, umask, '/dev/null', stdout, stderr)
-				self.run(bind=bindarg, application=application, forks=forks, handle_errors=handle_errors)
+				run_kwargs['bind'] = bindarg
+				self.run(**run_kwargs)
 			socket, startport, address, args = parse_bind_arg(bind)
 			childs = fork_binds(spawn, childfunc, socket=socket, startport=startport, address=address)
 			return childs
 		else:
-			# Run
 			_prepare_env(chdir=chdir, umask=umask)
-			return self.run(bind=bind, application=application, forks=forks, handle_errors=handle_errors)
+			if http_port:
+				# fork off the app
+				run_kwargs['bind'] = '127.0.0.1:5000'
+				app_pid = self.run_deferred(**run_kwargs)
+				# start the http server
+				from smisk.util.httpd import Server
+				if not http_addr:
+					http_addr = 'localhost'
+				server = Server((http_addr, http_port))
+				orig_sighandlers = {}
+				
+				def kill_app_sighandler(signum, frame):
+					try:
+						print 'sending SIGKILL to application %d...' % app_pid
+						log.debug('sending SIGKILL to application %d...', app_pid)
+						os.kill(app_pid, 9)
+					except:
+						pass
+				
+				def sighandler(signum, frame):
+					try:
+						print 'sending signal %d to application %d...' % ( signum, app_pid)
+						log.debug('sending signal %d to application %d...', signum, app_pid)
+						os.kill(app_pid, signum)
+					except:
+						pass
+					try:
+						orig_alarm_handler = signal.signal(signal.SIGALRM, kill_app_sighandler)
+						signal.alarm(2) # 2 sec delay until SIGKILLing
+						os.waitpid(-1, 0)
+						signal.alarm(0) # cancel SIGKILL
+						signal.signal(signal.SIGALRM, orig_alarm_handler)
+					except:
+						pass
+					try:
+						orig_sighandlers[signum](signum, frame)
+					except:
+						pass
+					signal.signal(signal.SIGALRM, lambda x,y: os._exit(0))
+					signal.alarm(2) # 2 sec time limit for cleanup functions
+					sys.exit(0)
+				
+				logging.basicConfig(level=logging.DEBUG)
+				orig_sighandlers[signal.SIGINT] = signal.signal(signal.SIGINT, sighandler)
+				orig_sighandlers[signal.SIGTERM] = signal.signal(signal.SIGTERM, sighandler)
+				orig_sighandlers[signal.SIGHUP] = signal.signal(signal.SIGHUP, sighandler)
+				print 'httpd listening on %s:%d' % (http_addr, http_port)
+				server.serve_forever()
+				os.kill(os.getpid(), 2)
+				os.kill(os.getpid(), 15)
+			else:
+				# Run
+				return self.run(**run_kwargs)
 	
 	def setup(self, application=None, appdir=None, config=None, *args, **kwargs):
 		'''Helper for setting up an application.
@@ -288,13 +367,35 @@ class Main(object):
 		return absapp(application, self.default_app_type, *args, **kwargs)
 	
 	
+	
+	def run_deferred(self, signal_parent_after_exit=signal.SIGTERM, keepalive=True, *va, **kw):
+		pid = _fork()
+		if pid == -1:
+			log.error('fork() failed')
+		if pid == 0:
+			try:
+				while True:
+					print 'starting app'
+					self.run(*va, **kw)
+					if not keepalive:
+						break
+				try:
+					if signal_parent_after_exit:
+						os.kill(os.getppid(), signal_parent_after_exit)
+				except:
+					pass
+			finally:
+				os._exit(0)
+		else:
+			return pid
+	
 	def run(self, bind=None, application=None, forks=None, handle_errors=False):
 		'''Helper for running an application.
 		'''
 		# Write PID
 		if self.pidfile:
 			flags = os.O_WRONLY | os.O_APPEND
-			if hasattr(os, 'O_EXLOCK');
+			if hasattr(os, 'O_EXLOCK'):
 				flags = flags | os.O_EXLOCK
 			fd = os.open(self.pidfile, flags)
 			try:
