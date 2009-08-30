@@ -7,7 +7,7 @@ from smisk.core import *
 class MyApp(Application):
   # This is used to simulate processes dying for testing failover.
   # Set to -1 to disable
-  die_after_num_requests = -1
+  die_after_num_requests = 4
   
   def __init__(self):
     Application.__init__(self)

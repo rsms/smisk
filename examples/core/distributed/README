@@ -1,25 +1,22 @@
-This demo shows how to create and run distributed processes.
+This demonstrates how to run distributed applications by running multiple
+stand-alone servers.
 
 process.py
   This comprises the web application.
-  You can run it without arguments like this:
-  ./process.py
-  Or give it a port and optionally a hostname to bind to:
-  ./process.py 127.0.0.1:5000
-  (This process is programmed to die after 4 requests in order to test
-  fail-over and load balancing. You can disable this by editing the self-
-  explaining instance variable called "die_after_num_requests" in
-  process.py to have the value -1.)
+  Start a single server listening on 127.0.0.1 on port 5000:
+    ./process.py --bind :5000
+	Start 3 servers listening on port 5000, 5001 and 5002:
+    ./process.py --bind :5000 --spawn 3
+  
+  Note:
+    (This process is programmed to die after 4 requests in order to test
+    fail-over and load balancing. You can disable this by editing the self-
+    explaining instance variable called "die_after_num_requests" in
+    process.py to have the value -1.)
 
 lighttpd.conf
-  After you have started one process on port 5000, this configuration will
-  setup a FastCGI-connection between lighttpd and the process and serve
-  requests just as it would with a "local" process.
-  This is how it gets down:
-  lighttpd -Df lighttpd.conf
-
-spawn.py
-  Spawns several processes at once.
-  To spawn 4 processes which accepts local connections on port 5000 to 5004:
-  ./spawn.py 5000 4 127.0.0.1
-
+  After you have started one or more processes (on port 5000-5002), this 
+  configuration will setup a FastCGI-connection between lighttpd and the 
+  process and serve requests just as it would with a "local" process.
+  
+    lighttpd -Df lighttpd.conf
