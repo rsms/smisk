@@ -1,222 +1,229 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=${response.charset}"/>
-    <title>key-value-store example application</title>
-    <style type="text/css">
-      body { font-family:sans-serif; }
-      ul,ol { margin-bottom:1em; }
-      h2 { font-family:sans-serif; font-size:100%; margin:0 0 .4em 0; }
-      div.action, #request, #response, #error_response { padding:1em; margin:1em 0; font-family:monospace; }
-      #request, #response { min-width:200px; }
-      #request { background:#f8f8a9; }
-      #response { background:#a9e6f8; }
-      #status { font-style:italic; color:#888; border-top:1px solid #ccc; margin-top:1em; padding-top:1em; }
-      #error_response { background:#f8bfa9; display:none; font-family:sans-serif; float:right;
-        border-left:4px solid white; border-bottom:4px solid white; }
-      div.action { background-color:#ddd; float:left; margin-right:1em; }
-      div.breaker { clear:both; }
-      input[type=text] { width:10em; }
-      textarea { height:4em; width:20em; }
-    </style>
-    <script type="text/javascript" charset="utf-8">
-      
-      if(!this.JSON){JSON={};}(function(){function f(n){return n<10?'0'+n:n;}if(typeof Date.prototype.toJSON!=='function'){Date.prototype.toJSON=function(key){return this.getUTCFullYear()+'-'+f(this.getUTCMonth()+1)+'-'+f(this.getUTCDate())+'T'+f(this.getUTCHours())+':'+f(this.getUTCMinutes())+':'+f(this.getUTCSeconds())+'Z';};String.prototype.toJSON=Number.prototype.toJSON=Boolean.prototype.toJSON=function(key){return this.valueOf();};}var cx=/[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,escapable=/[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,gap,indent,meta={'\b':'\\b','\t':'\\t','\n':'\\n','\f':'\\f','\r':'\\r','"':'\\"','\\':'\\\\'},rep;function quote(string){escapable.lastIndex=0;return escapable.test(string)?'"'+string.replace(escapable,function(a){var c=meta[a];return typeof c==='string'?c:'\\u'+('0000'+a.charCodeAt(0).toString(16)).slice(-4);})+'"':'"'+string+'"';}function str(key,holder){var i,k,v,length,mind=gap,partial,value=holder[key];if(value&&typeof value==='object'&&typeof value.toJSON==='function'){value=value.toJSON(key);}if(typeof rep==='function'){value=rep.call(holder,key,value);}switch(typeof value){case'string':return quote(value);case'number':return isFinite(value)?String(value):'null';case'boolean':case'null':return String(value);case'object':if(!value){return'null';}gap+=indent;partial=[];if(Object.prototype.toString.apply(value)==='[object Array]'){length=value.length;for(i=0;i<length;i+=1){partial[i]=str(i,value)||'null';}v=partial.length===0?'[]':gap?'[\n'+gap+partial.join(',\n'+gap)+'\n'+mind+']':'['+partial.join(',')+']';gap=mind;return v;}if(rep&&typeof rep==='object'){length=rep.length;for(i=0;i<length;i+=1){k=rep[i];if(typeof k==='string'){v=str(k,value);if(v){partial.push(quote(k)+(gap?': ':':')+v);}}}}else{for(k in value){if(Object.hasOwnProperty.call(value,k)){v=str(k,value);if(v){partial.push(quote(k)+(gap?': ':':')+v);}}}}v=partial.length===0?'{}':gap?'{\n'+gap+partial.join(',\n'+gap)+'\n'+mind+'}':'{'+partial.join(',')+'}';gap=mind;return v;}}if(typeof JSON.stringify!=='function'){JSON.stringify=function(value,replacer,space){var i;gap='';indent='';if(typeof space==='number'){for(i=0;i<space;i+=1){indent+=' ';}}else if(typeof space==='string'){indent=space;}rep=replacer;if(replacer&&typeof replacer!=='function'&&(typeof replacer!=='object'||typeof replacer.length!=='number')){throw new Error('JSON.stringify');}return str('',{'':value});};}if(typeof JSON.parse!=='function'){JSON.parse=function(text,reviver){var j;function walk(holder,key){var k,v,value=holder[key];if(value&&typeof value==='object'){for(k in value){if(Object.hasOwnProperty.call(value,k)){v=walk(value,k);if(v!==undefined){value[k]=v;}else{delete value[k];}}}}return reviver.call(holder,key,value);}cx.lastIndex=0;if(cx.test(text)){text=text.replace(cx,function(a){return'\\u'+('0000'+a.charCodeAt(0).toString(16)).slice(-4);});}if(/^[\],:{}\s]*$/.test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g,'@').replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g,']').replace(/(?:^|:|,)(?:\s*\[)+/g,''))){j=eval('('+text+')');return typeof reviver==='function'?walk({'':j},''):j;}throw new SyntaxError('JSON.parse');};}})();if(!Object.prototype.toJSONString){Object.prototype.toJSONString=function(filter){return JSON.stringify(this,filter);};Object.prototype.parseJSON=function(filter){return JSON.parse(this,filter);};}
-      function E(s){return document.getElementById(s);}
-      function h(s) {return String(s).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;');}
-      function jsonp_callback(payload) {}
-      
-      var PUT_COMPAT = 'PUT';
-      /* Firefox does not support PUT, so we use POST which in this application is handled the same way */
-      if (window.navigator.userAgent.indexOf('Firefox') != -1)
-        PUT_COMPAT = 'POST';
-      
-      /* Universal interface interacting with a Smisk service */
-      var service = {
-        /* The URL of the service */
-        url: document.location.protocol + '//' + document.location.host + '/',
-        
-        /* Call a leaf */
-        call: function(method, leaf, params, response_handler, username, password) {
-          if (typeof method != 'string') method = 'GET';
-          if (typeof leaf != 'string') leaf = '';
-          if (typeof params == 'undefined') params = {};
-          if (typeof response_handler == 'undefined') response_handler = null;
-          if (typeof username == 'undefined') username = null;
-          if (typeof password == 'undefined') password = null;
-          if (typeof XMLHttpRequest == "undefined") {
-            alert('you need to use a modern browser for this example to work');
-            return null;
-          }
-          var url = service.url+leaf;
-          var payload = null;
-          var req =  new XMLHttpRequest();
-          var headers = {'Accept': 'application/json'};
-          leaf = encodeURI(leaf);
-          
-          if (typeof params != 'undefined' && params) {
-            if (method == 'GET') {
-              var qs = '?';
-              for (var k in params)
-                qs += encodeURI(k)+'='+encodeURI(params[k])+'&';
-              url += qs;
-            }
-            else {
-              payload = JSON.stringify(params, null, 2);
-              headers['Content-Type'] = 'application/json';
-            }
-          }
-          if (response_handler != null) {
-            req.onreadystatechange = function() {
-              if (req.readyState == 4) {
-                //alert(req.responseText);
-                var rsp = null;
-                if (req.responseText && req.responseText.length) {
-                  try {
-                    rsp = JSON.parse(req.responseText);
-                  } catch(e) {}
-                }
-                response_handler(req, (req.status < 300 && req.status >= 200), rsp);
-              }
-            };
-          }
-          req.open(method, url, (response_handler != null), username, password);
-          for (var k in headers) {
-            try {
-              req.setRequestHeader(k, headers[k]);
-            } catch(e) {}
-          }
-          var time_started = new Date();
-          req.send(payload);
-          return {req:req, payload:payload, url:url, headers:headers, time_started:time_started};
-        },
-      };
-      
-      
-      var kvs = {
-        call: function(method, leaf, params, response_handler, username, password) {
-          var t = null;
-          var rsp_handler = function(req, success, rsp) {
-            if (typeof response_handler != 'undefined')
-              response_handler(req, success, rsp);
-            if (!success) {
-              E('error_response').innerHTML = '<b>'+h(rsp.name) + '</b><br/>'+ h(rsp.description);
-              E('error_response').style.display = 'inline-block';
-            }
-            else {
-              E('error_response').style.display = 'none';
-            }
-            var s = 'HTTP/1.1 '+h(req.status)+' '+h(req.statusText)+'\n'
-              + req.getAllResponseHeaders();
-            if (req.responseText)
-              s += '\n' + h(req.responseText);
-            E('response').innerHTML = s;
-            var msdelay = (new Date()).getTime()-t.time_started.getTime();
-            kvs.setStatus('Request processed in '+msdelay+' ms');
-          }
-          t = service.call(method, leaf, params, rsp_handler, username, password);
-          var s = method+' /'+encodeURI(leaf)+' HTTP/1.1\n'
-            + 'Host: ' + document.location.host + '\n';
-          for (var k in t.headers) {
-            if (k != 'toJSONString' && k != 'parseJSON')
-              s += h(k) + ': ' + h(t.headers[k]) + '\n';
-          }
-          if (t.payload)
-            s += 'Content-Length: ' + t.payload.length + '\n';
-          if (t.payload) {
-            s += '\n';
-            s += h(t.payload);
-          }
-          E('request').innerHTML = s;
-          return t;
-        },
-        
-        entry: function() {
-          kvs.call('GET', 'entry/', null, function(req, success, rsp){
-            var s = '<ul>';
-            for (var key in rsp.keys) {
-              if (key != 'toJSONString' && key != 'parseJSON')
-                s += '<li>' + h(rsp.keys[key]) + '</li>';
-            }
-            s += '</ul>';
-            E('special_response').innerHTML = s;
-          });
-        },
-        
-        set: function(key, value) {
-          kvs.call(PUT_COMPAT, 'entry/'+key, {value:value}, function(req, success, rsp){
-            E('special_response').innerHTML = '';
-          });
-        },
-        
-        get: function(key) {
-          kvs.call('GET', 'entry/'+key, null, function(req, success, rsp){
-            E('special_response').innerHTML = '<b>' + h(key) + ':</b> ' + h(rsp.value);
-          });
-        },
-        
-        delete_: function(key) {
-          kvs.call('DELETE', 'entry/'+key, null, function(req, success, rsp){
-            if (success)
-              E('special_response').innerHTML = 'Entry <b>'+h(key)+'</b> successfully removed.';
-            else
-              E('special_response').innerHTML = '';
-          });
-        },
-        
-        setStatus: function(html) {
-          E('status').innerHTML = html;
-        }
-      };
-      
-      window.onload = function(e){
-        kvs.entry();
-      }
-      
-    </script>
-  </head>
-  <body>
-    <h1>Key-Value store</h1>
-    <p>
-      This is an example of using a HTML/JavaScript front-end for manipulating a key-value store.
-      It uses Ajax and data is serialized as JSON.
-    </p>
-    <div class="action">
-      <h2>List keys</h2>
-      <tt>GET /entry/</tt><br/>
-      <input type="submit" value="Send request" onclick="kvs.entry()" />
-    </div>
-    <div class="action">
-      <h2>Set a key</h2>
-      <form onsubmit="kvs.set(E('set_key').value, E('set_value').value);return false;">
-        <tt><script type="text/javascript">document.write(PUT_COMPAT);</script> /entry/</tt><input type="text" value="my key" id="set_key" /><br/>
-        <textarea id="set_value">Hello world</textarea><br/>
-        <input type="submit" value="Send request" />
-      </form>
-    </div>
-    <div class="action">
-      <h2>Get a value</h2>
-      <form onsubmit="kvs.get(E('get_key').value);return false;">
-        <tt>GET /entry/</tt><input type="text" value="my key" id="get_key" /><br/>
-        <input type="submit" value="Send request" />
-      </form>
-    </div>
-    <div class="action">
-      <h2>Delete a value</h2>
-      <form onsubmit="kvs.delete_(E('delete_key').value);return false;">
-        <tt>DELETE /entry/</tt><input type="text" value="my key" id="delete_key" /><br/>
-        <input type="submit" value="Send request" />
-      </form>
-    </div>
-    <div class="breaker"></div>
-    Request:
-    <pre id="request"></pre>
-    <div class="breaker"></div>
-    Response:
-    <div id="error_response"></div>
-    <pre id="response"></pre>
-    <div class="breaker"></div>
-    <div id="special_response"></div>
-    <div id="status"></div>
-  </body>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=${response.charset}"/>
+		<title>key-value-store example application</title>
+		<style type="text/css">
+			body { font-family:sans-serif; }
+			ul,ol { margin-bottom:1em; }
+			h2 { font-family:sans-serif; font-size:100%; margin:0 0 .4em 0; }
+			div.action, #request, #response, #error_response { padding:1em; margin:1em 0; font-family:monospace; }
+			#request, #response { min-width:200px; }
+			#request { background:#f8f8a9; }
+			#response { background:#a9e6f8; }
+			#status { font-style:italic; color:#888; border-top:1px solid #ccc; margin-top:1em; padding-top:1em; }
+			#error_response { background:#f8bfa9; display:none; font-family:sans-serif; float:right;
+				border-left:4px solid white; border-bottom:4px solid white; }
+			div.action { background-color:#ddd; float:left; margin-right:1em; }
+			div.breaker { clear:both; }
+			input[type=text] { width:10em; }
+			textarea { height:4em; width:20em; }
+		</style>
+		<script type="text/javascript" charset="utf-8">
+		// <![CDATA[
+			if(!this.JSON){JSON={};}(function(){function f(n){return n<10?'0'+n:n;}if(typeof Date.prototype.toJSON!=='function'){Date.prototype.toJSON=function(key){return this.getUTCFullYear()+'-'+f(this.getUTCMonth()+1)+'-'+f(this.getUTCDate())+'T'+f(this.getUTCHours())+':'+f(this.getUTCMinutes())+':'+f(this.getUTCSeconds())+'Z';};String.prototype.toJSON=Number.prototype.toJSON=Boolean.prototype.toJSON=function(key){return this.valueOf();};}var cx=/[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,escapable=/[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,gap,indent,meta={'\b':'\\b','\t':'\\t','\n':'\\n','\f':'\\f','\r':'\\r','"':'\\"','\\':'\\\\'},rep;function quote(string){escapable.lastIndex=0;return escapable.test(string)?'"'+string.replace(escapable,function(a){var c=meta[a];return typeof c==='string'?c:'\\u'+('0000'+a.charCodeAt(0).toString(16)).slice(-4);})+'"':'"'+string+'"';}function str(key,holder){var i,k,v,length,mind=gap,partial,value=holder[key];if(value&&typeof value==='object'&&typeof value.toJSON==='function'){value=value.toJSON(key);}if(typeof rep==='function'){value=rep.call(holder,key,value);}switch(typeof value){case'string':return quote(value);case'number':return isFinite(value)?String(value):'null';case'boolean':case'null':return String(value);case'object':if(!value){return'null';}gap+=indent;partial=[];if(Object.prototype.toString.apply(value)==='[object Array]'){length=value.length;for(i=0;i<length;i+=1){partial[i]=str(i,value)||'null';}v=partial.length===0?'[]':gap?'[\n'+gap+partial.join(',\n'+gap)+'\n'+mind+']':'['+partial.join(',')+']';gap=mind;return v;}if(rep&&typeof rep==='object'){length=rep.length;for(i=0;i<length;i+=1){k=rep[i];if(typeof k==='string'){v=str(k,value);if(v){partial.push(quote(k)+(gap?': ':':')+v);}}}}else{for(k in value){if(Object.hasOwnProperty.call(value,k)){v=str(k,value);if(v){partial.push(quote(k)+(gap?': ':':')+v);}}}}v=partial.length===0?'{}':gap?'{\n'+gap+partial.join(',\n'+gap)+'\n'+mind+'}':'{'+partial.join(',')+'}';gap=mind;return v;}}if(typeof JSON.stringify!=='function'){JSON.stringify=function(value,replacer,space){var i;gap='';indent='';if(typeof space==='number'){for(i=0;i<space;i+=1){indent+=' ';}}else if(typeof space==='string'){indent=space;}rep=replacer;if(replacer&&typeof replacer!=='function'&&(typeof replacer!=='object'||typeof replacer.length!=='number')){throw new Error('JSON.stringify');}return str('',{'':value});};}if(typeof JSON.parse!=='function'){JSON.parse=function(text,reviver){var j;function walk(holder,key){var k,v,value=holder[key];if(value&&typeof value==='object'){for(k in value){if(Object.hasOwnProperty.call(value,k)){v=walk(value,k);if(v!==undefined){value[k]=v;}else{delete value[k];}}}}return reviver.call(holder,key,value);}cx.lastIndex=0;if(cx.test(text)){text=text.replace(cx,function(a){return'\\u'+('0000'+a.charCodeAt(0).toString(16)).slice(-4);});}if(/^[\],:{}\s]*$/.test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g,'@').replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g,']').replace(/(?:^|:|,)(?:\s*\[)+/g,''))){j=eval('('+text+')');return typeof reviver==='function'?walk({'':j},''):j;}throw new SyntaxError('JSON.parse');};}})();if(!Object.prototype.toJSONString){Object.prototype.toJSONString=function(filter){return JSON.stringify(this,filter);};Object.prototype.parseJSON=function(filter){return JSON.parse(this,filter);};}
+			function E(s){return document.getElementById(s);}
+			function h(s) {return String(s).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;');}
+			function jsonp_callback(payload) {}
+			
+			var PUT_COMPAT = 'PUT';
+			/* Firefox does not support PUT, so we use POST which in this application is handled the same way */
+			if (window.navigator.userAgent.indexOf('Firefox') != -1)
+				PUT_COMPAT = 'POST';
+			
+			/* Universal interface interacting with a Smisk service */
+			var service = {
+				/* The URL of the service */
+				url: document.location.protocol + '//' + document.location.host + '/',
+				
+				/* Call a leaf */
+				call: function(method, leaf, params, response_handler, username, password) {
+					if (typeof method != 'string') method = 'GET';
+					if (typeof leaf != 'string') leaf = '';
+					if (typeof params == 'undefined') params = {};
+					if (typeof response_handler == 'undefined') response_handler = null;
+					if (typeof username == 'undefined') username = null;
+					if (typeof password == 'undefined') password = null;
+					if (typeof XMLHttpRequest == "undefined") {
+						alert('you need to use a modern browser for this example to work');
+						return null;
+					}
+					var url = service.url+leaf;
+					var payload = null;
+					var req =	new XMLHttpRequest();
+					var headers = {'Accept': 'application/json'};
+					leaf = encodeURI(leaf);
+					
+					if (typeof params != 'undefined' && params) {
+						if (method == 'GET') {
+							var qs = '?';
+							for (var k in params)
+								qs += encodeURI(k)+'='+encodeURI(params[k])+'&';
+							url += qs;
+						}
+						else {
+							payload = JSON.stringify(params, null, 2);
+							headers['Content-Type'] = 'application/json';
+						}
+					}
+					if (response_handler != null) {
+						req.onreadystatechange = function() {
+							if (req.readyState == 4) {
+								//alert(req.responseText);
+								var rsp = null;
+								if (req.responseText && req.responseText.length) {
+									try {
+										rsp = JSON.parse(req.responseText);
+									} catch(e) {}
+								}
+								response_handler(req, (req.status < 300 && req.status >= 200), rsp);
+							}
+						};
+					}
+					req.open(method, url, (response_handler != null), username, password);
+					for (var k in headers) {
+						try {
+							req.setRequestHeader(k, headers[k]);
+						} catch(e) {}
+					}
+					var time_started = new Date();
+					req.send(payload);
+					return {req:req, payload:payload, url:url, headers:headers, time_started:time_started};
+				},
+			};
+			
+			
+			var kvs = {
+				call: function(method, leaf, params, response_handler, username, password) {
+					var t = null;
+					var rsp_handler = function(req, success, rsp) {
+						if (typeof response_handler != 'undefined')
+							response_handler(req, success, rsp);
+						if (!success) {
+							E('error_response').innerHTML = '<b>'+h(rsp.name) + '</b><br/>'+ h(rsp.description);
+							E('error_response').style.display = 'inline-block';
+						}
+						else {
+							E('error_response').style.display = 'none';
+						}
+						var s = 'HTTP/1.1 '+h(req.status)+' '+h(req.statusText)+'\n'
+							+ req.getAllResponseHeaders();
+						if (req.responseText)
+							s += '\n' + h(req.responseText);
+						E('response').innerHTML = s;
+						var msdelay = (new Date()).getTime()-t.time_started.getTime();
+						kvs.setStatus('Request processed in '+msdelay+' ms');
+					}
+					t = service.call(method, leaf, params, rsp_handler, username, password);
+					var s = method+' /'+encodeURI(leaf)+' HTTP/1.1\n'
+						+ 'Host: ' + document.location.host + '\n';
+					for (var k in t.headers) {
+						if (k != 'toJSONString' && k != 'parseJSON')
+							s += h(k) + ': ' + h(t.headers[k]) + '\n';
+					}
+					if (t.payload)
+						s += 'Content-Length: ' + t.payload.length + '\n';
+					if (t.payload) {
+						s += '\n';
+						s += h(t.payload);
+					}
+					E('request').innerHTML = s;
+					return t;
+				},
+				
+				entry: function() {
+					kvs.call('GET', 'entry/', null, function(req, success, rsp){
+						var s = '<ul>';
+						for (var key in rsp.keys) {
+							if (key != 'toJSONString' && key != 'parseJSON')
+								s += '<li>' + h(rsp.keys[key]) + '</li>';
+						}
+						s += '</ul>';
+						E('special_response').innerHTML = s;
+					});
+				},
+				
+				set: function(key, value) {
+					kvs.call(PUT_COMPAT, 'entry/'+key, {value:value}, function(req, success, rsp){
+						E('special_response').innerHTML = '';
+					});
+				},
+				
+				get: function(key) {
+					kvs.call('GET', 'entry/'+key, null, function(req, success, rsp){
+						E('special_response').innerHTML = '<b>' + h(key) + ':</b> ' + h(rsp.value);
+					});
+				},
+				
+				delete_: function(key) {
+					kvs.call('DELETE', 'entry/'+key, null, function(req, success, rsp){
+						if (success)
+							E('special_response').innerHTML = 'Entry <b>'+h(key)+'</b> successfully removed.';
+						else
+							E('special_response').innerHTML = '';
+					});
+				},
+				
+				setStatus: function(html) {
+					E('status').innerHTML = html;
+				}
+			};
+			
+			window.onload = function(e){
+				kvs.entry();
+				document.getElementById('put-label').appendChild(document.createTextNode(PUT_COMPAT));
+			}
+		// ]]>
+		</script>
+	</head>
+	<body>
+		<h1>Key-Value store</h1>
+		<p>
+			This is an example of using a HTML/JavaScript front-end for manipulating a key-value store.
+			It uses Ajax and data is serialized as JSON.
+		</p>
+		<div class="action">
+			<h2>List keys</h2>
+			<tt>GET /entry/</tt><br/>
+			<input type="submit" value="Send request" onclick="kvs.entry()" />
+		</div>
+		<div class="action">
+			<h2>Set a key</h2>
+			<form onsubmit="kvs.set(E('set_key').value, E('set_value').value);return false;" action="">
+				<div>
+				<tt><span id="put-label"></span> /entry/</tt><input type="text" value="my key" id="set_key" /><br/>
+				<textarea id="set_value" cols="10" rows="3">Hello world</textarea><br/>
+				<input type="submit" value="Send request" />
+				</div>
+			</form>
+		</div>
+		<div class="action">
+			<h2>Get a value</h2>
+			<form onsubmit="kvs.get(E('get_key').value);return false;" action="">
+				<div>
+				<tt>GET /entry/</tt><input type="text" value="my key" id="get_key" /><br/>
+				<input type="submit" value="Send request" />
+				</div>
+			</form>
+		</div>
+		<div class="action">
+			<h2>Delete a value</h2>
+			<form onsubmit="kvs.delete_(E('delete_key').value);return false;" action="">
+				<div>
+				<tt>DELETE /entry/</tt><input type="text" value="my key" id="delete_key" /><br/>
+				<input type="submit" value="Send request" />
+				</div>
+			</form>
+		</div>
+		<div class="breaker"></div>
+		<h4>Request:</h4>
+		<pre id="request"></pre>
+		<div class="breaker"></div>
+		<h4>Response:</h4>
+		<div id="error_response"></div>
+		<pre id="response"></pre>
+		<div class="breaker"></div>
+		<div id="special_response"></div>
+		<div id="status"></div>
+	</body>
 </html>
