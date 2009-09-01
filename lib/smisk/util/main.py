@@ -149,7 +149,7 @@ def main_cli_filter(appdir=None, bind=None, forks=None):
 	                  help='Run this application through a built-in HTTP server bound to <host>.',
 	                  metavar="<host>",
 	                  type="string",
-	                  default='localhost')
+	                  default=None)
 	
 	opts, args = parser.parse_args()
 	
@@ -165,7 +165,8 @@ def main_cli_filter(appdir=None, bind=None, forks=None):
 		opts.http_port = 8080
 	
 	return opts.appdir, opts.bind, opts.forks, opts.spawn, opts.chdir, \
-	       opts.umask, opts.stdout, opts.stderr, opts.pidfile, opts.http_port, opts.debug
+	       opts.umask, opts.stdout, opts.stderr, opts.pidfile, opts.http_port, \
+	       opts.http_addr, opts.debug
 
 
 def handle_errors_wrapper(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs):
@@ -252,7 +253,7 @@ class Main(object):
 		debug = False
 		http_port = 0
 		if cli:
-			appdir, bind, forks, spawn, chdir, umask, stdout, stderr, pidfile, http_port, debug \
+			appdir, bind, forks, spawn, chdir, umask, stdout, stderr, pidfile, http_port, http_addr, debug \
 			 = main_cli_filter(appdir=appdir, bind=bind, forks=forks)
 		
 		# Setup
@@ -291,12 +292,18 @@ class Main(object):
 			return childs
 		else:
 			_prepare_env(chdir=chdir, umask=umask)
-			if http_port:
+			if http_port or http_addr != None:
 				# start the http server
 				from smisk.util.httpd import Server
-				if not http_addr:
+				if http_addr == None:
 					http_addr = 'localhost'
-				server = Server((http_addr, http_port))
+				elif http_addr == '*':
+					http_addr = ''
+				if not http_port:
+					http_port = 8080
+				http_addr = (http_addr, http_port)
+				fcgi_addr = ('127.0.0.1', 5990)
+				server = Server(http_addr, fcgi_addr)
 				orig_sighandlers = {}
 				
 				def kill_app_sighandler(signum, frame):
@@ -338,10 +345,10 @@ class Main(object):
 				orig_sighandlers[signal.SIGTERM] = signal.signal(signal.SIGTERM, sighandler)
 				orig_sighandlers[signal.SIGHUP] = signal.signal(signal.SIGHUP, sighandler)
 				# fork off the app
-				run_kwargs['bind'] = '127.0.0.1:5000'
+				run_kwargs['bind'] = '127.0.0.1:5990'
 				app_pid = self.run_deferred(**run_kwargs)
 				# start the web server
-				print 'httpd listening on %s:%d' % (http_addr, http_port)
+				print 'httpd listening on %s:%d backed by application %d' % (http_addr[0], http_addr[1], app_pid)
 				server.serve_forever()
 				os.kill(os.getpid(), 2)
 				os.kill(os.getpid(), 15)

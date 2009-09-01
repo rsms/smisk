@@ -217,8 +217,9 @@ class Server(BaseHTTPServer.HTTPServer):
 	fcgichannel = None
 	document_root = '/tmp'
 	
-	def __init__(self, address, request_handler=RequestHandler, *va, **kw):
+	def __init__(self, address, fcgi_address=('127.0.0.1', 5000), request_handler=RequestHandler, *va, **kw):
 		self.document_root = os.path.realpath('.')
+		self.fcgi_address = fcgi_address
 		BaseHTTPServer.HTTPServer.__init__(self, address, request_handler)
 	
 	def server_bind(self):
@@ -238,7 +239,9 @@ class Server(BaseHTTPServer.HTTPServer):
 		channel.sock.connect(addr)
 		return channel
 	
-	def get_fcgi_backend(self, addr=('127.0.0.1', 5000), max_connect_retries=10):
+	def get_fcgi_backend(self, addr=None, max_connect_retries=10):
+		if addr == None:
+			addr = self.fcgi_address
 		while True:
 			try:
 				return self.fcgi_connect(addr)
