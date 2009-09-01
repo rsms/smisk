@@ -381,7 +381,6 @@ class Main(object):
 		if pid == 0:
 			try:
 				while True:
-					print 'starting app'
 					self.run(*va, **kw)
 					if not keepalive:
 						break

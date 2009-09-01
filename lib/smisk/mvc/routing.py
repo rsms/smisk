@@ -237,7 +237,6 @@ class RegExpFilter(Filter):
 				if isinstance(k, unicode):
 					k = k.encode('utf-8')
 				params[k] = v
-			log.error('CHECKPOINT 3 %r', params)
 			return [], params
 		
 		return None2

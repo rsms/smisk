@@ -92,7 +92,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 			elif k == 'content-type':
 				params['CONTENT_TYPE'] = v
 		if content_length:
-			params['CONTENT_LENGTH'] = content_length
+			params['CONTENT_LENGTH'] = str(content_length)
 		
 		# begin
 		role = fcgi.FCGI_RESPONDER
