@@ -59,22 +59,28 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	def handle_fcgi_request(self, ch):
 		rid = 1
 		content_length = 0
+		query_string = ''
+		if '?' in self.path:
+			query_string = self.path[self.path.index('?')+1:]
 		params = {
-			'DOCUMENT_ROOT': self.server.document_root,
 			'GATEWAY_INTERFACE': 'CGI/1.1',
 			'PATH_INFO': '',
-			'QUERY_STRING': '',
+			'QUERY_STRING': query_string,
 			'REMOTE_ADDR': self.client_address[0],
-			'REMOTE_PORT': '%d' % self.client_address[1],
+			'REMOTE_HOST': self.server.fqdn,
 			'REQUEST_METHOD': self.command,
-			'REQUEST_URI': self.path,
-			'SCRIPT_FILENAME': self.server.document_root + '/' + self.path.lstrip('/'),
 			'SCRIPT_NAME': '/' + self.path.lstrip('/'),
-			'SERVER_ADDR': self.server.naddr[0],
-			'SERVER_PORT': '%d' % self.server.naddr[1],
 			'SERVER_NAME': '%s:%d' % (self.server.fqdn, self.server.naddr[1]),
+			'SERVER_PORT': '%d' % self.server.naddr[1],
 			'SERVER_PROTOCOL': self.request_version,
 			'SERVER_SOFTWARE': self.server_version,
+			
+			# Following are not part of CGI 1.1:
+			'DOCUMENT_ROOT': self.server.document_root,
+			'REMOTE_PORT': '%d' % self.client_address[1],
+			'REQUEST_URI': self.path,
+			'SCRIPT_FILENAME': self.server.document_root + '/' + self.path.lstrip('/'),
+			'SERVER_ADDR': self.server.naddr[0],
 		}
 		
 		# read http headers and transfer to params
@@ -83,6 +89,10 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 			params['HTTP_'+k.replace('-','_').upper()] = v
 			if k == 'content-length':
 				content_length = int(v)
+			elif k == 'content-type':
+				params['CONTENT_TYPE'] = v
+		if content_length:
+			params['CONTENT_LENGTH'] = content_length
 		
 		# begin
 		role = fcgi.FCGI_RESPONDER
@@ -118,7 +128,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 				try:
 					r = ch.readPacket(True)
 				except socket.error, e:
-					if e.args[0] == 35:
+					if e.args[0] == 35: # "Resource temporarily unavailable"
 						# probably waiting for stdin
 						n = content_length
 						if n > fcgi.FCGI_MAX_PACKET_LEN:
@@ -135,14 +145,15 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 							ch.writePacket(fcgi.Record(fcgi.FCGI_ABORT_REQUEST, rid))
 							break
 						
-						log.debug('got %d bytes on http stdin', len(indata))
-							
+						log.info('got %d bytes on http stdin -- forwarding on FCGI channel', len(indata))
+						
 						ch.writePacket(fcgi.Record(fcgi.FCGI_STDIN, rid, indata))
 						
 						if content_length == 0:
 							# write EOF
 							ch.writePacket(fcgi.Record(fcgi.FCGI_STDIN, rid))
 							wrote_stdin_eof = True
+						
 						continue
 					else:
 						raise
