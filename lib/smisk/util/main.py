@@ -154,8 +154,6 @@ def main_cli_filter(appdir=None, bind=None, forks=None):
 	opts, args = parser.parse_args()
 	
 	# Make sure empty values are None
-	if opts.debug:
-		_config.loads("'logging': {'levels':{'':'DEBUG'}}")
 	if not opts.bind:
 		opts.bind = None
 	if not opts.appdir:
@@ -167,7 +165,7 @@ def main_cli_filter(appdir=None, bind=None, forks=None):
 		opts.http_port = 8080
 	
 	return opts.appdir, opts.bind, opts.forks, opts.spawn, opts.chdir, \
-	       opts.umask, opts.stdout, opts.stderr, opts.pidfile, opts.http_port
+	       opts.umask, opts.stdout, opts.stderr, opts.pidfile, opts.http_port, opts.debug
 
 
 def handle_errors_wrapper(fnc, error_cb=sys.exit, abort_cb=None, *args, **kwargs):
@@ -251,9 +249,10 @@ class Main(object):
 		whatever returned by application.run() is returned.
 		'''
 		stdout = stderr = http_addr = None
+		debug = False
 		http_port = 0
 		if cli:
-			appdir, bind, forks, spawn, chdir, umask, stdout, stderr, pidfile, http_port \
+			appdir, bind, forks, spawn, chdir, umask, stdout, stderr, pidfile, http_port, debug \
 			 = main_cli_filter(appdir=appdir, bind=bind, forks=forks)
 		
 		# Setup
@@ -262,6 +261,9 @@ class Main(object):
 			                                    appdir=appdir, config=config, *args, **kwargs)
 		else:
 			application = self.setup(application=application, appdir=appdir, config=config, *args, **kwargs)
+		
+		if debug:
+			_config.loads("'logging': {'levels':{'':'DEBUG'}}")
 		
 		# Pidfile?
 		if pidfile:
@@ -290,9 +292,6 @@ class Main(object):
 		else:
 			_prepare_env(chdir=chdir, umask=umask)
 			if http_port:
-				# fork off the app
-				run_kwargs['bind'] = '127.0.0.1:5000'
-				app_pid = self.run_deferred(**run_kwargs)
 				# start the http server
 				from smisk.util.httpd import Server
 				if not http_addr:
@@ -331,10 +330,17 @@ class Main(object):
 					signal.alarm(2) # 2 sec time limit for cleanup functions
 					sys.exit(0)
 				
-				logging.basicConfig(level=logging.DEBUG)
+				log_level = logging.INFO
+				if debug:
+					log_level = logging.DEBUG
+				logging.basicConfig(level=log_level)
 				orig_sighandlers[signal.SIGINT] = signal.signal(signal.SIGINT, sighandler)
 				orig_sighandlers[signal.SIGTERM] = signal.signal(signal.SIGTERM, sighandler)
 				orig_sighandlers[signal.SIGHUP] = signal.signal(signal.SIGHUP, sighandler)
+				# fork off the app
+				run_kwargs['bind'] = '127.0.0.1:5000'
+				app_pid = self.run_deferred(**run_kwargs)
+				# start the web server
 				print 'httpd listening on %s:%d' % (http_addr, http_port)
 				server.serve_forever()
 				os.kill(os.getpid(), 2)
@@ -368,7 +374,7 @@ class Main(object):
 	
 	
 	
-	def run_deferred(self, signal_parent_after_exit=signal.SIGTERM, keepalive=True, *va, **kw):
+	def run_deferred(self, signal_parent_after_exit=signal.SIGTERM, keepalive=False, *va, **kw):
 		pid = _fork()
 		if pid == -1:
 			log.error('fork() failed')
